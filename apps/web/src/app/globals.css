@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-surface text-ink antialiased;
+}
+
+@layer components {
+  .marvi-card {
+    @apply rounded-marvi border border-black/5 bg-panel p-6 shadow-sm;
+  }
+
+  .marvi-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-marvi bg-emerald px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald/90;
+  }
+
+  .marvi-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-marvi border border-black/10 bg-panel px-5 py-3 text-sm font-bold text-ink transition hover:bg-cool;
+  }
+
+  .marvi-pill {
+    @apply inline-flex items-center gap-1.5 rounded-marvi px-3 py-1.5 text-xs font-bold;
+  }
+}

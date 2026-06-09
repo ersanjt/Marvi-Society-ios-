@@ -46,7 +46,7 @@ marvi-society/
 |----------|--------|
 | **iOS** | Local MVP with UserDefaults (discover, bookings, proof, admin) |
 | **Android** | Planned Phase 4 |
-| **Web** | Planned Phase 3 |
+| **Web** | Next.js marketing + portal preview (Phase 3) |
 | **Backend** | Planned Phase 1 (Supabase) |
 
 ---
@@ -82,6 +82,16 @@ Bundle ID: `com.marvisociety.app` (change for your Apple Developer team if neede
 Full details: [docs/ROADMAP.md](docs/ROADMAP.md)
 
 ---
+
+## Web development
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+Open http://localhost:3000
 
 ## API contract
 

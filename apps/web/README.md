@@ -1,29 +1,45 @@
 # Marvi Society — Web
 
-**Status:** Phase 3 (not started)
+Next.js 15 marketing site + brand portal (Phase 3).
 
-## Planned stack
+## Pages
 
-- Next.js 15 (App Router)
-- TypeScript
-- Tailwind CSS + shared design tokens
-- Supabase Auth (SSR)
-- i18n: next-intl (EN, TR, AR)
+| Route | Description |
+|-------|-------------|
+| `/` | Homepage |
+| `/creators` | Creator landing |
+| `/brands` | Brand / venue landing |
+| `/faq` | FAQ accordion |
+| `/demo` | Demo request form |
+| `/contact` | Support |
+| `/privacy` | Privacy policy |
+| `/terms` | Terms of use |
+| `/delete-account` | Account deletion |
+| `/portal/login` | Brand portal login |
+| `/portal/dashboard` | Venue metrics (preview) |
+| `/portal/campaigns/new` | Campaign builder (preview) |
 
-## Surfaces
-
-| Route group | Audience |
-|-------------|----------|
-| `(marketing)` | Public — home, creators, brands, FAQ, demo |
-| `(portal)` | Venue partners — campaigns, bookings, metrics |
-| `(admin)` | Operators — review queue, moderation |
-
-## Setup (when Phase 3 starts)
+## Setup
 
 ```bash
 cd apps/web
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
-See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) and [docs/ROADMAP.md](../../docs/ROADMAP.md).
+Open [http://localhost:3000](http://localhost:3000).
+
+## Production deploy
+
+Recommended: [Vercel](https://vercel.com) with root directory `apps/web`.
+
+Environment variables (Phase 1b):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+## Design tokens
+
+Colors match `docs/DESIGN_SYSTEM.md` via Tailwind (`emerald`, `ink`, `surface`, etc.).

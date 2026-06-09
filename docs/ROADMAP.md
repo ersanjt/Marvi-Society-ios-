@@ -65,18 +65,21 @@ Setup guide: [PHASE1_SETUP.md](./PHASE1_SETUP.md)
 
 ---
 
-## Phase 3 — Brand portal + marketing web (Week 11–14)
+## Phase 3 — Brand portal + marketing web (Week 11–14) 🔄 in progress
 
 **Goal:** Public web presence like [collabb.me](https://collabb.me/).
 
-| Surface | Pages / features |
-|---------|------------------|
-| **Marketing** | Home, creators, brands, FAQ, demo request, legal |
-| **Brand portal** | Login, campaign builder, booking list, metrics |
-| **SEO + i18n** | EN + TR; hreflang for UAE expansion |
-| **Demo funnel** | HubSpot or internal lead table |
+| Surface | Pages / features | Status |
+|---------|------------------|--------|
+| **Marketing** | Home, creators, brands, FAQ, demo, legal, contact | ✅ |
+| **Brand portal** | Login, dashboard, campaign builder (UI preview) | ✅ UI |
+| **Supabase Auth** | Portal login wired to backend | ⏳ |
+| **SEO + i18n** | EN + TR; hreflang | ⏳ |
+| **Demo funnel** | Form → Supabase / email | ⏳ mailto placeholder |
 
 **Exit criteria:** Venue can sign up on web, create campaign, see creator bookings without iOS app.
+
+Run locally: `cd apps/web && npm install && npm run dev`
 
 ---
 
