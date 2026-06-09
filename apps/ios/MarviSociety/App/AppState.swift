@@ -41,6 +41,7 @@ final class AppState: ObservableObject {
     @Published var lastSyncError: String?
     @Published var isAuthenticated = false
 
+    let locationService = LocationService()
     let isRemoteMode: Bool
     private let api: any MarviAPI
     private let persistence: AppPersistence
@@ -70,6 +71,11 @@ final class AppState: ObservableObject {
         if isRemoteMode && hasCompletedOnboarding {
             Task { await refreshFromServer() }
         }
+
+        if hasCompletedOnboarding {
+            requestPushPermission()
+            syncProofReminders()
+        }
     }
 
     var acceptedOfferIDs: Set<UUID> {
@@ -86,6 +92,52 @@ final class AppState: ObservableObject {
 
     var backendLabel: String {
         isRemoteMode ? "Supabase" : "Local demo"
+    }
+
+    var userCoordinate: (lat: Double, lng: Double)? {
+        guard let coordinate = locationService.coordinate else { return nil }
+        return (coordinate.latitude, coordinate.longitude)
+    }
+
+    func refreshLocation() {
+        locationService.refreshLocation()
+    }
+
+    func nearbyOffers(withinKm: Double = 8) -> [Offer] {
+        guard let user = userCoordinate else {
+            return offers.filter { $0.collaborationModel == .instant }
+        }
+
+        return offers
+            .compactMap { offer -> (Offer, Double)? in
+                guard let distance = offer.distanceKm(from: user.lat, lng: user.lng) else { return nil }
+                return distance <= withinKm ? (offer, distance) : nil
+            }
+            .sorted { $0.1 < $1.1 }
+            .map(\.0)
+    }
+
+    func distanceLabel(for offer: Offer) -> String? {
+        guard let user = userCoordinate,
+              let km = offer.distanceKm(from: user.lat, lng: user.lng) else { return nil }
+        if km < 1 {
+            return String(format: "%.0f m away", km * 1000)
+        }
+        return String(format: "%.1f km away", km)
+    }
+
+    func requestPushPermission() {
+        guard pushNotificationsEnabled else { return }
+        Task {
+            _ = await PushNotificationService.requestAuthorization()
+        }
+    }
+
+    func syncProofReminders() {
+        guard proofRemindersEnabled else { return }
+        for booking in activeBookings {
+            PushNotificationService.scheduleProofReminder(for: booking, enabled: true)
+        }
     }
 
     // MARK: - Sync
@@ -159,6 +211,10 @@ final class AppState: ObservableObject {
         if isRemoteMode {
             Task { await refreshFromServer() }
         }
+
+        requestPushPermission()
+        syncProofReminders()
+        refreshLocation()
     }
 
     // MARK: - Offers
@@ -203,6 +259,7 @@ final class AppState: ObservableObject {
                 do {
                     let booking = try await api.acceptOffer(offer.id)
                     bookings.insert(booking, at: 0)
+                    syncProofReminders()
                     await refreshFromServer()
                 } catch {
                     lastSyncError = error.localizedDescription
@@ -240,6 +297,11 @@ final class AppState: ObservableObject {
             ),
             at: 0
         )
+
+        if offer.collaborationModel == .instant, pushNotificationsEnabled {
+            PushNotificationService.scheduleInstantOfferNearby(venueName: offer.venue)
+        }
+        syncProofReminders()
     }
 
     func cancel(_ offer: Offer) {

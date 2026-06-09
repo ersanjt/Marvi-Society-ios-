@@ -247,6 +247,8 @@ private struct BookingJoinRow: Decodable {
         let host_note: String?
         let checklist: [String]?
         let venue_profiles: VenueEmbed?
+        let lat: Double?
+        let lng: Double?
     }
 
     func toBooking() -> Booking? {
@@ -267,7 +269,9 @@ private struct BookingJoinRow: Decodable {
             deliverables: nested.deliverables ?? [],
             requirements: nested.requirements ?? [],
             hostNote: nested.host_note ?? "",
-            collaborationModel: CollaborationModel.fromAPI(nested.model)
+            collaborationModel: CollaborationModel.fromAPI(nested.model),
+            latitude: nested.lat,
+            longitude: nested.lng
         )
 
         return Booking(

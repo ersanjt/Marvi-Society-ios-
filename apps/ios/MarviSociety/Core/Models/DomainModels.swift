@@ -164,6 +164,8 @@ struct Offer: Codable, Identifiable, Hashable {
     let requirements: [String]
     let hostNote: String
     let collaborationModel: CollaborationModel
+    let latitude: Double?
+    let longitude: Double?
 
     init(
         id: UUID = UUID(),
@@ -181,7 +183,9 @@ struct Offer: Codable, Identifiable, Hashable {
         deliverables: [String],
         requirements: [String],
         hostNote: String,
-        collaborationModel: CollaborationModel = .invitation
+        collaborationModel: CollaborationModel = .invitation,
+        latitude: Double? = nil,
+        longitude: Double? = nil
     ) {
         self.id = id
         self.title = title
@@ -199,6 +203,30 @@ struct Offer: Codable, Identifiable, Hashable {
         self.requirements = requirements
         self.hostNote = hostNote
         self.collaborationModel = collaborationModel
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+
+    var coordinate: (lat: Double, lng: Double)? {
+        guard let latitude, let longitude else { return nil }
+        return (latitude, longitude)
+    }
+
+    func distanceKm(from userLat: Double, userLng: Double) -> Double? {
+        guard let coordinate else { return nil }
+        return Self.haversineKm(
+            lat1: userLat, lng1: userLng,
+            lat2: coordinate.lat, lng2: coordinate.lng
+        )
+    }
+
+    private static func haversineKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double) -> Double {
+        let earthRadius = 6371.0
+        let dLat = (lat2 - lat1) * .pi / 180
+        let dLng = (lng2 - lng1) * .pi / 180
+        let a = sin(dLat / 2) * sin(dLat / 2)
+            + cos(lat1 * .pi / 180) * cos(lat2 * .pi / 180) * sin(dLng / 2) * sin(dLng / 2)
+        return earthRadius * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 }
 
@@ -217,6 +245,7 @@ struct Booking: Codable, Identifiable, Hashable {
 struct CreatorProfile: Codable {
     var name: String
     var handle: String
+    var tiktokHandle: String
     var city: String
     var status: MembershipStatus
     var score: Int

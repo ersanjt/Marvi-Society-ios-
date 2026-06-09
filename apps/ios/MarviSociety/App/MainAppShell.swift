@@ -12,6 +12,11 @@ struct MainAppShell: View {
                         Label("Discover", systemImage: "sparkles")
                     }
 
+                MapDiscoverView()
+                    .tabItem {
+                        Label("Nearby", systemImage: "map")
+                    }
+
                 BookingsView()
                     .tabItem {
                         Label("Bookings", systemImage: "calendar.badge.checkmark")

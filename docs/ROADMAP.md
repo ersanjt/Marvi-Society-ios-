@@ -43,19 +43,23 @@ Setup guide: [PHASE1_SETUP.md](./PHASE1_SETUP.md)
 
 ---
 
-## Phase 2 — Creator experience parity (Week 7–10)
+## Phase 2 — Creator experience parity (Week 7–10) 🔄 in progress
 
 **Goal:** Match Collabb core creator flows.
 
-| Feature | Priority |
-|---------|----------|
-| Instagram + TikTok account linking | P0 |
-| Push notifications (offer matched, proof reminder) | P0 |
-| Map view + nearby instant offers | P0 |
-| 4 collaboration models (invitation, event, gift, instant) | P0 |
-| Membership application workflow + admin approval | P0 |
-| Inbox with real-time updates | P1 |
-| Member score + strike system | P1 |
+| Feature | Priority | Status |
+|---------|----------|--------|
+| Map view + nearby instant offers | P0 | ✅ |
+| 4 collaboration models (invitation, event, gift, instant) | P0 | ✅ |
+| Collaboration model filters in Discover | P0 | ✅ |
+| Push notifications (proof reminder, instant nearby) | P0 | ✅ local |
+| Instagram + TikTok profile linking UI | P0 | ✅ handles + deep links |
+| Location service (when-in-use) | P0 | ✅ |
+| Instagram/TikTok OAuth verification | P1 | ⏳ |
+| Remote push via APNs + backend worker | P1 | ⏳ |
+| Membership application workflow + admin approval | P0 | ⏳ partial (schema) |
+| Inbox with real-time updates | P1 | ⏳ |
+| Member score + strike system | P1 | ⏳ |
 
 **Exit criteria:** Creator can discover on map, accept instant café offer, check in, submit proof, get push reminder.
 

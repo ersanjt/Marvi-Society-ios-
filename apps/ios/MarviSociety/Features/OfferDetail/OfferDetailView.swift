@@ -95,8 +95,8 @@ struct OfferDetailView: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 PrimaryActionButton(
-                    title: isAccepted ? "Cancel invitation" : "Accept invitation",
-                    systemImage: isAccepted ? "xmark.circle" : "checkmark.circle"
+                    title: primaryActionTitle,
+                    systemImage: isAccepted ? "xmark.circle" : (offer.collaborationModel == .instant ? "bolt.fill" : "checkmark.circle")
                 ) {
                     if isAccepted {
                         appState.cancel(offer)
@@ -112,6 +112,12 @@ struct OfferDetailView: View {
 
     private var fillRatio: Double {
         Double(offer.capacity - offer.remaining) / Double(offer.capacity)
+    }
+
+    private var primaryActionTitle: String {
+        if isAccepted { return "Cancel invitation" }
+        if offer.collaborationModel == .instant { return "Use now" }
+        return "Accept invitation"
     }
 }
 
@@ -136,6 +142,7 @@ private struct HeaderBlock: View {
                 VStack(alignment: .leading, spacing: 9) {
                     HStack(spacing: 6) {
                         StatusPill(text: offer.category.rawValue, tint: offer.category.tint, systemImage: offer.category.icon)
+                        StatusPill(text: offer.collaborationModel.rawValue, tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
 
                         if isAccepted {
                             StatusPill(text: "Confirmed", tint: MarviColor.emerald, systemImage: "checkmark")

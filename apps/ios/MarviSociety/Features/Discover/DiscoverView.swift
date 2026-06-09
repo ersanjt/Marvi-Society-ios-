@@ -11,6 +11,7 @@ private enum OfferFilter: String, CaseIterable, Identifiable {
 struct DiscoverView: View {
     @EnvironmentObject private var appState: AppState
     @State private var selectedCategory: OfferCategory?
+    @State private var selectedModel: CollaborationModel?
     @State private var selectedFilter: OfferFilter = .all
     @State private var searchText = ""
     @State private var selectedOffer: Offer?
@@ -18,6 +19,7 @@ struct DiscoverView: View {
     private var filteredOffers: [Offer] {
         appState.offers.filter { offer in
             let matchesCategory = selectedCategory == nil || offer.category == selectedCategory
+            let matchesModel = selectedModel == nil || offer.collaborationModel == selectedModel
             let matchesSearch = searchText.isEmpty ||
                 offer.title.localizedCaseInsensitiveContains(searchText) ||
                 offer.venue.localizedCaseInsensitiveContains(searchText) ||
@@ -33,7 +35,7 @@ struct DiscoverView: View {
                 matchesFilter = offer.remaining <= 4
             }
 
-            return matchesCategory && matchesSearch && matchesFilter
+            return matchesCategory && matchesModel && matchesSearch && matchesFilter
         }
     }
 
@@ -66,6 +68,8 @@ struct DiscoverView: View {
                         QuickMarketBar()
 
                         FilterStrip(selectedFilter: $selectedFilter)
+
+                        CollaborationModelStrip(selectedModel: $selectedModel)
 
                         CategorySelector(selectedCategory: $selectedCategory)
 
@@ -219,6 +223,48 @@ private struct QuickMarketBar: View {
     }
 }
 
+private struct CollaborationModelStrip: View {
+    @Binding var selectedModel: CollaborationModel?
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ModelChip(title: "All models", icon: "square.grid.2x2", isSelected: selectedModel == nil) {
+                    selectedModel = nil
+                }
+                ForEach(CollaborationModel.allCases) { model in
+                    ModelChip(title: model.rawValue, icon: model.icon, isSelected: selectedModel == model) {
+                        selectedModel = model
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct ModelChip: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .foregroundStyle(isSelected ? .white : MarviColor.ink)
+                .background(isSelected ? MarviColor.emerald : Color.white)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(Color.black.opacity(0.06), lineWidth: isSelected ? 0 : 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct FilterStrip: View {
     @Binding var selectedFilter: OfferFilter
 
@@ -311,6 +357,7 @@ private struct OfferCard: View {
                     VStack(alignment: .leading, spacing: 7) {
                         HStack(spacing: 6) {
                             StatusPill(text: offer.category.rawValue, tint: offer.category.tint, systemImage: offer.category.icon)
+                            StatusPill(text: offer.collaborationModel.rawValue, tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
 
                             if isAccepted {
                                 StatusPill(text: "Confirmed", tint: MarviColor.emerald, systemImage: "checkmark")

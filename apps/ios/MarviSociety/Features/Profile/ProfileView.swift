@@ -66,6 +66,36 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
+                                SectionTitle(title: "Social accounts", subtitle: "Linked profiles for verification and proof tracking.")
+
+                                TextField("Instagram handle", text: $appState.profile.handle)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .textFieldStyle(.roundedBorder)
+
+                                TextField("TikTok handle", text: $appState.profile.tiktokHandle)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .textFieldStyle(.roundedBorder)
+
+                                if let instagramURL = socialURL(platform: "instagram", handle: appState.profile.handle) {
+                                    Link(destination: instagramURL) {
+                                        Label("Open Instagram profile", systemImage: "camera")
+                                            .font(.caption.weight(.bold))
+                                    }
+                                }
+
+                                if let tiktokURL = socialURL(platform: "tiktok", handle: appState.profile.tiktokHandle) {
+                                    Link(destination: tiktokURL) {
+                                        Label("Open TikTok profile", systemImage: "music.note")
+                                            .font(.caption.weight(.bold))
+                                    }
+                                }
+                            }
+                        }
+
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 12) {
                                 SectionTitle(title: "Application checklist", subtitle: "\(appState.profile.completedApplicationSteps) of 6 steps complete")
                                 ChecklistRow(title: "Instagram connected", isDone: true)
                                 ChecklistRow(title: "City verified", isDone: true)
@@ -155,6 +185,13 @@ struct ProfileView: View {
                 Text("This clears local onboarding, bookings, campaigns, admin tasks, and proof submissions.")
             }
         }
+    }
+
+    private func socialURL(platform: String, handle: String) -> URL? {
+        let sanitized = handle.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "@", with: "")
+        guard !sanitized.isEmpty else { return nil }
+        return URL(string: "https://\(platform).com/\(sanitized)")
     }
 }
 

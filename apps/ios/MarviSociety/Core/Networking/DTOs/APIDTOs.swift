@@ -28,6 +28,8 @@ struct OfferRow: Decodable {
     let host_note: String?
     let checklist: [String]?
     let status: String?
+    let lat: Double?
+    let lng: Double?
 
     func toOffer() -> Offer {
         Offer(
@@ -46,7 +48,9 @@ struct OfferRow: Decodable {
             deliverables: deliverables ?? [],
             requirements: requirements ?? [],
             hostNote: host_note ?? "",
-            collaborationModel: CollaborationModel.fromAPI(model)
+            collaborationModel: CollaborationModel.fromAPI(model),
+            latitude: lat,
+            longitude: lng
         )
     }
 }
@@ -85,6 +89,7 @@ struct BookingRow: Decodable {
 struct CreatorProfileRow: Decodable {
     let full_name: String?
     let instagram_handle: String?
+    let tiktok_handle: String?
     let city: String?
     let status: String?
     let score: Double?
@@ -106,6 +111,7 @@ struct CreatorProfileRow: Decodable {
         return CreatorProfile(
             name: full_name ?? "Creator",
             handle: instagram_handle ?? "",
+            tiktokHandle: tiktok_handle ?? "",
             city: city ?? "Istanbul",
             status: MembershipStatus.fromAPI(status),
             score: Int(score ?? 0),

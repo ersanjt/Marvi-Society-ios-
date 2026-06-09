@@ -32,6 +32,9 @@
 		1A2B3C4D5E6F700000000135 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000123 /* SupabaseClient.swift */; };
 		1A2B3C4D5E6F700000000136 /* SupabaseMarviAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000124 /* SupabaseMarviAPI.swift */; };
 		1A2B3C4D5E6F700000000137 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */; };
+		1A2B3C4D5E6F700000000141 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000138 /* LocationService.swift */; };
+		1A2B3C4D5E6F700000000142 /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000139 /* PushNotificationService.swift */; };
+		1A2B3C4D5E6F700000000143 /* MapDiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000140 /* MapDiscoverView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +65,9 @@
 		1A2B3C4D5E6F700000000123 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000124 /* SupabaseMarviAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseMarviAPI.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000138 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000139 /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000140 /* MapDiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDiscoverView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,8 +135,18 @@
 				1A2B3C4D5E6F700000000411 /* Models */,
 				1A2B3C4D5E6F700000000412 /* Persistence */,
 				1A2B3C4D5E6F700000000426 /* Networking */,
+				1A2B3C4D5E6F700000000430 /* Services */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F700000000430 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F700000000138 /* LocationService.swift */,
+				1A2B3C4D5E6F700000000139 /* PushNotificationService.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		1A2B3C4D5E6F700000000426 /* Networking */ = {
@@ -186,6 +202,7 @@
 				1A2B3C4D5E6F700000000413 /* Admin */,
 				1A2B3C4D5E6F700000000414 /* Bookings */,
 				1A2B3C4D5E6F700000000415 /* Discover */,
+				1A2B3C4D5E6F700000000421 /* Map */,
 				1A2B3C4D5E6F700000000416 /* Inbox */,
 				1A2B3C4D5E6F700000000417 /* OfferDetail */,
 				1A2B3C4D5E6F700000000418 /* Onboarding */,
@@ -250,6 +267,14 @@
 				1A2B3C4D5E6F700000000006 /* DiscoverView.swift */,
 			);
 			path = Discover;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F700000000421 /* Map */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F700000000140 /* MapDiscoverView.swift */,
+			);
+			path = Map;
 			sourceTree = "<group>";
 		};
 		1A2B3C4D5E6F700000000416 /* Inbox */ = {
@@ -385,6 +410,9 @@
 				1A2B3C4D5E6F700000000135 /* SupabaseClient.swift in Sources */,
 				1A2B3C4D5E6F700000000136 /* SupabaseMarviAPI.swift in Sources */,
 				1A2B3C4D5E6F700000000137 /* AppleSignInService.swift in Sources */,
+				1A2B3C4D5E6F700000000141 /* LocationService.swift in Sources */,
+				1A2B3C4D5E6F700000000142 /* PushNotificationService.swift in Sources */,
+				1A2B3C4D5E6F700000000143 /* MapDiscoverView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -525,6 +553,7 @@
 				INFOPLIST_KEY_MARVI_API_MODE = local;
 				INFOPLIST_KEY_MARVI_SUPABASE_ANON_KEY = "";
 				INFOPLIST_KEY_MARVI_SUPABASE_URL = "";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Marvi Society uses your location to show nearby instant collaborations on the map.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -554,6 +583,7 @@
 				INFOPLIST_KEY_MARVI_API_MODE = local;
 				INFOPLIST_KEY_MARVI_SUPABASE_ANON_KEY = "";
 				INFOPLIST_KEY_MARVI_SUPABASE_URL = "";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Marvi Society uses your location to show nearby instant collaborations on the map.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

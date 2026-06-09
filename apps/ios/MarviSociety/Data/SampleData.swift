@@ -18,18 +18,13 @@ enum SampleData {
             capacity: 12,
             remaining: 3,
             imageName: "photo",
-            description: "A hosted dinner for creators with strong food, lifestyle, and city culture content. The venue wants warm evening coverage with a focus on the terrace, plating, and guest atmosphere.",
-            deliverables: [
-                "3 Instagram stories with venue tag",
-                "1 short Reel within 48 hours",
-                "Google review after visit"
-            ],
-            requirements: [
-                "Minimum 8K Instagram followers",
-                "Public profile",
-                "Smart evening dress code"
-            ],
-            hostNote: "Arrive on time. The host will check in members at the entrance under Marvi Society."
+            description: "A hosted dinner for creators with strong food, lifestyle, and city culture content.",
+            deliverables: ["3 Instagram stories", "1 short Reel within 48 hours", "Google review"],
+            requirements: ["Minimum 8K followers", "Public profile", "Smart evening dress code"],
+            hostNote: "Arrive on time. Check in under Marvi Society.",
+            collaborationModel: .invitation,
+            latitude: 41.0775,
+            longitude: 29.0433
         ),
         Offer(
             id: stableID("22222222-2222-2222-2222-222222222222"),
@@ -43,18 +38,13 @@ enum SampleData {
             capacity: 8,
             remaining: 2,
             imageName: "photo.on.rectangle",
-            description: "A beauty clinic preview for creators who can document a polished before-and-after experience with a calm, premium tone.",
-            deliverables: [
-                "2 Instagram stories before leaving",
-                "1 before-and-after carousel",
-                "Tag clinic and Marvi Society"
-            ],
-            requirements: [
-                "Beauty, wellness, or lifestyle niche",
-                "No competing clinic content for 7 days",
-                "Consent for venue repost"
-            ],
-            hostNote: "Treatment choice is confirmed after skin consultation."
+            description: "Beauty clinic preview for polished before-and-after content.",
+            deliverables: ["2 stories", "1 before-and-after carousel", "Tag clinic"],
+            requirements: ["Beauty or wellness niche", "Consent for repost"],
+            hostNote: "Treatment confirmed after consultation.",
+            collaborationModel: .gift,
+            latitude: 41.0520,
+            longitude: 28.9940
         ),
         Offer(
             id: stableID("33333333-3333-3333-3333-333333333333"),
@@ -68,18 +58,13 @@ enum SampleData {
             capacity: 20,
             remaining: 5,
             imageName: "moon.stars",
-            description: "Opening-night coverage for a new rooftop concept. Best for creators with nightlife, fashion, music, or Istanbul city-aesthetic content.",
-            deliverables: [
-                "4 live stories",
-                "1 tagged grid post or Reel",
-                "Story highlight for 7 days"
-            ],
-            requirements: [
-                "Age 21+",
-                "Evening fashion dress code",
-                "No flash filming of private guests"
-            ],
-            hostNote: "Guest list closes at 19:00 on event day."
+            description: "Opening-night coverage for a new rooftop concept.",
+            deliverables: ["4 live stories", "1 Reel or grid post", "Story highlight 7 days"],
+            requirements: ["Age 21+", "Evening fashion dress code"],
+            hostNote: "Guest list closes at 19:00.",
+            collaborationModel: .event,
+            latitude: 41.0256,
+            longitude: 28.9744
         ),
         Offer(
             id: stableID("44444444-4444-4444-4444-444444444444"),
@@ -93,18 +78,13 @@ enum SampleData {
             capacity: 15,
             remaining: 7,
             imageName: "figure.run",
-            description: "A week-long reformer pilates collaboration for creators who can show the studio experience across multiple visits.",
-            deliverables: [
-                "1 story per visit",
-                "1 short recap Reel",
-                "Mention trainer by name"
-            ],
-            requirements: [
-                "Comfortable filming fitness content",
-                "Book classes 24 hours ahead",
-                "Bring grip socks"
-            ],
-            hostNote: "Members may choose morning or evening classes based on availability."
+            description: "Week-long reformer pilates collaboration across multiple visits.",
+            deliverables: ["1 story per visit", "1 recap Reel"],
+            requirements: ["Fitness content comfort", "Book 24h ahead"],
+            hostNote: "Morning or evening classes available.",
+            collaborationModel: .invitation,
+            latitude: 41.0831,
+            longitude: 29.0340
         ),
         Offer(
             id: stableID("55555555-5555-5555-5555-555555555555"),
@@ -118,18 +98,13 @@ enum SampleData {
             capacity: 10,
             remaining: 4,
             imageName: "sun.max",
-            description: "A relaxed weekend brunch for city guide and food creators. The venue is looking for bright, useful content for visitors and locals.",
-            deliverables: [
-                "3 stories with location tag",
-                "1 TikTok or Reel",
-                "Saveable recommendation caption"
-            ],
-            requirements: [
-                "Food or Istanbul guide content",
-                "Shoot during natural daylight",
-                "Submit links after posting"
-            ],
-            hostNote: "Window tables are reserved for confirmed Marvi members."
+            description: "Weekend brunch for city guide and food creators.",
+            deliverables: ["3 stories with location tag", "1 TikTok or Reel"],
+            requirements: ["Food or Istanbul guide niche"],
+            hostNote: "Window tables for confirmed members.",
+            collaborationModel: .invitation,
+            latitude: 41.0252,
+            longitude: 28.9839
         ),
         Offer(
             id: stableID("66666666-6666-6666-6666-666666666666"),
@@ -143,18 +118,33 @@ enum SampleData {
             capacity: 14,
             remaining: 6,
             imageName: "bag",
-            description: "A creator evening at a local concept store with independent labels, accessories, and home objects.",
-            deliverables: [
-                "3 stories with product tags",
-                "1 styled outfit or flatlay post",
-                "Venue repost rights"
-            ],
-            requirements: [
-                "Fashion, design, or lifestyle niche",
-                "Credit featured brands",
-                "No direct resale content"
-            ],
-            hostNote: "A stylist will be available for creator pulls."
+            description: "Creator evening at a local concept store.",
+            deliverables: ["3 stories", "1 styled post"],
+            requirements: ["Fashion or lifestyle niche"],
+            hostNote: "Stylist available for pulls.",
+            collaborationModel: .gift,
+            latitude: 40.9848,
+            longitude: 29.0260
+        ),
+        Offer(
+            id: stableID("77777777-7777-7777-7777-777777777777"),
+            title: "Flat white + pastry",
+            venue: "Kadikoy Brew Lab",
+            area: "Kadikoy",
+            category: .dining,
+            dateLabel: "Today",
+            timeLabel: "Anytime",
+            valueLabel: "Coffee + pastry",
+            capacity: 25,
+            remaining: 19,
+            imageName: "cup.and.saucer",
+            description: "Walk-in grab-and-go collaboration. Open the map, accept, visit within 2 hours, post a story.",
+            deliverables: ["1 Instagram story with location tag"],
+            requirements: ["Within 1 km", "Post within 2 hours"],
+            hostNote: "Show your check-in code at the counter.",
+            collaborationModel: .instant,
+            latitude: 40.9903,
+            longitude: 29.0244
         )
     ]
 
@@ -194,6 +184,7 @@ enum SampleData {
     static let profile = CreatorProfile(
         name: "Aylin Demir",
         handle: "@aylin.in.istanbul",
+        tiktokHandle: "@aylin.istanbul",
         city: "Istanbul",
         status: .approved,
         score: 92,
