@@ -1,0 +1,331 @@
+openapi: 3.1.0
+info:
+  title: Marvi Society API
+  version: 1.0.0
+  description: |
+    Contract-first API for Marvi Society creator marketplace.
+    Implementation: Supabase PostgREST + Edge Functions.
+  contact:
+    name: Marvi Society Engineering
+    url: https://github.com/ersanjt/Marvi-Society-ios-
+
+servers:
+  - url: https://api.marvisociety.com/v1
+    description: Production
+  - url: https://{project}.supabase.co/rest/v1
+    description: Supabase (development)
+    variables:
+      project:
+        default: your-project-ref
+
+tags:
+  - name: offers
+  - name: bookings
+  - name: profile
+  - name: proof
+  - name: venue
+  - name: admin
+
+paths:
+  /offers:
+    get:
+      tags: [offers]
+      summary: List live offers for creator's city
+      parameters:
+        - name: city
+          in: query
+          schema: { type: string, example: istanbul }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: model
+          in: query
+          schema:
+            type: string
+            enum: [invitation, event, gift, instant]
+        - name: lat
+          in: query
+          schema: { type: number }
+        - name: lng
+          in: query
+          schema: { type: number }
+        - name: radius_km
+          in: query
+          schema: { type: number, default: 5 }
+      responses:
+        "200":
+          description: Paginated offers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Offer"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+
+  /offers/{offerId}:
+    get:
+      tags: [offers]
+      summary: Offer detail
+      parameters:
+        - $ref: "#/components/parameters/OfferId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Offer"
+
+  /offers/{offerId}/accept:
+    post:
+      tags: [offers]
+      summary: Accept offer and create booking
+      parameters:
+        - $ref: "#/components/parameters/OfferId"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings:
+    get:
+      tags: [bookings]
+      summary: Creator's bookings
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Booking"
+
+  /bookings/{bookingId}/cancel:
+    post:
+      tags: [bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      responses:
+        "200":
+          description: Booking cancelled
+
+  /bookings/{bookingId}/check-in:
+    post:
+      tags: [bookings]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+                lat: { type: number }
+                lng: { type: number }
+      responses:
+        "200":
+          description: Checked in
+
+  /bookings/{bookingId}/proof:
+    post:
+      tags: [proof]
+      parameters:
+        - $ref: "#/components/parameters/BookingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProofSubmission"
+      responses:
+        "201":
+          description: Proof submitted
+
+  /me/profile:
+    get:
+      tags: [profile]
+      summary: Current creator profile
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorProfile"
+    patch:
+      tags: [profile]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatorProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+
+  /venue/campaigns:
+    get:
+      tags: [venue]
+      summary: Venue campaigns
+      responses:
+        "200":
+          description: Campaign list
+    post:
+      tags: [venue]
+      summary: Create campaign draft
+      responses:
+        "201":
+          description: Draft created
+
+  /admin/tasks:
+    get:
+      tags: [admin]
+      summary: Admin review queue
+      responses:
+        "200":
+          description: Task list
+
+  /admin/tasks/{taskId}/approve:
+    post:
+      tags: [admin]
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Approved
+
+  /admin/tasks/{taskId}/reject:
+    post:
+      tags: [admin]
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Rejected
+
+components:
+  parameters:
+    OfferId:
+      name: offerId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    PaginationMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+
+    Offer:
+      type: object
+      required: [id, title, category, model, status]
+      properties:
+        id: { type: string, format: uuid }
+        venue_id: { type: string, format: uuid }
+        title: { type: string }
+        category:
+          type: string
+          enum: [dining, nightlife, wellness, beauty, fitness, retail]
+        model:
+          type: string
+          enum: [invitation, event, gift, instant]
+        date_start: { type: string, format: date-time }
+        date_end: { type: string, format: date-time }
+        value_label: { type: string }
+        capacity: { type: integer }
+        remaining_slots: { type: integer }
+        description: { type: string }
+        deliverables: { type: array, items: { type: string } }
+        requirements: { type: array, items: { type: string } }
+        host_note: { type: string }
+        status:
+          type: string
+          enum: [draft, review, live, completed]
+        location:
+          type: object
+          properties:
+            lat: { type: number }
+            lng: { type: number }
+            address: { type: string }
+
+    Booking:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        offer_id: { type: string, format: uuid }
+        stage:
+          type: string
+          enum: [invited, confirmed, checked_in, proof_due, completed, cancelled]
+        check_in_code: { type: string }
+        proof_deadline: { type: string, format: date-time }
+        proof_status:
+          type: string
+          enum: [not_started, pending, approved, flagged]
+
+    ProofSubmission:
+      type: object
+      required: [links]
+      properties:
+        links:
+          type: array
+          items: { type: string, format: uri }
+        screenshot_urls:
+          type: array
+          items: { type: string, format: uri }
+
+    CreatorProfile:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        full_name: { type: string }
+        instagram_handle: { type: string }
+        tiktok_handle: { type: string }
+        city: { type: string }
+        audience_count: { type: integer }
+        niches: { type: array, items: { type: string } }
+        languages: { type: array, items: { type: string } }
+        status:
+          type: string
+          enum: [under_review, approved, paused]
+        score: { type: number }
+
+    CreatorProfileUpdate:
+      type: object
+      properties:
+        full_name: { type: string }
+        niches: { type: array, items: { type: string } }
+        languages: { type: array, items: { type: string } }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

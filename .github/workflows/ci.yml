@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-and-contract:
+    name: Validate docs & API contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required docs exist
+        run: |
+          test -f docs/ARCHITECTURE.md
+          test -f docs/ROADMAP.md
+          test -f packages/api-contract/openapi.yaml
+          echo "Documentation structure OK"
+
+      - name: Validate OpenAPI (optional)
+        continue-on-error: true
+        run: |
+          if command -v npx >/dev/null 2>&1; then
+            npx --yes @redocly/cli lint packages/api-contract/openapi.yaml
+          else
+            echo "Skipping OpenAPI lint — npx not required for Phase 0"
+          fi
+
+  ios-build:
+    name: iOS build
+    runs-on: macos-latest
+    needs: docs-and-contract
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build iOS app
+        run: |
+          xcodebuild \
+            -project apps/ios/MarviSociety.xcodeproj \
+            -scheme MarviSociety \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -configuration Debug \
+            build \
+            CODE_SIGNING_ALLOWED=NO
