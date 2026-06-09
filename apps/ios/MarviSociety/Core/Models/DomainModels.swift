@@ -28,6 +28,24 @@ enum UserRole: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+enum CollaborationModel: String, CaseIterable, Codable, Identifiable, Hashable {
+    case invitation = "Invitation"
+    case event = "Event"
+    case gift = "Gift"
+    case instant = "Instant"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .invitation: "calendar.badge.clock"
+        case .event: "party.popper"
+        case .gift: "gift"
+        case .instant: "bolt.fill"
+        }
+    }
+}
+
 enum OfferCategory: String, CaseIterable, Codable, Identifiable, Hashable {
     case dining = "Dining"
     case nightlife = "Nightlife"
@@ -145,6 +163,7 @@ struct Offer: Codable, Identifiable, Hashable {
     let deliverables: [String]
     let requirements: [String]
     let hostNote: String
+    let collaborationModel: CollaborationModel
 
     init(
         id: UUID = UUID(),
@@ -161,7 +180,8 @@ struct Offer: Codable, Identifiable, Hashable {
         description: String,
         deliverables: [String],
         requirements: [String],
-        hostNote: String
+        hostNote: String,
+        collaborationModel: CollaborationModel = .invitation
     ) {
         self.id = id
         self.title = title
@@ -178,6 +198,7 @@ struct Offer: Codable, Identifiable, Hashable {
         self.deliverables = deliverables
         self.requirements = requirements
         self.hostNote = hostNote
+        self.collaborationModel = collaborationModel
     }
 }
 

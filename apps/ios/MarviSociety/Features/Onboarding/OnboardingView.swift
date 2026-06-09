@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingView: View {
     @EnvironmentObject private var appState: AppState
+    @StateObject private var appleSignIn = AppleSignInService()
     @State private var selectedRole: UserRole = .creator
     @State private var instagramHandle = "@aylin.in.istanbul"
     @State private var city = "Istanbul"
@@ -77,14 +78,48 @@ struct OnboardingView: View {
                                 .foregroundStyle(MarviColor.tomato)
                         }
 
+                        if appState.isRemoteMode {
+                            PrimaryActionButton(
+                                title: appleSignIn.isSigningIn ? "Signing in…" : "Sign in with Apple",
+                                systemImage: "apple.logo",
+                                isDisabled: !isSetupValid || appleSignIn.isSigningIn
+                            ) {
+                                appState.profile.handle = instagramHandle
+                                appState.profile.city = city
+                                Task {
+                                    await appState.signInWithApple(
+                                        using: appleSignIn,
+                                        metadata: [
+                                            "instagram_handle": instagramHandle,
+                                            "city": city,
+                                            "full_name": appState.profile.name
+                                        ]
+                                    )
+                                    if appState.lastSyncError == nil {
+                                        appState.completeOnboarding(role: selectedRole)
+                                    }
+                                }
+                            }
+
+                            Text("Connects to Supabase. Use local preview below without an account.")
+                                .font(.caption)
+                                .foregroundStyle(MarviColor.muted)
+                        }
+
                         PrimaryActionButton(
-                            title: "Enter Marvi Society",
+                            title: appState.isRemoteMode ? "Continue in local preview" : "Enter Marvi Society",
                             systemImage: "arrow.right.circle",
                             isDisabled: !isSetupValid
                         ) {
                             appState.profile.handle = instagramHandle
                             appState.profile.city = city
                             appState.completeOnboarding(role: selectedRole)
+                        }
+
+                        if let error = appState.lastSyncError {
+                            Label(error, systemImage: "exclamationmark.triangle")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.tomato)
                         }
                     }
                     .padding(16)

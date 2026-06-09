@@ -6,7 +6,7 @@ Phased delivery from local MVP to global production platform.
 
 ---
 
-## Phase 0 — Foundation (Week 1–2) ✅ in progress
+## Phase 0 — Foundation (Week 1–2) ✅ complete
 
 **Goal:** Monorepo, architecture docs, CI skeleton, GitHub ready.
 
@@ -23,20 +23,23 @@ Phased delivery from local MVP to global production platform.
 
 ---
 
-## Phase 1 — Backend MVP (Week 3–6)
+## Phase 1 — Backend MVP (Week 3–6) 🔄 in progress
 
 **Goal:** Replace `UserDefaults` with real API; Istanbul-only beta.
 
-| Workstream | Deliverables |
-|------------|--------------|
-| **Database** | Supabase project, migrations, RLS policies, seed data |
-| **Auth** | Apple Sign-In, email OTP for creators |
-| **API** | Offers, bookings, proof, profile CRUD per OpenAPI |
-| **iOS** | `MarviAPI` protocol → `SupabaseMarviAPI` implementation |
-| **Storage** | Proof screenshot upload with signed URLs |
-| **Admin** | Basic web review queue (approve/reject) |
+| Workstream | Deliverables | Status |
+|------------|--------------|--------|
+| **Database** | Supabase migrations, RLS, RPC functions | ✅ |
+| **Auth** | Apple Sign-In + Supabase token exchange | ✅ |
+| **API** | `MarviAPI` + `SupabaseMarviAPI` + `LocalMarviAPI` | ✅ |
+| **iOS** | AppState async sync, Profile sync UI | ✅ |
+| **Storage** | Proof screenshot upload with signed URLs | ⏳ Phase 1b |
+| **Admin** | Basic web review queue (approve/reject) | ⏳ Phase 3 |
+| **Deploy** | Create Supabase project + run migrations | ⏳ manual step |
 
 **Exit criteria:** 10 real creators + 5 venues in Istanbul closed beta; data persists across devices.
+
+Setup guide: [PHASE1_SETUP.md](./PHASE1_SETUP.md)
 
 ---
 

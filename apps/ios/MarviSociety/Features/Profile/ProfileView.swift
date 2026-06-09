@@ -78,7 +78,50 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 14) {
-                                SectionTitle(title: "Settings", subtitle: "Local prototype preferences are saved on this device.")
+                                SectionTitle(
+                                    title: "Backend",
+                                    subtitle: "Mode: \(appState.backendLabel)"
+                                )
+
+                                if appState.isRemoteMode {
+                                    HStack {
+                                        Label(
+                                            appState.isAuthenticated ? "Signed in" : "Not signed in",
+                                            systemImage: appState.isAuthenticated ? "checkmark.seal.fill" : "person.crop.circle.badge.exclamationmark"
+                                        )
+                                        .font(.subheadline.weight(.semibold))
+                                        Spacer()
+                                        if appState.isSyncing {
+                                            ProgressView()
+                                        }
+                                    }
+
+                                    Button {
+                                        Task { await appState.refreshFromServer() }
+                                    } label: {
+                                        Label("Sync from server", systemImage: "arrow.triangle.2.circlepath")
+                                            .font(.subheadline.weight(.bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(MarviColor.emerald)
+                                    .background(MarviColor.emerald.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .disabled(appState.isSyncing)
+
+                                    if let error = appState.lastSyncError {
+                                        Text(error)
+                                            .font(.caption)
+                                            .foregroundStyle(MarviColor.tomato)
+                                    }
+                                }
+                            }
+                        }
+
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                SectionTitle(title: "Settings", subtitle: "Preferences saved on this device.")
 
                                 Toggle("Push notifications", isOn: $appState.pushNotificationsEnabled)
                                 Toggle("Proof deadline reminders", isOn: $appState.proofRemindersEnabled)

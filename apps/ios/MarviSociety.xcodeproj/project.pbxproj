@@ -24,6 +24,14 @@
 		1A2B3C4D5E6F700000000115 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000014 /* InboxView.swift */; };
 		1A2B3C4D5E6F700000000116 /* AppPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000015 /* AppPersistence.swift */; };
 		1A2B3C4D5E6F700000000117 /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */; };
+		1A2B3C4D5E6F700000000130 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000118 /* APIConfig.swift */; };
+		1A2B3C4D5E6F700000000131 /* MarviAPIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000119 /* MarviAPIError.swift */; };
+		1A2B3C4D5E6F700000000132 /* MarviAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000120 /* MarviAPI.swift */; };
+		1A2B3C4D5E6F700000000133 /* LocalMarviAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000121 /* LocalMarviAPI.swift */; };
+		1A2B3C4D5E6F700000000134 /* APIDTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000122 /* APIDTOs.swift */; };
+		1A2B3C4D5E6F700000000135 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000123 /* SupabaseClient.swift */; };
+		1A2B3C4D5E6F700000000136 /* SupabaseMarviAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000124 /* SupabaseMarviAPI.swift */; };
+		1A2B3C4D5E6F700000000137 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +54,14 @@
 		1A2B3C4D5E6F700000000020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000030 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000201 /* MarviSociety.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarviSociety.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A2B3C4D5E6F700000000118 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000119 /* MarviAPIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarviAPIError.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000120 /* MarviAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarviAPI.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000121 /* LocalMarviAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMarviAPI.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000122 /* APIDTOs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIDTOs.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000123 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000124 /* SupabaseMarviAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseMarviAPI.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,8 +128,48 @@
 				1A2B3C4D5E6F700000000410 /* DesignSystem */,
 				1A2B3C4D5E6F700000000411 /* Models */,
 				1A2B3C4D5E6F700000000412 /* Persistence */,
+				1A2B3C4D5E6F700000000426 /* Networking */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F700000000426 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F700000000118 /* APIConfig.swift */,
+				1A2B3C4D5E6F700000000119 /* MarviAPIError.swift */,
+				1A2B3C4D5E6F700000000120 /* MarviAPI.swift */,
+				1A2B3C4D5E6F700000000121 /* LocalMarviAPI.swift */,
+				1A2B3C4D5E6F700000000427 /* DTOs */,
+				1A2B3C4D5E6F700000000428 /* Supabase */,
+				1A2B3C4D5E6F700000000429 /* Auth */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F700000000427 /* DTOs */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F700000000122 /* APIDTOs.swift */,
+			);
+			path = DTOs;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F700000000428 /* Supabase */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F700000000123 /* SupabaseClient.swift */,
+				1A2B3C4D5E6F700000000124 /* SupabaseMarviAPI.swift */,
+			);
+			path = Supabase;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F700000000429 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */,
+			);
+			path = Auth;
 			sourceTree = "<group>";
 		};
 		1A2B3C4D5E6F700000000407 /* Data */ = {
@@ -321,6 +377,14 @@
 				1A2B3C4D5E6F700000000115 /* InboxView.swift in Sources */,
 				1A2B3C4D5E6F700000000116 /* AppPersistence.swift in Sources */,
 				1A2B3C4D5E6F700000000117 /* AdminDashboardView.swift in Sources */,
+				1A2B3C4D5E6F700000000130 /* APIConfig.swift in Sources */,
+				1A2B3C4D5E6F700000000131 /* MarviAPIError.swift in Sources */,
+				1A2B3C4D5E6F700000000132 /* MarviAPI.swift in Sources */,
+				1A2B3C4D5E6F700000000133 /* LocalMarviAPI.swift in Sources */,
+				1A2B3C4D5E6F700000000134 /* APIDTOs.swift in Sources */,
+				1A2B3C4D5E6F700000000135 /* SupabaseClient.swift in Sources */,
+				1A2B3C4D5E6F700000000136 /* SupabaseMarviAPI.swift in Sources */,
+				1A2B3C4D5E6F700000000137 /* AppleSignInService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -458,6 +522,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Marvi Society";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_MARVI_API_MODE = local;
+				INFOPLIST_KEY_MARVI_SUPABASE_ANON_KEY = "";
+				INFOPLIST_KEY_MARVI_SUPABASE_URL = "";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -484,6 +551,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Marvi Society";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_MARVI_API_MODE = local;
+				INFOPLIST_KEY_MARVI_SUPABASE_ANON_KEY = "";
+				INFOPLIST_KEY_MARVI_SUPABASE_URL = "";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

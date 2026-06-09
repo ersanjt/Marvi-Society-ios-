@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 final class AppState: ObservableObject {
     @Published var hasCompletedOnboarding = false {
         didSet { saveSnapshot() }
@@ -36,11 +37,19 @@ final class AppState: ObservableObject {
         didSet { saveSnapshot() }
     }
 
+    @Published var isSyncing = false
+    @Published var lastSyncError: String?
+    @Published var isAuthenticated = false
+
+    let isRemoteMode: Bool
+    private let api: any MarviAPI
     private let persistence: AppPersistence
     private var isPersistenceReady = false
 
-    init(persistence: AppPersistence = .shared) {
+    init(persistence: AppPersistence = .shared, api: (any MarviAPI)? = nil) {
         self.persistence = persistence
+        self.api = api ?? APIConfig.makeAPI()
+        self.isRemoteMode = self.api.usesRemoteBackend
 
         if let snapshot = persistence.load() {
             hasCompletedOnboarding = snapshot.hasCompletedOnboarding
@@ -57,6 +66,10 @@ final class AppState: ObservableObject {
         }
 
         isPersistenceReady = true
+
+        if isRemoteMode && hasCompletedOnboarding {
+            Task { await refreshFromServer() }
+        }
     }
 
     var acceptedOfferIDs: Set<UUID> {
@@ -71,20 +84,84 @@ final class AppState: ObservableObject {
         adminTasks.filter { $0.status == .open }
     }
 
+    var backendLabel: String {
+        isRemoteMode ? "Supabase" : "Local demo"
+    }
+
+    // MARK: - Sync
+
+    func refreshFromServer() async {
+        guard isRemoteMode else { return }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            async let offersTask = api.fetchOffers(city: profile.city.lowercased())
+            async let bookingsTask = api.fetchBookings()
+            async let profileTask = api.fetchProfile()
+            async let inboxTask = api.fetchNotifications()
+            async let savedTask = api.fetchSavedOfferIDs()
+            async let tasksTask = api.fetchAdminTasks()
+
+            offers = try await offersTask
+            bookings = try await bookingsTask
+            profile = try await profileTask
+            inboxMessages = try await inboxTask
+            savedOfferIDs = try await savedTask
+            adminTasks = try await tasksTask
+            isAuthenticated = await api.accessToken != nil
+        } catch {
+            lastSyncError = error.localizedDescription
+        }
+    }
+
+    func signInWithApple(using service: AppleSignInService, metadata: [String: String]) async {
+        guard isRemoteMode else {
+            completeOnboarding(role: selectedRole)
+            return
+        }
+
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            let tokens = try await service.signIn()
+            try await api.signInWithApple(
+                idToken: tokens.idToken,
+                nonce: tokens.nonce,
+                metadata: metadata
+            )
+            isAuthenticated = true
+            await refreshFromServer()
+        } catch {
+            lastSyncError = error.localizedDescription
+        }
+    }
+
+    // MARK: - Onboarding
+
     func completeOnboarding(role: UserRole) {
         selectedRole = role
         hasCompletedOnboarding = true
         inboxMessages.insert(
             InboxMessage(
                 title: "Welcome to Marvi Society",
-                body: "Your Istanbul workspace is ready. Switch roles from Profile when you want to preview venue or admin workflows.",
+                body: "Your Istanbul workspace is ready. Backend: \(backendLabel).",
                 dateLabel: "Now",
                 icon: "sparkles",
                 tint: .emerald
             ),
             at: 0
         )
+
+        if isRemoteMode {
+            Task { await refreshFromServer() }
+        }
     }
+
+    // MARK: - Offers
 
     func isAccepted(_ offer: Offer) -> Bool {
         acceptedOfferIDs.contains(offer.id)
@@ -95,6 +172,22 @@ final class AppState: ObservableObject {
     }
 
     func toggleSaved(_ offer: Offer) {
+        if isRemoteMode {
+            Task {
+                do {
+                    let saved = try await api.toggleSavedOffer(offer.id)
+                    if saved {
+                        savedOfferIDs.insert(offer.id)
+                    } else {
+                        savedOfferIDs.remove(offer.id)
+                    }
+                } catch {
+                    lastSyncError = error.localizedDescription
+                }
+            }
+            return
+        }
+
         if savedOfferIDs.contains(offer.id) {
             savedOfferIDs.remove(offer.id)
         } else {
@@ -104,6 +197,19 @@ final class AppState: ObservableObject {
 
     func accept(_ offer: Offer) {
         guard !isAccepted(offer) else { return }
+
+        if isRemoteMode {
+            Task {
+                do {
+                    let booking = try await api.acceptOffer(offer.id)
+                    bookings.insert(booking, at: 0)
+                    await refreshFromServer()
+                } catch {
+                    lastSyncError = error.localizedDescription
+                }
+            }
+            return
+        }
 
         bookings.insert(
             Booking(
@@ -137,18 +243,55 @@ final class AppState: ObservableObject {
     }
 
     func cancel(_ offer: Offer) {
+        if isRemoteMode {
+            Task {
+                do {
+                    try await api.cancelOffer(offer.id)
+                    await refreshFromServer()
+                } catch {
+                    lastSyncError = error.localizedDescription
+                }
+            }
+            return
+        }
+
         for index in bookings.indices where bookings[index].offer.id == offer.id {
             bookings[index].stage = .cancelled
         }
     }
 
     func checkIn(_ booking: Booking) {
+        if isRemoteMode {
+            Task {
+                do {
+                    let updated = try await api.checkIn(bookingID: booking.id, code: booking.checkInCode)
+                    updateBooking(updated.id) { $0 = updated }
+                } catch {
+                    lastSyncError = error.localizedDescription
+                }
+            }
+            return
+        }
+
         updateBooking(booking.id) { booking in
             booking.stage = .checkedIn
         }
     }
 
     func submitProof(for booking: Booking, links: [String]) {
+        if isRemoteMode {
+            Task {
+                do {
+                    let updated = try await api.submitProof(bookingID: booking.id, links: links)
+                    updateBooking(updated.id) { $0 = updated }
+                    await refreshFromServer()
+                } catch {
+                    lastSyncError = error.localizedDescription
+                }
+            }
+            return
+        }
+
         updateBooking(booking.id) { booking in
             booking.stage = .completed
             booking.proofStatus = .pending
@@ -215,6 +358,18 @@ final class AppState: ObservableObject {
     }
 
     func approveTask(_ task: AdminTask) {
+        if isRemoteMode {
+            Task {
+                do {
+                    try await api.approveTask(task.id)
+                    await refreshFromServer()
+                } catch {
+                    lastSyncError = error.localizedDescription
+                }
+            }
+            return
+        }
+
         setTask(task, status: .approved)
         inboxMessages.insert(
             InboxMessage(
@@ -229,6 +384,18 @@ final class AppState: ObservableObject {
     }
 
     func rejectTask(_ task: AdminTask) {
+        if isRemoteMode {
+            Task {
+                do {
+                    try await api.rejectTask(task.id)
+                    await refreshFromServer()
+                } catch {
+                    lastSyncError = error.localizedDescription
+                }
+            }
+            return
+        }
+
         setTask(task, status: .rejected)
     }
 
@@ -246,8 +413,16 @@ final class AppState: ObservableObject {
         pushNotificationsEnabled = true
         proofRemindersEnabled = true
         autoSaveProofLinks = true
+        lastSyncError = nil
+        isAuthenticated = false
         persistence.reset()
         isPersistenceReady = true
+
+        if isRemoteMode {
+            Task {
+                try? await api.signOut()
+            }
+        }
     }
 
     private func updateBooking(_ id: UUID, update: (inout Booking) -> Void) {
