@@ -34,7 +34,7 @@ marvi-society/
 | **Android** | Compose scaffold (Discover, Nearby, Bookings, Profile) |
 | **Backend** | Supabase schema ready — deploy project manually |
 
-Deploy guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+Deploy guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · **راهنمای فارسی:** [docs/DEPLOY_WALKTHROUGH_FA.md](docs/DEPLOY_WALKTHROUGH_FA.md)
 
 ---
 

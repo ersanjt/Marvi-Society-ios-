@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -72,14 +73,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: offerError.message }, { status: 500 });
   }
 
-  await supabase.from("admin_tasks").insert({
-    type: "campaign_review",
-    subject_id: offer.id,
-    title: offer.title,
-    subtitle: `${venue.venue_name} requested ${slots} creator slots.`,
-    priority: "High",
-    status: "open",
-  });
+  const admin = createAdminClient();
+  if (admin) {
+    await admin.from("admin_tasks").insert({
+      type: "campaign_review",
+      subject_id: offer.id,
+      title: offer.title,
+      subtitle: `${venue.venue_name} requested ${slots} creator slots.`,
+      priority: "High",
+      status: "open",
+    });
+  }
 
   return NextResponse.json({
     ok: true,
