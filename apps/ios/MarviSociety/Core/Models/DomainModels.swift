@@ -242,6 +242,13 @@ struct Booking: Codable, Identifiable, Hashable {
     var proofLinks: [String]
 }
 
+struct Strike: Codable, Identifiable, Hashable {
+    let id: UUID
+    let reason: String
+    let severity: String
+    let createdAtLabel: String
+}
+
 struct CreatorProfile: Codable {
     var name: String
     var handle: String

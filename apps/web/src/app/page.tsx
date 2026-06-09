@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { COLLABORATION_MODELS, SITE } from "@/lib/constants";
+import { getI18n } from "@/lib/i18n/locale";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { dict } = await getI18n();
   return (
     <>
       <section className="relative overflow-hidden border-b border-black/5">
@@ -10,20 +12,20 @@ export default function HomePage() {
         <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-20 md:grid-cols-2 md:px-6 md:py-28">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-emerald">
-              Istanbul private collaboration marketplace
+              {dict.hero.eyebrow}
             </p>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-ink md:text-5xl">
-              Where approved creators and curated venues collaborate
+              {dict.hero.title}
             </h1>
             <p className="mt-5 max-w-lg text-lg text-muted">
               {SITE.description} Structured invitations, real-time map offers, and proof workflows — built for operators who care about quality.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/creators" className="marvi-btn-primary">
-                For creators
+                {dict.hero.ctaCreators}
               </Link>
               <Link href="/brands" className="marvi-btn-secondary">
-                For brands
+                {dict.hero.ctaBrands}
               </Link>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-3">
@@ -96,7 +98,7 @@ export default function HomePage() {
             {[
               { title: "Creators", body: "Native iOS app with Discover, map, bookings, and proof submission.", href: "/creators" },
               { title: "Brands", body: "Web portal for campaign builder, bookings list, and performance metrics.", href: "/brands" },
-              { title: "Operators", body: "Admin console for applications, campaigns, proof review, and strikes.", href: "/demo" },
+              { title: "Operators", body: "Admin console for applications, campaigns, proof review, and strikes.", href: "/admin" },
             ].map((card) => (
               <Link key={card.title} href={card.href} className="marvi-card transition hover:border-emerald/30">
                 <h3 className="font-bold text-ink">{card.title}</h3>

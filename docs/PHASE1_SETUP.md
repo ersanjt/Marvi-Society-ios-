@@ -20,6 +20,8 @@ Or paste SQL files manually in **SQL Editor** (in order):
 1. `migrations/20260609000001_initial_schema.sql`
 2. `migrations/20260609000002_rls_policies.sql`
 3. `migrations/20260609000003_rpc_functions.sql`
+4. `migrations/20260609000004_demo_leads_storage.sql`
+5. `migrations/20260609000005_seed_function.sql`
 
 ## 3. Enable Auth providers
 
@@ -55,18 +57,28 @@ In Xcode: Project → Info → Configurations → set Debug/Release to use `Secr
 
 ## 5. Seed demo venues (staging)
 
-1. Create a venue owner user in Auth
-2. Insert venue profile linked to that `auth.users.id`
-3. Run offer inserts from `infra/supabase/seed.sql` (update `owner_user_id`)
-
-Or use SQL Editor:
+1. Create a venue owner user in **Authentication → Users**
+2. Copy their UUID from `auth.users`
+3. Run in SQL Editor:
 
 ```sql
--- After first signup, promote to admin:
+SELECT seed_istanbul_demo('YOUR_AUTH_USER_UUID');
+
+-- Promote your account to admin:
 UPDATE public.profiles
 SET role = 'admin', status = 'approved'
-WHERE email = 'you@example.com';
+WHERE id = 'YOUR_AUTH_USER_UUID';
 ```
+
+Referral codes `MARVI-IST` and `MARVI2026` are inserted by the seed function.
+
+## 5b. Configure web app
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` for demo form + admin APIs.
 
 ## 6. Verify API from iOS
 
@@ -74,18 +86,14 @@ WHERE email = 'you@example.com';
 2. Profile → Settings → **Sync from server** (when remote mode on)
 3. Accept an offer → booking should persist after app restart
 
-## 7. Storage bucket (proof uploads — Phase 1b)
+## 7. Storage buckets
 
-```sql
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('proof-uploads', 'proof-uploads', false);
+Included in migration `20260609000004_demo_leads_storage.sql`:
 
-CREATE POLICY proof_upload_own ON storage.objects
-    FOR INSERT WITH CHECK (
-        bucket_id = 'proof-uploads'
-        AND auth.uid()::TEXT = (storage.foldername(name))[1]
-    );
-```
+- `proof-uploads` — private creator proof screenshots
+- `venue-media` — public venue images
+
+iOS uploads to `proof-uploads/{user_id}/{booking_id}/proof-*.jpg` when `MARVI_API_MODE = supabase`.
 
 ## Troubleshooting
 

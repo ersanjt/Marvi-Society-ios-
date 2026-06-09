@@ -23,8 +23,31 @@ protocol MarviAPI: Sendable {
     func toggleSavedOffer(_ offerID: UUID) async throws -> Bool
     func approveTask(_ taskID: UUID) async throws
     func rejectTask(_ taskID: UUID) async throws
+    func validateReferralCode(_ code: String) async throws -> Bool
+    func fetchStrikes() async throws -> [Strike]
+    func uploadProofImage(bookingID: UUID, imageData: Data, fileName: String) async throws -> String
+    func issueStrike(creatorID: UUID, bookingID: UUID?, reason: String) async throws
 }
 
 extension MarviAPI {
     var usesRemoteBackend: Bool { false }
+
+    func validateReferralCode(_ code: String) async throws -> Bool {
+        !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func fetchStrikes() async throws -> [Strike] { [] }
+
+    func uploadProofImage(bookingID: UUID, imageData: Data, fileName: String) async throws -> String {
+        _ = bookingID
+        _ = imageData
+        _ = fileName
+        throw MarviAPIError.server(message: "Proof upload requires Supabase mode")
+    }
+
+    func issueStrike(creatorID: UUID, bookingID: UUID?, reason: String) async throws {
+        _ = creatorID
+        _ = bookingID
+        _ = reason
+    }
 }

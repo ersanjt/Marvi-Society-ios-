@@ -266,6 +266,8 @@ enum SampleData {
         )
     ]
 
+    static let strikes: [Strike] = []
+
     static let inboxMessages: [InboxMessage] = [
         InboxMessage(
             title: "Luma Clinic confirmed",

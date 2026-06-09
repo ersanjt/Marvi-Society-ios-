@@ -1,25 +1,56 @@
 # Marvi Society — Android
 
-**Status:** Phase 4 (not started)
+Kotlin Compose creator app scaffold (Phase 4). Feature parity target: Discover, Nearby, Bookings, Profile, Onboarding.
 
-## Planned stack
+## Stack
 
-- Kotlin 2.x
-- Jetpack Compose + Material 3
-- Clean Architecture (presentation → domain → data)
-- Retrofit + OpenAPI-generated client from `packages/api-contract/`
-- Firebase Cloud Messaging
-- Mapbox Maps SDK
+- Kotlin 2.1 + Jetpack Compose + Material 3
+- Navigation Compose
+- Local demo data (`SampleData.kt`) — Supabase/Retrofit in Phase 4b
 
-## Feature parity target
+## Setup
 
-Match iOS creator app: discover, map, bookings, proof, profile, onboarding.
-
-## Setup (when Phase 4 starts)
+1. Install [Android Studio](https://developer.android.com/studio) Ladybug or newer.
+2. Open `apps/android` as project root.
+3. Sync Gradle, run on emulator (API 26+).
 
 ```bash
-# Android Studio Ladybug or newer
-# Clone repo and open apps/android
+# From apps/android (with Android SDK installed)
+./gradlew :app:assembleDebug
 ```
 
-See [docs/ROADMAP.md](../../docs/ROADMAP.md) for timeline.
+## Structure
+
+```
+app/src/main/java/com/marvisociety/app/
+├── MainActivity.kt
+├── data/          SampleData, models
+├── ui/
+│   ├── MarviApp.kt       Tab shell
+│   ├── screens/          Discover, Map, Bookings, Profile, Onboarding
+│   ├── theme/
+│   └── viewmodel/
+```
+
+## Supabase (planned)
+
+Copy credentials pattern from iOS `Secrets.xcconfig.example` into `local.properties`:
+
+```properties
+MARVI_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+MARVI_SUPABASE_ANON_KEY=your-anon-key
+```
+
+## Parity checklist
+
+| Feature | Status |
+|---------|--------|
+| Onboarding + invite code | ✅ |
+| Discover + model filters | ✅ |
+| Nearby instant list | ✅ (map SDK pending) |
+| Bookings list | ✅ |
+| Profile | ✅ |
+| Proof upload | ⏳ |
+| Supabase sync | ⏳ |
+
+See [docs/ROADMAP.md](../../docs/ROADMAP.md) and [docs/DEPLOYMENT.md](../../docs/DEPLOYMENT.md).

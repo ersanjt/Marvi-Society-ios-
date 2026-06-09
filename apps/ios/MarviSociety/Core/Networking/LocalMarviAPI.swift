@@ -77,4 +77,24 @@ final class LocalMarviAPI: MarviAPI, @unchecked Sendable {
 
     func approveTask(_ taskID: UUID) async throws {}
     func rejectTask(_ taskID: UUID) async throws {}
+
+    func validateReferralCode(_ code: String) async throws -> Bool {
+        let normalized = code.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        return ["MARVI-IST", "MARVI2026", "TSS-REF"].contains(normalized)
+    }
+
+    func fetchStrikes() async throws -> [Strike] {
+        SampleData.strikes
+    }
+
+    func uploadProofImage(bookingID: UUID, imageData: Data, fileName: String) async throws -> String {
+        _ = imageData
+        return "local-demo/\(bookingID.uuidString)/\(fileName)"
+    }
+
+    func issueStrike(creatorID: UUID, bookingID: UUID?, reason: String) async throws {
+        _ = creatorID
+        _ = bookingID
+        _ = reason
+    }
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/marketing/Footer";
 import { Header } from "@/components/marketing/Header";
 import { SITE } from "@/lib/constants";
+import { getLocale } from "@/lib/i18n/locale";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,15 +18,23 @@ export const metadata: Metadata = {
     siteName: SITE.name,
     type: "website",
   },
+  alternates: {
+    languages: {
+      en: "/",
+      tr: "/",
+    },
+  },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body>
-        <Header />
+        <Header locale={locale} />
         <main>{children}</main>
-        <Footer />
+        <Footer locale={locale} />
       </body>
     </html>
   );

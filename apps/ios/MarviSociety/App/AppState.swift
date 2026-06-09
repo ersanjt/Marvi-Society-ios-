@@ -27,6 +27,9 @@ final class AppState: ObservableObject {
     @Published var profile = SampleData.profile {
         didSet { saveSnapshot() }
     }
+    @Published var strikes: [Strike] = SampleData.strikes {
+        didSet { saveSnapshot() }
+    }
     @Published var pushNotificationsEnabled = true {
         didSet { saveSnapshot() }
     }
@@ -155,6 +158,7 @@ final class AppState: ObservableObject {
             async let inboxTask = api.fetchNotifications()
             async let savedTask = api.fetchSavedOfferIDs()
             async let tasksTask = api.fetchAdminTasks()
+            async let strikesTask = api.fetchStrikes()
 
             offers = try await offersTask
             bookings = try await bookingsTask
@@ -162,6 +166,7 @@ final class AppState: ObservableObject {
             inboxMessages = try await inboxTask
             savedOfferIDs = try await savedTask
             adminTasks = try await tasksTask
+            strikes = try await strikesTask
             isAuthenticated = await api.accessToken != nil
         } catch {
             lastSyncError = error.localizedDescription
@@ -337,6 +342,28 @@ final class AppState: ObservableObject {
 
         updateBooking(booking.id) { booking in
             booking.stage = .checkedIn
+        }
+    }
+
+    func validateReferralCode(_ code: String) async -> Bool {
+        do {
+            return try await api.validateReferralCode(code)
+        } catch {
+            lastSyncError = error.localizedDescription
+            return false
+        }
+    }
+
+    func uploadProofScreenshot(for booking: Booking, imageData: Data, fileName: String) async -> String? {
+        do {
+            return try await api.uploadProofImage(
+                bookingID: booking.id,
+                imageData: imageData,
+                fileName: fileName
+            )
+        } catch {
+            lastSyncError = error.localizedDescription
+            return nil
         }
     }
 

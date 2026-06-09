@@ -1,7 +1,10 @@
-import Link from "next/link";
 import { SITE } from "@/lib/constants";
+import { type Locale, getDictionary } from "@/lib/i18n/dictionaries";
+import Link from "next/link";
 
-export function Footer() {
+export function Footer({ locale }: { locale: Locale }) {
+  const dict = getDictionary(locale);
+
   return (
     <footer className="border-t border-black/5 bg-ink text-white">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">
@@ -11,22 +14,22 @@ export function Footer() {
         </div>
 
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gold">Product</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-gold">{dict.footer.product}</p>
           <ul className="mt-4 space-y-2 text-sm text-white/80">
-            <li><Link href="/creators" className="hover:text-white">Creators</Link></li>
-            <li><Link href="/brands" className="hover:text-white">Brands</Link></li>
-            <li><Link href="/faq" className="hover:text-white">FAQ</Link></li>
-            <li><Link href="/demo" className="hover:text-white">Demo</Link></li>
+            <li><Link href="/creators" className="hover:text-white">{dict.footer.creators}</Link></li>
+            <li><Link href="/brands" className="hover:text-white">{dict.footer.brands}</Link></li>
+            <li><Link href="/faq" className="hover:text-white">{dict.footer.faq}</Link></li>
+            <li><Link href="/demo" className="hover:text-white">{dict.footer.demo}</Link></li>
           </ul>
         </div>
 
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gold">Legal</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-gold">{dict.footer.legal}</p>
           <ul className="mt-4 space-y-2 text-sm text-white/80">
-            <li><Link href="/privacy" className="hover:text-white">Privacy</Link></li>
-            <li><Link href="/terms" className="hover:text-white">Terms</Link></li>
-            <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
-            <li><Link href="/delete-account" className="hover:text-white">Delete account</Link></li>
+            <li><Link href="/privacy" className="hover:text-white">{dict.footer.privacy}</Link></li>
+            <li><Link href="/terms" className="hover:text-white">{dict.footer.terms}</Link></li>
+            <li><Link href="/contact" className="hover:text-white">{dict.footer.contact}</Link></li>
+            <li><Link href="/delete-account" className="hover:text-white">{dict.footer.deleteAccount}</Link></li>
           </ul>
         </div>
       </div>

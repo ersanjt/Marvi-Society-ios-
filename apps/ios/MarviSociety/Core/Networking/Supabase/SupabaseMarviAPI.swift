@@ -177,6 +177,71 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             ]
         )
     }
+
+    func validateReferralCode(_ code: String) async throws -> Bool {
+        let rows: [ReferralRow] = try await client.select(
+            table: "referral_codes",
+            query: [
+                URLQueryItem(name: "select", value: "code"),
+                URLQueryItem(name: "code", value: "eq.\(code.uppercased())"),
+                URLQueryItem(name: "limit", value: "1")
+            ]
+        )
+        return !rows.isEmpty
+    }
+
+    func fetchStrikes() async throws -> [Strike] {
+        let rows: [StrikeRow] = try await client.select(
+            table: "strikes",
+            query: [URLQueryItem(name: "order", value: "created_at.desc")]
+        )
+        return rows.map { $0.toStrike() }
+    }
+
+    func uploadProofImage(bookingID: UUID, imageData: Data, fileName: String) async throws -> String {
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.server(message: "Not authenticated")
+        }
+        let path = "\(userID)/\(bookingID.uuidString)/\(fileName)"
+        return try await client.uploadObject(
+            bucket: "proof-uploads",
+            path: path,
+            data: imageData,
+            contentType: "image/jpeg"
+        )
+    }
+
+    func issueStrike(creatorID: UUID, bookingID: UUID?, reason: String) async throws {
+        var body: [String: Any] = [
+            "creator_id": creatorID.uuidString,
+            "reason": reason,
+            "severity": "medium"
+        ]
+        if let bookingID {
+            body["booking_id"] = bookingID.uuidString
+        }
+        try await client.insert(table: "strikes", body: body)
+    }
+}
+
+private struct ReferralRow: Decodable {
+    let code: String
+}
+
+private struct StrikeRow: Decodable {
+    let id: UUID
+    let reason: String
+    let severity: String
+    let created_at: String
+
+    func toStrike() -> Strike {
+        Strike(
+            id: id,
+            reason: reason,
+            severity: severity,
+            createdAtLabel: created_at.prefix(10).description
+        )
+    }
 }
 
 // MARK: - Join row types

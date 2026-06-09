@@ -133,6 +133,49 @@ actor SupabaseClient {
         }
     }
 
+    func insert(table: String, body: [String: Any]) async throws {
+        let url = baseURL.appending(path: "rest/v1/\(table)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        applyHeaders(&request, authenticated: true)
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+    }
+
+    func uploadObject(bucket: String, path: String, data: Data, contentType: String) async throws -> String {
+        var url = baseURL.appending(path: "storage/v1/object")
+        url.append(path: bucket)
+        for component in path.split(separator: "/") {
+            url.append(path: String(component))
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        applyHeaders(&request, authenticated: true)
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.setValue("true", forHTTPHeaderField: "x-upsert")
+        request.httpBody = data
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return path
+    }
+
+    func currentUserID() -> String? {
+        guard let token else { return nil }
+        let parts = token.split(separator: ".")
+        guard parts.count >= 2 else { return nil }
+        var payload = String(parts[1])
+        let padding = 4 - payload.count % 4
+        if padding < 4 { payload += String(repeating: "=", count: padding) }
+        guard let data = Data(base64Encoded: payload),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let sub = json["sub"] as? String else { return nil }
+        return sub
+    }
+
     func patch(table: String, id: UUID, body: [String: Any]) async throws {
         var components = URLComponents(url: baseURL.appending(path: "rest/v1/\(table)"), resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "id", value: "eq.\(id.uuidString)")]

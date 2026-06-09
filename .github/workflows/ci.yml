@@ -55,6 +55,20 @@ jobs:
       - name: Build Next.js
         run: npm run build
 
+  android-structure:
+    name: Android project structure
+    runs-on: ubuntu-latest
+    needs: docs-and-contract
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Android scaffold
+        run: |
+          test -f apps/android/settings.gradle.kts
+          test -f apps/android/app/build.gradle.kts
+          test -f apps/android/app/src/main/java/com/marvisociety/app/MainActivity.kt
+          echo "Android scaffold OK"
+
   ios-build:
     name: iOS build
     runs-on: macos-latest

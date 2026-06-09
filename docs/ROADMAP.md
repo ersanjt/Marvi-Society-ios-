@@ -23,7 +23,7 @@ Phased delivery from local MVP to global production platform.
 
 ---
 
-## Phase 1 — Backend MVP (Week 3–6) 🔄 in progress
+## Phase 1 — Backend MVP (Week 3–6) ✅ complete (deploy pending)
 
 **Goal:** Replace `UserDefaults` with real API; Istanbul-only beta.
 
@@ -33,8 +33,8 @@ Phased delivery from local MVP to global production platform.
 | **Auth** | Apple Sign-In + Supabase token exchange | ✅ |
 | **API** | `MarviAPI` + `SupabaseMarviAPI` + `LocalMarviAPI` | ✅ |
 | **iOS** | AppState async sync, Profile sync UI | ✅ |
-| **Storage** | Proof screenshot upload with signed URLs | ⏳ Phase 1b |
-| **Admin** | Basic web review queue (approve/reject) | ⏳ Phase 3 |
+| **Storage** | Proof screenshot upload (`proof-uploads` bucket) | ✅ |
+| **Admin** | Web + iOS review queue (approve/reject) | ✅ |
 | **Deploy** | Create Supabase project + run migrations | ⏳ manual step |
 
 **Exit criteria:** 10 real creators + 5 venues in Istanbul closed beta; data persists across devices.
@@ -57,25 +57,27 @@ Setup guide: [PHASE1_SETUP.md](./PHASE1_SETUP.md)
 | Location service (when-in-use) | P0 | ✅ |
 | Instagram/TikTok OAuth verification | P1 | ⏳ |
 | Remote push via APNs + backend worker | P1 | ⏳ |
-| Membership application workflow + admin approval | P0 | ⏳ partial (schema) |
+| Membership application workflow + admin approval | P0 | ✅ schema + admin queue |
 | Inbox with real-time updates | P1 | ⏳ |
-| Member score + strike system | P1 | ⏳ |
+| Member score + strike system | P1 | ✅ UI + schema |
 
 **Exit criteria:** Creator can discover on map, accept instant café offer, check in, submit proof, get push reminder.
 
 ---
 
-## Phase 3 — Brand portal + marketing web (Week 11–14) 🔄 in progress
+## Phase 3 — Brand portal + marketing web (Week 11–14) ✅ complete (deploy pending)
 
 **Goal:** Public web presence like [collabb.me](https://collabb.me/).
 
 | Surface | Pages / features | Status |
 |---------|------------------|--------|
 | **Marketing** | Home, creators, brands, FAQ, demo, legal, contact | ✅ |
-| **Brand portal** | Login, dashboard, campaign builder (UI preview) | ✅ UI |
-| **Supabase Auth** | Portal login wired to backend | ⏳ |
-| **SEO + i18n** | EN + TR; hreflang | ⏳ |
-| **Demo funnel** | Form → Supabase / email | ⏳ mailto placeholder |
+| **Brand portal** | Login, dashboard, campaign builder (UI preview) | ✅ |
+| **Supabase Auth** | Portal login + middleware gate | ✅ |
+| **Admin console** | `/admin` review queue | ✅ |
+| **SEO + i18n** | EN + TR locale switcher | ✅ |
+| **Demo funnel** | Form → `/api/demo` → Supabase | ✅ |
+| **Delete account** | `/delete-account` + API route | ✅ |
 
 **Exit criteria:** Venue can sign up on web, create campaign, see creator bookings without iOS app.
 
@@ -83,17 +85,18 @@ Run locally: `cd apps/web && npm install && npm run dev`
 
 ---
 
-## Phase 4 — Android + scale (Week 15–20)
+## Phase 4 — Android + scale (Week 15–20) 🔄 scaffold ready
 
 **Goal:** Play Store launch; second city (Dubai or Izmir).
 
-| Workstream | Deliverables |
-|------------|--------------|
-| **Android** | Kotlin Compose app, feature parity with iOS |
-| **Shared QA** | Detox / Maestro E2E on critical flows |
-| **Analytics** | PostHog funnels, venue ROI dashboard |
-| **Referral** | Creator + venue referral codes (Collabb 1.0.1) |
-| **Performance** | Feed pagination, image CDN, API caching |
+| Workstream | Deliverables | Status |
+|------------|--------------|--------|
+| **Android** | Kotlin Compose app, feature parity with iOS | ✅ scaffold |
+| **Android Supabase** | Retrofit/SDK sync | ⏳ |
+| **Shared QA** | Detox / Maestro E2E on critical flows | ⏳ |
+| **Analytics** | PostHog funnels, venue ROI dashboard | ⏳ |
+| **Referral** | Creator + venue referral codes | ✅ iOS + schema |
+| **Performance** | Feed pagination, image CDN, API caching | ⏳ |
 
 **Exit criteria:** iOS + Android in stores; 100+ approved creators; 20+ live venues.
 
@@ -157,10 +160,10 @@ Week:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
 ## Definition of done (global product)
 
 - [ ] iOS + Android in App Store / Play Store
-- [ ] Marketing + brand portal live on custom domain
+- [x] Marketing + brand portal built (deploy to custom domain pending)
 - [ ] 4 collaboration models production-ready
 - [ ] Real auth, push, maps, social linking
-- [ ] Admin moderation + legal pages
+- [x] Admin moderation + legal pages (stubs; legal review pending)
 - [ ] EN + TR + AR localized
 - [ ] CI/CD deploys on merge to `main`
 - [ ] Analytics and error monitoring active

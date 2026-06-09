@@ -1,5 +1,5 @@
+import { DemoForm } from "@/components/marketing/DemoForm";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
-import { SITE } from "@/lib/constants";
 
 export const metadata = { title: "Get demo" };
 
@@ -18,37 +18,7 @@ export default function DemoPage() {
         </p>
       </div>
 
-      <form className="marvi-card mt-6 space-y-4" action={`mailto:${SITE.email}`} method="GET">
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-semibold">
-            First name
-            <input name="firstName" required className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
-          </label>
-          <label className="block text-sm font-semibold">
-            Last name
-            <input name="lastName" required className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
-          </label>
-        </div>
-        <label className="block text-sm font-semibold">
-          Company / venue
-          <input name="company" required className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
-        </label>
-        <label className="block text-sm font-semibold">
-          Email
-          <input type="email" name="email" required className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
-        </label>
-        <label className="block text-sm font-semibold">
-          Website
-          <input type="url" name="website" className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
-        </label>
-        <label className="block text-sm font-semibold">
-          Message
-          <textarea name="body" rows={4} className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" placeholder="Tell us about your venue and campaign goals." />
-        </label>
-        <button type="submit" className="marvi-btn-primary w-full">
-          Request demo
-        </button>
-      </form>
+      <DemoForm />
     </div>
   );
 }

@@ -1,6 +1,9 @@
+import { PortalNav } from "@/components/portal/PortalNav";
+
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[70vh] bg-cool">
+      <PortalNav />
       {children}
     </div>
   );

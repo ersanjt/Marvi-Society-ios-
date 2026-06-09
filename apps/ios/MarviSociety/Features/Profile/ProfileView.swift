@@ -43,7 +43,29 @@ struct ProfileView: View {
 
                                 HStack(spacing: 10) {
                                     ScoreTile(value: appState.profile.proofRate, label: "Delivery", icon: "checkmark.seal.fill", tint: MarviColor.emerald)
-                                    ScoreTile(value: "Istanbul", label: "Market", icon: "location.fill", tint: MarviColor.tomato)
+                                    ScoreTile(value: "\(appState.strikes.count)", label: "Strikes", icon: "exclamationmark.triangle.fill", tint: MarviColor.tomato)
+                                }
+                            }
+                        }
+
+                        if !appState.strikes.isEmpty {
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    SectionTitle(title: "Strike history", subtitle: "Policy violations affect matching priority.")
+
+                                    ForEach(appState.strikes) { strike in
+                                        HStack(alignment: .top, spacing: 10) {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .foregroundStyle(MarviColor.tomato)
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(strike.reason)
+                                                    .font(.subheadline.weight(.semibold))
+                                                Text("\(strike.severity.capitalized) · \(strike.createdAtLabel)")
+                                                    .font(.caption)
+                                                    .foregroundStyle(MarviColor.muted)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

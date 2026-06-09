@@ -20,6 +20,7 @@ struct AdminDashboardView: View {
                             AdminMetric(value: "\(appState.offers.count)", label: "Live offers", icon: "sparkles", tint: MarviColor.emerald)
                             AdminMetric(value: "\(appState.activeBookings.count)", label: "Bookings", icon: "calendar", tint: MarviColor.blue)
                             AdminMetric(value: "\(appState.campaigns.count)", label: "Campaigns", icon: "megaphone", tint: MarviColor.gold)
+                            AdminMetric(value: "\(appState.strikes.count)", label: "Strikes", icon: "exclamationmark.triangle", tint: MarviColor.tomato)
                         }
 
                         SectionTitle(title: "Review queue", subtitle: "Approve or reject items before they go live.")

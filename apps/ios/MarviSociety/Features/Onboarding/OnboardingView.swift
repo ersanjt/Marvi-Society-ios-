@@ -7,6 +7,8 @@ struct OnboardingView: View {
     @State private var instagramHandle = "@aylin.in.istanbul"
     @State private var city = "Istanbul"
     @State private var inviteCode = "MARVI-IST"
+    @State private var referralError = ""
+    @State private var isValidatingReferral = false
 
     var body: some View {
         NavigationStack {
@@ -78,6 +80,12 @@ struct OnboardingView: View {
                                 .foregroundStyle(MarviColor.tomato)
                         }
 
+                        if !referralError.isEmpty {
+                            Label(referralError, systemImage: "exclamationmark.triangle")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.tomato)
+                        }
+
                         if appState.isRemoteMode {
                             PrimaryActionButton(
                                 title: appleSignIn.isSigningIn ? "Signing in…" : "Sign in with Apple",
@@ -109,11 +117,13 @@ struct OnboardingView: View {
                         PrimaryActionButton(
                             title: appState.isRemoteMode ? "Continue in local preview" : "Enter Marvi Society",
                             systemImage: "arrow.right.circle",
-                            isDisabled: !isSetupValid
+                            isDisabled: !isSetupValid || isValidatingReferral
                         ) {
                             appState.profile.handle = instagramHandle
                             appState.profile.city = city
-                            appState.completeOnboarding(role: selectedRole)
+                            Task {
+                                await finishOnboarding()
+                            }
                         }
 
                         if let error = appState.lastSyncError {
@@ -132,6 +142,19 @@ struct OnboardingView: View {
         !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func finishOnboarding() async {
+        referralError = ""
+        isValidatingReferral = true
+        defer { isValidatingReferral = false }
+
+        let valid = await appState.validateReferralCode(inviteCode)
+        guard valid else {
+            referralError = "Invite code not recognized. Try MARVI-IST for demo."
+            return
+        }
+        appState.completeOnboarding(role: selectedRole)
     }
 }
 

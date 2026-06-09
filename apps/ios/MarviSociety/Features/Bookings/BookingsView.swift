@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 struct BookingsView: View {
@@ -250,6 +251,9 @@ private struct ProofSubmissionSheet: View {
     @State private var storyLink = "https://instagram.com/stories/example"
     @State private var postLink = "https://instagram.com/reel/example"
     @State private var reviewLink = ""
+    @State private var screenshotItem: PhotosPickerItem?
+    @State private var screenshotPath: String?
+    @State private var isUploadingScreenshot = false
 
     var body: some View {
         NavigationStack {
@@ -276,6 +280,37 @@ private struct ProofSubmissionSheet: View {
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .textFieldStyle(.roundedBorder)
+
+                            PhotosPicker(selection: $screenshotItem, matching: .images) {
+                                Label(
+                                    screenshotPath == nil ? "Attach screenshot (optional)" : "Screenshot attached",
+                                    systemImage: "photo.on.rectangle"
+                                )
+                                .font(.subheadline.weight(.semibold))
+                            }
+                            .onChange(of: screenshotItem) { _, item in
+                                guard let item else { return }
+                                Task {
+                                    isUploadingScreenshot = true
+                                    defer { isUploadingScreenshot = false }
+                                    guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+                                    screenshotPath = await appState.uploadProofScreenshot(
+                                        for: booking,
+                                        imageData: data,
+                                        fileName: "proof-\(Int(Date().timeIntervalSince1970)).jpg"
+                                    )
+                                }
+                            }
+
+                            if isUploadingScreenshot {
+                                Text("Uploading screenshot…")
+                                    .font(.caption)
+                                    .foregroundStyle(MarviColor.muted)
+                            } else if let screenshotPath {
+                                Text("Stored: \(screenshotPath)")
+                                    .font(.caption2)
+                                    .foregroundStyle(MarviColor.emerald)
+                            }
                         }
                     }
 
@@ -319,13 +354,17 @@ private struct ProofSubmissionSheet: View {
     }
 
     private var proofLinks: [String] {
-        [storyLink, postLink, reviewLink]
+        var links = [storyLink, postLink, reviewLink]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.hasPrefix("http://") || $0.hasPrefix("https://") }
+        if let screenshotPath {
+            links.append("screenshot:\(screenshotPath)")
+        }
+        return links
     }
 
     private var canSubmit: Bool {
-        !proofLinks.isEmpty
+        !proofLinks.isEmpty && !isUploadingScreenshot
     }
 }
 
