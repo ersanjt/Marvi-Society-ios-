@@ -202,7 +202,7 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("Apple Sign-In works on TestFlight builds. For device testing, use email.")
+                Text("Sign in with Apple needs an active Apple Developer account ($99/yr). Until then, use email to create an account and sign in.")
                     .font(.caption2)
                     .foregroundStyle(MarviColor.muted)
                     .multilineTextAlignment(.center)
