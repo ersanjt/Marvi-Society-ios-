@@ -9,7 +9,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SB_URL=""
 SB_KEY=""
 if [[ -f "$REPO_ROOT/apps/ios/Config/Secrets.xcconfig" ]]; then
-  SB_URL=$(grep MARVI_SUPABASE_URL "$REPO_ROOT/apps/ios/Config/Secrets.xcconfig" | head -1 | sed 's/.*= //' | sed 's|\$()/|//|')
+  SB_URL=$(grep MARVI_SUPABASE_URL "$REPO_ROOT/apps/ios/Config/Secrets.xcconfig" | head -1 | sed 's/.*= //' | sed 's|https:/\$()/|https://|' | sed 's|\$()/|/|')
   SB_KEY=$(grep MARVI_SUPABASE_ANON_KEY "$REPO_ROOT/apps/ios/Config/Secrets.xcconfig" | head -1 | sed 's/.*= //')
   API_MODE=$(grep '^MARVI_API_MODE' "$REPO_ROOT/apps/ios/Config/Secrets.xcconfig" | head -1 | sed 's/.*= //')
 fi
