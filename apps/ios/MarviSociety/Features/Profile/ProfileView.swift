@@ -333,9 +333,36 @@ struct ProfileView: View {
                             }
                         }
 
+                        if !appState.inboxMessages.isEmpty {
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    SectionTitle(
+                                        title: MarviL10n.t(.inboxTitle, language: appState.preferredLanguage),
+                                        subtitle: "\(appState.unreadInboxCount) unread"
+                                    )
+                                    NavigationLink {
+                                        InboxView()
+                                    } label: {
+                                        Label(
+                                            MarviL10n.t(.inboxTitle, language: appState.preferredLanguage),
+                                            systemImage: "bell.badge"
+                                        )
+                                        .font(.subheadline.weight(.bold))
+                                    }
+                                }
+                            }
+                        }
+
                         MarviCard {
                             VStack(alignment: .leading, spacing: 14) {
                                 SectionTitle(title: "Settings", subtitle: "Preferences saved on this device.")
+
+                                Picker("Language", selection: $appState.preferredLanguage) {
+                                    ForEach(AppLanguage.allCases) { language in
+                                        Text(language.label).tag(language)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
 
                                 Toggle("Push notifications", isOn: $appState.pushNotificationsEnabled)
                                 Toggle("Proof deadline reminders", isOn: $appState.proofRemindersEnabled)

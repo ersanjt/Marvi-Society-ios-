@@ -20,6 +20,9 @@ protocol MarviAPI: Sendable {
     func fetchProfile() async throws -> CreatorProfile
     func updateProfile(_ profile: CreatorProfile) async throws
     func fetchNotifications() async throws -> [InboxMessage]
+    func markNotificationRead(_ id: UUID) async throws
+    func registerDeviceToken(_ token: String, platform: String) async throws
+    func trackEvent(_ name: String, properties: [String: String]) async throws
     func fetchSavedOfferIDs() async throws -> Set<UUID>
     func fetchAdminTasks() async throws -> [AdminTask]
     func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile?
@@ -29,7 +32,7 @@ protocol MarviAPI: Sendable {
     func fetchVenueSummary() async throws -> VenueSummary?
     func hasVenueProfile() async throws -> Bool
 
-    func acceptOffer(_ offerID: UUID) async throws -> Booking
+    func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions) async throws -> Booking
     func cancelOffer(_ offerID: UUID) async throws
     func checkIn(bookingID: UUID, code: String) async throws -> Booking
     func submitProof(bookingID: UUID, links: [String]) async throws -> Booking
@@ -123,4 +126,16 @@ extension MarviAPI {
     func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? { nil }
 
     func fetchVenueProfile(id: UUID) async throws -> VenueSummary? { nil }
+}
+
+extension MarviAPI {
+    func acceptOffer(_ offerID: UUID) async throws -> Booking {
+        try await acceptOffer(offerID, options: AcceptOfferOptions())
+    }
+
+    func markNotificationRead(_ id: UUID) async throws {}
+
+    func registerDeviceToken(_ token: String, platform: String) async throws {}
+
+    func trackEvent(_ name: String, properties: [String: String]) async throws {}
 }

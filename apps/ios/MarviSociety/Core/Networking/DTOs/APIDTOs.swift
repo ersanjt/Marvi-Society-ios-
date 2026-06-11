@@ -66,6 +66,8 @@ struct BookingRow: Decodable {
     let proof_deadline_label: String?
     let proof_status: String?
     let proof_links: [String]?
+    let shipping_address: String?
+    let rsvp_guests: Int?
     let offers: OfferRow?
 
     func toBooking() -> Booking? {
@@ -83,7 +85,9 @@ struct BookingRow: Decodable {
             proofStatus: ProofStatus.fromAPI(proof_status),
             checkInCode: check_in_code,
             guestName: guest_name ?? "",
-            proofLinks: proof_links ?? []
+            proofLinks: proof_links ?? [],
+            shippingAddress: shipping_address,
+            rsvpGuests: rsvp_guests
         )
     }
 }
@@ -127,12 +131,20 @@ struct CreatorProfileRow: Decodable {
     }
 }
 
+struct NotificationPayload: Decodable {
+    let booking_id: UUID?
+    let offer_id: UUID?
+}
+
 struct NotificationRow: Decodable {
     let id: UUID
     let title: String
     let body: String
     let icon: String?
     let tint: String?
+    let type: String?
+    let read_at: String?
+    let payload: NotificationPayload?
     let created_at: String?
 
     func toMessage() -> InboxMessage {
@@ -140,21 +152,14 @@ struct NotificationRow: Decodable {
             id: id,
             title: title,
             body: body,
-            dateLabel: formatRelative(created_at),
+            dateLabel: APIDTOs.formatRelative(created_at),
             icon: icon ?? "bell.fill",
-            tint: PaletteToken.fromAPI(tint)
+            tint: PaletteToken.fromAPI(tint),
+            isRead: read_at != nil,
+            notificationType: type ?? "general",
+            bookingID: payload?.booking_id,
+            offerID: payload?.offer_id
         )
-    }
-
-    private func formatRelative(_ iso: String?) -> String {
-        guard let iso,
-              let date = ISO8601DateFormatter().date(from: iso) else {
-            return "Now"
-        }
-        let interval = Date().timeIntervalSince(date)
-        if interval < 3600 { return "Now" }
-        if interval < 86400 { return "Today" }
-        return "Earlier"
     }
 }
 

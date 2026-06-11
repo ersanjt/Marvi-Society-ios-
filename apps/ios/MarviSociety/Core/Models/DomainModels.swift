@@ -275,6 +275,35 @@ struct Booking: Codable, Identifiable, Hashable {
     var checkInCode: String
     var guestName: String
     var proofLinks: [String]
+    var shippingAddress: String?
+    var rsvpGuests: Int?
+}
+
+enum AppLanguage: String, Codable, CaseIterable, Identifiable {
+    case english = "en"
+    case turkish = "tr"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .english: "English"
+        case .turkish: "Türkçe"
+        }
+    }
+}
+
+enum MarviDeepLink: Equatable {
+    case inbox
+    case profile
+    case admin
+    case offer(UUID)
+    case booking(UUID)
+}
+
+struct AcceptOfferOptions: Equatable {
+    var shippingAddress: String?
+    var rsvpGuests: Int?
 }
 
 struct Strike: Codable, Identifiable, Hashable {
@@ -501,6 +530,10 @@ struct InboxMessage: Codable, Identifiable {
     var dateLabel: String
     var icon: String
     var tint: PaletteToken
+    var isRead: Bool
+    var notificationType: String
+    var bookingID: UUID?
+    var offerID: UUID?
 
     init(
         id: UUID = UUID(),
@@ -508,7 +541,11 @@ struct InboxMessage: Codable, Identifiable {
         body: String,
         dateLabel: String,
         icon: String,
-        tint: PaletteToken
+        tint: PaletteToken,
+        isRead: Bool = false,
+        notificationType: String = "general",
+        bookingID: UUID? = nil,
+        offerID: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -516,5 +553,20 @@ struct InboxMessage: Codable, Identifiable {
         self.dateLabel = dateLabel
         self.icon = icon
         self.tint = tint
+        self.isRead = isRead
+        self.notificationType = notificationType
+        self.bookingID = bookingID
+        self.offerID = offerID
+    }
+
+    var deepLink: MarviDeepLink? {
+        if let bookingID { return .booking(bookingID) }
+        if let offerID { return .offer(offerID) }
+        switch notificationType.lowercased() {
+        case "membership": return .profile
+        case "admin", "campaign": return .admin
+        case "booking": return .inbox
+        default: return nil
+        }
     }
 }

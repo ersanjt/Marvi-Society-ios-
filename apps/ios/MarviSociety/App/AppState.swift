@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @MainActor
 final class AppState: ObservableObject {
@@ -47,6 +48,14 @@ final class AppState: ObservableObject {
     @Published var pendingOfferIDs: Set<UUID> = []
     @Published var venueReviewQueue: [VenueReviewItem] = []
     @Published var processingAdminTaskID: UUID?
+    @Published var pendingDeepLink: MarviDeepLink?
+    @Published var highlightedBookingID: UUID?
+    @Published var pendingOfferNavigation: Offer?
+    @Published var preferredLanguage: AppLanguage = .english {
+        didSet { saveSnapshot() }
+    }
+
+    private var lastNotifiedInstantOfferID: UUID?
 
     let locationService = LocationService()
     var isRemoteMode: Bool { APIConfig.isSupabaseConfigured }
@@ -113,6 +122,90 @@ final class AppState: ObservableObject {
         locationService.refreshLocation()
     }
 
+    func handleLocationUpdate() {
+        guard pushNotificationsEnabled, isAuthenticated else { return }
+        guard let instant = nearbyOffers(withinKm: 3).first(where: { $0.collaborationModel == .instant }) else {
+            return
+        }
+        guard lastNotifiedInstantOfferID != instant.id else { return }
+        lastNotifiedInstantOfferID = instant.id
+        PushNotificationService.scheduleInstantOfferNearby(venueName: instant.venue)
+        track("instant_offer_nearby", properties: ["offer_id": instant.id.uuidString])
+    }
+
+    func registerPushToken(_ tokenData: Data) {
+        let token = tokenData.map { String(format: "%02.2hhx", $0) }.joined()
+        Task {
+            try? await api.registerDeviceToken(token, platform: "ios")
+        }
+    }
+
+    func track(_ name: String, properties: [String: String] = [:]) {
+        #if DEBUG
+        print("[MarviAnalytics] \(name) \(properties)")
+        #endif
+        guard isRemoteMode, isAuthenticated else { return }
+        Task { try? await api.trackEvent(name, properties: properties) }
+    }
+
+    func navigate(to link: MarviDeepLink) {
+        switch link {
+        case .inbox:
+            workspaceTabIndex = selectedRole == .creator ? profileTabIndex : 1
+        case .profile:
+            selectedRole = allowedRoles.contains(.creator) ? .creator : (allowedRoles.first ?? .creator)
+            workspaceTabIndex = profileTabIndex
+        case .admin:
+            Task { await openAdminConsole() }
+        case .offer(let offerID):
+            selectedRole = .creator
+            workspaceTabIndex = 0
+            if let offer = offers.first(where: { $0.id == offerID }) {
+                pendingOfferNavigation = offer
+            } else {
+                Task {
+                    await refreshFromServer()
+                    if let offer = offers.first(where: { $0.id == offerID }) {
+                        pendingOfferNavigation = offer
+                    }
+                }
+            }
+        case .booking(let bookingID):
+            selectedRole = .creator
+            workspaceTabIndex = 1
+            highlightedBookingID = bookingID
+        }
+        pendingDeepLink = nil
+    }
+
+    func openInboxMessage(_ message: InboxMessage) {
+        Task {
+            if !message.isRead {
+                try? await api.markNotificationRead(message.id)
+                if let index = inboxMessages.firstIndex(where: { $0.id == message.id }) {
+                    inboxMessages[index].isRead = true
+                }
+            }
+            if let link = message.deepLink {
+                navigate(to: link)
+            }
+            track("inbox_open", properties: ["type": message.notificationType])
+        }
+    }
+
+    var inboxTabIndex: Int {
+        switch selectedRole {
+        case .creator: 2
+        case .venue, .admin: 1
+        }
+    }
+
+    var profileTabIndex: Int { 2 }
+
+    var unreadInboxCount: Int {
+        inboxMessages.filter { !$0.isRead }.count
+    }
+
     func nearbyOffers(withinKm: Double = 8) -> [Offer] {
         guard let user = userCoordinate else {
             return offers.filter { $0.collaborationModel == .instant }
@@ -138,7 +231,33 @@ final class AppState: ObservableObject {
 
     func requestPushPermission() {
         guard pushNotificationsEnabled else { return }
-        Task { _ = await PushNotificationService.requestAuthorization() }
+        Task {
+            _ = await PushNotificationService.requestAuthorization()
+            await MainActor.run {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
+    }
+
+    func handleDeepLinkURL(_ url: URL) {
+        guard url.scheme?.lowercased() == "marvisociety" else { return }
+        let pathID = url.pathComponents.filter { $0 != "/" }.last
+        switch url.host?.lowercased() {
+        case "booking":
+            if let id = pathID.flatMap(UUID.init(uuidString:)) {
+                navigate(to: .booking(id))
+            }
+        case "offer":
+            if let id = pathID.flatMap(UUID.init(uuidString:)) {
+                navigate(to: .offer(id))
+            }
+        case "admin":
+            Task { await openAdminConsole() }
+        case "profile":
+            navigate(to: .profile)
+        default:
+            navigate(to: .inbox)
+        }
     }
 
     func syncProofReminders() {
@@ -442,15 +561,19 @@ final class AppState: ObservableObject {
         }
     }
 
-    func accept(_ offer: Offer) {
+    func accept(_ offer: Offer, options: AcceptOfferOptions = AcceptOfferOptions()) {
         guard isAuthenticated, !isAccepted(offer), offer.remaining > 0 else { return }
         pendingOfferIDs.insert(offer.id)
         Task {
             defer { pendingOfferIDs.remove(offer.id) }
             do {
-                let booking = try await api.acceptOffer(offer.id)
+                let booking = try await api.acceptOffer(offer.id, options: options)
                 bookings.insert(booking, at: 0)
                 syncProofReminders()
+                track("offer_accepted", properties: [
+                    "offer_id": offer.id.uuidString,
+                    "model": offer.collaborationModel.rawValue
+                ])
                 await refreshFromServer()
             } catch {
                 lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription

@@ -15,6 +15,12 @@ export async function PortalNav() {
           <Link href="/portal/dashboard" className="text-graphite hover:text-emerald">
             Dashboard
           </Link>
+          <Link href="/portal/reviews" className="text-graphite hover:text-emerald">
+            Reviews
+          </Link>
+          <Link href="/portal/creators" className="text-graphite hover:text-emerald">
+            Creators
+          </Link>
           <Link href="/portal/campaigns/new" className="text-graphite hover:text-emerald">
             New campaign
           </Link>

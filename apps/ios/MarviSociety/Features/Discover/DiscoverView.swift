@@ -285,6 +285,12 @@ struct DiscoverView: View {
             .navigationDestination(item: $selectedOffer) { offer in
                 OfferDetailView(offer: offer)
             }
+            .onChange(of: appState.pendingOfferNavigation?.id) { _, _ in
+                if let offer = appState.pendingOfferNavigation {
+                    selectedOffer = offer
+                    appState.pendingOfferNavigation = nil
+                }
+            }
             .sheet(isPresented: $isShowingInbox) {
                 NavigationStack {
                     InboxView()

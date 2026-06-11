@@ -5,6 +5,12 @@ struct OfferDetailView: View {
     let offer: Offer
 
     @State private var showCancelConfirmation = false
+    @State private var showGiftSheet = false
+    @State private var showRSVPSheet = false
+    @State private var shippingAddress = ""
+    @State private var rsvpGuests = 2.0
+
+    private var lang: AppLanguage { appState.preferredLanguage }
 
     private var isAccepted: Bool { appState.isAccepted(offer) }
     private var isSaved: Bool { appState.isSaved(offer) }
@@ -28,6 +34,28 @@ struct OfferDetailView: View {
                         isSaved: isSaved,
                         toggleSaved: { appState.toggleSaved(offer) }
                     )
+
+                    if offer.collaborationModel == .event {
+                        MarviCard {
+                            SectionTitle(
+                                title: lang == .turkish ? "Etkinlik RSVP" : "Event RSVP",
+                                subtitle: lang == .turkish
+                                    ? "Katılımınız venue kapasitesinden düşülür."
+                                    : "Your attendance is reserved against venue capacity."
+                            )
+                        }
+                    }
+
+                    if offer.collaborationModel == .gift {
+                        MarviCard {
+                            SectionTitle(
+                                title: lang == .turkish ? "Hediye gönderimi" : "Gift delivery",
+                                subtitle: lang == .turkish
+                                    ? "Onay sırasında teslimat adresi gerekir."
+                                    : "A shipping address is required when you confirm."
+                            )
+                        }
+                    }
 
                     MarviCard {
                         VStack(alignment: .leading, spacing: 14) {
@@ -103,7 +131,7 @@ struct OfferDetailView: View {
                     if isAccepted {
                         showCancelConfirmation = true
                     } else {
-                        appState.accept(offer)
+                        beginAcceptFlow()
                     }
                 }
             }
@@ -122,6 +150,51 @@ struct OfferDetailView: View {
         } message: {
             Text("The venue will be notified and your slot may be released.")
         }
+        .sheet(isPresented: $showGiftSheet) {
+            AcceptExtrasSheet(
+                title: MarviL10n.t(.confirmGift, language: lang),
+                actionTitle: MarviL10n.t(.confirmGift, language: lang)
+            ) {
+                MarviTextField(
+                    placeholder: MarviL10n.t(.shippingAddress, language: lang),
+                    text: $shippingAddress
+                )
+            } onConfirm: {
+                appState.accept(
+                    offer,
+                    options: AcceptOfferOptions(shippingAddress: shippingAddress)
+                )
+            }
+        }
+        .sheet(isPresented: $showRSVPSheet) {
+            AcceptExtrasSheet(
+                title: MarviL10n.t(.rsvpEvent, language: lang),
+                actionTitle: MarviL10n.t(.rsvpEvent, language: lang)
+            ) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("\(MarviL10n.t(.guestCount, language: lang)): \(Int(rsvpGuests))")
+                        .font(.subheadline.weight(.bold))
+                    Slider(value: $rsvpGuests, in: 1...6, step: 1)
+                        .tint(MarviColor.rose)
+                }
+            } onConfirm: {
+                appState.accept(
+                    offer,
+                    options: AcceptOfferOptions(rsvpGuests: Int(rsvpGuests))
+                )
+            }
+        }
+    }
+
+    private func beginAcceptFlow() {
+        switch offer.collaborationModel {
+        case .gift:
+            showGiftSheet = true
+        case .event:
+            showRSVPSheet = true
+        default:
+            appState.accept(offer)
+        }
     }
 
     private var fillRatio: Double {
@@ -135,14 +208,53 @@ struct OfferDetailView: View {
         if isUnderReview { return "Awaiting approval" }
         if isPaused { return "Membership paused" }
         if isFull { return "Fully booked" }
-        if offer.collaborationModel == .instant { return "Use now" }
-        return "Accept invitation"
+        switch offer.collaborationModel {
+        case .instant: return MarviL10n.t(.useNow, language: lang)
+        case .event: return MarviL10n.t(.rsvpEvent, language: lang)
+        case .gift: return MarviL10n.t(.confirmGift, language: lang)
+        default: return MarviL10n.t(.acceptInvitation, language: lang)
+        }
     }
 
     private var primaryActionIcon: String {
         if isAccepted { return "xmark.circle" }
         if offer.collaborationModel == .instant { return "bolt.fill" }
+        if offer.collaborationModel == .event { return "person.2.fill" }
+        if offer.collaborationModel == .gift { return "shippingbox.fill" }
         return "checkmark.circle"
+    }
+}
+
+private struct AcceptExtrasSheet<Content: View>: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let actionTitle: String
+    @ViewBuilder let content: () -> Content
+    let onConfirm: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionTitle(title: title, subtitle: "Required before confirming this collaboration.")
+                    MarviCard { content() }
+                    PrimaryActionButton(title: actionTitle, systemImage: "checkmark.circle") {
+                        onConfirm()
+                        dismiss()
+                    }
+                }
+                .padding(16)
+            }
+            .background(MarviColor.surface.ignoresSafeArea())
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }
 

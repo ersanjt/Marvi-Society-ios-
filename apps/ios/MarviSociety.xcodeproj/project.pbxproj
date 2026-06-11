@@ -45,6 +45,7 @@
 		1A2B3C4D5E6F700000000175 /* ConfigurationRequiredView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000165 /* ConfigurationRequiredView.swift */; };
 		1A2B3C4D5E6F700000000176 /* ReauthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000166 /* ReauthView.swift */; };
 		1A2B3C4D5E6F700000000177 /* SecretSocietyComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000167 /* SecretSocietyComponents.swift */; };
+		1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000168 /* MarviAppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -91,6 +92,7 @@
 		1A2B3C4D5E6F700000000165 /* ConfigurationRequiredView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationRequiredView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000166 /* ReauthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReauthView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000167 /* SecretSocietyComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretSocietyComponents.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000168 /* MarviAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarviAppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,6 +157,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000001 /* MarviSocietyApp.swift */,
+				1A2B3C4D5E6F700000000168 /* MarviAppDelegate.swift */,
 				1A2B3C4D5E6F700000000011 /* AppState.swift */,
 				1A2B3C4D5E6F700000000002 /* ContentView.swift */,
 				1A2B3C4D5E6F700000000012 /* MainAppShell.swift */,
@@ -493,6 +496,7 @@
 				1A2B3C4D5E6F700000000175 /* ConfigurationRequiredView.swift in Sources */,
 				1A2B3C4D5E6F700000000176 /* ReauthView.swift in Sources */,
 				1A2B3C4D5E6F700000000177 /* SecretSocietyComponents.swift in Sources */,
+				1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

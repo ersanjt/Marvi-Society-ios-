@@ -28,6 +28,8 @@ struct MainAppShell: View {
     }
 
     var body: some View {
+        let lang = appState.preferredLanguage
+
         VStack(spacing: 0) {
             if let error = appState.lastSyncError {
                 SyncErrorBanner(
@@ -41,41 +43,46 @@ struct MainAppShell: View {
             switch appState.selectedRole {
             case .creator:
                 DiscoverView()
-                    .tabItem { Label("Explore", systemImage: "sparkles") }
+                    .tabItem { Label(MarviL10n.t(.explore, language: lang), systemImage: "sparkles") }
                     .tag(0)
 
                 BookingsView()
-                    .tabItem { Label("My Events", systemImage: "calendar.badge.clock") }
+                    .tabItem { Label(MarviL10n.t(.myEvents, language: lang), systemImage: "calendar.badge.clock") }
                     .tag(1)
 
                 ProfileView()
-                    .tabItem { Label("Profile", systemImage: "person.crop.circle.fill") }
+                    .tabItem {
+                        Label(MarviL10n.t(.profile, language: lang), systemImage: "person.crop.circle.fill")
+                    }
+                    .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
                     .tag(2)
 
             case .venue:
                 VenueStudioView()
-                    .tabItem { Label("Studio", systemImage: "building.2") }
+                    .tabItem { Label(MarviL10n.t(.studio, language: lang), systemImage: "building.2") }
                     .tag(0)
 
                 InboxView()
-                    .tabItem { Label("Inbox", systemImage: "bell") }
+                    .tabItem { Label(MarviL10n.t(.inbox, language: lang), systemImage: "bell") }
+                    .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
                     .tag(1)
 
                 ProfileView()
-                    .tabItem { Label("Account", systemImage: "person.crop.circle") }
+                    .tabItem { Label(MarviL10n.t(.account, language: lang), systemImage: "person.crop.circle") }
                     .tag(2)
 
             case .admin:
                 AdminDashboardView()
-                    .tabItem { Label("Admin", systemImage: "checkmark.shield") }
+                    .tabItem { Label(MarviL10n.t(.admin, language: lang), systemImage: "checkmark.shield") }
                     .tag(0)
 
                 InboxView()
-                    .tabItem { Label("Inbox", systemImage: "bell") }
+                    .tabItem { Label(MarviL10n.t(.inbox, language: lang), systemImage: "bell") }
+                    .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
                     .tag(1)
 
                 ProfileView()
-                    .tabItem { Label("Account", systemImage: "person.crop.circle") }
+                    .tabItem { Label(MarviL10n.t(.account, language: lang), systemImage: "person.crop.circle") }
                     .tag(2)
             }
             }
@@ -83,6 +90,13 @@ struct MainAppShell: View {
             .tint(MarviColor.rose)
             .onChange(of: appState.selectedRole) { _, _ in
                 appState.workspaceTabIndex = 0
+            }
+            .onChange(of: appState.locationService.coordinate?.latitude) { _, _ in
+                appState.handleLocationUpdate()
+            }
+            .onChange(of: appState.pendingOfferNavigation?.id) { _, _ in
+                guard let offer = appState.pendingOfferNavigation else { return }
+                appState.pendingOfferNavigation = nil
             }
         }
         .fullScreenCover(isPresented: $appState.isPresentingAdminConsole) {

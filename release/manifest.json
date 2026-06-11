@@ -1,6 +1,6 @@
 {
-  "version": "0.2.0",
-  "codename": "secret-society-parity",
+  "version": "0.3.0",
+  "codename": "platform-completion",
   "releasedAt": "2026-06-11T00:00:00Z",
   "components": {
     "ios": {
@@ -12,8 +12,8 @@
       "version": "0.2.0"
     },
     "database": {
-      "migrationHead": "20260614000001_production_integrity",
-      "migrationCount": 11
+      "migrationHead": "20260615000001_platform_completion",
+      "migrationCount": 12
     }
   },
   "syncLog": [

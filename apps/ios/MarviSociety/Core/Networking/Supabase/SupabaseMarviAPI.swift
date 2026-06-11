@@ -167,6 +167,33 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         return rows.map { $0.toMessage() }
     }
 
+    func markNotificationRead(_ id: UUID) async throws {
+        try await client.rpcVoid(
+            function: "mark_notification_read",
+            body: ["p_notification_id": id.uuidString]
+        )
+    }
+
+    func registerDeviceToken(_ token: String, platform: String) async throws {
+        try await client.rpcVoid(
+            function: "register_device_token",
+            body: [
+                "p_token": token,
+                "p_platform": platform
+            ]
+        )
+    }
+
+    func trackEvent(_ name: String, properties: [String: String]) async throws {
+        try await client.rpcVoid(
+            function: "track_analytics_event",
+            body: [
+                "p_name": name,
+                "p_properties": properties
+            ]
+        )
+    }
+
     func fetchSavedOfferIDs() async throws -> Set<UUID> {
         let rows: [SavedOfferRow] = try await client.select(table: "saved_offers")
         return Set(rows.map(\.offer_id))
@@ -262,10 +289,19 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
 
     // MARK: - Write
 
-    func acceptOffer(_ offerID: UUID) async throws -> Booking {
+    func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions = AcceptOfferOptions()) async throws -> Booking {
+        var body: [String: Any] = ["p_offer_id": offerID.uuidString]
+        if let shippingAddress = options.shippingAddress?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !shippingAddress.isEmpty {
+            body["p_shipping_address"] = shippingAddress
+        }
+        if let rsvpGuests = options.rsvpGuests {
+            body["p_rsvp_guests"] = rsvpGuests
+        }
+
         let row: BookingRPCRow = try await client.rpc(
             function: "accept_offer",
-            body: ["p_offer_id": offerID.uuidString]
+            body: body
         )
         let bookings = try await fetchBookings()
         guard let booking = bookings.first(where: { $0.id == row.id }) else {

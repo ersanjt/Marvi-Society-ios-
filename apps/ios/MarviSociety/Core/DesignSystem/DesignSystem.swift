@@ -751,3 +751,61 @@ private struct StudioGridTile: View {
         .disabled(action == nil)
     }
 }
+
+enum MarviL10n {
+    static func t(_ key: Key, language: AppLanguage) -> String {
+        switch language {
+        case .english: english[key] ?? key.rawValue
+        case .turkish: turkish[key] ?? english[key] ?? key.rawValue
+        }
+    }
+
+    enum Key: String {
+        case explore, myEvents, profile, studio, inbox, account, admin
+        case acceptInvitation, rsvpEvent, confirmGift, useNow
+        case shippingAddress, guestCount, saveProfile, syncFromServer
+        case openAdminConsole, inboxTitle, inboxEmpty
+    }
+
+    private static let english: [Key: String] = [
+        .explore: "Explore",
+        .myEvents: "My Events",
+        .profile: "Profile",
+        .studio: "Studio",
+        .inbox: "Inbox",
+        .account: "Account",
+        .admin: "Admin",
+        .acceptInvitation: "Accept invitation",
+        .rsvpEvent: "Confirm RSVP",
+        .confirmGift: "Confirm gift delivery",
+        .useNow: "Use now",
+        .shippingAddress: "Shipping address",
+        .guestCount: "Guest count",
+        .saveProfile: "Save to account",
+        .syncFromServer: "Sync from server",
+        .openAdminConsole: "Open admin console",
+        .inboxTitle: "Inbox",
+        .inboxEmpty: "Inbox is clear"
+    ]
+
+    private static let turkish: [Key: String] = [
+        .explore: "Keşfet",
+        .myEvents: "Etkinliklerim",
+        .profile: "Profil",
+        .studio: "Stüdyo",
+        .inbox: "Gelen Kutusu",
+        .account: "Hesap",
+        .admin: "Admin",
+        .acceptInvitation: "Daveti kabul et",
+        .rsvpEvent: "RSVP onayla",
+        .confirmGift: "Hediye gönderimini onayla",
+        .useNow: "Hemen kullan",
+        .shippingAddress: "Teslimat adresi",
+        .guestCount: "Misafir sayısı",
+        .saveProfile: "Hesaba kaydet",
+        .syncFromServer: "Sunucudan senkronize et",
+        .openAdminConsole: "Admin konsolunu aç",
+        .inboxTitle: "Gelen Kutusu",
+        .inboxEmpty: "Gelen kutusu boş"
+    ]
+}

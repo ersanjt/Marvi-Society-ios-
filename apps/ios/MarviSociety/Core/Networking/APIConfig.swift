@@ -104,6 +104,9 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchProfile() async throws -> CreatorProfile { throw notConfigured() }
     func updateProfile(_ profile: CreatorProfile) async throws { throw notConfigured() }
     func fetchNotifications() async throws -> [InboxMessage] { throw notConfigured() }
+    func markNotificationRead(_ id: UUID) async throws { throw notConfigured() }
+    func registerDeviceToken(_ token: String, platform: String) async throws { throw notConfigured() }
+    func trackEvent(_ name: String, properties: [String: String]) async throws { throw notConfigured() }
     func fetchSavedOfferIDs() async throws -> Set<UUID> { throw notConfigured() }
     func fetchAdminTasks() async throws -> [AdminTask] { throw notConfigured() }
     func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? { throw notConfigured() }
@@ -112,7 +115,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func createCampaign(_ input: CreateCampaignInput) async throws -> Campaign { throw notConfigured() }
     func fetchVenueSummary() async throws -> VenueSummary? { throw notConfigured() }
     func hasVenueProfile() async throws -> Bool { throw notConfigured() }
-    func acceptOffer(_ offerID: UUID) async throws -> Booking { throw notConfigured() }
+    func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions) async throws -> Booking { throw notConfigured() }
     func cancelOffer(_ offerID: UUID) async throws { throw notConfigured() }
     func checkIn(bookingID: UUID, code: String) async throws -> Booking { throw notConfigured() }
     func submitProof(bookingID: UUID, links: [String]) async throws -> Booking { throw notConfigured() }

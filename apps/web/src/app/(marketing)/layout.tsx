@@ -1,5 +1,6 @@
 import { Footer } from "@/components/marketing/Footer";
 import { Header } from "@/components/marketing/Header";
+import { CookieConsent } from "@/components/marketing/CookieConsent";
 import { getLocale } from "@/lib/i18n/locale";
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
@@ -10,6 +11,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
       <Header locale={locale} />
       <main>{children}</main>
       <Footer locale={locale} />
+      <CookieConsent />
     </>
   );
 }
