@@ -72,3 +72,7 @@ coverage/
 # Misc
 *.orig
 .cache/
+
+# Ops local logs (manifest syncLog in release/manifest.json is committed)
+release/logs/
+.marvi/local.json

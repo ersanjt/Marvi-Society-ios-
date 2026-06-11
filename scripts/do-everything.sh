@@ -14,6 +14,9 @@ echo "  Marvi Society — Local automation"
 echo "══════════════════════════════════════════"
 echo ""
 
+echo "▶ Tip: use 'npm run sync' for full stack sync (DB + GitHub + verify)"
+echo ""
+
 echo "▶ 1/4 Health check (Supabase API)..."
 bash "$REPO_ROOT/scripts/check-health.sh"
 

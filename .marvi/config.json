@@ -1,0 +1,18 @@
+{
+  "project": "Marvi Society",
+  "github": {
+    "owner": "ersanjt",
+    "repo": "Marvi-Society-ios-",
+    "defaultBranch": "main"
+  },
+  "supabase": {
+    "projectRef": "gaswjuvyzliislqrljof",
+    "migrationsDir": "infra/supabase/migrations",
+    "combinedSql": "infra/supabase/ALL_MIGRATIONS_COMBINED.sql"
+  },
+  "paths": {
+    "iosSecrets": "apps/ios/Config/Secrets.xcconfig",
+    "webEnv": "apps/web/.env.local",
+    "manifest": "release/manifest.json"
+  }
+}

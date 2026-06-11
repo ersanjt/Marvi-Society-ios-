@@ -1,0 +1,46 @@
+name: Ops Verify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'infra/supabase/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - 'release/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ops-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ops:
+    name: Migration manifest & structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Combine migrations
+        run: bash infra/supabase/scripts/combine-migrations.sh
+
+      - name: Validate ops files
+        run: |
+          test -f docs/OPERATIONS.md
+          test -f release/manifest.json
+          test -f .marvi/config.json
+          test -x scripts/marvi
+          python3 -c "
+          import json
+          m = json.load(open('release/manifest.json'))
+          count = len(__import__('pathlib').Path('infra/supabase/migrations').glob('*.sql'))
+          assert m['components']['database']['migrationCount'] == count, 'manifest migration count drift'
+          "
+
+      - name: Upload combined SQL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-migrations-combined
+          path: infra/supabase/ALL_MIGRATIONS_COMBINED.sql
+          retention-days: 30

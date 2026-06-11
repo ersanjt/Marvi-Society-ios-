@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read manifest
+        id: manifest
+        run: |
+          VERSION=$(python3 -c "import json; print(json.load(open('release/manifest.json'))['version'])")
+          HEAD=$(python3 -c "import json; print(json.load(open('release/manifest.json'))['components']['database']['migrationHead'])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "migration_head=$HEAD" >> "$GITHUB_OUTPUT"
+
+      - name: Extract changelog section
+        id: notes
+        run: |
+          VERSION="${{ steps.manifest.outputs.version }}"
+          if grep -q "## \[$VERSION\]" CHANGELOG.md 2>/dev/null; then
+            awk "/## \[$VERSION\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md > release-notes.md
+          else
+            echo "Release $VERSION" > release-notes.md
+            echo "" >> release-notes.md
+            echo "Migration head: \`${{ steps.manifest.outputs.migration_head }}\`" >> release-notes.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          generate_release_notes: true
+
+  verify-tag:
+    name: Verify tagged commit
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Web build
+        working-directory: apps/web
+        run: |
+          npm install
+          npm run build
+
+      - name: Check migrations combined
+        run: |
+          bash infra/supabase/scripts/combine-migrations.sh
+          test -f infra/supabase/ALL_MIGRATIONS_COMBINED.sql

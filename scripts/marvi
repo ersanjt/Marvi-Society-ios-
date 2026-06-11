@@ -1,0 +1,40 @@
+#!/bin/bash
+# Marvi Society operations CLI — single entry point.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CMD="${1:-help}"
+shift || true
+
+case "$CMD" in
+  status)   exec bash "$REPO_ROOT/scripts/release/status.sh" "$@" ;;
+  verify)   exec bash "$REPO_ROOT/scripts/release/verify.sh" "$@" ;;
+  sync)     exec bash "$REPO_ROOT/scripts/release/full-sync.sh" "$@" ;;
+  db)       exec bash "$REPO_ROOT/scripts/release/sync-database.sh" "$@" ;;
+  github)   exec bash "$REPO_ROOT/scripts/release/sync-github.sh" "$@" ;;
+  rollback) exec bash "$REPO_ROOT/scripts/release/rollback.sh" "$@" ;;
+  release)  exec bash "$REPO_ROOT/scripts/release/record-release.sh" "$@" ;;
+  health)   exec bash "$REPO_ROOT/scripts/check-health.sh" "$@" ;;
+  help|"" )
+    cat <<'HELP'
+
+Marvi Society — Operations CLI
+
+  ./scripts/marvi status     Full stack status (git, DB, iOS, web)
+  ./scripts/marvi verify     Build + health pre-flight
+  ./scripts/marvi sync       Full sync: verify → DB → GitHub
+  ./scripts/marvi db         Combine + push migrations
+  ./scripts/marvi github       Commit + push to GitHub
+  ./scripts/marvi rollback   Rollback playbook / git revert
+  ./scripts/marvi release    Version bump + tag + CHANGELOG
+  ./scripts/marvi health     Supabase API health check
+
+npm shortcuts: npm run status | verify | sync | db:push | sync:github | rollback | release
+
+HELP
+    ;;
+  *)
+    echo "Unknown command: $CMD (try: ./scripts/marvi help)"
+    exit 1
+    ;;
+esac

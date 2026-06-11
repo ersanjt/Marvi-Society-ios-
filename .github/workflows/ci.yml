@@ -21,7 +21,9 @@ jobs:
         run: |
           test -f docs/ARCHITECTURE.md
           test -f docs/ROADMAP.md
+          test -f docs/OPERATIONS.md
           test -f packages/api-contract/openapi.yaml
+          test -f release/manifest.json
           echo "Documentation structure OK"
 
       - name: Validate OpenAPI (optional)

@@ -1,0 +1,21 @@
+---
+description: After completing work, sync app + database + GitHub via Marvi ops toolchain
+alwaysApply: true
+---
+
+# Marvi Society — Always sync after work
+
+When you finish a task that changes code, SQL migrations, config, or docs:
+
+1. Run `npm run verify` (or `MARVI_FAST_SYNC=1 npm run sync` if builds are slow/unchanged).
+2. Run `npm run sync` to combine migrations, update `release/manifest.json`, commit, and push to GitHub.
+3. If SQL migrations were added, remind the user to run `npm run db:push` or apply combined SQL in Supabase when CLI is not linked.
+4. Run `npm run status` and report: git sync state, migration head, any failures.
+
+If `gh auth login` is missing, commit locally and tell the user to run `gh auth login` then `npm run sync:github`.
+
+Never skip GitHub sync when the user asked to keep the repo up to date.
+
+For releases, use `npm run release -- <version> "summary"` and document in CHANGELOG.md.
+
+Rollback guidance: `docs/OPERATIONS.md` and `npm run rollback`.

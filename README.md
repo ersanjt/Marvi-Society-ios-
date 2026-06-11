@@ -34,7 +34,17 @@ marvi-society/
 | **Android** | Compose scaffold (Discover, Nearby, Bookings, Profile) |
 | **Backend** | Supabase schema ready — deploy project manually |
 
-Deploy guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · **راهنمای فارسی:** [docs/DEPLOY_WALKTHROUGH_FA.md](docs/DEPLOY_WALKTHROUGH_FA.md)
+Deploy guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · **راهنمای فارسی:** [docs/DEPLOY_WALKTHROUGH_FA.md](docs/DEPLOY_WALKTHROUGH_FA.md) · **Operations:** [docs/OPERATIONS.md](docs/OPERATIONS.md)
+
+### Ops (sync everything after changes)
+
+```bash
+npm run status    # git + DB + iOS + web status
+npm run sync      # verify → database → GitHub
+npm run rollback  # rollback playbook
+```
+
+First time: `gh auth login` then `npm run setup:hooks`
 
 **Product & App Store:** [docs/PRODUCT.md](docs/PRODUCT.md) · [Listing copy](docs/app-store/LISTING.md) · [Submission checklist](docs/app-store/CHECKLIST.md)
 
