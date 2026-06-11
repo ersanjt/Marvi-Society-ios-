@@ -1,65 +1,7 @@
 import SwiftUI
 
-enum MarviColor {
-    static let ink = Color(hex: "#15171A")
-    static let graphite = Color(hex: "#2C3036")
-    static let surface = Color(hex: "#F4F1EA")
-    static let surfaceCool = Color(hex: "#EEF3F4")
-    static let panel = Color.white
-    static let emerald = Color(hex: "#0E7C66")
-    static let aubergine = Color(hex: "#5C315E")
-    static let gold = Color(hex: "#C69A32")
-    static let rose = Color(hex: "#B85C7A")
-    static let tomato = Color(hex: "#D25D3D")
-    static let blue = Color(hex: "#316D9E")
-    static let muted = Color(hex: "#747A82")
-}
-
-enum MarviGradient {
-    static let brand = LinearGradient(
-        colors: [MarviColor.ink, MarviColor.emerald, MarviColor.aubergine],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
-    static let warm = LinearGradient(
-        colors: [MarviColor.gold.opacity(0.22), MarviColor.tomato.opacity(0.12), .white.opacity(0.2)],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-
-    static let cool = LinearGradient(
-        colors: [MarviColor.blue.opacity(0.18), MarviColor.emerald.opacity(0.12), .white.opacity(0.24)],
-        startPoint: .topTrailing,
-        endPoint: .bottomLeading
-    )
-}
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let red: UInt64
-        let green: UInt64
-        let blue: UInt64
-
-        switch hex.count {
-        case 6:
-            (red, green, blue) = ((int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
-        default:
-            (red, green, blue) = (21, 23, 26)
-        }
-
-        self.init(
-            .sRGB,
-            red: Double(red) / 255,
-            green: Double(green) / 255,
-            blue: Double(blue) / 255,
-            opacity: 1
-        )
-    }
-}
+// Theme tokens: Core/DesignSystem/Theme/*
+// Shared components: Core/DesignSystem/Components/*
 
 struct MarviCard<Content: View>: View {
     let content: Content
@@ -72,12 +14,11 @@ struct MarviCard<Content: View>: View {
         content
             .padding(16)
             .background(MarviColor.panel)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(0.04), radius: 18, x: 0, y: 8)
     }
 }
 
@@ -93,11 +34,12 @@ struct MarviScreen<Content: View>: View {
             MarviColor.surface.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Rectangle()
-                    .fill(MarviGradient.cool)
-                    .frame(height: 170)
-                    .blur(radius: 20)
-                    .opacity(0.9)
+                Ellipse()
+                    .fill(MarviGradient.brandVertical)
+                    .frame(height: 280)
+                    .blur(radius: 80)
+                    .opacity(0.35)
+                    .offset(y: -80)
                     .ignoresSafeArea()
 
                 Spacer()
@@ -113,16 +55,15 @@ struct BrandMark: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(MarviGradient.brand)
 
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(.white.opacity(0.18), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(.white.opacity(0.22), lineWidth: 1)
 
             Text("M")
                 .font(.system(size: size * 0.48, weight: .bold, design: .serif))
                 .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
         .frame(width: size, height: size)
         .accessibilityLabel("Marvi Society")
@@ -142,8 +83,9 @@ struct BrandLockup: View {
                     .foregroundStyle(MarviColor.ink)
                     .lineLimit(1)
 
-                Text(subtitle)
-                    .font(.caption.weight(.semibold))
+                Text(subtitle.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .tracking(1.2)
                     .foregroundStyle(MarviColor.muted)
                     .lineLimit(1)
             }
@@ -172,7 +114,7 @@ struct StatusPill: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .foregroundStyle(tint)
-        .background(tint.opacity(0.12))
+        .background(tint.opacity(0.16))
         .clipShape(Capsule())
     }
 }
@@ -188,7 +130,7 @@ struct InfoBadge: View {
             .lineLimit(1)
             .padding(.horizontal, 9)
             .padding(.vertical, 7)
-            .background(MarviColor.surface)
+            .background(MarviColor.panelElevated)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
@@ -218,11 +160,11 @@ struct MetricTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(.white.opacity(0.86))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(MarviColor.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(MarviColor.border, lineWidth: 1)
         )
     }
 }
@@ -256,12 +198,12 @@ struct PrimaryActionButton: View {
         .foregroundStyle(.white)
         .background {
             if isDisabled {
-                MarviColor.muted
+                MarviColor.muted.opacity(0.4)
             } else {
                 MarviGradient.brand
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.72 : 1)
     }
@@ -281,11 +223,11 @@ struct SecondaryActionButton: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(MarviColor.ink)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(MarviColor.panelElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(MarviColor.border, lineWidth: 1)
         )
     }
 }
@@ -318,7 +260,7 @@ struct ProgressBar: View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.black.opacity(0.07))
+                    .fill(Color.white.opacity(0.08))
 
                 Capsule()
                     .fill(tint)
@@ -333,12 +275,14 @@ struct EmptyStateView: View {
     let title: String
     let subtitle: String
     let icon: String
+    var actionTitle: String?
+    var action: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 32, weight: .semibold))
-                .foregroundStyle(MarviColor.emerald)
+                .foregroundStyle(MarviColor.rose)
 
             Text(title)
                 .font(.headline)
@@ -349,8 +293,461 @@ struct EmptyStateView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(MarviColor.muted)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if let actionTitle, let action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MarviColor.rose)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
+    }
+}
+
+struct SyncErrorBanner: View {
+    let message: String
+    let onRetry: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(MarviColor.tomato)
+
+            Text(message)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MarviColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 8)
+
+            Button("Retry", action: onRetry)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(MarviColor.rose)
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(MarviColor.muted)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(12)
+        .background(MarviColor.panelElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(MarviColor.tomato.opacity(0.35), lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+}
+
+struct MembershipStatusBanner: View {
+    let status: MembershipStatus
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(tint.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(tint.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private var title: String {
+        switch status {
+        case .underReview: "Application under review"
+        case .approved: "Membership approved"
+        case .paused: "Membership paused"
+        }
+    }
+
+    private var message: String {
+        switch status {
+        case .underReview:
+            "You can browse events while we verify your profile. Accepting invitations may be limited until approval."
+        case .approved:
+            "Your creator profile is active. Accept invitations and submit proof after each visit."
+        case .paused:
+            "Your account is paused. Contact support to restore access."
+        }
+    }
+
+    private var icon: String {
+        switch status {
+        case .underReview: "hourglass"
+        case .approved: "checkmark.seal.fill"
+        case .paused: "pause.circle.fill"
+        }
+    }
+
+    private var tint: Color {
+        switch status {
+        case .underReview: MarviColor.gold
+        case .approved: MarviColor.emerald
+        case .paused: MarviColor.tomato
+        }
+    }
+}
+
+struct OfferListSkeleton: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            ForEach(0..<3, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(MarviColor.panel)
+                    .frame(height: 96)
+                    .overlay(
+                        HStack(spacing: 14) {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(MarviColor.panelElevated)
+                                .frame(width: 72, height: 80)
+                            VStack(alignment: .leading, spacing: 8) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(MarviColor.panelElevated)
+                                    .frame(width: 120, height: 10)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(MarviColor.panelElevated)
+                                    .frame(height: 14)
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(MarviColor.panelElevated)
+                                    .frame(width: 90, height: 10)
+                            }
+                            Spacer()
+                        }
+                        .padding(14)
+                    )
+            }
+        }
+        .redacted(reason: .placeholder)
+    }
+}
+
+struct BootstrapSplashView: View {
+    var body: some View {
+        ZStack {
+            MarviColor.surface.ignoresSafeArea()
+            VStack(spacing: 20) {
+                BrandMark(size: 72)
+                ProgressView()
+                    .tint(MarviColor.rose)
+                Text("Loading your workspace…")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(MarviColor.muted)
+            }
+        }
+    }
+}
+
+// MARK: - Premium components (Secret Society style)
+
+struct HomeHeader: View {
+    let greeting: String
+    let subtitle: String
+    var onSearch: (() -> Void)?
+    var onNotifications: (() -> Void)?
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            ZStack {
+                MarviGradient.brand
+                Text(String(greeting.prefix(1)))
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 44, height: 44)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Hi, \(greeting)")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
+
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.muted)
+            }
+
+            Spacer()
+
+            if let onSearch {
+                HeaderIconButton(icon: "magnifyingglass", action: onSearch)
+            }
+            if let onNotifications {
+                HeaderIconButton(icon: "bell", action: onNotifications)
+            }
+        }
+    }
+}
+
+struct HeaderIconButton: View {
+    let icon: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(MarviColor.ink)
+                .frame(width: 40, height: 40)
+                .background(MarviColor.panel)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct FilterPillRow: View {
+    let items: [String]
+    @Binding var selected: String?
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(items, id: \.self) { item in
+                    Button {
+                        selected = selected == item ? nil : item
+                    } label: {
+                        Text(item)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(selected == item ? .white : MarviColor.ink)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(selected == item ? AnyShapeStyle(MarviGradient.brand) : AnyShapeStyle(MarviColor.panel))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().stroke(MarviColor.border, lineWidth: selected == item ? 0 : 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+struct EventCalendarStrip: View {
+    @Binding var selectedDay: Int?
+    let days: [CalendarDay]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(days) { day in
+                    Button {
+                        selectedDay = selectedDay == day.id ? nil : day.id
+                    } label: {
+                        VStack(spacing: 6) {
+                            Text(day.weekday)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(selectedDay == day.id ? .white : MarviColor.muted)
+
+                            Text(day.label)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(selectedDay == day.id ? .white : MarviColor.ink)
+                        }
+                        .frame(width: 52, height: 64)
+                        .background(selectedDay == day.id ? AnyShapeStyle(MarviGradient.brand) : AnyShapeStyle(MarviColor.panel))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(MarviColor.border, lineWidth: selectedDay == day.id ? 0 : 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+struct CalendarDay: Identifiable {
+    let id: Int
+    let weekday: String
+    let label: String
+    var date: Date?
+}
+
+struct StatusBadgeGrid: View {
+    let badges: [StatusBadge]
+
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(badges) { badge in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(badge.count)")
+                        .font(.title.weight(.bold))
+                        .foregroundStyle(badge.tint)
+
+                    Text(badge.title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.muted)
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .background(badge.tint.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+        }
+    }
+}
+
+struct StatusBadge: Identifiable {
+    let id = UUID()
+    let title: String
+    let count: Int
+    let tint: Color
+}
+
+struct GradientCTA: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title.uppercased())
+                .font(.subheadline.weight(.bold))
+                .tracking(1.5)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(MarviGradient.brand)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ProfileHealthRing: View {
+    let score: Int
+    let label: String
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.08), lineWidth: 10)
+
+            Circle()
+                .trim(from: 0, to: CGFloat(score) / 100)
+                .stroke(MarviGradient.brand, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+
+            Circle()
+                .trim(from: 0, to: 0.72)
+                .stroke(MarviColor.rose.opacity(0.35), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .padding(6)
+
+            VStack(spacing: 2) {
+                Text("\(score)%")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
+
+                Text(label)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(MarviColor.muted)
+            }
+        }
+        .frame(width: 110, height: 110)
+    }
+}
+
+struct MarviTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    var autocapitalization: TextInputAutocapitalization = .sentences
+
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .textInputAutocapitalization(autocapitalization)
+            .autocorrectionDisabled()
+            .padding(12)
+            .foregroundStyle(MarviColor.ink)
+            .background(MarviColor.panelElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
+            )
+    }
+}
+
+struct StudioStatusGrid: View {
+    let onCreate: () -> Void
+    let onSwipe: () -> Void
+
+    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 10) {
+            StudioGridTile(title: "Under\nReview", icon: "clock", tint: MarviColor.gold)
+            StudioGridTile(title: "Upcoming\nEvents", icon: "calendar", tint: MarviColor.blue)
+            StudioGridTile(title: "Open for\nswipe", icon: "hand.draw", tint: MarviColor.rose, action: onSwipe)
+            StudioGridTile(title: "Happening", icon: "sparkles", tint: MarviColor.emerald)
+            StudioGridTile(title: "Past", icon: "archivebox", tint: MarviColor.muted)
+            StudioGridTile(title: "Create", icon: "plus", tint: MarviColor.aubergine, action: onCreate)
+        }
+    }
+}
+
+private struct StudioGridTile: View {
+    let title: String
+    let icon: String
+    let tint: Color
+    var action: (() -> Void)?
+
+    var body: some View {
+        Button {
+            action?()
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(tint)
+
+                Text(title)
+                    .font(.caption2.weight(.bold))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(MarviColor.muted)
+                    .lineLimit(2)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 88)
+            .background(MarviColor.panel)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
     }
 }

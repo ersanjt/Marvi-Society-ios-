@@ -36,6 +36,8 @@ marvi-society/
 
 Deploy guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · **راهنمای فارسی:** [docs/DEPLOY_WALKTHROUGH_FA.md](docs/DEPLOY_WALKTHROUGH_FA.md)
 
+**Product & App Store:** [docs/PRODUCT.md](docs/PRODUCT.md) · [Listing copy](docs/app-store/LISTING.md) · [Submission checklist](docs/app-store/CHECKLIST.md)
+
 ---
 
 ## Quick start

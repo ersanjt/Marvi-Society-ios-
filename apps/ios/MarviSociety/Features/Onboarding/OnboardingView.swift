@@ -1,164 +1,742 @@
 import SwiftUI
 
-struct OnboardingView: View {
-    @EnvironmentObject private var appState: AppState
-    @StateObject private var appleSignIn = AppleSignInService()
-    @State private var selectedRole: UserRole = .creator
-    @State private var instagramHandle = "@aylin.in.istanbul"
-    @State private var city = "Istanbul"
-    @State private var inviteCode = "MARVI-IST"
-    @State private var referralError = ""
-    @State private var isValidatingReferral = false
+// MARK: - Steps
 
-    var body: some View {
-        NavigationStack {
-            MarviScreen {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
-                        VStack(alignment: .leading, spacing: 18) {
-                            BrandMark(size: 64)
+private enum OnboardingStep: Int, CaseIterable {
+    case welcome
+    case signIn
+    case invite
+    case profile
+    case agreement
 
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Marvi Society")
-                                    .font(.system(size: 44, weight: .bold, design: .serif))
-                                    .foregroundStyle(MarviColor.ink)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.78)
-
-                                Text("Istanbul's private creator and venue collaboration club.")
-                                    .font(.title3.weight(.semibold))
-                                    .foregroundStyle(MarviColor.graphite)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .padding(.top, 18)
-
-                        HStack(spacing: 10) {
-                            MetricTile(value: "42", label: "venues", icon: "building.2", tint: MarviColor.emerald)
-                            MetricTile(value: "128", label: "creators", icon: "person.2", tint: MarviColor.aubergine)
-                            MetricTile(value: "96%", label: "proof", icon: "checkmark.seal", tint: MarviColor.blue)
-                        }
-
-                        VStack(spacing: 12) {
-                            OnboardingSignal(icon: "checkmark.seal", title: "Approved members", subtitle: "Creator applications stay under review until admin approval.")
-                            OnboardingSignal(icon: "calendar.badge.plus", title: "Curated invitations", subtitle: "Venues define value, slots, timing, deliverables, and dress code.")
-                            OnboardingSignal(icon: "tray.and.arrow.up", title: "Proof workflow", subtitle: "Members submit links after attendance so operators can close the campaign.")
-                        }
-
-                        SectionTitle(title: "Choose your workspace")
-
-                        VStack(spacing: 10) {
-                            ForEach(UserRole.allCases) { role in
-                                RoleOption(role: role, isSelected: selectedRole == role) {
-                                    selectedRole = role
-                                }
-                            }
-                        }
-
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "Quick setup", subtitle: "This is local demo data for the first build.")
-
-                                TextField("Instagram handle", text: $instagramHandle)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
-                                    .textFieldStyle(.roundedBorder)
-
-                                TextField("City", text: $city)
-                                    .textFieldStyle(.roundedBorder)
-
-                                TextField("Invite code", text: $inviteCode)
-                                    .textInputAutocapitalization(.characters)
-                                    .autocorrectionDisabled()
-                                    .textFieldStyle(.roundedBorder)
-                            }
-                        }
-
-                        if !isSetupValid {
-                            Label("Handle, city, and invite code are required.", systemImage: "exclamationmark.triangle")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(MarviColor.tomato)
-                        }
-
-                        if !referralError.isEmpty {
-                            Label(referralError, systemImage: "exclamationmark.triangle")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(MarviColor.tomato)
-                        }
-
-                        if appState.isRemoteMode {
-                            PrimaryActionButton(
-                                title: appleSignIn.isSigningIn ? "Signing in…" : "Sign in with Apple",
-                                systemImage: "apple.logo",
-                                isDisabled: !isSetupValid || appleSignIn.isSigningIn
-                            ) {
-                                appState.profile.handle = instagramHandle
-                                appState.profile.city = city
-                                Task {
-                                    await appState.signInWithApple(
-                                        using: appleSignIn,
-                                        metadata: [
-                                            "instagram_handle": instagramHandle,
-                                            "city": city,
-                                            "full_name": appState.profile.name
-                                        ]
-                                    )
-                                    if appState.lastSyncError == nil {
-                                        appState.completeOnboarding(role: selectedRole)
-                                    }
-                                }
-                            }
-
-                            Text("Connects to Supabase. Use local preview below without an account.")
-                                .font(.caption)
-                                .foregroundStyle(MarviColor.muted)
-                        }
-
-                        PrimaryActionButton(
-                            title: appState.isRemoteMode ? "Continue in local preview" : "Enter Marvi Society",
-                            systemImage: "arrow.right.circle",
-                            isDisabled: !isSetupValid || isValidatingReferral
-                        ) {
-                            appState.profile.handle = instagramHandle
-                            appState.profile.city = city
-                            Task {
-                                await finishOnboarding()
-                            }
-                        }
-
-                        if let error = appState.lastSyncError {
-                            Label(error, systemImage: "exclamationmark.triangle")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(MarviColor.tomato)
-                        }
-                    }
-                    .padding(16)
-                }
-            }
+    var title: String {
+        switch self {
+        case .welcome: "Welcome"
+        case .signIn: "Sign in"
+        case .invite: "Invite"
+        case .profile: "Profile"
+        case .agreement: "Agreement"
         }
     }
 
-    private var isSetupValid: Bool {
-        !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    var ctaTitle: String {
+        switch self {
+        case .welcome: "Get started"
+        case .signIn: "Sign in"
+        case .invite: "Continue"
+        case .profile: "Continue"
+        case .agreement: "Join Marvi Society"
+        }
+    }
+}
+
+// MARK: - Root
+
+struct OnboardingView: View {
+    @EnvironmentObject private var appState: AppState
+    @StateObject private var appleSignIn = AppleSignInService()
+
+    @State private var step: OnboardingStep = .welcome
+    @State private var instagramHandle = ""
+    @State private var city = "Istanbul"
+    @State private var inviteCode = ""
+    @State private var referralError = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var isSigningInWithEmail = false
+    @State private var isValidatingReferral = false
+    @State private var confirmedAge18 = false
+    @State private var acceptedTerms = false
+    @State private var appleSignInError: String?
+    @State private var inviteValidated = false
+
+    var body: some View {
+        ZStack {
+            OnboardingBackdrop()
+
+            VStack(spacing: 0) {
+                OnboardingTopBar(
+                    step: step,
+                    onBack: goBack
+                )
+
+                Group {
+                    switch step {
+                    case .welcome: welcomeStep
+                    case .signIn: signInStep
+                    case .invite: inviteStep
+                    case .profile: profileStep
+                    case .agreement: agreementStep
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
+                .animation(.easeInOut(duration: 0.32), value: step)
+
+                OnboardingBottomBar(
+                    ctaTitle: primaryCTATitle,
+                    isBusy: isBusy,
+                    isPrimaryDisabled: !canAdvancePrimary,
+                    errorMessage: displayedError,
+                    onPrimary: { Task { await handlePrimaryAction() } }
+                )
+            }
+        }
+        .preferredColorScheme(.dark)
+        .onAppear { applyResumeState() }
+        .overlay { busyOverlay }
     }
 
-    private func finishOnboarding() async {
+    // MARK: - Steps
+
+    private var welcomeStep: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer(minLength: 12)
+
+            BrandMark(size: 72)
+                .padding(.bottom, 28)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Do what you can't")
+                    .font(.system(size: 42, weight: .bold, design: .serif))
+                    .foregroundStyle(MarviColor.ink)
+                    .minimumScaleFactor(0.85)
+                    .lineLimit(2)
+
+                Text("with Marvi Society")
+                    .font(.system(size: 28, weight: .bold, design: .serif))
+                    .foregroundStyle(MarviGradient.brand)
+
+                Text("Istanbul's invite-only club for creators and venues. Curated events, structured proof, trusted matching.")
+                    .font(.subheadline)
+                    .foregroundStyle(MarviColor.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
+
+            Spacer(minLength: 28)
+
+            HStack(spacing: 10) {
+                OnboardingPill(icon: "calendar", title: "When")
+                OnboardingPill(icon: "mappin.and.ellipse", title: "Where")
+                OnboardingPill(icon: "sparkles", title: "Event type")
+            }
+
+            VStack(spacing: 12) {
+                OnboardingFeatureRow(
+                    icon: "checkmark.seal.fill",
+                    title: "Approved members only",
+                    subtitle: "Every creator application is reviewed by our team."
+                )
+                OnboardingFeatureRow(
+                    icon: "building.2.fill",
+                    title: "Premium venue experiences",
+                    subtitle: "Dining, nightlife, wellness, and more."
+                )
+                OnboardingFeatureRow(
+                    icon: "camera.fill",
+                    title: "Proof that protects venues",
+                    subtitle: "Submit content links after each collaboration."
+                )
+            }
+            .padding(.top, 22)
+
+            Spacer(minLength: 8)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    private var signInStep: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                OnboardingStepHeader(
+                    eyebrow: "Step 1 of 4",
+                    title: "Sign in to continue",
+                    subtitle: "Use your Marvi Society account. Profile details come next."
+                )
+
+                Button {
+                    Task { await signInWithAppleFlow() }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "apple.logo")
+                            .font(.title3.weight(.semibold))
+                        Text(appleSignIn.isSigningIn ? "Signing in…" : "Sign in with Apple")
+                            .font(.headline.weight(.bold))
+                    }
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(appleSignIn.isSigningIn || isBusy)
+
+                HStack(spacing: 12) {
+                    Rectangle().fill(MarviColor.border).frame(height: 1)
+                    Text("or email")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.muted)
+                    Rectangle().fill(MarviColor.border).frame(height: 1)
+                }
+
+                VStack(spacing: 12) {
+                    MarviTextField(placeholder: "Email", text: $email, autocapitalization: .never)
+                    OnboardingSecureField(placeholder: "Password", text: $password)
+                }
+
+                Text("Apple Sign-In works on TestFlight builds. For device testing, use email.")
+                    .font(.caption2)
+                    .foregroundStyle(MarviColor.muted)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private var inviteStep: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                OnboardingStepHeader(
+                    eyebrow: "Step 2 of 4",
+                    title: "Enter your invite code",
+                    subtitle: "Marvi Society is invite-only. Ask your curator or venue partner for a code."
+                )
+
+                MarviTextField(
+                    placeholder: "e.g. MARVI-IST",
+                    text: $inviteCode,
+                    autocapitalization: .characters
+                )
+
+                if inviteValidated {
+                    Label("Invite code accepted", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(MarviColor.emerald)
+                }
+
+                if !referralError.isEmpty {
+                    Label(referralError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.tomato)
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Member benefits")
+                        .font(.caption.weight(.bold))
+                        .textCase(.uppercase)
+                        .foregroundStyle(MarviColor.muted)
+
+                    OnboardingFeatureRow(
+                        icon: "star.fill",
+                        title: "Curated invitations",
+                        subtitle: "Access live campaigns matched to your niche."
+                    )
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private var profileStep: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                OnboardingStepHeader(
+                    eyebrow: "Step 3 of 4",
+                    title: "Your creator profile",
+                    subtitle: "Used for verification and invitation matching."
+                )
+
+                MarviTextField(
+                    placeholder: "Instagram handle",
+                    text: $instagramHandle,
+                    autocapitalization: .never
+                )
+
+                MarviTextField(placeholder: "City", text: $city)
+
+                Text("Popular cities")
+                    .font(.caption.weight(.bold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(MarviColor.muted)
+
+                HStack(spacing: 10) {
+                    ForEach(["Istanbul", "Dubai", "London"], id: \.self) { option in
+                        Button {
+                            city = option
+                        } label: {
+                            Text(option)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(city == option ? .white : MarviColor.ink)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(
+                                    city == option
+                                        ? AnyShapeStyle(MarviGradient.brand)
+                                        : AnyShapeStyle(MarviColor.panel)
+                                )
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().stroke(MarviColor.border, lineWidth: city == option ? 0 : 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private var agreementStep: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                OnboardingStepHeader(
+                    eyebrow: "Step 4 of 4",
+                    title: "Membership agreement",
+                    subtitle: "Required before entering the club."
+                )
+
+                MarviCard {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Toggle(isOn: $confirmedAge18) {
+                            Text("I am 18 years of age or older.")
+                                .font(.subheadline)
+                                .foregroundStyle(MarviColor.ink)
+                        }
+                        .tint(MarviColor.rose)
+
+                        Toggle(isOn: $acceptedTerms) {
+                            Text("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
+                                .font(.subheadline)
+                                .foregroundStyle(MarviColor.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .tint(MarviColor.rose)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Link("Privacy Policy", destination: AppLinks.privacyPolicy)
+                            Link("Terms of Service", destination: AppLinks.termsOfService)
+                            Link("Community Guidelines", destination: AppLinks.communityGuidelines)
+                        }
+                        .font(.caption.weight(.semibold))
+                    }
+                }
+
+                Text("Venue and admin workspaces unlock automatically based on your account role.")
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.muted)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - State
+
+    private var isBusy: Bool {
+        isSigningInWithEmail || appleSignIn.isSigningIn || isValidatingReferral || appState.isBootstrapping
+    }
+
+    private var displayedError: String? {
+        if let appleSignInError { return appleSignInError }
+        if let error = appState.lastSyncError { return error }
+        return nil
+    }
+
+    private var primaryCTATitle: String {
+        if step == .signIn, appState.isAuthenticated { return "Continue" }
+        return step.ctaTitle
+    }
+
+    private var canAdvancePrimary: Bool {
+        switch step {
+        case .welcome:
+            return true
+        case .signIn:
+            if appState.isAuthenticated { return !isBusy }
+            return canSignInWithEmail && !isBusy
+        case .invite:
+            guard appState.isAuthenticated else { return false }
+            return !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
+        case .profile:
+            return isProfileValid && !isBusy
+        case .agreement:
+            return confirmedAge18 && acceptedTerms && !isBusy
+        }
+    }
+
+    private var canSignInWithEmail: Bool {
+        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !password.isEmpty
+    }
+
+    private var isProfileValid: Bool {
+        !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    // MARK: - Actions
+
+    private func applyResumeState() {
+        guard appState.isAuthenticated else { return }
+        instagramHandle = appState.profile.handle
+        if !appState.profile.city.isEmpty {
+            city = appState.profile.city
+        }
+        withAnimation { step = .invite }
+    }
+
+    private func goBack() {
+        guard let previous = OnboardingStep(rawValue: step.rawValue - 1) else { return }
+        referralError = ""
+        appleSignInError = nil
+        appState.dismissSyncError()
+        withAnimation { step = previous }
+    }
+
+    private func advance(to next: OnboardingStep) {
+        referralError = ""
+        appleSignInError = nil
+        appState.dismissSyncError()
+        withAnimation { step = next }
+    }
+
+    private func handlePrimaryAction() async {
+        switch step {
+        case .welcome:
+            advance(to: .signIn)
+        case .signIn:
+            if appState.isAuthenticated {
+                advance(to: .invite)
+            } else {
+                await signInWithEmailFlow()
+            }
+        case .invite:
+            guard appState.isAuthenticated else {
+                advance(to: .signIn)
+                return
+            }
+            guard await validateInviteCode() else { return }
+            inviteValidated = true
+            advance(to: .profile)
+        case .profile:
+            appState.profile.handle = instagramHandle
+            appState.profile.city = city
+            advance(to: .agreement)
+        case .agreement:
+            await finishOnboarding()
+        }
+    }
+
+    private func signInWithEmailFlow() async {
+        appleSignInError = nil
+        appState.dismissSyncError()
+
+        isSigningInWithEmail = true
+        defer { isSigningInWithEmail = false }
+
+        await appState.signInWithEmail(
+            email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password,
+            metadata: [:]
+        )
+
+        if appState.lastSyncError == nil, appState.isAuthenticated {
+            instagramHandle = appState.profile.handle
+            if !appState.profile.city.isEmpty { city = appState.profile.city }
+            advance(to: .invite)
+        }
+    }
+
+    private func signInWithAppleFlow() async {
+        appleSignInError = nil
+        appState.dismissSyncError()
+
+        await appState.signInWithApple(using: appleSignIn, metadata: [:])
+
+        if appState.isAuthenticated {
+            instagramHandle = appState.profile.handle
+            if !appState.profile.city.isEmpty { city = appState.profile.city }
+            advance(to: .invite)
+        } else if let error = appState.lastSyncError {
+            appleSignInError = error
+        } else if let error = appleSignIn.lastError {
+            appleSignInError = error
+        }
+    }
+
+    private func validateInviteCode() async -> Bool {
         referralError = ""
         isValidatingReferral = true
         defer { isValidatingReferral = false }
 
         let valid = await appState.validateReferralCode(inviteCode)
         guard valid else {
-            referralError = "Invite code not recognized. Try MARVI-IST for demo."
-            return
+            referralError = "Invite code not recognized. Try MARVI-IST or MARVI2026."
+            return false
         }
-        appState.completeOnboarding(role: selectedRole)
+        return true
+    }
+
+    private func finishOnboarding() async {
+        appState.profile.handle = instagramHandle
+        appState.profile.city = city
+
+        if appState.isAuthenticated {
+            _ = await appState.saveProfileToServer()
+        }
+
+        appState.completeOnboarding(role: .creator)
+    }
+
+    @ViewBuilder
+    private var busyOverlay: some View {
+        if isBusy {
+            ZStack {
+                Color.black.opacity(0.55).ignoresSafeArea()
+                VStack(spacing: 14) {
+                    ProgressView().tint(MarviColor.rose).scaleEffect(1.2)
+                    Text(busyMessage)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(MarviColor.ink)
+                }
+                .padding(28)
+                .background(MarviColor.panel)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(MarviColor.border, lineWidth: 1)
+                )
+            }
+        }
+    }
+
+    private var busyMessage: String {
+        if isValidatingReferral { return "Validating invite code…" }
+        if appState.isBootstrapping { return "Setting up your account…" }
+        return "Signing in…"
     }
 }
 
-private struct OnboardingSignal: View {
+// MARK: - Chrome
+
+private struct OnboardingBackdrop: View {
+    var body: some View {
+        ZStack {
+            MarviColor.surface.ignoresSafeArea()
+
+            GeometryReader { geo in
+                Ellipse()
+                    .fill(MarviGradient.brandVertical)
+                    .frame(width: geo.size.width * 1.2, height: geo.size.height * 0.45)
+                    .blur(radius: 90)
+                    .opacity(0.42)
+                    .offset(y: -geo.size.height * 0.12)
+
+                Ellipse()
+                    .fill(MarviColor.aubergine.opacity(0.25))
+                    .frame(width: geo.size.width * 0.9, height: geo.size.height * 0.35)
+                    .blur(radius: 70)
+                    .offset(x: geo.size.width * 0.2, y: geo.size.height * 0.55)
+            }
+            .ignoresSafeArea()
+
+            OnboardingPatternOverlay()
+                .opacity(0.06)
+                .ignoresSafeArea()
+        }
+    }
+}
+
+private struct OnboardingPatternOverlay: View {
+    var body: some View {
+        GeometryReader { geo in
+            let spacing: CGFloat = 28
+            let cols = Int(geo.size.width / spacing) + 2
+            let rows = Int(geo.size.height / spacing) + 2
+
+            Canvas { context, size in
+                for row in 0..<rows {
+                    for col in 0..<cols {
+                        let x = CGFloat(col) * spacing
+                        let y = CGFloat(row) * spacing
+                        var path = Path()
+                        path.move(to: CGPoint(x: x, y: y + 8))
+                        path.addLine(to: CGPoint(x: x + 8, y: y))
+                        path.addLine(to: CGPoint(x: x + 16, y: y + 8))
+                        path.addLine(to: CGPoint(x: x + 8, y: y + 16))
+                        path.closeSubpath()
+                        context.stroke(path, with: .color(.white), lineWidth: 0.6)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct OnboardingTopBar: View {
+    let step: OnboardingStep
+    let onBack: () -> Void
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack {
+                if step != .welcome {
+                    Button(action: onBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(MarviColor.ink)
+                            .frame(width: 40, height: 40)
+                            .background(MarviColor.panel)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Color.clear.frame(width: 40, height: 40)
+                }
+
+                Spacer()
+
+                Text("MARVI SOCIETY")
+                    .font(.caption2.weight(.bold))
+                    .tracking(2)
+                    .foregroundStyle(MarviColor.muted)
+            }
+
+            OnboardingProgressBar(current: step)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+}
+
+private struct OnboardingProgressBar: View {
+    let current: OnboardingStep
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(OnboardingStep.allCases, id: \.rawValue) { item in
+                Capsule()
+                    .fill(
+                        item.rawValue <= current.rawValue
+                            ? AnyShapeStyle(MarviGradient.brand)
+                            : AnyShapeStyle(MarviColor.panelElevated)
+                    )
+                    .frame(height: 4)
+                    .overlay(
+                        Capsule().stroke(MarviColor.border.opacity(0.5), lineWidth: item.rawValue > current.rawValue ? 1 : 0)
+                    )
+            }
+        }
+    }
+}
+
+private struct OnboardingBottomBar: View {
+    let ctaTitle: String
+    let isBusy: Bool
+    let isPrimaryDisabled: Bool
+    let errorMessage: String?
+    let onPrimary: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            if let errorMessage {
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(MarviColor.tomato)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+
+            Button(action: onPrimary) {
+                Text(ctaTitle.uppercased())
+                    .font(.subheadline.weight(.bold))
+                    .tracking(1.4)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        isPrimaryDisabled
+                            ? AnyShapeStyle(MarviColor.muted.opacity(0.35))
+                            : AnyShapeStyle(MarviGradient.brand)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(isPrimaryDisabled || isBusy)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 12)
+        }
+        .padding(.top, 8)
+        .background(
+            LinearGradient(
+                colors: [MarviColor.surface.opacity(0), MarviColor.surface, MarviColor.surface],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+    }
+}
+
+private struct OnboardingStepHeader: View {
+    let eyebrow: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(eyebrow)
+                .font(.caption.weight(.bold))
+                .textCase(.uppercase)
+                .foregroundStyle(MarviColor.rose)
+
+            Text(title)
+                .font(.system(size: 30, weight: .bold, design: .serif))
+                .foregroundStyle(MarviColor.ink)
+
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(MarviColor.muted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 8)
+    }
+}
+
+private struct OnboardingPill: View {
+    let icon: String
+    let title: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(MarviColor.rose)
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(MarviColor.ink)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(MarviColor.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(MarviGradient.brand.opacity(0.35), lineWidth: 1)
+        )
+    }
+}
+
+private struct OnboardingFeatureRow: View {
     let icon: String
     let title: String
     let subtitle: String
@@ -167,70 +745,41 @@ private struct OnboardingSignal: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(MarviColor.emerald)
+                .foregroundStyle(MarviColor.rose)
                 .frame(width: 36, height: 36)
-                .background(MarviColor.emerald.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(MarviColor.rose.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(MarviColor.ink)
-
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(MarviColor.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            Spacer()
+            Spacer(minLength: 0)
         }
         .padding(12)
-        .background(MarviColor.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(MarviColor.panel.opacity(0.85))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
-private struct RoleOption: View {
-    let role: UserRole
-    let isSelected: Bool
-    let action: () -> Void
+private struct OnboardingSecureField: View {
+    let placeholder: String
+    @Binding var text: String
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: role.icon)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(isSelected ? .white : MarviColor.emerald)
-                    .frame(width: 40, height: 40)
-                    .background(isSelected ? MarviColor.emerald : MarviColor.emerald.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(role.rawValue)
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(MarviColor.ink)
-
-                    Text(role.description)
-                        .font(.caption)
-                        .foregroundStyle(MarviColor.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer()
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.headline)
-                    .foregroundStyle(isSelected ? MarviColor.emerald : MarviColor.muted)
-            }
-            .padding(14)
-            .background(MarviColor.panel)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        SecureField(placeholder, text: $text)
+            .padding(12)
+            .foregroundStyle(MarviColor.ink)
+            .background(MarviColor.panelElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(isSelected ? MarviColor.emerald : Color.black.opacity(0.06), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
             )
-        }
-        .buttonStyle(.plain)
     }
 }

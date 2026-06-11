@@ -5,13 +5,20 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if appState.hasCompletedOnboarding {
+            if !APIConfig.isSupabaseConfigured {
+                ConfigurationRequiredView()
+            } else if appState.needsReauthentication {
+                ReauthView()
+            } else if appState.isBootstrapping && appState.hasCompletedOnboarding {
+                BootstrapSplashView()
+            } else if appState.hasCompletedOnboarding {
                 MainAppShell()
             } else {
                 OnboardingView()
             }
         }
-        .tint(MarviColor.emerald)
+        .tint(MarviColor.rose)
+        .preferredColorScheme(.dark)
     }
 }
 

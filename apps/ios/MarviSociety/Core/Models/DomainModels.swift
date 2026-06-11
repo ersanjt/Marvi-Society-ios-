@@ -1,6 +1,12 @@
 import Foundation
 import SwiftUI
 
+struct AccountContext: Equatable {
+    let role: UserRole
+    let membershipStatus: MembershipStatus?
+    let hasVenueProfile: Bool
+}
+
 enum UserRole: String, CaseIterable, Codable, Identifiable {
     case creator = "Creator"
     case venue = "Venue"
@@ -25,6 +31,30 @@ enum UserRole: String, CaseIterable, Codable, Identifiable {
         case .admin:
             "Approve members, venues, campaigns, and proof."
         }
+    }
+
+    static func fromAPI(_ raw: String?) -> UserRole? {
+        switch raw?.lowercased() {
+        case "creator": .creator
+        case "venue": .venue
+        case "admin": .admin
+        default: nil
+        }
+    }
+
+    /// Workspace tabs available for a server-side account role.
+    static func allowedWorkspaces(for accountRole: UserRole) -> [UserRole] {
+        switch accountRole {
+        case .admin: [.creator, .admin]
+        case .venue: [.venue]
+        case .creator: [.creator]
+        }
+    }
+
+    /// Display order when multiple workspaces are available (Creator · Venue · Admin).
+    static func sortedWorkspaces(_ roles: [UserRole]) -> [UserRole] {
+        let order: [UserRole] = [.creator, .venue, .admin]
+        return order.filter { roles.contains($0) }
     }
 }
 
@@ -262,6 +292,90 @@ struct CreatorProfile: Codable {
     var bio: String
     var languages: [String]
     var completedApplicationSteps: Int
+
+    static let empty = CreatorProfile(
+        name: "",
+        handle: "",
+        tiktokHandle: "",
+        city: "Istanbul",
+        status: .underReview,
+        score: 0,
+        audienceLabel: "0",
+        niches: [],
+        proofRate: "—",
+        bio: "",
+        languages: [],
+        completedApplicationSteps: 0
+    )
+
+    var displayName: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed.split(separator: " ").first.map(String.init) ?? trimmed }
+        let handleName = handle.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "")
+        return handleName.isEmpty ? "Member" : handleName
+    }
+}
+
+struct VenueReviewItem: Identifiable, Hashable {
+    let id: UUID
+    let creatorName: String
+    let instagramHandle: String
+    let offerTitle: String
+    let stage: BookingStage
+    let proofStatus: ProofStatus
+    let stageLabel: String
+    let checkedInLabel: String
+    let hasReview: Bool
+
+    init(
+        id: UUID,
+        creatorName: String,
+        instagramHandle: String,
+        offerTitle: String,
+        stage: BookingStage,
+        proofStatus: ProofStatus,
+        stageLabel: String,
+        checkedInLabel: String,
+        hasReview: Bool
+    ) {
+        self.id = id
+        self.creatorName = creatorName
+        self.instagramHandle = instagramHandle
+        self.offerTitle = offerTitle
+        self.stage = stage
+        self.proofStatus = proofStatus
+        self.stageLabel = stageLabel
+        self.checkedInLabel = checkedInLabel
+        self.hasReview = hasReview
+    }
+}
+
+struct InfluencerCandidate: Identifiable, Hashable {
+    let id: UUID
+    let name: String
+    let niche: String
+    let score: Int
+    let punctuality: Int
+    let presentation: Int
+    let followers: String
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        niche: String,
+        score: Int,
+        punctuality: Int,
+        presentation: Int,
+        followers: String
+    ) {
+        self.id = id
+        self.name = name
+        self.niche = niche
+        self.score = score
+        self.punctuality = punctuality
+        self.presentation = presentation
+        self.followers = followers
+    }
 }
 
 struct VenueMetric: Identifiable {
@@ -270,6 +384,25 @@ struct VenueMetric: Identifiable {
     let value: String
     let trend: String
     let icon: String
+}
+
+struct VenueSummary: Codable, Hashable {
+    let id: UUID
+    let venueName: String
+    let area: String
+    let category: OfferCategory
+    let latitude: Double?
+    let longitude: Double?
+}
+
+struct CreateCampaignInput: Sendable {
+    let title: String
+    let category: OfferCategory
+    let collaborationModel: CollaborationModel
+    let dateLabel: String
+    let valueLabel: String
+    let slots: Int
+    let deliverables: [String]
 }
 
 struct Campaign: Codable, Identifiable, Hashable {
@@ -314,6 +447,7 @@ struct Campaign: Codable, Identifiable, Hashable {
 
 struct AdminTask: Codable, Identifiable, Hashable {
     let id: UUID
+    var subjectID: UUID?
     var type: AdminTaskType
     var title: String
     var subtitle: String
@@ -323,6 +457,7 @@ struct AdminTask: Codable, Identifiable, Hashable {
 
     init(
         id: UUID = UUID(),
+        subjectID: UUID? = nil,
         type: AdminTaskType,
         title: String,
         subtitle: String,
@@ -331,6 +466,7 @@ struct AdminTask: Codable, Identifiable, Hashable {
         status: AdminTaskStatus = .open
     ) {
         self.id = id
+        self.subjectID = subjectID
         self.type = type
         self.title = title
         self.subtitle = subtitle

@@ -1,0 +1,14 @@
+{
+  "name": "marvi-society",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "web:dev": "npm run dev --workspace=@marvi-society/web",
+    "web:build": "npm run build --workspace=@marvi-society/web",
+    "health": "bash scripts/check-health.sh",
+    "db:combine": "bash infra/supabase/scripts/combine-migrations.sh"
+  }
+}

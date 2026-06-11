@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { Footer } from "@/components/marketing/Footer";
-import { Header } from "@/components/marketing/Header";
 import { SITE } from "@/lib/constants";
 import { getLocale } from "@/lib/i18n/locale";
 import "./globals.css";
@@ -31,11 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale}>
-      <body>
-        <Header locale={locale} />
-        <main>{children}</main>
-        <Footer locale={locale} />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

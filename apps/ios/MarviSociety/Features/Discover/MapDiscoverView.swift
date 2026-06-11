@@ -26,7 +26,7 @@ struct MapDiscoverView: View {
             ZStack(alignment: .bottom) {
                 Map(position: $cameraPosition, selection: $mapSelectedOffer) {
                     if let user = appState.userCoordinate {
-                        Annotation("You", coordinate: user) {
+                        Annotation("You", coordinate: CLLocationCoordinate2D(latitude: user.lat, longitude: user.lng)) {
                             ZStack {
                                 Circle()
                                     .fill(MarviColor.blue.opacity(0.2))
@@ -100,7 +100,7 @@ struct MapDiscoverView: View {
                 appState.refreshLocation()
                 centerOnUserOrIstanbul()
             }
-            .onChange(of: appState.userCoordinate?.latitude) { _, _ in
+            .onChange(of: appState.userCoordinate?.lat) { _, _ in
                 centerOnUserOrIstanbul()
             }
         }

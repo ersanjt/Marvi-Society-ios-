@@ -8,44 +8,39 @@ final class AppState: ObservableObject {
     @Published var selectedRole: UserRole = .creator {
         didSet { saveSnapshot() }
     }
-    @Published var offers: [Offer] = SampleData.offers
-    @Published var savedOfferIDs: Set<UUID> = [SampleData.offers[0].id, SampleData.offers[2].id] {
-        didSet { saveSnapshot() }
-    }
-    @Published var bookings: [Booking] = SampleData.bookings {
-        didSet { saveSnapshot() }
-    }
-    @Published var campaigns: [Campaign] = SampleData.campaigns {
-        didSet { saveSnapshot() }
-    }
-    @Published var adminTasks: [AdminTask] = SampleData.adminTasks {
-        didSet { saveSnapshot() }
-    }
-    @Published var inboxMessages: [InboxMessage] = SampleData.inboxMessages {
-        didSet { saveSnapshot() }
-    }
-    @Published var profile = SampleData.profile {
-        didSet { saveSnapshot() }
-    }
-    @Published var strikes: [Strike] = SampleData.strikes {
-        didSet { saveSnapshot() }
-    }
+    /// Resets to the first tab when switching creator / venue / admin workspace.
+    @Published var workspaceTabIndex = 0
+    @Published var offers: [Offer] = []
+    @Published var savedOfferIDs: Set<UUID> = []
+    @Published var bookings: [Booking] = []
+    @Published var campaigns: [Campaign] = []
+    @Published var adminTasks: [AdminTask] = []
+    @Published var inboxMessages: [InboxMessage] = []
+    @Published var profile = CreatorProfile.empty
+    @Published var strikes: [Strike] = []
     @Published var pushNotificationsEnabled = true {
         didSet { saveSnapshot() }
     }
     @Published var proofRemindersEnabled = true {
         didSet { saveSnapshot() }
     }
-    @Published var autoSaveProofLinks = true {
+    @Published var autoSaveProofLinks = false {
         didSet { saveSnapshot() }
     }
 
     @Published var isSyncing = false
+    @Published var isBootstrapping = false
+    @Published var hasLoadedInitialData = false
+    @Published var needsReauthentication = false
     @Published var lastSyncError: String?
     @Published var isAuthenticated = false
+    @Published var allowedRoles: [UserRole] = [.creator]
+    @Published var accountRole: UserRole = .creator
+    @Published var pendingOfferIDs: Set<UUID> = []
+    @Published var venueReviewQueue: [VenueReviewItem] = []
 
     let locationService = LocationService()
-    let isRemoteMode: Bool
+    var isRemoteMode: Bool { APIConfig.isSupabaseConfigured }
     private let api: any MarviAPI
     private let persistence: AppPersistence
     private var isPersistenceReady = false
@@ -53,17 +48,10 @@ final class AppState: ObservableObject {
     init(persistence: AppPersistence = .shared, api: (any MarviAPI)? = nil) {
         self.persistence = persistence
         self.api = api ?? APIConfig.makeAPI()
-        self.isRemoteMode = self.api.usesRemoteBackend
 
         if let snapshot = persistence.load() {
             hasCompletedOnboarding = snapshot.hasCompletedOnboarding
             selectedRole = snapshot.selectedRole
-            savedOfferIDs = snapshot.savedOfferIDs
-            bookings = snapshot.bookings
-            campaigns = snapshot.campaigns
-            adminTasks = snapshot.adminTasks
-            inboxMessages = snapshot.inboxMessages
-            profile = snapshot.profile
             pushNotificationsEnabled = snapshot.pushNotificationsEnabled
             proofRemindersEnabled = snapshot.proofRemindersEnabled
             autoSaveProofLinks = snapshot.autoSaveProofLinks
@@ -71,9 +59,9 @@ final class AppState: ObservableObject {
 
         isPersistenceReady = true
 
-        if isRemoteMode && hasCompletedOnboarding {
-            Task { await refreshFromServer() }
-        }
+        guard isRemoteMode else { return }
+
+        Task { await bootstrapRemoteSession() }
 
         if hasCompletedOnboarding {
             requestPushPermission()
@@ -86,16 +74,26 @@ final class AppState: ObservableObject {
     }
 
     var activeBookings: [Booking] {
-        bookings.filter { $0.stage != .cancelled }
+        bookings.filter { $0.stage != .cancelled && $0.stage != .completed }
+    }
+
+    var completedBookings: [Booking] {
+        bookings.filter { $0.stage == .completed }
+    }
+
+    var pendingInviteBookings: [Booking] {
+        bookings.filter { $0.stage == .invited }
+    }
+
+    var interestOffers: [Offer] {
+        offers.filter { savedOfferIDs.contains($0.id) && !acceptedOfferIDs.contains($0.id) }
     }
 
     var openAdminTasks: [AdminTask] {
         adminTasks.filter { $0.status == .open }
     }
 
-    var backendLabel: String {
-        isRemoteMode ? "Supabase" : "Local demo"
-    }
+    var backendLabel: String { "Supabase" }
 
     var userCoordinate: (lat: Double, lng: Double)? {
         guard let coordinate = locationService.coordinate else { return nil }
@@ -113,7 +111,7 @@ final class AppState: ObservableObject {
 
         return offers
             .compactMap { offer -> (Offer, Double)? in
-                guard let distance = offer.distanceKm(from: user.lat, lng: user.lng) else { return nil }
+                guard let distance = offer.distanceKm(from: user.lat, userLng: user.lng) else { return nil }
                 return distance <= withinKm ? (offer, distance) : nil
             }
             .sorted { $0.1 < $1.1 }
@@ -122,7 +120,7 @@ final class AppState: ObservableObject {
 
     func distanceLabel(for offer: Offer) -> String? {
         guard let user = userCoordinate,
-              let km = offer.distanceKm(from: user.lat, lng: user.lng) else { return nil }
+              let km = offer.distanceKm(from: user.lat, userLng: user.lng) else { return nil }
         if km < 1 {
             return String(format: "%.0f m away", km * 1000)
         }
@@ -131,9 +129,7 @@ final class AppState: ObservableObject {
 
     func requestPushPermission() {
         guard pushNotificationsEnabled else { return }
-        Task {
-            _ = await PushNotificationService.requestAuthorization()
-        }
+        Task { _ = await PushNotificationService.requestAuthorization() }
     }
 
     func syncProofReminders() {
@@ -143,41 +139,176 @@ final class AppState: ObservableObject {
         }
     }
 
+    func dismissSyncError() {
+        lastSyncError = nil
+    }
+
     // MARK: - Sync
 
-    func refreshFromServer() async {
+    func bootstrapRemoteSession() async {
         guard isRemoteMode else { return }
+        isBootstrapping = true
+        defer { isBootstrapping = false }
+
+        if await api.restoreSession() {
+            isAuthenticated = true
+            needsReauthentication = false
+            await refreshFromServer(retryOnUnauthorized: true)
+            await syncAllowedRoles()
+            return
+        }
+
+        if hasCompletedOnboarding {
+            needsReauthentication = true
+            isAuthenticated = false
+            lastSyncError = "Your session expired. Please sign in again."
+        }
+    }
+
+    func refreshFromServer(retryOnUnauthorized: Bool = false) async {
+        guard isRemoteMode, isAuthenticated else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+
+        isAuthenticated = await api.accessToken != nil
+        var syncErrors: [String] = []
+
+        // Profile first — offers filter uses creator city.
+        do {
+            profile = try await api.fetchProfile()
+            hasLoadedInitialData = true
+        } catch {
+            syncErrors.append("profile")
+            if let message = friendlyErrorMessage(error) {
+                lastSyncError = message
+            }
+        }
+
+        do {
+            offers = try await api.fetchOffers(city: profile.city.lowercased())
+        } catch {
+            syncErrors.append("offers")
+            if lastSyncError == nil, let message = friendlyErrorMessage(error) {
+                lastSyncError = message
+            }
+        }
+
+        if let loadedBookings = try? await api.fetchBookings() { bookings = loadedBookings }
+        else { syncErrors.append("bookings") }
+
+        if let loadedInbox = try? await api.fetchNotifications() { inboxMessages = loadedInbox }
+        if let loadedSaved = try? await api.fetchSavedOfferIDs() { savedOfferIDs = loadedSaved }
+        if let loadedTasks = try? await api.fetchAdminTasks() { adminTasks = loadedTasks }
+        if let loadedStrikes = try? await api.fetchStrikes() { strikes = loadedStrikes }
+        if let loadedCampaigns = try? await api.fetchCampaigns() { campaigns = loadedCampaigns }
+        if allowedRoles.contains(.venue), let reviews = try? await api.fetchVenueReviewQueue() {
+            venueReviewQueue = reviews
+        }
+
+        if syncErrors.contains("profile"), retryOnUnauthorized {
+            do {
+                try await api.refreshSession()
+                lastSyncError = nil
+                await refreshFromServer(retryOnUnauthorized: false)
+            } catch {
+                markSessionExpired(message: friendlyErrorMessage(error) ?? error.localizedDescription)
+            }
+            return
+        }
+
+        if !syncErrors.isEmpty {
+            lastSyncError = lastSyncError ?? "Some data could not be refreshed. Pull down to try again."
+        } else {
+            lastSyncError = nil
+        }
+
+        await syncAllowedRoles()
+    }
+
+    func syncAllowedRoles() async {
+        guard isRemoteMode, isAuthenticated else { return }
+
+        do {
+            let context = try await api.fetchAccountContext()
+            accountRole = context.role
+            var workspaces = UserRole.allowedWorkspaces(for: context.role)
+            if context.hasVenueProfile, !workspaces.contains(.venue) {
+                workspaces.append(.venue)
+            }
+            allowedRoles = UserRole.sortedWorkspaces(workspaces)
+            if !allowedRoles.contains(selectedRole) {
+                selectedRole = allowedRoles.first ?? .creator
+            }
+
+            if let membership = context.membershipStatus {
+                profile.status = membership
+            }
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func signOut() async {
+        try? await api.signOut()
+        clearServerState()
+        hasCompletedOnboarding = false
+        needsReauthentication = false
+        hasLoadedInitialData = false
+        isAuthenticated = false
+        allowedRoles = [.creator]
+        accountRole = .creator
+        selectedRole = .creator
+        SessionKeychain.clear()
+        persistence.reset()
+    }
+
+    func loadVenueSummary() async -> VenueSummary? {
+        guard isRemoteMode, isAuthenticated else { return nil }
+        do {
+            return try await api.fetchVenueSummary()
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    func saveProfileToServer() async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+
+        isSyncing = true
+        defer { isSyncing = false }
+
+        do {
+            try await api.updateProfile(profile)
+            await refreshFromServer()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func signInWithEmail(_ email: String, password: String, metadata: [String: String]) async {
+        guard isRemoteMode else { return }
+
         isSyncing = true
         lastSyncError = nil
         defer { isSyncing = false }
 
         do {
-            async let offersTask = api.fetchOffers(city: profile.city.lowercased())
-            async let bookingsTask = api.fetchBookings()
-            async let profileTask = api.fetchProfile()
-            async let inboxTask = api.fetchNotifications()
-            async let savedTask = api.fetchSavedOfferIDs()
-            async let tasksTask = api.fetchAdminTasks()
-            async let strikesTask = api.fetchStrikes()
-
-            offers = try await offersTask
-            bookings = try await bookingsTask
-            profile = try await profileTask
-            inboxMessages = try await inboxTask
-            savedOfferIDs = try await savedTask
-            adminTasks = try await tasksTask
-            strikes = try await strikesTask
-            isAuthenticated = await api.accessToken != nil
+            try await api.signInWithEmail(email, password: password, metadata: metadata)
+            isAuthenticated = true
+            needsReauthentication = false
+            await refreshFromServer()
+            await syncAllowedRoles()
         } catch {
-            lastSyncError = error.localizedDescription
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
         }
     }
 
     func signInWithApple(using service: AppleSignInService, metadata: [String: String]) async {
-        guard isRemoteMode else {
-            completeOnboarding(role: selectedRole)
-            return
-        }
+        guard isRemoteMode else { return }
 
         isSyncing = true
         lastSyncError = nil
@@ -191,35 +322,38 @@ final class AppState: ObservableObject {
                 metadata: metadata
             )
             isAuthenticated = true
+            needsReauthentication = false
             await refreshFromServer()
+            await syncAllowedRoles()
+        } catch MarviAPIError.cancelled {
+            // User dismissed Apple sign-in — no error banner.
         } catch {
-            lastSyncError = error.localizedDescription
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
         }
     }
 
     // MARK: - Onboarding
 
     func completeOnboarding(role: UserRole) {
-        selectedRole = role
-        hasCompletedOnboarding = true
-        inboxMessages.insert(
-            InboxMessage(
-                title: "Welcome to Marvi Society",
-                body: "Your Istanbul workspace is ready. Backend: \(backendLabel).",
-                dateLabel: "Now",
-                icon: "sparkles",
-                tint: .emerald
-            ),
-            at: 0
-        )
-
-        if isRemoteMode {
-            Task { await refreshFromServer() }
+        if !allowedRoles.contains(role) {
+            selectedRole = allowedRoles.first ?? .creator
+        } else {
+            selectedRole = role
         }
+        hasCompletedOnboarding = true
+        needsReauthentication = false
 
+        Task { await refreshFromServer() }
         requestPushPermission()
         syncProofReminders()
         refreshLocation()
+        workspaceTabIndex = 0
+    }
+
+    func switchWorkspace(to role: UserRole) {
+        guard allowedRoles.contains(role) else { return }
+        selectedRole = role
+        workspaceTabIndex = 0
     }
 
     // MARK: - Offers
@@ -232,124 +366,138 @@ final class AppState: ObservableObject {
         savedOfferIDs.contains(offer.id)
     }
 
-    func toggleSaved(_ offer: Offer) {
-        if isRemoteMode {
-            Task {
-                do {
-                    let saved = try await api.toggleSavedOffer(offer.id)
-                    if saved {
-                        savedOfferIDs.insert(offer.id)
-                    } else {
-                        savedOfferIDs.remove(offer.id)
-                    }
-                } catch {
-                    lastSyncError = error.localizedDescription
-                }
-            }
-            return
-        }
+    func isPendingOfferAction(_ offer: Offer) -> Bool {
+        pendingOfferIDs.contains(offer.id)
+    }
 
-        if savedOfferIDs.contains(offer.id) {
-            savedOfferIDs.remove(offer.id)
-        } else {
-            savedOfferIDs.insert(offer.id)
+    func toggleSaved(_ offer: Offer) {
+        guard isAuthenticated else { return }
+        pendingOfferIDs.insert(offer.id)
+        Task {
+            defer { pendingOfferIDs.remove(offer.id) }
+            do {
+                let saved = try await api.toggleSavedOffer(offer.id)
+                if saved { savedOfferIDs.insert(offer.id) }
+                else { savedOfferIDs.remove(offer.id) }
+            } catch {
+                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            }
         }
     }
 
     func accept(_ offer: Offer) {
-        guard !isAccepted(offer) else { return }
-
-        if isRemoteMode {
-            Task {
-                do {
-                    let booking = try await api.acceptOffer(offer.id)
-                    bookings.insert(booking, at: 0)
-                    syncProofReminders()
-                    await refreshFromServer()
-                } catch {
-                    lastSyncError = error.localizedDescription
-                }
+        guard isAuthenticated, !isAccepted(offer), offer.remaining > 0 else { return }
+        pendingOfferIDs.insert(offer.id)
+        Task {
+            defer { pendingOfferIDs.remove(offer.id) }
+            do {
+                let booking = try await api.acceptOffer(offer.id)
+                bookings.insert(booking, at: 0)
+                syncProofReminders()
+                await refreshFromServer()
+            } catch {
+                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             }
+        }
+    }
+
+    func decline(_ booking: Booking) {
+        cancel(booking.offer)
+    }
+
+    func loadSwipeCandidates(offerID: UUID? = nil) async -> [InfluencerCandidate] {
+        guard isAuthenticated else { return [] }
+        do {
+            return try await api.fetchSwipeCandidates(offerID: offerID)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return []
+        }
+    }
+
+    func shortlistCreator(_ candidate: InfluencerCandidate, offerID: UUID? = nil) async {
+        guard isAuthenticated else { return }
+        do {
+            try await api.shortlistCreator(candidate.id, offerID: offerID)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func submitVenueReview(
+        bookingID: UUID,
+        punctuality: Int,
+        presentation: Int,
+        comment: String
+    ) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            try await api.submitVenueReview(
+                bookingID: bookingID,
+                punctuality: punctuality,
+                presentation: presentation,
+                comment: comment
+            )
+            if allowedRoles.contains(.venue), let reviews = try? await api.fetchVenueReviewQueue() {
+                venueReviewQueue = reviews
+            }
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func issueStrikeForProofTask(_ task: AdminTask, reason: String) {
+        guard let bookingID = task.subjectID else {
+            lastSyncError = "This task has no linked booking."
             return
         }
-
-        bookings.insert(
-            Booking(
-                id: UUID(),
-                offer: offer,
-                stage: .confirmed,
-                proofDeadline: "\(offer.dateLabel), 22:00",
-                checklist: [
-                    "Confirm guest details",
-                    "Check in with venue host",
-                    "Upload story, post, or review links"
-                ],
-                proofStatus: .notStarted,
-                checkInCode: String(Int.random(in: 1200...9899)),
-                guestName: "",
-                proofLinks: []
-            ),
-            at: 0
-        )
-
-        inboxMessages.insert(
-            InboxMessage(
-                title: "Invitation confirmed",
-                body: "\(offer.venue) is now in your bookings. Your check-in code is available in the booking card.",
-                dateLabel: "Now",
-                icon: "checkmark.circle.fill",
-                tint: .emerald
-            ),
-            at: 0
-        )
-
-        if offer.collaborationModel == .instant, pushNotificationsEnabled {
-            PushNotificationService.scheduleInstantOfferNearby(venueName: offer.venue)
+        Task {
+            do {
+                try await api.issueStrikeForBooking(bookingID: bookingID, reason: reason)
+                await refreshFromServer()
+            } catch {
+                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            }
         }
-        syncProofReminders()
     }
 
     func cancel(_ offer: Offer) {
-        if isRemoteMode {
-            Task {
-                do {
-                    try await api.cancelOffer(offer.id)
-                    await refreshFromServer()
-                } catch {
-                    lastSyncError = error.localizedDescription
-                }
+        guard isAuthenticated else { return }
+        pendingOfferIDs.insert(offer.id)
+        Task {
+            defer { pendingOfferIDs.remove(offer.id) }
+            do {
+                try await api.cancelOffer(offer.id)
+                await refreshFromServer()
+            } catch {
+                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             }
-            return
-        }
-
-        for index in bookings.indices where bookings[index].offer.id == offer.id {
-            bookings[index].stage = .cancelled
         }
     }
 
-    func checkIn(_ booking: Booking) {
-        if isRemoteMode {
-            Task {
-                do {
-                    let updated = try await api.checkIn(bookingID: booking.id, code: booking.checkInCode)
-                    updateBooking(updated.id) { $0 = updated }
-                } catch {
-                    lastSyncError = error.localizedDescription
-                }
-            }
-            return
-        }
+    func checkIn(_ booking: Booking, code: String) async -> String? {
+        guard isAuthenticated else { return "Please sign in to check in." }
+        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return "Enter the check-in code from the venue host." }
 
-        updateBooking(booking.id) { booking in
-            booking.stage = .checkedIn
+        do {
+            let updated = try await api.checkIn(bookingID: booking.id, code: normalized)
+            updateBooking(updated.id) { $0 = updated }
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
         }
     }
 
     func validateReferralCode(_ code: String) async -> Bool {
+        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard !normalized.isEmpty else { return false }
         do {
-            return try await api.validateReferralCode(code)
+            return try await api.validateReferralCode(normalized)
         } catch {
-            lastSyncError = error.localizedDescription
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             return false
         }
     }
@@ -362,52 +510,21 @@ final class AppState: ObservableObject {
                 fileName: fileName
             )
         } catch {
-            lastSyncError = error.localizedDescription
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             return nil
         }
     }
 
-    func submitProof(for booking: Booking, links: [String]) {
-        if isRemoteMode {
-            Task {
-                do {
-                    let updated = try await api.submitProof(bookingID: booking.id, links: links)
-                    updateBooking(updated.id) { $0 = updated }
-                    await refreshFromServer()
-                } catch {
-                    lastSyncError = error.localizedDescription
-                }
-            }
-            return
+    func submitProof(for booking: Booking, links: [String]) async -> String? {
+        guard isAuthenticated else { return "Please sign in to submit proof." }
+        do {
+            let updated = try await api.submitProof(bookingID: booking.id, links: links)
+            updateBooking(updated.id) { $0 = updated }
+            await refreshFromServer()
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
         }
-
-        updateBooking(booking.id) { booking in
-            booking.stage = .completed
-            booking.proofStatus = .pending
-            booking.proofLinks = links
-        }
-
-        adminTasks.insert(
-            AdminTask(
-                type: .proofReview,
-                title: "\(booking.offer.venue) proof",
-                subtitle: "\(profile.name) submitted \(links.count) proof link(s).",
-                dateLabel: "Now",
-                priority: "Medium"
-            ),
-            at: 0
-        )
-
-        inboxMessages.insert(
-            InboxMessage(
-                title: "Proof sent to review",
-                body: "Admin will review your submission for \(booking.offer.venue).",
-                dateLabel: "Now",
-                icon: "tray.and.arrow.up.fill",
-                tint: .blue
-            ),
-            at: 0
-        )
     }
 
     func createCampaign(
@@ -415,101 +532,55 @@ final class AppState: ObservableObject {
         venueName: String,
         area: String,
         category: OfferCategory,
+        collaborationModel: CollaborationModel = .invitation,
         dateLabel: String,
         valueLabel: String,
         slots: Int,
         deliverables: [String]
-    ) {
-        let campaign = Campaign(
+    ) async -> Bool {
+        let input = CreateCampaignInput(
             title: title,
-            venueName: venueName,
-            area: area,
             category: category,
+            collaborationModel: collaborationModel,
             dateLabel: dateLabel,
             valueLabel: valueLabel,
             slots: slots,
-            matchedCreators: 0,
-            status: .review,
             deliverables: deliverables
         )
 
-        campaigns.insert(campaign, at: 0)
-        adminTasks.insert(
-            AdminTask(
-                type: .campaignReview,
-                title: campaign.title,
-                subtitle: "\(campaign.venueName) requested \(campaign.slots) creator slots.",
-                dateLabel: "Now",
-                priority: "High"
-            ),
-            at: 0
-        )
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            let campaign = try await api.createCampaign(input)
+            campaigns.insert(campaign, at: 0)
+            await refreshFromServer()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
     }
 
     func approveTask(_ task: AdminTask) {
-        if isRemoteMode {
-            Task {
-                do {
-                    try await api.approveTask(task.id)
-                    await refreshFromServer()
-                } catch {
-                    lastSyncError = error.localizedDescription
-                }
+        Task {
+            do {
+                try await api.approveTask(task.id)
+                await refreshFromServer()
+            } catch {
+                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             }
-            return
         }
-
-        setTask(task, status: .approved)
-        inboxMessages.insert(
-            InboxMessage(
-                title: "Admin approved: \(task.type.rawValue)",
-                body: task.title,
-                dateLabel: "Now",
-                icon: "checkmark.shield.fill",
-                tint: .emerald
-            ),
-            at: 0
-        )
     }
 
     func rejectTask(_ task: AdminTask) {
-        if isRemoteMode {
-            Task {
-                do {
-                    try await api.rejectTask(task.id)
-                    await refreshFromServer()
-                } catch {
-                    lastSyncError = error.localizedDescription
-                }
-            }
-            return
-        }
-
-        setTask(task, status: .rejected)
-    }
-
-    func resetDemoData() {
-        isPersistenceReady = false
-        hasCompletedOnboarding = false
-        selectedRole = .creator
-        offers = SampleData.offers
-        savedOfferIDs = [SampleData.offers[0].id, SampleData.offers[2].id]
-        bookings = SampleData.bookings
-        campaigns = SampleData.campaigns
-        adminTasks = SampleData.adminTasks
-        inboxMessages = SampleData.inboxMessages
-        profile = SampleData.profile
-        pushNotificationsEnabled = true
-        proofRemindersEnabled = true
-        autoSaveProofLinks = true
-        lastSyncError = nil
-        isAuthenticated = false
-        persistence.reset()
-        isPersistenceReady = true
-
-        if isRemoteMode {
-            Task {
-                try? await api.signOut()
+        Task {
+            do {
+                try await api.rejectTask(task.id)
+                await refreshFromServer()
+            } catch {
+                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             }
         }
     }
@@ -519,9 +590,55 @@ final class AppState: ObservableObject {
         update(&bookings[index])
     }
 
-    private func setTask(_ task: AdminTask, status: AdminTaskStatus) {
-        guard let index = adminTasks.firstIndex(where: { $0.id == task.id }) else { return }
-        adminTasks[index].status = status
+    private func markSessionExpired(message: String) {
+        isAuthenticated = false
+        needsReauthentication = true
+        clearServerState()
+        SessionKeychain.clear()
+        lastSyncError = message
+    }
+
+    private func clearServerState() {
+        offers = []
+        bookings = []
+        campaigns = []
+        adminTasks = []
+        venueReviewQueue = []
+        inboxMessages = []
+        strikes = []
+        savedOfferIDs = []
+        profile = .empty
+    }
+
+    private func friendlyErrorMessage(_ error: Error) -> String? {
+        let raw = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        let lower = raw.lowercased()
+
+        if lower.contains("no slots") || lower.contains("remaining_slots") {
+            return "This invitation is full. Try another event."
+        }
+        if lower.contains("already accepted") || lower.contains("duplicate") {
+            return "You already accepted this invitation."
+        }
+        if lower.contains("invalid check-in") || lower.contains("check-in code") {
+            return "Invalid check-in code. Ask the venue host for the correct code."
+        }
+        if lower.contains("unauthorized") || lower.contains("jwt") {
+            return "Your session expired. Please sign in again."
+        }
+        if lower.contains("creator profile") {
+            return "Your creator profile is not set up yet. Contact support."
+        }
+        if lower.contains("not authenticated") {
+            return "Please sign in to continue."
+        }
+        if lower.contains("authenticationservices") || lower.contains("authorizationerror") {
+            return "Sign in with Apple is not available on this build. Use email sign-in."
+        }
+        if lower.contains("invalid api key") || lower.contains("invalid jwt") {
+            return "Server configuration error. Check Supabase anon key in Secrets.xcconfig."
+        }
+        return raw.isEmpty ? nil : raw
     }
 
     private func saveSnapshot() {
@@ -530,12 +647,6 @@ final class AppState: ObservableObject {
             AppSnapshot(
                 hasCompletedOnboarding: hasCompletedOnboarding,
                 selectedRole: selectedRole,
-                savedOfferIDs: savedOfferIDs,
-                bookings: bookings,
-                campaigns: campaigns,
-                adminTasks: adminTasks,
-                inboxMessages: inboxMessages,
-                profile: profile,
                 pushNotificationsEnabled: pushNotificationsEnabled,
                 proofRemindersEnabled: proofRemindersEnabled,
                 autoSaveProofLinks: autoSaveProofLinks

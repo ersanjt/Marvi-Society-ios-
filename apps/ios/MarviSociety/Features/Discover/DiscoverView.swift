@@ -8,13 +8,66 @@ private enum OfferFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+private enum DiscoverMode: String, CaseIterable {
+    case list = "List"
+    case map = "Map"
+}
+
+private enum DiscoverSort: String, CaseIterable {
+    case newest = "Newest"
+    case slots = "Few slots"
+    case match = "Best match"
+}
+
 struct DiscoverView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var discoverMode: DiscoverMode = .list
     @State private var selectedCategory: OfferCategory?
     @State private var selectedModel: CollaborationModel?
     @State private var selectedFilter: OfferFilter = .all
+    @State private var selectedWhen: String?
+    @State private var selectedWhere: String?
+    @State private var selectedEventType: String?
+    @State private var selectedCalendarDay: Int?
     @State private var searchText = ""
     @State private var selectedOffer: Offer?
+    @State private var isShowingInbox = false
+    @State private var sortMode: DiscoverSort = .newest
+    @State private var isShowingSortMenu = false
+
+    private let whenOptions = ["Tonight", "This week", "Weekend"]
+    private let eventTypes = ["Dining", "Nightlife", "Wellness", "Beauty"]
+
+    private var cityLabel: String {
+        let city = appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
+        return city.isEmpty ? "Your city" : city
+    }
+
+    private var whereOptions: [String] {
+        let areas = Set(appState.offers.map(\.area).filter { !$0.isEmpty })
+        return areas.isEmpty ? ["Karaköy", "Nişantaşı", "Kadıköy"] : Array(areas).sorted()
+    }
+
+    private var calendarDays: [CalendarDay] {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "EEE"
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "d"
+
+        return (0..<7).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: Date())) else {
+                return nil
+            }
+            return CalendarDay(
+                id: offset,
+                weekday: formatter.string(from: date),
+                label: dayFormatter.string(from: date),
+                date: date
+            )
+        }
+    }
 
     private var filteredOffers: [Offer] {
         appState.offers.filter { offer in
@@ -24,86 +77,320 @@ struct DiscoverView: View {
                 offer.title.localizedCaseInsensitiveContains(searchText) ||
                 offer.venue.localizedCaseInsensitiveContains(searchText) ||
                 offer.area.localizedCaseInsensitiveContains(searchText)
+            let matchesWhere = selectedWhere == nil || offer.area.localizedCaseInsensitiveContains(selectedWhere!)
+            let matchesType = selectedEventType == nil || offer.category.rawValue.localizedCaseInsensitiveContains(selectedEventType!)
+            let matchesWhen = matchesWhenFilter(offer: offer, selection: selectedWhen)
+            let matchesDay = matchesCalendarDay(offer: offer, dayIndex: selectedCalendarDay)
             let matchesFilter: Bool
 
             switch selectedFilter {
-            case .all:
-                matchesFilter = true
-            case .saved:
-                matchesFilter = appState.isSaved(offer)
-            case .urgent:
-                matchesFilter = offer.remaining <= 4
+            case .all: matchesFilter = true
+            case .saved: matchesFilter = appState.isSaved(offer)
+            case .urgent: matchesFilter = offer.remaining <= 4
             }
 
-            return matchesCategory && matchesModel && matchesSearch && matchesFilter
+            return matchesCategory && matchesModel && matchesSearch && matchesWhere && matchesType && matchesWhen && matchesDay && matchesFilter
         }
+        .sorted(by: sortComparator)
+    }
+
+    private func sortComparator(_ lhs: Offer, _ rhs: Offer) -> Bool {
+        switch sortMode {
+        case .newest:
+            return lhs.title < rhs.title
+        case .slots:
+            return lhs.remaining < rhs.remaining
+        case .match:
+            return lhs.remaining > rhs.remaining
+        }
+    }
+
+    private func matchesWhenFilter(offer: Offer, selection: String?) -> Bool {
+        guard let selection else { return true }
+        let label = offer.dateLabel.lowercased()
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        switch selection {
+        case "Tonight":
+            if label.contains("tonight") || label.contains("today") { return true }
+            let weekday = calendar.component(.weekday, from: today)
+            let symbols = calendar.shortWeekdaySymbols.map { $0.lowercased() }
+            let todayName = symbols[weekday - 1]
+            return label.contains(todayName)
+        case "This week":
+            return calendarDays.contains { day in
+                label.contains(day.label) || label.contains(day.weekday.lowercased())
+            }
+        case "Weekend":
+            return label.contains("sat") || label.contains("sun") || label.contains("weekend")
+        default:
+            return true
+        }
+    }
+
+    private func matchesCalendarDay(offer: Offer, dayIndex: Int?) -> Bool {
+        guard let dayIndex, let day = calendarDays[safe: dayIndex] else { return true }
+        let label = offer.dateLabel.lowercased()
+        return label.contains(day.label) || label.contains(day.weekday.lowercased())
     }
 
     private var featuredOffer: Offer? {
         filteredOffers.first ?? appState.offers.first
     }
 
+    private var firstName: String {
+        appState.profile.displayName
+    }
+
     var body: some View {
         NavigationStack {
             MarviScreen {
+                if discoverMode == .map {
+                    MapDiscoverView()
+                        .environmentObject(appState)
+                } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        BrandLockup(subtitle: "Istanbul private access")
-                            .padding(.top, 8)
+                    VStack(alignment: .leading, spacing: 22) {
+                        HomeHeader(
+                            greeting: firstName,
+                            subtitle: "\(cityLabel) · Private access",
+                            onSearch: {},
+                            onNotifications: { isShowingInbox = true }
+                        )
+                        .padding(.top, 4)
+
+                        if appState.profile.status != .approved {
+                            MembershipStatusBanner(status: appState.profile.status)
+                        }
+
+                        SSExploreHeader(city: cityLabel, eventCount: filteredOffers.count)
+
+                        SSDiscoverAxisPills(
+                            whenOptions: whenOptions,
+                            whereOptions: whereOptions,
+                            eventTypes: eventTypes,
+                            selectedWhen: $selectedWhen,
+                            selectedWhere: $selectedWhere,
+                            selectedEventType: $selectedEventType
+                        )
+
+                        SSFilterToolbar(
+                            onFilters: {
+                                selectedFilter = selectedFilter == .all ? .saved : .all
+                            },
+                            onSort: { isShowingSortMenu = true },
+                            onLocation: { selectedWhere = whereOptions.first },
+                            onDate: { selectedCalendarDay = 0 }
+                        )
+                        .confirmationDialog("Sort events", isPresented: $isShowingSortMenu, titleVisibility: .visible) {
+                            ForEach(DiscoverSort.allCases, id: \.self) { mode in
+                                Button(mode.rawValue) { sortMode = mode }
+                            }
+                        }
+
+                        SSSegmentedTabs(
+                            options: DiscoverMode.allCases,
+                            title: { $0.rawValue },
+                            selection: $discoverMode
+                        )
+
+                        if !filteredOffers.isEmpty {
+                            SSFeaturedEventsCarousel(title: "Featured Events") {
+                                ForEach(filteredOffers.prefix(5)) { offer in
+                                    FeaturedEventCompact(
+                                        offer: offer,
+                                        open: { selectedOffer = offer }
+                                    )
+                                }
+                            }
+                        }
 
                         if let featuredOffer {
-                            FeaturedOfferPanel(
+                            FeaturedEventHero(
                                 offer: featuredOffer,
+                                matchScore: appState.profile.score,
                                 isSaved: appState.isSaved(featuredOffer),
-                                isAccepted: appState.isAccepted(featuredOffer),
-                                open: {
-                                selectedOffer = featuredOffer
-                                },
-                                toggleSaved: {
-                                appState.toggleSaved(featuredOffer)
-                                }
+                                open: { selectedOffer = featuredOffer },
+                                toggleSaved: { appState.toggleSaved(featuredOffer) }
                             )
                         }
 
-                        QuickMarketBar()
+                        EventCalendarStrip(selectedDay: $selectedCalendarDay, days: calendarDays)
 
-                        FilterStrip(selectedFilter: $selectedFilter)
+                        FilterPillRow(
+                            items: OfferFilter.allCases.map(\.rawValue),
+                            selected: Binding(
+                                get: { selectedFilter == .all ? nil : selectedFilter.rawValue },
+                                set: { newValue in
+                                    if let newValue,
+                                       let filter = OfferFilter.allCases.first(where: { $0.rawValue == newValue }) {
+                                        selectedFilter = filter
+                                    } else {
+                                        selectedFilter = .all
+                                    }
+                                }
+                            )
+                        )
 
                         CollaborationModelStrip(selectedModel: $selectedModel)
 
-                        CategorySelector(selectedCategory: $selectedCategory)
-
-                        SectionTitle(
-                            title: "Curated invitations",
-                            subtitle: "\(filteredOffers.count) matching offers in Istanbul"
-                        )
-
-                        LazyVStack(spacing: 14) {
-                            ForEach(filteredOffers) { offer in
-                                OfferCard(
-                                    offer: offer,
-                                    isAccepted: appState.isAccepted(offer),
-                                    isSaved: appState.isSaved(offer)
-                                ) {
-                                    selectedOffer = offer
+                        if appState.isSyncing && appState.offers.isEmpty {
+                            OfferListSkeleton()
+                        } else if filteredOffers.isEmpty {
+                            MarviCard {
+                                EmptyStateView(
+                                    title: appState.isSyncing ? "Loading events…" : "No events yet",
+                                    subtitle: appState.isSyncing
+                                        ? "Fetching live campaigns from the server."
+                                        : "New venue invitations appear here when published for \(cityLabel). Pull down to refresh.",
+                                    icon: "calendar.badge.clock",
+                                    actionTitle: appState.isSyncing ? nil : "Refresh",
+                                    action: appState.isSyncing ? nil : { Task { await appState.refreshFromServer() } }
+                                )
+                            }
+                        } else {
+                            LazyVStack(spacing: 14) {
+                                ForEach(filteredOffers) { offer in
+                                    EventListCard(
+                                        offer: offer,
+                                        isSaved: appState.isSaved(offer),
+                                        isAccepted: appState.isAccepted(offer),
+                                        open: { selectedOffer = offer },
+                                        toggleSaved: { appState.toggleSaved(offer) }
+                                    )
                                 }
                             }
                         }
                     }
                     .padding(16)
                 }
+                .refreshable {
+                    await appState.refreshFromServer()
+                }
+                }
             }
-            .navigationTitle("Discover")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
             .searchable(text: $searchText, prompt: "Venue, area, category")
             .navigationDestination(item: $selectedOffer) { offer in
                 OfferDetailView(offer: offer)
+            }
+            .sheet(isPresented: $isShowingInbox) {
+                NavigationStack {
+                    InboxView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") { isShowingInbox = false }
+                            }
+                        }
+                }
             }
         }
     }
 }
 
-private struct FeaturedOfferPanel: View {
+private struct FeaturedEventCompact: View {
+    let offer: Offer
+    let open: () -> Void
+
+    var body: some View {
+        Button(action: open) {
+            VStack(alignment: .leading, spacing: 0) {
+                OfferImageView(offer: offer, height: 120, cornerRadius: 0)
+                    .frame(width: 200, height: 120)
+                    .clipped()
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(offer.venue.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(MarviColor.rose)
+                    Text(offer.title)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                .padding(10)
+                .frame(width: 200, alignment: .leading)
+                .background(MarviColor.panel)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct FeaturedEventHero: View {
+    let offer: Offer
+    let matchScore: Int
+    let isSaved: Bool
+    let open: () -> Void
+    let toggleSaved: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .bottomLeading) {
+                OfferImageView(offer: offer, height: 200)
+
+                MarviGradient.heroOverlay
+                    .frame(height: 200)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Featured Event")
+                        .font(.caption.weight(.bold))
+                        .textCase(.uppercase)
+                        .foregroundStyle(MarviColor.rose)
+
+                    Text(offer.title)
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                }
+                .padding(16)
+            }
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    StatusPill(text: offer.category.rawValue, tint: MarviColor.rose, systemImage: offer.category.icon)
+                    if matchScore > 0 {
+                        StatusPill(text: "\(matchScore)% match", tint: MarviColor.gold, systemImage: "star.fill")
+                    }
+                    Spacer()
+                    Button(action: toggleSaved) {
+                        Image(systemName: isSaved ? "heart.fill" : "heart")
+                            .foregroundStyle(isSaved ? MarviColor.rose : MarviColor.muted)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Label("\(offer.venue) · \(offer.area)", systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .foregroundStyle(MarviColor.graphite)
+
+                HStack(spacing: 10) {
+                    InfoBadge(icon: "calendar", text: offer.dateLabel)
+                    InfoBadge(icon: "clock", text: offer.timeLabel)
+                    InfoBadge(icon: "gift", text: offer.valueLabel)
+                }
+
+                GradientCTA(title: "View event brief", action: open)
+            }
+            .padding(16)
+            .background(MarviColor.panel)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(MarviColor.border, lineWidth: 1)
+        )
+    }
+}
+
+private struct EventListCard: View {
     let offer: Offer
     let isSaved: Bool
     let isAccepted: Bool
@@ -111,115 +398,50 @@ private struct FeaturedOfferPanel: View {
     let toggleSaved: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Tonight's priority match")
-                        .font(.caption.weight(.bold))
-                        .textCase(.uppercase)
-                        .foregroundStyle(MarviColor.gold)
+        Button(action: open) {
+            HStack(spacing: 14) {
+                OfferImageView(offer: offer, height: 80, cornerRadius: 14)
+                    .frame(width: 72, height: 80)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(offer.venue.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(MarviColor.rose)
 
                     Text(offer.title)
-                        .font(.system(size: 34, weight: .bold, design: .serif))
-                        .foregroundStyle(.white)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.82)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
 
-                    Label("\(offer.venue) - \(offer.area)", systemImage: "mappin.and.ellipse")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.78))
-                        .lineLimit(1)
+                    HStack(spacing: 8) {
+                        Label(offer.dateLabel, systemImage: "calendar")
+                        if isAccepted {
+                            StatusPill(text: "Confirmed", tint: MarviColor.emerald, systemImage: "checkmark")
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.muted)
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 Button(action: toggleSaved) {
-                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(isSaved ? MarviColor.gold : .white)
-                        .frame(width: 44, height: 44)
-                        .background(.white.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    Image(systemName: isSaved ? "heart.fill" : "heart")
+                        .foregroundStyle(isSaved ? MarviColor.rose : MarviColor.muted)
                 }
                 .buttonStyle(.plain)
             }
-
-            HStack(spacing: 10) {
-                StatusPill(text: offer.category.rawValue, tint: .white, systemImage: offer.category.icon)
-                StatusPill(text: "94% match", tint: MarviColor.gold, systemImage: "star.fill")
-                if isAccepted {
-                    StatusPill(text: "Confirmed", tint: MarviColor.emerald, systemImage: "checkmark")
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("\(offer.capacity - offer.remaining) of \(offer.capacity) creator slots filled")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.78))
-
-                    Spacer()
-
-                    Text("\(offer.remaining) left")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(MarviColor.gold)
-                }
-
-                ProgressBar(value: Double(offer.capacity - offer.remaining) / Double(offer.capacity), tint: MarviColor.gold)
-            }
-
-            HStack(spacing: 10) {
-                MetricPill(icon: "calendar", title: offer.dateLabel)
-                MetricPill(icon: "clock", title: offer.timeLabel)
-                MetricPill(icon: "gift", title: offer.valueLabel)
-            }
-
-            Button(action: open) {
-                Label("View campaign brief", systemImage: "arrow.right.circle")
-                    .font(.subheadline.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(MarviColor.ink)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .padding(14)
+            .background(MarviColor.panel)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
+            )
         }
-        .padding(20)
-        .background(
-            ZStack {
-                MarviGradient.brand
-                MarviGradient.warm.opacity(0.8)
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 26, x: 0, y: 14)
-    }
-}
-
-private struct MetricPill: View {
-    let icon: String
-    let title: String
-
-    var body: some View {
-        Label(title, systemImage: icon)
-            .font(.caption.weight(.bold))
-            .lineLimit(1)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(.white.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-private struct QuickMarketBar: View {
-    var body: some View {
-        HStack(spacing: 10) {
-            MetricTile(value: "42", label: "venues", icon: "building.2", tint: MarviColor.emerald)
-            MetricTile(value: "128", label: "creators", icon: "person.2", tint: MarviColor.aubergine)
-            MetricTile(value: "96%", label: "proof", icon: "checkmark.seal", tint: MarviColor.blue)
-        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -229,7 +451,7 @@ private struct CollaborationModelStrip: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ModelChip(title: "All models", icon: "square.grid.2x2", isSelected: selectedModel == nil) {
+                ModelChip(title: "All", icon: "square.grid.2x2", isSelected: selectedModel == nil) {
                     selectedModel = nil
                 }
                 ForEach(CollaborationModel.allCases) { model in
@@ -239,6 +461,12 @@ private struct CollaborationModelStrip: View {
                 }
             }
         }
+    }
+}
+
+private extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 
@@ -255,164 +483,12 @@ private struct ModelChip: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .foregroundStyle(isSelected ? .white : MarviColor.ink)
-                .background(isSelected ? MarviColor.emerald : Color.white)
+                .background(isSelected ? AnyShapeStyle(MarviGradient.brand) : AnyShapeStyle(MarviColor.panel))
                 .clipShape(Capsule())
                 .overlay(
-                    Capsule().stroke(Color.black.opacity(0.06), lineWidth: isSelected ? 0 : 1)
+                    Capsule().stroke(MarviColor.border, lineWidth: isSelected ? 0 : 1)
                 )
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct FilterStrip: View {
-    @Binding var selectedFilter: OfferFilter
-
-    var body: some View {
-        Picker("Offer filter", selection: $selectedFilter) {
-            ForEach(OfferFilter.allCases) { filter in
-                Text(filter.rawValue).tag(filter)
-            }
-        }
-        .pickerStyle(.segmented)
-    }
-}
-
-private struct CategorySelector: View {
-    @Binding var selectedCategory: OfferCategory?
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                CategoryChip(
-                    title: "All",
-                    icon: "square.grid.2x2",
-                    isSelected: selectedCategory == nil,
-                    tint: MarviColor.ink
-                ) {
-                    selectedCategory = nil
-                }
-
-                ForEach(OfferCategory.allCases) { category in
-                    CategoryChip(
-                        title: category.rawValue,
-                        icon: category.icon,
-                        isSelected: selectedCategory == category,
-                        tint: category.tint
-                    ) {
-                        selectedCategory = category
-                    }
-                }
-            }
-            .padding(.vertical, 2)
-        }
-    }
-}
-
-private struct CategoryChip: View {
-    let title: String
-    let icon: String
-    let isSelected: Bool
-    let tint: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .foregroundStyle(isSelected ? .white : tint)
-                .background(isSelected ? tint : Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(tint.opacity(isSelected ? 0 : 0.16), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct OfferCard: View {
-    let offer: Offer
-    let isAccepted: Bool
-    let isSaved: Bool
-    let open: () -> Void
-
-    var body: some View {
-        MarviCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 14) {
-                    ZStack {
-                        MarviGradient.cool
-                        Image(systemName: offer.imageName)
-                            .font(.system(size: 30, weight: .semibold))
-                            .foregroundStyle(offer.category.tint)
-                    }
-                    .frame(width: 78, height: 86)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack(spacing: 6) {
-                            StatusPill(text: offer.category.rawValue, tint: offer.category.tint, systemImage: offer.category.icon)
-                            StatusPill(text: offer.collaborationModel.rawValue, tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
-
-                            if isAccepted {
-                                StatusPill(text: "Confirmed", tint: MarviColor.emerald, systemImage: "checkmark")
-                            }
-                        }
-
-                        Text(offer.title)
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(MarviColor.ink)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Label("\(offer.venue) - \(offer.area)", systemImage: "mappin.and.ellipse")
-                            .font(.subheadline)
-                            .foregroundStyle(MarviColor.muted)
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(isSaved ? MarviColor.gold : MarviColor.muted)
-                        .frame(width: 36, height: 36)
-                        .background(MarviColor.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
-
-                HStack(spacing: 10) {
-                    InfoBadge(icon: "calendar", text: offer.dateLabel)
-                    InfoBadge(icon: "clock", text: offer.timeLabel)
-                    InfoBadge(icon: "person.2", text: "\(offer.remaining) left")
-                }
-
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack {
-                        Text(offer.valueLabel)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(MarviColor.ink)
-
-                        Spacer()
-
-                        Text("\(Int(fillRatio * 100))% filled")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(MarviColor.muted)
-                    }
-
-                    ProgressBar(value: fillRatio, tint: offer.category.tint)
-                }
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture(perform: open)
-    }
-
-    private var fillRatio: Double {
-        Double(offer.capacity - offer.remaining) / Double(offer.capacity)
     }
 }

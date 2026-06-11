@@ -76,9 +76,35 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
     }
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-        continuation?.resume(throwing: error)
+        let mapped = Self.friendlyMessage(for: error)
+        if let mapped {
+            lastError = mapped
+            continuation?.resume(throwing: MarviAPIError.server(message: mapped))
+        } else {
+            // User dismissed the Apple sheet — not an app error.
+            continuation?.resume(throwing: MarviAPIError.cancelled)
+        }
         continuation = nil
-        lastError = error.localizedDescription
+    }
+
+    static func friendlyMessage(for error: Error) -> String? {
+        let nsError = error as NSError
+        guard nsError.domain == ASAuthorizationError.errorDomain else {
+            return error.localizedDescription
+        }
+
+        switch ASAuthorizationError.Code(rawValue: nsError.code) {
+        case .canceled:
+            return nil
+        case .unknown:
+            return "Sign in with Apple is not available on this device build. Use email sign-in instead."
+        case .invalidResponse, .notHandled, .failed:
+            return "Apple sign-in failed. Use email sign-in or try again later."
+        case .notInteractive:
+            return "Apple sign-in could not start. Use email sign-in."
+        @unknown default:
+            return "Apple sign-in is unavailable. Use email sign-in."
+        }
     }
 }
 

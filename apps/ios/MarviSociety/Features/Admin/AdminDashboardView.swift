@@ -25,16 +25,34 @@ struct AdminDashboardView: View {
 
                         SectionTitle(title: "Review queue", subtitle: "Approve or reject items before they go live.")
 
-                        ForEach(appState.adminTasks) { task in
-                            AdminTaskCard(task: task) {
-                                appState.approveTask(task)
-                            } reject: {
-                                appState.rejectTask(task)
+                        if appState.adminTasks.isEmpty {
+                            MarviCard {
+                                EmptyStateView(
+                                    title: appState.isSyncing ? "Loading queue…" : "Queue is empty",
+                                    subtitle: "No open review tasks. New applications and proof submissions appear here.",
+                                    icon: "tray",
+                                    actionTitle: "Refresh",
+                                    action: { Task { await appState.refreshFromServer() } }
+                                )
+                            }
+                        } else {
+                            ForEach(appState.openAdminTasks) { task in
+                                AdminTaskCard(task: task) {
+                                    appState.approveTask(task)
+                                } reject: {
+                                    appState.rejectTask(task)
+                                } strike: {
+                                    appState.issueStrikeForProofTask(
+                                        task,
+                                        reason: "Proof not delivered per campaign terms"
+                                    )
+                                }
                             }
                         }
                     }
                     .padding(16)
                 }
+                .refreshable { await appState.refreshFromServer() }
             }
             .navigationTitle("Admin")
         }
@@ -73,6 +91,7 @@ private struct AdminTaskCard: View {
     let task: AdminTask
     let approve: () -> Void
     let reject: () -> Void
+    let strike: () -> Void
 
     var body: some View {
         MarviCard {
@@ -98,6 +117,11 @@ private struct AdminTaskCard: View {
                         Text(task.subtitle)
                             .font(.subheadline)
                             .foregroundStyle(MarviColor.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(taskActionHint)
+                            .font(.caption)
+                            .foregroundStyle(MarviColor.graphite)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
@@ -133,6 +157,19 @@ private struct AdminTaskCard: View {
                         .background(MarviColor.emerald)
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
+
+                    if task.type == .proofReview, task.subjectID != nil {
+                        Button(action: strike) {
+                            Label("Issue strike", systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(MarviColor.tomato)
+                        .background(MarviColor.tomato.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
                 }
             }
         }
@@ -161,6 +198,19 @@ private struct AdminTaskCard: View {
         case .open: MarviColor.tomato
         case .approved: MarviColor.emerald
         case .rejected: MarviColor.muted
+        }
+    }
+
+    private var taskActionHint: String {
+        switch task.type {
+        case .creatorApplication:
+            "Approve activates creator membership and Explore access."
+        case .venueApplication:
+            "Approve enables venue Studio workspace."
+        case .campaignReview:
+            "Approve publishes this campaign live on Explore."
+        case .proofReview:
+            "Approve marks proof as delivered; reject flags for follow-up."
         }
     }
 }

@@ -17,28 +17,80 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
 
     func signInWithApple(idToken: String, nonce: String, metadata: [String: String]) async throws {
         try await client.signInWithApple(idToken: idToken, nonce: nonce)
-        _ = metadata
+        try await applyOnboardingMetadata(metadata)
     }
 
-    func signInWithEmail(_ email: String, password: String) async throws {
+    func signInWithEmail(_ email: String, password: String, metadata: [String: String]) async throws {
         try await client.signInWithEmail(email, password: password)
+        if !metadata.isEmpty {
+            try await applyOnboardingMetadata(metadata)
+        }
     }
 
     func signOut() async throws {
         try await client.signOut()
     }
 
+    func restoreSession() async -> Bool {
+        await client.restorePersistedSession()
+    }
+
+    func refreshSession() async throws {
+        try await client.refreshSession()
+    }
+
+    func fetchAccountContext() async throws -> AccountContext {
+        do {
+            let rows: [AccountContextRow] = try await client.rpc(
+                function: "fetch_account_context",
+                body: [:]
+            )
+            if let row = rows.first {
+                return row.context
+            }
+        } catch {
+            // Migration may not be applied yet — fall back to direct profile read.
+        }
+
+        return try await fetchAccountContextFromProfiles()
+    }
+
+    func fetchAccountRole() async throws -> UserRole {
+        try await fetchAccountContext().role
+    }
+
+    func fetchMembershipStatus() async throws -> MembershipStatus? {
+        try await fetchAccountContext().membershipStatus
+    }
+
+    private func fetchAccountContextFromProfiles() async throws -> AccountContext {
+        let rows: [ProfileRoleRow] = try await client.select(
+            table: "profiles",
+            query: [
+                URLQueryItem(name: "select", value: "role,status,email"),
+                URLQueryItem(name: "limit", value: "1")
+            ]
+        )
+        let role = rows.first?.role.flatMap(UserRole.fromAPI) ?? .creator
+        let status = MembershipStatus.fromAPI(rows.first?.status)
+        let hasVenue = try await hasVenueProfile()
+        return AccountContext(role: role, membershipStatus: status, hasVenueProfile: hasVenue)
+    }
+
     // MARK: - Read
 
     func fetchOffers(city: String) async throws -> [Offer] {
-        let rows: [OfferRow] = try await client.select(
-            table: "offers",
-            query: [
-                URLQueryItem(name: "select", value: "*,venue_profiles(venue_name,area)"),
-                URLQueryItem(name: "status", value: "eq.live"),
-                URLQueryItem(name: "order", value: "created_at.desc")
-            ]
-        )
+        // `offers_public` view: live offers from approved venues with venue_name + area joined.
+        var query: [URLQueryItem] = [
+            URLQueryItem(name: "order", value: "created_at.desc")
+        ]
+
+        let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !trimmedCity.isEmpty, trimmedCity != "istanbul" {
+            query.append(URLQueryItem(name: "area", value: "ilike.*\(trimmedCity)*"))
+        }
+
+        let rows: [OfferRow] = try await client.select(table: "offers_public", query: query)
         return rows.map { $0.toOffer() }
     }
 
@@ -54,14 +106,49 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func fetchProfile() async throws -> CreatorProfile {
+        if let profile = try await loadCreatorProfileRow() {
+            return profile
+        }
+
+        do {
+            let _: CreatorProfileHealRow = try await client.rpc(
+                function: "ensure_creator_profile",
+                body: [:]
+            )
+        } catch {
+            // Migration may not be applied yet; retry read before failing.
+        }
+
+        if let profile = try await loadCreatorProfileRow() {
+            return profile
+        }
+
+        throw MarviAPIError.server(message: "Creator profile could not be loaded. Please contact support.")
+    }
+
+    private func loadCreatorProfileRow() async throws -> CreatorProfile? {
         let rows: [CreatorProfileRow] = try await client.select(
             table: "creator_profiles",
             query: [URLQueryItem(name: "limit", value: "1")]
         )
-        guard let row = rows.first else {
-            throw MarviAPIError.server(message: "Creator profile not found")
+        return rows.first?.toProfile()
+    }
+
+    func updateProfile(_ profile: CreatorProfile) async throws {
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
         }
-        return row.toProfile()
+
+        try await client.patch(
+            table: "creator_profiles",
+            query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
+            body: [
+                "instagram_handle": profile.handle,
+                "tiktok_handle": profile.tiktokHandle,
+                "city": profile.city.lowercased(),
+                "full_name": profile.name
+            ]
+        )
     }
 
     func fetchNotifications() async throws -> [InboxMessage] {
@@ -88,6 +175,88 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         return rows.map { $0.toTask() }
     }
 
+    func fetchCampaigns() async throws -> [Campaign] {
+        guard let venue = try await fetchVenueSummary() else { return [] }
+
+        let rows: [CampaignOfferRow] = try await client.select(
+            table: "offers",
+            query: [
+                URLQueryItem(name: "select", value: "*,venue_profiles(venue_name,area)"),
+                URLQueryItem(name: "venue_id", value: "eq.\(venue.id.uuidString)"),
+                URLQueryItem(name: "order", value: "created_at.desc")
+            ]
+        )
+        return rows.map { $0.toCampaign() }
+    }
+
+    func createCampaign(_ input: CreateCampaignInput) async throws -> Campaign {
+        guard let venue = try await fetchVenueSummary() else {
+            throw MarviAPIError.server(message: "No venue profile linked to this account.")
+        }
+
+        var offerBody: [String: Any] = [
+            "venue_id": venue.id.uuidString,
+            "title": input.title,
+            "category": input.category.apiValue,
+            "model": input.collaborationModel.apiValue,
+            "date_label": input.dateLabel,
+            "time_label": "Flexible",
+            "value_label": input.valueLabel,
+            "capacity": input.slots,
+            "remaining_slots": input.slots,
+            "description": "\(input.title) — submitted via Marvi Society iOS.",
+            "deliverables": input.deliverables,
+            "requirements": ["Approved creator membership"],
+            "host_note": "Submitted for admin review.",
+            "status": "review"
+        ]
+        if let lat = venue.latitude { offerBody["lat"] = lat }
+        if let lng = venue.longitude { offerBody["lng"] = lng }
+
+        let offer: OfferIDTitleRow = try await client.insertReturning(
+            table: "offers",
+            body: offerBody
+        )
+
+        try await client.insert(
+            table: "admin_tasks",
+            body: [
+                "type": "campaign_review",
+                "subject_id": offer.id.uuidString,
+                "title": offer.title,
+                "subtitle": "\(venue.venueName) requested \(input.slots) creator slots.",
+                "priority": "High",
+                "status": "open"
+            ]
+        )
+
+        return Campaign(
+            id: offer.id,
+            title: input.title,
+            venueName: venue.venueName,
+            area: venue.area,
+            category: input.category,
+            dateLabel: input.dateLabel,
+            valueLabel: input.valueLabel,
+            slots: input.slots,
+            matchedCreators: 0,
+            status: .review,
+            deliverables: input.deliverables
+        )
+    }
+
+    func fetchVenueSummary() async throws -> VenueSummary? {
+        let rows: [VenueProfileRow] = try await client.select(
+            table: "venue_profiles",
+            query: [URLQueryItem(name: "limit", value: "1")]
+        )
+        return rows.first?.toSummary()
+    }
+
+    func hasVenueProfile() async throws -> Bool {
+        try await fetchVenueSummary() != nil
+    }
+
     // MARK: - Write
 
     func acceptOffer(_ offerID: UUID) async throws -> Booking {
@@ -95,11 +264,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             function: "accept_offer",
             body: ["p_offer_id": offerID.uuidString]
         )
-        let offers = try await fetchOffers(city: "istanbul")
-        guard let offer = offers.first(where: { $0.id == offerID }) else {
-            throw MarviAPIError.server(message: "Offer not found after accept")
+        let bookings = try await fetchBookings()
+        guard let booking = bookings.first(where: { $0.id == row.id }) else {
+            throw MarviAPIError.server(message: "Booking not found after accept")
         }
-        return row.toBooking(offer: offer)
+        return booking
     }
 
     func cancelOffer(_ offerID: UUID) async throws {
@@ -157,23 +326,77 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func approveTask(_ taskID: UUID) async throws {
-        try await client.patch(
-            table: "admin_tasks",
-            id: taskID,
+        try await client.rpcVoid(
+            function: "resolve_admin_task",
             body: [
-                "status": "approved",
-                "resolved_at": ISO8601DateFormatter().string(from: Date())
+                "p_task_id": taskID.uuidString,
+                "p_action": "approve"
             ]
         )
     }
 
     func rejectTask(_ taskID: UUID) async throws {
-        try await client.patch(
-            table: "admin_tasks",
-            id: taskID,
+        try await client.rpcVoid(
+            function: "resolve_admin_task",
             body: [
-                "status": "rejected",
-                "resolved_at": ISO8601DateFormatter().string(from: Date())
+                "p_task_id": taskID.uuidString,
+                "p_action": "reject"
+            ]
+        )
+    }
+
+    func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate] {
+        var body: [String: Any] = [:]
+        if let offerID {
+            body["p_offer_id"] = offerID.uuidString
+        }
+        let rows: [SwipeCandidateRow] = try await client.rpc(
+            function: "fetch_swipe_candidates",
+            body: body
+        )
+        return rows.map(\.candidate)
+    }
+
+    func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws {
+        var body: [String: Any] = ["p_creator_id": creatorID.uuidString]
+        if let offerID {
+            body["p_offer_id"] = offerID.uuidString
+        }
+        try await client.rpcVoid(function: "shortlist_creator", body: body)
+    }
+
+    func fetchVenueReviewQueue() async throws -> [VenueReviewItem] {
+        let rows: [VenueReviewRow] = try await client.rpc(
+            function: "fetch_venue_review_queue",
+            body: [:]
+        )
+        return rows.map(\.item)
+    }
+
+    func submitVenueReview(
+        bookingID: UUID,
+        punctuality: Int,
+        presentation: Int,
+        comment: String
+    ) async throws {
+        try await client.rpcVoid(
+            function: "submit_venue_review",
+            body: [
+                "p_booking_id": bookingID.uuidString,
+                "p_punctuality": punctuality,
+                "p_presentation": presentation,
+                "p_comment": comment
+            ]
+        )
+    }
+
+    func issueStrikeForBooking(bookingID: UUID, reason: String) async throws {
+        try await client.rpcVoid(
+            function: "issue_strike_for_booking",
+            body: [
+                "p_booking_id": bookingID.uuidString,
+                "p_reason": reason,
+                "p_severity": "medium"
             ]
         )
     }
@@ -222,6 +445,54 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         }
         try await client.insert(table: "strikes", body: body)
     }
+
+    // MARK: - Private
+
+    private func applyOnboardingMetadata(_ metadata: [String: String]) async throws {
+        guard let userID = await client.currentUserID() else { return }
+
+        var body: [String: Any] = [:]
+        if let handle = metadata["instagram_handle"] {
+            body["instagram_handle"] = handle
+        }
+        if let city = metadata["city"] {
+            body["city"] = city.lowercased()
+        }
+        if let name = metadata["full_name"], !name.isEmpty {
+            body["full_name"] = name
+        }
+        guard !body.isEmpty else { return }
+
+        try await client.patch(
+            table: "creator_profiles",
+            query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
+            body: body
+        )
+    }
+}
+
+private struct ProfileRoleRow: Decodable {
+    let role: String?
+    let status: String?
+    let email: String?
+}
+
+private struct AccountContextRow: Decodable {
+    let role: String
+    let status: String?
+    let has_venue_profile: Bool?
+
+    var context: AccountContext {
+        AccountContext(
+            role: UserRole.fromAPI(role) ?? .creator,
+            membershipStatus: MembershipStatus.fromAPI(status),
+            hasVenueProfile: has_venue_profile ?? false
+        )
+    }
+}
+
+private struct CreatorProfileHealRow: Decodable {
+    let user_id: UUID
 }
 
 private struct ReferralRow: Decodable {
@@ -353,6 +624,62 @@ private struct BookingJoinRow: Decodable {
             checkInCode: check_in_code,
             guestName: guest_name ?? "",
             proofLinks: proof_links ?? []
+        )
+    }
+}
+
+private struct SwipeCandidateRow: Decodable {
+    let creator_id: UUID
+    let full_name: String
+    let instagram_handle: String
+    let audience_count: Int
+    let score: Double
+    let proof_rate: Double
+    let niches: [String]?
+
+    var candidate: InfluencerCandidate {
+        let niche = niches?.first ?? "Creator"
+        let punctuality = min(99, max(60, Int(proof_rate)))
+        let presentation = min(99, max(60, Int(score)))
+        let followers: String
+        if audience_count >= 1000 {
+            followers = String(format: "%.1fK", Double(audience_count) / 1000)
+        } else {
+            followers = "\(audience_count)"
+        }
+        return InfluencerCandidate(
+            id: creator_id,
+            name: full_name.isEmpty ? instagram_handle : full_name,
+            niche: niche,
+            score: Int(score),
+            punctuality: punctuality,
+            presentation: presentation,
+            followers: followers
+        )
+    }
+}
+
+private struct VenueReviewRow: Decodable {
+    let booking_id: UUID
+    let creator_name: String
+    let instagram_handle: String
+    let offer_title: String
+    let stage: String
+    let proof_status: String?
+    let checked_in_label: String
+    let has_review: Bool?
+
+    var item: VenueReviewItem {
+        VenueReviewItem(
+            id: booking_id,
+            creatorName: creator_name,
+            instagramHandle: instagram_handle,
+            offerTitle: offer_title,
+            stage: BookingStage.fromAPI(stage),
+            proofStatus: ProofStatus.fromAPI(proof_status),
+            stageLabel: stage.replacingOccurrences(of: "_", with: " ").capitalized,
+            checkedInLabel: checked_in_label,
+            hasReview: has_review ?? false
         )
     }
 }

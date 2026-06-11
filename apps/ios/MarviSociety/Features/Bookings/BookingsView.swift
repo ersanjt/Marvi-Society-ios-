@@ -1,178 +1,420 @@
 import PhotosUI
 import SwiftUI
 
+private enum EventBucket: String, CaseIterable {
+    case requests = "Requests"
+    case toConfirm = "To confirm"
+    case toReview = "To review"
+    case toVisit = "To visit"
+}
+
 struct BookingsView: View {
     @EnvironmentObject private var appState: AppState
     @State private var proofBooking: Booking?
+    @State private var checkInBooking: Booking?
+    @State private var selectedOffer: Offer?
+    @State private var isShowingInbox = false
+    @State private var isInterestMode = false
+    @State private var selectedBucketID: UUID?
+    @State private var selectedCategory: OfferCategory?
+
+    private var statusBadges: [StatusBadge] {
+        [
+            StatusBadge(
+                title: EventBucket.requests.rawValue,
+                count: appState.pendingInviteBookings.count + appState.interestOffers.count,
+                tint: MarviColor.rose
+            ),
+            StatusBadge(
+                title: EventBucket.toConfirm.rawValue,
+                count: appState.bookings.filter { $0.stage == .confirmed }.count,
+                tint: MarviColor.aubergine
+            ),
+            StatusBadge(
+                title: EventBucket.toReview.rawValue,
+                count: appState.bookings.filter { $0.stage == .proofDue || $0.proofStatus == .pending }.count,
+                tint: MarviColor.gold
+            ),
+            StatusBadge(
+                title: EventBucket.toVisit.rawValue,
+                count: appState.bookings.filter { $0.stage == .checkedIn }.count,
+                tint: MarviColor.blue
+            )
+        ]
+    }
+
+    private var activeBucket: EventBucket? {
+        guard let id = selectedBucketID,
+              let badge = statusBadges.first(where: { $0.id == id }) else { return nil }
+        return EventBucket(rawValue: badge.title)
+    }
+
+    private var displayedBookings: [Booking] {
+        if isInterestMode { return [] }
+
+        let base: [Booking]
+        switch activeBucket {
+        case .requests, .none:
+            base = appState.pendingInviteBookings
+        case .toConfirm:
+            base = appState.bookings.filter { $0.stage == .confirmed }
+        case .toReview:
+            base = appState.bookings.filter { $0.stage == .proofDue || $0.proofStatus == .pending }
+        case .toVisit:
+            base = appState.bookings.filter { $0.stage == .checkedIn }
+        }
+
+        guard let selectedCategory else { return base }
+        return base.filter { $0.offer.category == selectedCategory }
+    }
+
+    private var displayedInterestOffers: [Offer] {
+        guard isInterestMode else { return [] }
+        guard let selectedCategory else { return appState.interestOffers }
+        return appState.interestOffers.filter { $0.category == selectedCategory }
+    }
 
     var body: some View {
         NavigationStack {
             MarviScreen {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        BrandLockup(subtitle: "Creator operations")
+                    VStack(alignment: .leading, spacing: 20) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("My Events")
+                                    .font(.system(size: 34, weight: .bold, design: .serif))
+                                    .foregroundStyle(MarviColor.ink)
 
-                        HStack(spacing: 10) {
-                            MetricTile(value: "\(appState.activeBookings.count)", label: "active", icon: "calendar", tint: MarviColor.emerald)
-                            MetricTile(value: "\(pendingProofCount)", label: "proof queue", icon: "tray.and.arrow.up", tint: MarviColor.gold)
-                            MetricTile(value: appState.profile.proofRate, label: "delivery", icon: "checkmark.seal", tint: MarviColor.blue)
+                                Text("Your events organized")
+                                    .font(.subheadline)
+                                    .foregroundStyle(MarviColor.muted)
+                            }
+
+                            Spacer()
+
+                            Button { isShowingInbox = true } label: {
+                                Image(systemName: "bell")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(MarviColor.ink)
+                                    .frame(width: 40, height: 40)
+                                    .background(MarviColor.panel)
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
                         }
+                        .padding(.top, 4)
 
-                        SectionTitle(
-                            title: "Your invitations",
-                            subtitle: "Check in, track deadlines, and submit campaign proof."
+                        SSSelectableStatusGrid(badges: statusBadges, selectedID: $selectedBucketID)
+
+                        SSToggleTabs(
+                            leftTitle: "Pending Invites",
+                            rightTitle: "Interest Shown",
+                            isRightSelected: $isInterestMode
                         )
 
-                        if appState.activeBookings.isEmpty {
-                            MarviCard {
-                                EmptyStateView(
-                                    title: "No active bookings",
-                                    subtitle: "Accept an invitation from Discover and it will appear here.",
-                                    icon: "calendar.badge.plus"
+                        SSFilterToolbar(
+                            onFilters: { selectedCategory = nil },
+                            onSort: nil,
+                            onLocation: nil,
+                            onDate: nil
+                        )
+
+                        if selectedCategory != nil || activeBucket != nil {
+                            FilterPillRow(
+                                items: OfferCategory.allCases.map(\.rawValue),
+                                selected: Binding(
+                                    get: { selectedCategory?.rawValue },
+                                    set: { newValue in
+                                        selectedCategory = OfferCategory.allCases.first { $0.rawValue == newValue }
+                                    }
                                 )
-                            }
+                            )
                         } else {
-                            ForEach(appState.activeBookings) { booking in
-                                BookingCard(booking: booking) {
-                                    appState.checkIn(booking)
-                                } submitProof: {
-                                    proofBooking = booking
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    SSFilterChip(title: "Category", icon: "tag") {
+                                        selectedCategory = .dining
+                                    }
                                 }
                             }
+                        }
+
+                        if isInterestMode {
+                            interestContent
+                        } else {
+                            bookingsContent
                         }
                     }
                     .padding(16)
                 }
+                .refreshable { await appState.refreshFromServer() }
             }
-            .navigationTitle("Bookings")
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $proofBooking) { booking in
                 ProofSubmissionSheet(booking: booking)
                     .environmentObject(appState)
             }
+            .sheet(item: $checkInBooking) { booking in
+                CheckInSheet(booking: booking)
+                    .environmentObject(appState)
+            }
+            .sheet(isPresented: $isShowingInbox) {
+                NavigationStack {
+                    InboxView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") { isShowingInbox = false }
+                            }
+                        }
+                }
+            }
+            .navigationDestination(item: $selectedOffer) { offer in
+                OfferDetailView(offer: offer)
+            }
+            .onAppear {
+                if selectedBucketID == nil {
+                    selectedBucketID = statusBadges.first?.id
+                }
+            }
         }
     }
 
-    private var pendingProofCount: Int {
-        appState.activeBookings.filter { $0.proofStatus == .notStarted || $0.proofStatus == .pending }.count
+    @ViewBuilder
+    private var interestContent: some View {
+        if displayedInterestOffers.isEmpty {
+            MarviCard {
+                EmptyStateView(
+                    title: "No interest shown",
+                    subtitle: "Save events from Explore to track them here.",
+                    icon: "heart",
+                    actionTitle: "Refresh",
+                    action: { Task { await appState.refreshFromServer() } }
+                )
+            }
+        } else {
+            ForEach(displayedInterestOffers) { offer in
+                InterestOfferCard(offer: offer) {
+                    selectedOffer = offer
+                } accept: {
+                    appState.accept(offer)
+                } decline: {
+                    appState.toggleSaved(offer)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var bookingsContent: some View {
+        if appState.isSyncing && displayedBookings.isEmpty {
+            MarviCard {
+                HStack {
+                    Spacer()
+                    ProgressView().tint(MarviColor.rose)
+                    Spacer()
+                }
+                .padding(.vertical, 32)
+            }
+        } else if displayedBookings.isEmpty {
+            MarviCard {
+                EmptyStateView(
+                    title: emptyTitle,
+                    subtitle: emptySubtitle,
+                    icon: "calendar.badge.plus",
+                    actionTitle: "Refresh",
+                    action: { Task { await appState.refreshFromServer() } }
+                )
+            }
+        } else {
+            ForEach(displayedBookings) { booking in
+                BookingCard(booking: booking) {
+                    selectedOffer = booking.offer
+                } checkIn: {
+                    checkInBooking = booking
+                } submitProof: {
+                    proofBooking = booking
+                } decline: {
+                    appState.decline(booking)
+                } accept: {
+                    if booking.stage == .invited {
+                        appState.accept(booking.offer)
+                    } else {
+                        checkInBooking = booking
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyTitle: String {
+        switch activeBucket {
+        case .requests, .none: "No pending invites"
+        case .toConfirm: "Nothing to confirm"
+        case .toReview: "Nothing to review"
+        case .toVisit: "No visits scheduled"
+        }
+    }
+
+    private var emptySubtitle: String {
+        switch activeBucket {
+        case .requests, .none:
+            "When a venue invites you directly, it appears here."
+        case .toConfirm:
+            "Confirmed visits waiting for your check-in show here."
+        case .toReview:
+            "Submit proof after your visit to move events forward."
+        case .toVisit:
+            "Checked-in collaborations appear here until proof is due."
+        }
+    }
+}
+
+private struct InterestOfferCard: View {
+    let offer: Offer
+    let open: () -> Void
+    let accept: () -> Void
+    let decline: () -> Void
+
+    var body: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Button(action: open) {
+                    HStack(spacing: 12) {
+                        OfferImageView(offer: offer, height: 72, cornerRadius: 12)
+                            .frame(width: 64, height: 72)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(offer.title)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(MarviColor.ink)
+                            Text("\(offer.venue) · \(offer.area)")
+                                .font(.caption)
+                                .foregroundStyle(MarviColor.muted)
+                            Text("\(offer.dateLabel) · \(offer.timeLabel)")
+                                .font(.caption2)
+                                .foregroundStyle(MarviColor.graphite)
+                        }
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.plain)
+
+                SSDeclineAcceptRow(
+                    declineTitle: "Decline",
+                    acceptTitle: "Accept",
+                    onDecline: decline,
+                    onAccept: accept
+                )
+            }
+        }
     }
 }
 
 private struct BookingCard: View {
     let booking: Booking
+    let open: () -> Void
     let checkIn: () -> Void
     let submitProof: () -> Void
+    let decline: () -> Void
+    let accept: () -> Void
 
     var body: some View {
         MarviCard {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        StatusPill(text: booking.stage.rawValue, tint: stageTint, systemImage: "circle.fill")
+                Button(action: open) {
+                    HStack(alignment: .top, spacing: 12) {
+                        OfferImageView(offer: booking.offer, height: 72, cornerRadius: 12)
+                            .frame(width: 64, height: 72)
 
-                        Text(booking.offer.title)
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(MarviColor.ink)
+                        VStack(alignment: .leading, spacing: 6) {
+                            StatusPill(text: booking.stage.rawValue, tint: stageTint, systemImage: "circle.fill")
 
-                        Label("\(booking.offer.venue) - \(booking.offer.area)", systemImage: "mappin.and.ellipse")
-                            .font(.subheadline)
-                            .foregroundStyle(MarviColor.muted)
-                    }
+                            Text(booking.offer.title)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(MarviColor.ink)
 
-                    Spacer(minLength: 12)
-
-                    Image(systemName: booking.offer.category.icon)
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(booking.offer.category.tint)
-                        .frame(width: 46, height: 46)
-                        .background(booking.offer.category.tint.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
-
-                HStack(spacing: 10) {
-                    InfoBadge(icon: "calendar", text: booking.offer.dateLabel)
-                    InfoBadge(icon: "clock", text: booking.offer.timeLabel)
-                    InfoBadge(icon: "tray.and.arrow.up", text: booking.proofDeadline)
-                }
-
-                HStack(spacing: 10) {
-                    StatusPill(text: "Code \(booking.checkInCode)", tint: MarviColor.aubergine, systemImage: "qrcode")
-                    StatusPill(text: booking.proofStatus.rawValue, tint: proofTint, systemImage: "doc.text")
-                }
-
-                Divider()
-
-                BookingTimeline(stage: booking.stage, proofStatus: booking.proofStatus)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Checklist")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(MarviColor.ink)
-
-                    ForEach(booking.checklist, id: \.self) { item in
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "circle")
-                                .font(.caption)
-                                .foregroundStyle(MarviColor.emerald)
-                                .padding(.top, 3)
-
-                            Text(item)
+                            Label("\(booking.offer.venue) · \(booking.offer.area)", systemImage: "mappin.and.ellipse")
                                 .font(.subheadline)
+                                .foregroundStyle(MarviColor.muted)
+
+                            Text("\(booking.offer.dateLabel) · \(booking.offer.timeLabel)")
+                                .font(.caption)
                                 .foregroundStyle(MarviColor.graphite)
                         }
+
+                        Spacer(minLength: 0)
                     }
                 }
+                .buttonStyle(.plain)
 
-                if !booking.proofLinks.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Submitted proof")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(MarviColor.ink)
-
-                        ForEach(booking.proofLinks, id: \.self) { link in
-                            Label(link, systemImage: "link")
-                                .font(.caption)
-                                .foregroundStyle(MarviColor.blue)
-                                .lineLimit(1)
+                if booking.stage == .invited {
+                    SSDeclineAcceptRow(
+                        declineTitle: "Decline",
+                        acceptTitle: "Accept",
+                        onDecline: decline,
+                        onAccept: accept
+                    )
+                } else if booking.stage != .completed && booking.stage != .cancelled {
+                    HStack(spacing: 10) {
+                        Button(action: decline) {
+                            Text("Decline")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
                         }
-                    }
-                }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(MarviColor.ink)
+                        .background(MarviColor.panelElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                HStack(spacing: 10) {
-                    Button {
-                        checkIn()
-                    } label: {
-                        Label("Check in", systemImage: "checkmark.circle")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
+                        Button(action: checkIn) {
+                            Label(primaryActionTitle, systemImage: primaryActionIcon)
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(canPrimaryAction ? .white : MarviColor.muted)
+                        .background(canPrimaryAction ? AnyShapeStyle(MarviGradient.brand) : AnyShapeStyle(MarviColor.panelElevated))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .disabled(!canPrimaryAction)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(canCheckIn ? .white : MarviColor.muted)
-                    .background(canCheckIn ? MarviColor.emerald : MarviColor.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .disabled(!canCheckIn)
 
-                    Button {
-                        submitProof()
-                    } label: {
-                        Label("Proof", systemImage: "tray.and.arrow.up")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
+                    if booking.stage == .checkedIn || booking.stage == .proofDue {
+                        Button(action: submitProof) {
+                            Label("Submit proof", systemImage: "tray.and.arrow.up")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.white)
+                        .background(MarviColor.panelElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.white)
-                    .background(MarviColor.ink)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .disabled(booking.stage == .completed)
-                    .opacity(booking.stage == .completed ? 0.55 : 1)
                 }
             }
         }
     }
 
-    private var canCheckIn: Bool {
-        booking.stage == .confirmed || booking.stage == .invited
+    private var canPrimaryAction: Bool {
+        booking.stage == .confirmed || booking.stage == .checkedIn || booking.stage == .proofDue
+    }
+
+    private var primaryActionTitle: String {
+        switch booking.stage {
+        case .confirmed: "Check in"
+        case .checkedIn, .proofDue: "Add proof"
+        default: "Check in"
+        }
+    }
+
+    private var primaryActionIcon: String {
+        switch booking.stage {
+        case .confirmed: "checkmark.circle"
+        case .checkedIn, .proofDue: "tray.and.arrow.up"
+        default: "checkmark.circle"
+        }
     }
 
     private var stageTint: Color {
@@ -185,16 +427,9 @@ private struct BookingCard: View {
         case .cancelled: MarviColor.muted
         }
     }
-
-    private var proofTint: Color {
-        switch booking.proofStatus {
-        case .notStarted: MarviColor.muted
-        case .pending: MarviColor.gold
-        case .approved: MarviColor.emerald
-        case .flagged: MarviColor.tomato
-        }
-    }
 }
+
+// MARK: - Proof & Check-in sheets (unchanged)
 
 private struct BookingTimeline: View {
     let stage: BookingStage
@@ -209,8 +444,8 @@ private struct BookingTimeline: View {
             TimelineStep(title: "Proof", isDone: proofStatus == .pending || proofStatus == .approved)
         }
         .padding(10)
-        .background(MarviColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(MarviColor.panelElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -220,14 +455,14 @@ private struct TimelineStep: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(isDone ? MarviColor.emerald : MarviColor.muted)
-
+            Circle()
+                .fill(isDone ? MarviColor.emerald : MarviColor.panel)
+                .frame(width: 10, height: 10)
             Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(MarviColor.muted)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(isDone ? MarviColor.ink : MarviColor.muted)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
     }
@@ -238,150 +473,108 @@ private struct TimelineLine: View {
 
     var body: some View {
         Rectangle()
-            .fill(isDone ? MarviColor.emerald : Color.black.opacity(0.08))
-            .frame(width: 22, height: 2)
+            .fill(isDone ? MarviColor.emerald.opacity(0.5) : MarviColor.border)
+            .frame(height: 2)
+            .frame(maxWidth: .infinity)
     }
 }
 
-private struct ProofSubmissionSheet: View {
+struct CheckInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
     let booking: Booking
-
-    @State private var storyLink = "https://instagram.com/stories/example"
-    @State private var postLink = "https://instagram.com/reel/example"
-    @State private var reviewLink = ""
-    @State private var screenshotItem: PhotosPickerItem?
-    @State private var screenshotPath: String?
-    @State private var isUploadingScreenshot = false
+    @State private var code = ""
+    @State private var isSubmitting = false
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+            MarviScreen {
+                VStack(alignment: .leading, spacing: 20) {
                     SectionTitle(
-                        title: "Submit proof",
-                        subtitle: "\(booking.offer.venue) needs evidence for the agreed deliverables."
+                        title: "Check in at venue",
+                        subtitle: "Enter the code shown by staff or use your booking reference."
                     )
 
-                    MarviCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            TextField("Instagram story link", text: $storyLink)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .textFieldStyle(.roundedBorder)
+                    MarviTextField(placeholder: "Check-in code", text: $code, autocapitalization: .characters)
 
-                            TextField("Instagram post or Reel link", text: $postLink)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .textFieldStyle(.roundedBorder)
-
-                            TextField("Google or venue review link", text: $reviewLink)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .textFieldStyle(.roundedBorder)
-
-                            PhotosPicker(selection: $screenshotItem, matching: .images) {
-                                Label(
-                                    screenshotPath == nil ? "Attach screenshot (optional)" : "Screenshot attached",
-                                    systemImage: "photo.on.rectangle"
-                                )
-                                .font(.subheadline.weight(.semibold))
-                            }
-                            .onChange(of: screenshotItem) { _, item in
-                                guard let item else { return }
-                                Task {
-                                    isUploadingScreenshot = true
-                                    defer { isUploadingScreenshot = false }
-                                    guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-                                    screenshotPath = await appState.uploadProofScreenshot(
-                                        for: booking,
-                                        imageData: data,
-                                        fileName: "proof-\(Int(Date().timeIntervalSince1970)).jpg"
-                                    )
-                                }
-                            }
-
-                            if isUploadingScreenshot {
-                                Text("Uploading screenshot…")
-                                    .font(.caption)
-                                    .foregroundStyle(MarviColor.muted)
-                            } else if let screenshotPath {
-                                Text("Stored: \(screenshotPath)")
-                                    .font(.caption2)
-                                    .foregroundStyle(MarviColor.emerald)
-                            }
+                    GradientCTA(title: isSubmitting ? "Checking in…" : "Confirm check-in") {
+                        Task {
+                            isSubmitting = true
+                            let error = await appState.checkIn(booking, code: code)
+                            isSubmitting = false
+                            if error == nil { dismiss() }
                         }
-                    }
-
-                    DetailListCardPreview(items: booking.offer.deliverables)
-
-                    if !canSubmit {
-                        Label("Add at least one valid proof link before sending.", systemImage: "exclamationmark.triangle")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(MarviColor.tomato)
-                    }
-
-                    PrimaryActionButton(
-                        title: "Send proof",
-                        systemImage: "paperplane.fill",
-                        isDisabled: !canSubmit
-                    ) {
-                        let links = proofLinks
-                        appState.submitProof(for: booking, links: links)
-                        dismiss()
                     }
                 }
                 .padding(16)
             }
-            .background(MarviColor.surface.ignoresSafeArea())
-            .navigationTitle("Proof")
+            .navigationTitle("Check in")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                guard !appState.autoSaveProofLinks else { return }
-                storyLink = ""
-                postLink = ""
-                reviewLink = ""
-            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
-                        dismiss()
-                    }
+                    Button("Close") { dismiss() }
                 }
             }
         }
     }
-
-    private var proofLinks: [String] {
-        var links = [storyLink, postLink, reviewLink]
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.hasPrefix("http://") || $0.hasPrefix("https://") }
-        if let screenshotPath {
-            links.append("screenshot:\(screenshotPath)")
-        }
-        return links
-    }
-
-    private var canSubmit: Bool {
-        !proofLinks.isEmpty && !isUploadingScreenshot
-    }
 }
 
-private struct DetailListCardPreview: View {
-    let items: [String]
+struct ProofSubmissionSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+    let booking: Booking
+    @State private var linksText = ""
+    @State private var isSubmitting = false
+    @State private var selectedPhoto: PhotosPickerItem?
 
     var body: some View {
-        MarviCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Required deliverables")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(MarviColor.ink)
+        NavigationStack {
+            MarviScreen {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        SectionTitle(
+                            title: "Submit proof",
+                            subtitle: "Paste Instagram or TikTok links for \(booking.offer.venue)."
+                        )
 
-                ForEach(items, id: \.self) { item in
-                    Label(item, systemImage: "checkmark.circle.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(MarviColor.graphite)
+                        MarviTextField(
+                            placeholder: "https://instagram.com/p/…",
+                            text: $linksText,
+                            autocapitalization: .never
+                        )
+
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            Label("Attach screenshot", systemImage: "photo")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(MarviColor.rose)
+                        .background(MarviColor.rose.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                        GradientCTA(title: isSubmitting ? "Submitting…" : "Send to review") {
+                            Task {
+                                isSubmitting = true
+                                let links = linksText
+                                    .split(whereSeparator: \.isNewline)
+                                    .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                                    .filter { !$0.isEmpty }
+                                let error = await appState.submitProof(for: booking, links: links)
+                                isSubmitting = false
+                                if error == nil { dismiss() }
+                            }
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Proof")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") { dismiss() }
                 }
             }
         }

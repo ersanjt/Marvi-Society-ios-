@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@marvi/shared": "*",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
     "next": "^15.3.3",

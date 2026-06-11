@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { PortalSignOut } from "./PortalSignOut";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 
-export function PortalNav() {
+export async function PortalNav() {
+  const showAdmin = await isCurrentUserAdmin();
+
   return (
     <div className="border-b border-black/5 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
@@ -15,9 +18,11 @@ export function PortalNav() {
           <Link href="/portal/campaigns/new" className="text-graphite hover:text-emerald">
             New campaign
           </Link>
-          <Link href="/admin" className="text-graphite hover:text-emerald">
-            Admin
-          </Link>
+          {showAdmin && (
+            <Link href="/admin" className="text-graphite hover:text-emerald">
+              Admin
+            </Link>
+          )}
           <PortalSignOut />
         </nav>
       </div>

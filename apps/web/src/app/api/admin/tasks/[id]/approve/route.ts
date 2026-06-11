@@ -1,14 +1,34 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth/admin";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const auth = await requireAdmin();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
 
-  if (url && key && !url.includes("YOUR_PROJECT")) {
-    const supabase = createClient(url, key);
-    await supabase.from("admin_tasks").update({ status: "approved", resolved_at: new Date().toISOString() }).eq("id", id);
+  const { id } = await params;
+  const admin = createAdminClient();
+
+  if (admin) {
+    const { error } = await admin.rpc("resolve_admin_task", {
+      p_task_id: id,
+      p_action: "approve",
+    });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  } else {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("resolve_admin_task", {
+      p_task_id: id,
+      p_action: "approve",
+    });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   return NextResponse.redirect(new URL("/admin", process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"));

@@ -28,6 +28,7 @@ export function Footer({ locale }: { locale: Locale }) {
           <ul className="mt-4 space-y-2 text-sm text-white/80">
             <li><Link href="/privacy" className="hover:text-white">{dict.footer.privacy}</Link></li>
             <li><Link href="/terms" className="hover:text-white">{dict.footer.terms}</Link></li>
+            <li><Link href="/community-guidelines" className="hover:text-white">{dict.footer.guidelines}</Link></li>
             <li><Link href="/contact" className="hover:text-white">{dict.footer.contact}</Link></li>
             <li><Link href="/delete-account" className="hover:text-white">{dict.footer.deleteAccount}</Link></li>
           </ul>

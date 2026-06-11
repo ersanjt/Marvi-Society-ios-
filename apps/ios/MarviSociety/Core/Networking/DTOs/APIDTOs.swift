@@ -158,6 +158,7 @@ struct NotificationRow: Decodable {
 
 struct AdminTaskRow: Decodable {
     let id: UUID
+    let subject_id: UUID?
     let type: String
     let title: String
     let subtitle: String?
@@ -168,6 +169,7 @@ struct AdminTaskRow: Decodable {
     func toTask() -> AdminTask {
         AdminTask(
             id: id,
+            subjectID: subject_id,
             type: AdminTaskType.fromAPI(type),
             title: title,
             subtitle: subtitle ?? "",
@@ -196,6 +198,95 @@ extension OfferCategory {
         default: .dining
         }
     }
+
+    var apiValue: String {
+        switch self {
+        case .dining: "dining"
+        case .nightlife: "nightlife"
+        case .wellness: "wellness"
+        case .beauty: "beauty"
+        case .fitness: "fitness"
+        case .retail: "retail"
+        }
+    }
+}
+
+extension CollaborationModel {
+    var apiValue: String {
+        switch self {
+        case .invitation: "invitation"
+        case .event: "event"
+        case .gift: "gift"
+        case .instant: "instant"
+        }
+    }
+}
+
+extension CampaignStatus {
+    static func fromAPI(_ raw: String?) -> CampaignStatus {
+        switch raw?.lowercased() {
+        case "draft": .draft
+        case "live": .live
+        case "completed": .completed
+        default: .review
+        }
+    }
+}
+
+struct VenueProfileRow: Decodable {
+    let id: UUID
+    let venue_name: String
+    let area: String
+    let category: String?
+    let lat: Double?
+    let lng: Double?
+
+    func toSummary() -> VenueSummary {
+        VenueSummary(
+            id: id,
+            venueName: venue_name,
+            area: area,
+            category: OfferCategory.fromAPI(category),
+            latitude: lat,
+            longitude: lng
+        )
+    }
+}
+
+struct CampaignOfferRow: Decodable {
+    let id: UUID
+    let title: String
+    let category: String
+    let date_label: String?
+    let value_label: String?
+    let capacity: Int?
+    let remaining_slots: Int?
+    let deliverables: [String]?
+    let status: String?
+    let venue_profiles: VenueProfileEmbed?
+
+    func toCampaign(matchedCreators: Int = 0) -> Campaign {
+        let capacity = capacity ?? 1
+        let remaining = remaining_slots ?? 0
+        return Campaign(
+            id: id,
+            title: title,
+            venueName: venue_profiles?.venue_name ?? "Venue",
+            area: venue_profiles?.area ?? "Istanbul",
+            category: OfferCategory.fromAPI(category),
+            dateLabel: date_label ?? "TBD",
+            valueLabel: value_label ?? "",
+            slots: capacity,
+            matchedCreators: max(0, capacity - remaining),
+            status: CampaignStatus.fromAPI(status),
+            deliverables: deliverables ?? []
+        )
+    }
+}
+
+struct OfferIDTitleRow: Decodable {
+    let id: UUID
+    let title: String
 }
 
 extension CollaborationModel {

@@ -1,71 +1,143 @@
-# Marvi Society Project Structure
+# Marvi Society — Project Structure
 
-The project is organized to look and behave like a production iOS codebase, not a prototype folder.
+Production monorepo for iOS, web, Android scaffold, and Supabase backend.
 
-## Top-level layout
+## Repository layout
 
 ```text
-apps/ios/MarviSociety/
-  App/
-  Core/
-  Data/
-  Features/
-  Resources/
+marvi-society/
+├── apps/
+│   ├── ios/                 # SwiftUI iOS app (primary product)
+│   ├── web/                 # Next.js — marketing, legal, portal, admin API
+│   └── android/             # Kotlin Compose scaffold (future)
+├── packages/
+│   ├── shared/              # Cross-platform URLs + domain constants
+│   └── api-contract/        # OpenAPI spec
+├── infra/
+│   └── supabase/            # Migrations, seed, SQL fixes, config
+├── docs/                    # Product, architecture, App Store
+├── scripts/                 # Health check, deploy helpers
+└── package.json             # npm workspaces root
 ```
 
-Xcode project: `apps/ios/MarviSociety.xcodeproj`
+## iOS (`apps/ios/`)
 
-## App
+```text
+MarviSociety/
+├── App/
+│   ├── MarviSocietyApp.swift      # @main entry
+│   ├── AppState.swift             # Global state + server sync
+│   ├── ContentView.swift          # Auth / onboarding router
+│   ├── MainAppShell.swift         # Tab bar (Explore, Events, Profile, …)
+│   └── Views/                     # App-level shells (config, reauth)
+├── Core/
+│   ├── DesignSystem/
+│   │   ├── DesignSystem.swift     # Cards, headers, shared UI primitives
+│   │   ├── Theme/                 # Colors, gradients, Color+Hex
+│   │   └── Components/          # OfferImagery, WorkspaceRolePicker
+│   ├── Models/                    # Domain types (Offer, Booking, …)
+│   ├── Networking/
+│   │   ├── MarviAPI.swift         # Protocol
+│   │   ├── APIConfig.swift        # Secrets + factory
+│   │   ├── Supabase/              # SupabaseMarviAPI, client
+│   │   └── DTOs/                  # API row mappers
+│   ├── Persistence/               # UserDefaults + Keychain session
+│   ├── Services/                  # Location, push notifications
+│   └── AppLinks.swift             # Legal URLs (mirror packages/shared)
+├── Features/                      # One folder per screen / flow
+│   ├── Discover/                  # Explore list + map
+│   ├── Bookings/                  # My Events
+│   ├── Profile/
+│   ├── Onboarding/
+│   ├── OfferDetail/
+│   ├── VenueStudio/               # Venue workspace + swipe + review queue
+│   ├── Admin/
+│   └── Inbox/
+└── Resources/                     # Assets, PrivacyInfo, Preview Content
 
-Application entry and composition layer.
+Config/                            # Secrets.xcconfig (gitignored)
+```
 
-- `MarviSocietyApp.swift`: SwiftUI app entry point.
-- `AppState.swift`: shared observable app state while the app is still local-first.
-- `ContentView.swift`: root screen that chooses onboarding or authenticated app shell.
-- `MainAppShell.swift`: role-based tab routing for creator, venue, and admin workspaces.
+**Conventions**
 
-## Core
+| What | Where |
+|------|--------|
+| Reusable UI | `Core/DesignSystem/` |
+| Theme tokens | `Core/DesignSystem/Theme/` |
+| Feature screens | `Features/<FeatureName>/` |
+| API / DTOs | `Core/Networking/` |
+| Domain models | `Core/Models/` |
 
-Shared code that is feature-agnostic.
+**Config:** copy `Config/Secrets.xcconfig.example` → `Config/Secrets.xcconfig` with Supabase URL + anon key.
 
-- `Core/DesignSystem`: shared colors, gradients, reusable cards, buttons, metrics, brand mark, and layout wrappers.
-- `Core/Models`: domain models and enums used across the app.
-- `Core/Persistence`: local persistence abstraction and saved app snapshot.
+## Web (`apps/web/src/`)
 
-## Data
+```text
+app/
+├── layout.tsx                     # Root HTML shell (no marketing chrome)
+├── globals.css
+├── (marketing)/                   # Public site with Header + Footer
+│   ├── layout.tsx
+│   ├── page.tsx                   # /
+│   ├── creators/, brands/, faq/, demo/
+│   ├── privacy/, terms/, community-guidelines/
+│   ├── delete-account/, contact/
+├── portal/                        # Venue partner login + campaigns
+├── admin/                         # Ops console (admin role required)
+└── api/                           # Route handlers (delete-account, admin RPC)
 
-Temporary local data providers.
+components/
+├── marketing/                     # Header, Footer, LegalDocument, …
+└── portal/                        # LoginForm, CampaignForm, …
 
-- `SampleData.swift`: Istanbul sample venues, offers, campaigns, bookings, admin tasks, and notifications.
+lib/
+├── constants.ts                   # SITE metadata (uses @marvi/shared)
+├── legal/content.ts               # EN/TR legal copy
+├── supabase/                      # Browser, server, admin clients
+└── i18n/
+```
 
-When the backend is connected, this folder should become the local mock implementation for previews and tests.
+**Route groups:** `(marketing)` wraps public pages; `/portal` and `/admin` use minimal chrome from root layout.
 
-## Features
+## Shared package (`packages/shared/`)
 
-Each feature owns its screen and private subviews.
+Single source of truth for:
 
-- `Admin`: review queue and operations dashboard.
-- `Bookings`: creator invitations, check-in, proof workflow, and timelines.
-- `Discover`: marketplace feed, filters, saved offers, and featured campaign.
-- `Inbox`: notifications and operational messages.
-- `OfferDetail`: campaign brief and acceptance flow.
-- `Onboarding`: first-run setup and role selection.
-- `Profile`: creator account, role switching, settings, and reset controls.
-- `VenueStudio`: partner campaign management and builder.
+- `MARVI_URLS` — legal + support links (sync with iOS `AppLinks.swift`)
+- `USER_ROLES`, `MEMBERSHIP_STATUSES`, `REFERRAL_CODES`, etc.
 
-## Resources
+Import in web: `import { MARVI_URLS } from "@marvi/shared"`
 
-All app assets and preview assets.
+## Backend (`infra/supabase/`)
 
-- `Assets.xcassets`: app icon, brand mark, accent color, and future media assets.
-- `Preview Content`: Xcode preview-only assets.
+```text
+migrations/           # Ordered SQL (run in filename order)
+scripts/
+  combine-migrations.sh   # → ALL_MIGRATIONS_COMBINED.sql
+  legacy/             # Archived one-off scripts
+fix-user-account.sql  # Production account bootstrap (SQL Editor)
+seed-after-deploy.sql
+config.toml
+```
 
-## Rules for future work
+**Migrations (in order):**
 
-- New reusable UI belongs in `Core/DesignSystem`.
-- New app-wide domain types belong in `Core/Models`.
-- Feature-only helper views should stay private inside the feature file until reused.
-- Backend protocols should go under `Core/Networking` when introduced.
-- Production API implementations should go under `Data/Remote`.
-- Preview/mock implementations should stay under `Data`.
-- Avoid adding new files directly under `MarviSociety/`.
+1. `20260609000001_initial_schema.sql`
+2. `20260609000002_rls_policies.sql`
+3. `20260609000003_rpc_functions.sql`
+4. `20260609000004_demo_leads_storage.sql`
+5. `20260609000005_seed_function.sql`
+6. `20260610000001_production_hardening.sql`
+7. `20260610000002_delete_own_account.sql`
+8. `20260611000001_secret_society_parity.sql`
+
+Regenerate combined file: `npm run db:combine`
+
+## Contributor rules
+
+1. **No demo data in production paths** — Supabase is the only backend for iOS.
+2. **Legal URL changes** → `packages/shared/src/urls.ts` + iOS `AppLinks.swift`.
+3. **Legal copy** → `apps/web/src/lib/legal/content.ts`.
+4. **Schema changes** → new timestamped file in `infra/supabase/migrations/`, then `npm run db:combine`.
+5. **App Store copy** → `docs/app-store/LISTING.md`.
+6. **New iOS screen** → `Features/<Name>/` + register in `MarviSociety.xcodeproj`.
