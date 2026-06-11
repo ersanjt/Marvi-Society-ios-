@@ -196,6 +196,7 @@ struct Offer: Codable, Identifiable, Hashable {
     let collaborationModel: CollaborationModel
     let latitude: Double?
     let longitude: Double?
+    let createdAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -215,7 +216,8 @@ struct Offer: Codable, Identifiable, Hashable {
         hostNote: String,
         collaborationModel: CollaborationModel = .invitation,
         latitude: Double? = nil,
-        longitude: Double? = nil
+        longitude: Double? = nil,
+        createdAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -235,7 +237,10 @@ struct Offer: Codable, Identifiable, Hashable {
         self.collaborationModel = collaborationModel
         self.latitude = latitude
         self.longitude = longitude
+        self.createdAt = createdAt
     }
+
+    var sortDate: Date { createdAt ?? .distantPast }
 
     var coordinate: (lat: Double, lng: Double)? {
         guard let latitude, let longitude else { return nil }

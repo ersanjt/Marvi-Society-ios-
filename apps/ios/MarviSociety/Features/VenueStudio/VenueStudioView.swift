@@ -303,6 +303,9 @@ struct InfluencerSwipeView: View {
             if direction == .right, let current {
                 Task { await appState.shortlistCreator(current, offerID: liveOfferID) }
             }
+            if direction == .left, let current {
+                Task { await appState.passCreator(current, offerID: liveOfferID) }
+            }
             if !candidates.isEmpty { candidates.removeFirst() }
             dragOffset = .zero
         }

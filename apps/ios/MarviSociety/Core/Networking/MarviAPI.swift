@@ -7,6 +7,7 @@ protocol MarviAPI: Sendable {
 
     func signInWithApple(idToken: String, nonce: String, metadata: [String: String]) async throws
     func signInWithEmail(_ email: String, password: String, metadata: [String: String]) async throws
+    func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async throws
     func signOut() async throws
     func restoreSession() async -> Bool
     func refreshSession() async throws
@@ -35,6 +36,8 @@ protocol MarviAPI: Sendable {
     func rejectTask(_ taskID: UUID) async throws
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate]
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws
+    func passCreator(_ creatorID: UUID, offerID: UUID?) async throws
+    func redeemReferralCode(_ code: String) async throws
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem]
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws
@@ -89,6 +92,14 @@ extension MarviAPI {
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate] { [] }
 
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws {}
+
+    func passCreator(_ creatorID: UUID, offerID: UUID?) async throws {}
+
+    func redeemReferralCode(_ code: String) async throws {}
+
+    func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async throws {
+        throw MarviAPIError.server(message: "Sign up requires Supabase mode")
+    }
 
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem] { [] }
 

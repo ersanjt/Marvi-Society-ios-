@@ -485,6 +485,7 @@ struct CheckInSheet: View {
     let booking: Booking
     @State private var code = ""
     @State private var isSubmitting = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -497,12 +498,23 @@ struct CheckInSheet: View {
 
                     MarviTextField(placeholder: "Check-in code", text: $code, autocapitalization: .characters)
 
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.tomato)
+                    }
+
                     GradientCTA(title: isSubmitting ? "Checking in…" : "Confirm check-in") {
                         Task {
                             isSubmitting = true
+                            errorMessage = nil
                             let error = await appState.checkIn(booking, code: code)
                             isSubmitting = false
-                            if error == nil { dismiss() }
+                            if let error {
+                                errorMessage = error
+                            } else {
+                                dismiss()
+                            }
                         }
                     }
                 }
@@ -526,6 +538,7 @@ struct ProofSubmissionSheet: View {
     @State private var linksText = ""
     @State private var isSubmitting = false
     @State private var selectedPhoto: PhotosPickerItem?
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -554,16 +567,38 @@ struct ProofSubmissionSheet: View {
                         .background(MarviColor.rose.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.tomato)
+                        }
+
                         GradientCTA(title: isSubmitting ? "Submitting…" : "Send to review") {
                             Task {
                                 isSubmitting = true
+                                errorMessage = nil
                                 let links = linksText
                                     .split(whereSeparator: \.isNewline)
                                     .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
                                     .filter { !$0.isEmpty }
-                                let error = await appState.submitProof(for: booking, links: links)
+
+                                var imageData: Data?
+                                if let selectedPhoto {
+                                    imageData = try? await selectedPhoto.loadTransferable(type: Data.self)
+                                }
+
+                                let error = await appState.submitProof(
+                                    for: booking,
+                                    links: links,
+                                    imageData: imageData,
+                                    fileName: "proof-\(booking.id.uuidString.prefix(8)).jpg"
+                                )
                                 isSubmitting = false
-                                if error == nil { dismiss() }
+                                if let error {
+                                    errorMessage = error
+                                } else {
+                                    dismiss()
+                                }
                             }
                         }
                     }

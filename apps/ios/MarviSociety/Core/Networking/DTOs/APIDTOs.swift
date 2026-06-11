@@ -30,6 +30,7 @@ struct OfferRow: Decodable {
     let status: String?
     let lat: Double?
     let lng: Double?
+    let created_at: String?
 
     func toOffer() -> Offer {
         Offer(
@@ -50,7 +51,8 @@ struct OfferRow: Decodable {
             hostNote: host_note ?? "",
             collaborationModel: CollaborationModel.fromAPI(model),
             latitude: lat,
-            longitude: lng
+            longitude: lng,
+            createdAt: APIDTOs.parseISO8601(created_at)
         )
     }
 }
@@ -354,6 +356,15 @@ extension AdminTaskStatus {
         case "rejected": .rejected
         default: .open
         }
+    }
+}
+
+enum APIDTOs {
+    static func parseISO8601(_ iso: String?) -> Date? {
+        guard let iso else { return nil }
+        let full = ISO8601DateFormatter()
+        full.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return full.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
     }
 }
 

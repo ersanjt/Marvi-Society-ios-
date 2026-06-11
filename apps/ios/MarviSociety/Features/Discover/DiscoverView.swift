@@ -97,7 +97,7 @@ struct DiscoverView: View {
     private func sortComparator(_ lhs: Offer, _ rhs: Offer) -> Bool {
         switch sortMode {
         case .newest:
-            return lhs.title < rhs.title
+            return lhs.sortDate > rhs.sortDate
         case .slots:
             return lhs.remaining < rhs.remaining
         case .match:
@@ -155,7 +155,6 @@ struct DiscoverView: View {
                         HomeHeader(
                             greeting: firstName,
                             subtitle: "\(cityLabel) · Private access",
-                            onSearch: {},
                             onNotifications: { isShowingInbox = true }
                         )
                         .padding(.top, 4)
@@ -174,6 +173,17 @@ struct DiscoverView: View {
                             selectedWhere: $selectedWhere,
                             selectedEventType: $selectedEventType
                         )
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(OfferCategory.allCases, id: \.self) { category in
+                                    SSFilterChip(title: category.rawValue, icon: "tag") {
+                                        selectedCategory = selectedCategory == category ? nil : category
+                                    }
+                                    .opacity(selectedCategory == nil || selectedCategory == category ? 1 : 0.45)
+                                }
+                            }
+                        }
 
                         SSFilterToolbar(
                             onFilters: {

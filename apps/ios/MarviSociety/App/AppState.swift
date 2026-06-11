@@ -307,6 +307,24 @@ final class AppState: ObservableObject {
         }
     }
 
+    func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async {
+        guard isRemoteMode else { return }
+
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            try await api.signUpWithEmail(email, password: password, metadata: metadata)
+            isAuthenticated = true
+            needsReauthentication = false
+            await refreshFromServer()
+            await syncAllowedRoles()
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
     func signInWithApple(using service: AppleSignInService, metadata: [String: String]) async {
         guard isRemoteMode else { return }
 
@@ -424,6 +442,15 @@ final class AppState: ObservableObject {
         }
     }
 
+    func passCreator(_ candidate: InfluencerCandidate, offerID: UUID? = nil) async {
+        guard isAuthenticated else { return }
+        do {
+            try await api.passCreator(candidate.id, offerID: offerID)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
     func submitVenueReview(
         bookingID: UUID,
         punctuality: Int,
@@ -502,6 +529,18 @@ final class AppState: ObservableObject {
         }
     }
 
+    func redeemReferralCode(_ code: String) async -> String? {
+        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard !normalized.isEmpty else { return "Enter a valid invite code." }
+        guard isAuthenticated else { return "Sign in before redeeming your invite." }
+        do {
+            try await api.redeemReferralCode(normalized)
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
     func uploadProofScreenshot(for booking: Booking, imageData: Data, fileName: String) async -> String? {
         do {
             return try await api.uploadProofImage(
@@ -515,10 +554,19 @@ final class AppState: ObservableObject {
         }
     }
 
-    func submitProof(for booking: Booking, links: [String]) async -> String? {
+    func submitProof(for booking: Booking, links: [String], imageData: Data? = nil, fileName: String = "proof.jpg") async -> String? {
         guard isAuthenticated else { return "Please sign in to submit proof." }
+        var proofLinks = links
+        if let imageData, !imageData.isEmpty {
+            if let url = await uploadProofScreenshot(for: booking, imageData: imageData, fileName: fileName) {
+                proofLinks.append(url)
+            } else if links.isEmpty {
+                return lastSyncError ?? "Could not upload screenshot."
+            }
+        }
+        guard !proofLinks.isEmpty else { return "Add at least one proof link or screenshot." }
         do {
-            let updated = try await api.submitProof(bookingID: booking.id, links: links)
+            let updated = try await api.submitProof(bookingID: booking.id, links: proofLinks)
             updateBooking(updated.id) { $0 = updated }
             await refreshFromServer()
             return nil

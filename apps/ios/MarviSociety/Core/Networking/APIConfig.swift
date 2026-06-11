@@ -84,6 +84,10 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
         throw notConfigured()
     }
 
+    func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async throws {
+        throw notConfigured()
+    }
+
     func signOut() async throws {}
 
     func restoreSession() async -> Bool { false }
@@ -115,6 +119,8 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func rejectTask(_ taskID: UUID) async throws { throw notConfigured() }
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate] { [] }
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws { throw notConfigured() }
+    func passCreator(_ creatorID: UUID, offerID: UUID?) async throws { throw notConfigured() }
+    func redeemReferralCode(_ code: String) async throws { throw notConfigured() }
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem] { [] }
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws {
         throw notConfigured()

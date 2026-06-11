@@ -22,7 +22,7 @@ private enum OnboardingStep: Int, CaseIterable {
     var ctaTitle: String {
         switch self {
         case .welcome: "Get started"
-        case .signIn: "Sign in"
+        case .signIn: "Continue"
         case .invite: "Continue"
         case .profile: "Continue"
         case .agreement: "Join Marvi Society"
@@ -45,6 +45,7 @@ struct OnboardingView: View {
     @State private var password = ""
     @State private var isSigningInWithEmail = false
     @State private var isValidatingReferral = false
+    @State private var isCreatingAccount = false
     @State private var confirmedAge18 = false
     @State private var acceptedTerms = false
     @State private var appleSignInError: String?
@@ -154,8 +155,10 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 22) {
                 OnboardingStepHeader(
                     eyebrow: "Step 1 of 4",
-                    title: "Sign in to continue",
-                    subtitle: "Use your Marvi Society account. Profile details come next."
+                    title: isCreatingAccount ? "Create your account" : "Sign in to continue",
+                    subtitle: isCreatingAccount
+                        ? "Use email and password. Your invite code comes next."
+                        : "Use your Marvi Society account. Profile details come next."
                 )
 
                 Button {
@@ -188,6 +191,16 @@ struct OnboardingView: View {
                     MarviTextField(placeholder: "Email", text: $email, autocapitalization: .never)
                     OnboardingSecureField(placeholder: "Password", text: $password)
                 }
+
+                Button {
+                    withAnimation { isCreatingAccount.toggle() }
+                } label: {
+                    Text(isCreatingAccount ? "Already a member? Sign in" : "New member? Create account")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.rose)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
 
                 Text("Apple Sign-In works on TestFlight builds. For device testing, use email.")
                     .font(.caption2)
@@ -416,6 +429,8 @@ struct OnboardingView: View {
         case .signIn:
             if appState.isAuthenticated {
                 advance(to: .invite)
+            } else if isCreatingAccount {
+                await signUpWithEmailFlow()
             } else {
                 await signInWithEmailFlow()
             }
@@ -456,6 +471,25 @@ struct OnboardingView: View {
         }
     }
 
+    private func signUpWithEmailFlow() async {
+        appleSignInError = nil
+        appState.dismissSyncError()
+
+        isSigningInWithEmail = true
+        defer { isSigningInWithEmail = false }
+
+        await appState.signUpWithEmail(
+            email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password,
+            metadata: [:]
+        )
+
+        if appState.lastSyncError == nil, appState.isAuthenticated {
+            instagramHandle = appState.profile.handle
+            advance(to: .invite)
+        }
+    }
+
     private func signInWithAppleFlow() async {
         appleSignInError = nil
         appState.dismissSyncError()
@@ -480,7 +514,12 @@ struct OnboardingView: View {
 
         let valid = await appState.validateReferralCode(inviteCode)
         guard valid else {
-            referralError = "Invite code not recognized. Try MARVI-IST or MARVI2026."
+            referralError = "Invite code not recognized. Ask your curator for a valid code."
+            return false
+        }
+
+        if let redeemError = await appState.redeemReferralCode(inviteCode) {
+            referralError = redeemError
             return false
         }
         return true

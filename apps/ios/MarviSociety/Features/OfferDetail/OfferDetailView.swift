@@ -11,7 +11,10 @@ struct OfferDetailView: View {
     private var isPending: Bool { appState.isPendingOfferAction(offer) }
     private var isFull: Bool { offer.remaining <= 0 }
     private var isPaused: Bool { appState.profile.status == .paused }
-    private var canAccept: Bool { !isPending && !isFull && !isPaused && appState.isAuthenticated }
+    private var isUnderReview: Bool { appState.profile.status == .underReview }
+    private var canAccept: Bool {
+        !isPending && !isFull && !isPaused && !isUnderReview && appState.isAuthenticated
+    }
 
     var body: some View {
         MarviScreen {
@@ -129,6 +132,7 @@ struct OfferDetailView: View {
     private var primaryActionTitle: String {
         if isPending { return "Please wait…" }
         if isAccepted { return "Cancel invitation" }
+        if isUnderReview { return "Awaiting approval" }
         if isPaused { return "Membership paused" }
         if isFull { return "Fully booked" }
         if offer.collaborationModel == .instant { return "Use now" }

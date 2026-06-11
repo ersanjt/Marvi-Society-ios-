@@ -27,6 +27,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         }
     }
 
+    func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async throws {
+        try await client.signUp(email: email, password: password, metadata: metadata)
+        try await applyOnboardingMetadata(metadata)
+    }
+
     func signOut() async throws {
         try await client.signOut()
     }
@@ -194,44 +199,23 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             throw MarviAPIError.server(message: "No venue profile linked to this account.")
         }
 
-        var offerBody: [String: Any] = [
-            "venue_id": venue.id.uuidString,
-            "title": input.title,
-            "category": input.category.apiValue,
-            "model": input.collaborationModel.apiValue,
-            "date_label": input.dateLabel,
-            "time_label": "Flexible",
-            "value_label": input.valueLabel,
-            "capacity": input.slots,
-            "remaining_slots": input.slots,
-            "description": "\(input.title) — submitted via Marvi Society iOS.",
-            "deliverables": input.deliverables,
-            "requirements": ["Approved creator membership"],
-            "host_note": "Submitted for admin review.",
-            "status": "review"
-        ]
-        if let lat = venue.latitude { offerBody["lat"] = lat }
-        if let lng = venue.longitude { offerBody["lng"] = lng }
+        struct OfferIDRow: Decodable { let id: UUID }
 
-        let offer: OfferIDTitleRow = try await client.insertReturning(
-            table: "offers",
-            body: offerBody
-        )
-
-        try await client.insert(
-            table: "admin_tasks",
+        let row: OfferIDRow = try await client.rpc(
+            function: "submit_campaign_for_review",
             body: [
-                "type": "campaign_review",
-                "subject_id": offer.id.uuidString,
-                "title": offer.title,
-                "subtitle": "\(venue.venueName) requested \(input.slots) creator slots.",
-                "priority": "High",
-                "status": "open"
+                "p_title": input.title,
+                "p_category": input.category.apiValue,
+                "p_model": input.collaborationModel.apiValue,
+                "p_date_label": input.dateLabel,
+                "p_value_label": input.valueLabel,
+                "p_slots": input.slots,
+                "p_deliverables": input.deliverables
             ]
         )
 
         return Campaign(
-            id: offer.id,
+            id: row.id,
             title: input.title,
             venueName: venue.venueName,
             area: venue.area,
@@ -365,6 +349,14 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         try await client.rpcVoid(function: "shortlist_creator", body: body)
     }
 
+    func passCreator(_ creatorID: UUID, offerID: UUID?) async throws {
+        var body: [String: Any] = ["p_creator_id": creatorID.uuidString]
+        if let offerID {
+            body["p_offer_id"] = offerID.uuidString
+        }
+        try await client.rpcVoid(function: "pass_creator", body: body)
+    }
+
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem] {
         let rows: [VenueReviewRow] = try await client.rpc(
             function: "fetch_venue_review_queue",
@@ -411,6 +403,13 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             ]
         )
         return !rows.isEmpty
+    }
+
+    func redeemReferralCode(_ code: String) async throws {
+        try await client.rpcVoid(
+            function: "redeem_referral_code",
+            body: ["p_code": code.uppercased()]
+        )
     }
 
     func fetchStrikes() async throws -> [Strike] {

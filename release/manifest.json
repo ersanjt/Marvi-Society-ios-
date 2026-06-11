@@ -12,11 +12,16 @@
       "version": "0.2.0"
     },
     "database": {
-      "migrationHead": "20260613000001_venue_reviews_strikes",
-      "migrationCount": 10
+      "migrationHead": "20260614000001_production_integrity",
+      "migrationCount": 11
     }
   },
   "syncLog": [
+    {
+      "at": "2026-06-11T20:31:43Z",
+      "status": "ok",
+      "message": "pushed 1242714 to origin/main"
+    },
     {
       "at": "2026-06-11T20:31:38Z",
       "status": "ok",
