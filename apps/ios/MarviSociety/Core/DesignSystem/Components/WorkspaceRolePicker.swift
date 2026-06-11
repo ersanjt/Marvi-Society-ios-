@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkspaceRolePicker: View {
     let roles: [UserRole]
     @Binding var selected: UserRole
+    var onSelect: ((UserRole) -> Void)?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -10,6 +11,7 @@ struct WorkspaceRolePicker: View {
                 ForEach(roles) { role in
                     Button {
                         selected = role
+                        onSelect?(role)
                     } label: {
                         Label(role.rawValue, systemImage: role.icon)
                             .font(.subheadline.weight(.semibold))

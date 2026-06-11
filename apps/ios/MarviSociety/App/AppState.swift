@@ -10,6 +10,7 @@ final class AppState: ObservableObject {
     }
     /// Resets to the first tab when switching creator / venue / admin workspace.
     @Published var workspaceTabIndex = 0
+    @Published var isPresentingAdminConsole = false
     @Published var offers: [Offer] = []
     @Published var savedOfferIDs: Set<UUID> = []
     @Published var bookings: [Booking] = []
@@ -372,6 +373,22 @@ final class AppState: ObservableObject {
         guard allowedRoles.contains(role) else { return }
         selectedRole = role
         workspaceTabIndex = 0
+    }
+
+    func openAdminConsole() async {
+        if isRemoteMode, isAuthenticated {
+            await syncAllowedRoles()
+        }
+
+        guard allowedRoles.contains(.admin) else {
+            lastSyncError = "Admin access is not enabled. Sign in, run grant-admin SQL in Supabase, then tap Sync from server."
+            return
+        }
+
+        selectedRole = .admin
+        workspaceTabIndex = 0
+        await refreshFromServer()
+        isPresentingAdminConsole = true
     }
 
     // MARK: - Offers

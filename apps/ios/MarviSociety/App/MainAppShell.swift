@@ -79,10 +79,25 @@ struct MainAppShell: View {
                     .tag(2)
             }
             }
+            .id(appState.selectedRole)
             .tint(MarviColor.rose)
             .onChange(of: appState.selectedRole) { _, _ in
                 appState.workspaceTabIndex = 0
             }
+        }
+        .fullScreenCover(isPresented: $appState.isPresentingAdminConsole) {
+            NavigationStack {
+                AdminDashboardView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Close") {
+                                appState.isPresentingAdminConsole = false
+                            }
+                            .fontWeight(.semibold)
+                        }
+                    }
+            }
+            .environmentObject(appState)
         }
     }
 }

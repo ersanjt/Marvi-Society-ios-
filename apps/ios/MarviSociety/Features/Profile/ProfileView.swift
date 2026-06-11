@@ -31,7 +31,7 @@ struct ProfileView: View {
                                     proxy.scrollTo("workspace-section", anchor: .center)
                                 }
                                 if appState.allowedRoles.contains(.admin) {
-                                    appState.switchWorkspace(to: .admin)
+                                    Task { await appState.openAdminConsole() }
                                 }
                             }
                         )
@@ -64,7 +64,13 @@ struct ProfileView: View {
 
                                 WorkspaceRolePicker(
                                     roles: UserRole.sortedWorkspaces(appState.allowedRoles),
-                                    selected: $appState.selectedRole
+                                    selected: $appState.selectedRole,
+                                    onSelect: { role in
+                                        appState.switchWorkspace(to: role)
+                                        if role == .admin {
+                                            Task { await appState.openAdminConsole() }
+                                        }
+                                    }
                                 )
 
                                 Text(appState.selectedRole.description)
@@ -75,7 +81,7 @@ struct ProfileView: View {
                         }
                         .id("workspace-section")
 
-                        if appState.allowedRoles.contains(.admin) {
+                        if appState.accountRole == .admin || appState.allowedRoles.contains(.admin) {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 14) {
                                     SectionTitle(
@@ -97,7 +103,7 @@ struct ProfileView: View {
                                     }
 
                                     Button {
-                                        appState.switchWorkspace(to: .admin)
+                                        Task { await appState.openAdminConsole() }
                                     } label: {
                                         Label("Open admin console", systemImage: "checkmark.shield.fill")
                                             .font(.subheadline.weight(.bold))
