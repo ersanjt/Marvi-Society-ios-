@@ -614,14 +614,14 @@ private struct CampaignBuilderSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
 
-    @State private var title = "Creator dinner preview"
-    @State private var venueName = "Mira Bosphorus"
-    @State private var area = "Bebek"
+    @State private var title = ""
+    @State private var venueName = ""
+    @State private var area = ""
     @State private var category: OfferCategory = .dining
     @State private var collaborationModel: CollaborationModel = .invitation
-    @State private var dateLabel = "Fri, Jun 26"
-    @State private var valueLabel = "Dinner for 2"
-    @State private var deliverablesText = "Instagram stories, Short Reel, Review link"
+    @State private var campaignDate = Date().addingTimeInterval(86400 * 7)
+    @State private var valueLabel = ""
+    @State private var deliverablesText = ""
     @State private var slots = 10.0
     @State private var isSubmitting = false
     @State private var venueLocked = false
@@ -639,8 +639,15 @@ private struct CampaignBuilderSheet: View {
                                 .disabled(venueLocked)
                             MarviTextField(placeholder: "Area", text: $area)
                                 .disabled(venueLocked)
-                            MarviTextField(placeholder: "Date", text: $dateLabel)
-                            MarviTextField(placeholder: "Value", text: $valueLabel)
+                            DatePicker(
+                                "Event date",
+                                selection: $campaignDate,
+                                in: Date()...,
+                                displayedComponents: .date
+                            )
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(MarviColor.ink)
+                            MarviTextField(placeholder: "Value (e.g. Dinner for 2)", text: $valueLabel)
                             MarviTextField(placeholder: "Deliverables, comma separated", text: $deliverablesText)
 
                             Text("Collaboration model")
@@ -694,8 +701,8 @@ private struct CampaignBuilderSheet: View {
                                 area: area,
                                 category: category,
                                 collaborationModel: collaborationModel,
-                                dateLabel: dateLabel,
-                                valueLabel: valueLabel,
+                                dateLabel: Self.dateFormatter.string(from: campaignDate),
+                                valueLabel: valueLabel.isEmpty ? "Complimentary experience" : valueLabel,
                                 slots: Int(slots),
                                 deliverables: campaignDeliverables
                             )
@@ -737,8 +744,12 @@ private struct CampaignBuilderSheet: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !venueName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !area.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !dateLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !valueLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !campaignDeliverables.isEmpty
     }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE, MMM d"
+        return formatter
+    }()
 }

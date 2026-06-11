@@ -22,6 +22,8 @@ protocol MarviAPI: Sendable {
     func fetchNotifications() async throws -> [InboxMessage]
     func fetchSavedOfferIDs() async throws -> Set<UUID>
     func fetchAdminTasks() async throws -> [AdminTask]
+    func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile?
+    func fetchVenueProfile(id: UUID) async throws -> VenueSummary?
     func fetchCampaigns() async throws -> [Campaign]
     func createCampaign(_ input: CreateCampaignInput) async throws -> Campaign
     func fetchVenueSummary() async throws -> VenueSummary?
@@ -117,4 +119,8 @@ extension MarviAPI {
     func fetchVenueSummary() async throws -> VenueSummary? { nil }
 
     func hasVenueProfile() async throws -> Bool { false }
+
+    func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? { nil }
+
+    func fetchVenueProfile(id: UUID) async throws -> VenueSummary? { nil }
 }

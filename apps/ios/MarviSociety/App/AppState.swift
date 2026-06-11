@@ -23,7 +23,14 @@ final class AppState: ObservableObject {
         didSet { saveSnapshot() }
     }
     @Published var proofRemindersEnabled = true {
-        didSet { saveSnapshot() }
+        didSet {
+            saveSnapshot()
+            if proofRemindersEnabled {
+                syncProofReminders()
+            } else {
+                PushNotificationService.cancelAllProofReminders()
+            }
+        }
     }
     @Published var autoSaveProofLinks = false {
         didSet { saveSnapshot() }
@@ -39,6 +46,7 @@ final class AppState: ObservableObject {
     @Published var accountRole: UserRole = .creator
     @Published var pendingOfferIDs: Set<UUID> = []
     @Published var venueReviewQueue: [VenueReviewItem] = []
+    @Published var processingAdminTaskID: UUID?
 
     let locationService = LocationService()
     var isRemoteMode: Bool { APIConfig.isSupabaseConfigured }
@@ -199,7 +207,21 @@ final class AppState: ObservableObject {
 
         if let loadedInbox = try? await api.fetchNotifications() { inboxMessages = loadedInbox }
         if let loadedSaved = try? await api.fetchSavedOfferIDs() { savedOfferIDs = loadedSaved }
-        if let loadedTasks = try? await api.fetchAdminTasks() { adminTasks = loadedTasks }
+        else { syncErrors.append("saved offers") }
+
+        if allowedRoles.contains(.admin) {
+            do {
+                adminTasks = try await api.fetchAdminTasks()
+            } catch {
+                syncErrors.append("admin queue")
+                if lastSyncError == nil, let message = friendlyErrorMessage(error) {
+                    lastSyncError = message
+                }
+            }
+        } else if let loadedTasks = try? await api.fetchAdminTasks() {
+            adminTasks = loadedTasks
+        }
+
         if let loadedStrikes = try? await api.fetchStrikes() { strikes = loadedStrikes }
         if let loadedCampaigns = try? await api.fetchCampaigns() { campaigns = loadedCampaigns }
         if allowedRoles.contains(.venue), let reviews = try? await api.fetchVenueReviewQueue() {
@@ -497,7 +519,10 @@ final class AppState: ObservableObject {
             lastSyncError = "This task has no linked booking."
             return
         }
+        guard processingAdminTaskID == nil else { return }
+        processingAdminTaskID = task.id
         Task {
+            defer { processingAdminTaskID = nil }
             do {
                 try await api.issueStrikeForBooking(bookingID: bookingID, reason: reason)
                 await refreshFromServer()
@@ -629,7 +654,10 @@ final class AppState: ObservableObject {
     }
 
     func approveTask(_ task: AdminTask) {
+        guard processingAdminTaskID == nil else { return }
+        processingAdminTaskID = task.id
         Task {
+            defer { processingAdminTaskID = nil }
             do {
                 try await api.approveTask(task.id)
                 await refreshFromServer()
@@ -640,13 +668,58 @@ final class AppState: ObservableObject {
     }
 
     func rejectTask(_ task: AdminTask) {
+        guard processingAdminTaskID == nil else { return }
+        processingAdminTaskID = task.id
         Task {
+            defer { processingAdminTaskID = nil }
             do {
                 try await api.rejectTask(task.id)
                 await refreshFromServer()
             } catch {
                 lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             }
+        }
+    }
+
+    func loadAdminSubjectDetail(for task: AdminTask) async -> AdminSubjectDetail? {
+        guard isRemoteMode, isAuthenticated, let subjectID = task.subjectID else { return nil }
+
+        do {
+            switch task.type {
+            case .creatorApplication:
+                guard let profile = try await api.fetchCreatorProfile(userID: subjectID) else { return nil }
+                return AdminSubjectDetail(
+                    name: profile.name,
+                    handle: profile.handle.isEmpty ? nil : profile.handle,
+                    city: profile.city.isEmpty ? nil : profile.city,
+                    area: nil,
+                    category: nil,
+                    niches: profile.niches,
+                    languages: profile.languages,
+                    score: profile.score,
+                    audienceLabel: profile.audienceLabel,
+                    status: profile.status.rawValue
+                )
+            case .venueApplication:
+                guard let venue = try await api.fetchVenueProfile(id: subjectID) else { return nil }
+                return AdminSubjectDetail(
+                    name: venue.venueName,
+                    handle: nil,
+                    city: nil,
+                    area: venue.area,
+                    category: venue.category.rawValue,
+                    niches: [],
+                    languages: [],
+                    score: nil,
+                    audienceLabel: nil,
+                    status: nil
+                )
+            case .campaignReview, .proofReview:
+                return nil
+            }
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
         }
     }
 

@@ -30,9 +30,6 @@ struct ProfileView: View {
                                 withAnimation {
                                     proxy.scrollTo("workspace-section", anchor: .center)
                                 }
-                                if appState.allowedRoles.contains(.admin) {
-                                    Task { await appState.openAdminConsole() }
-                                }
                             }
                         )
 
@@ -153,25 +150,10 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "Niches")
-
-                                FlowLayout(items: appState.profile.niches)
-                            }
-                        }
-
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "Languages")
-
-                                FlowLayout(items: appState.profile.languages)
-                            }
-                        }
-
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 12) {
                                 SectionTitle(title: "Social accounts", subtitle: "Linked profiles for verification and proof tracking.")
 
                                 MarviTextField(placeholder: "Display name", text: $appState.profile.name)
+                                MarviTextField(placeholder: "Bio", text: $appState.profile.bio)
                                 MarviTextField(placeholder: "City", text: $appState.profile.city)
                                 MarviTextField(placeholder: "Instagram handle", text: $appState.profile.handle, autocapitalization: .never)
                                 MarviTextField(placeholder: "TikTok handle", text: $appState.profile.tiktokHandle, autocapitalization: .never)
@@ -250,7 +232,7 @@ struct ProfileView: View {
                                 ChecklistRow(title: "City verified", isDone: !appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: "Niche selected", isDone: !appState.profile.niches.isEmpty)
                                 ChecklistRow(title: "Audience reviewed", isDone: appState.profile.score > 0)
-                                ChecklistRow(title: "Creator references", isDone: appState.profile.completedApplicationSteps >= 5)
+                                ChecklistRow(title: "Creator references", isDone: !appState.profile.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: "Agreement signed", isDone: appState.profile.status == .approved)
                             }
                         }

@@ -3,6 +3,8 @@ import SwiftUI
 struct AdminDashboardView: View {
     @EnvironmentObject private var appState: AppState
     @State private var selectedTask: AdminTask?
+    @State private var pendingAction: AdminTaskAction?
+    @State private var strikeReason = "Proof not delivered per campaign terms"
 
     var body: some View {
         NavigationStack {
@@ -26,11 +28,13 @@ struct AdminDashboardView: View {
 
                         SectionTitle(title: "Review queue", subtitle: "Approve or reject items before they go live.")
 
-                        if appState.adminTasks.isEmpty {
+                        if appState.openAdminTasks.isEmpty {
                             MarviCard {
                                 EmptyStateView(
                                     title: appState.isSyncing ? "Loading queue…" : "Queue is empty",
-                                    subtitle: "No open review tasks. New applications and proof submissions appear here.",
+                                    subtitle: appState.isSyncing
+                                        ? "Fetching the latest review tasks from Supabase."
+                                        : "No open review tasks. New applications and proof submissions appear here.",
                                     icon: "tray",
                                     actionTitle: "Refresh",
                                     action: { Task { await appState.refreshFromServer() } }
@@ -38,15 +42,15 @@ struct AdminDashboardView: View {
                             }
                         } else {
                             ForEach(appState.openAdminTasks) { task in
-                                AdminTaskCard(task: task) {
-                                    appState.approveTask(task)
+                                AdminTaskCard(
+                                    task: task,
+                                    isProcessing: appState.processingAdminTaskID == task.id
+                                ) {
+                                    pendingAction = AdminTaskAction(task: task, kind: .approve)
                                 } reject: {
-                                    appState.rejectTask(task)
+                                    pendingAction = AdminTaskAction(task: task, kind: .reject)
                                 } strike: {
-                                    appState.issueStrikeForProofTask(
-                                        task,
-                                        reason: "Proof not delivered per campaign terms"
-                                    )
+                                    pendingAction = AdminTaskAction(task: task, kind: .strike)
                                 } openDetail: {
                                     selectedTask = task
                                 }
@@ -59,9 +63,110 @@ struct AdminDashboardView: View {
             }
             .navigationTitle("Admin")
             .sheet(item: $selectedTask) { task in
-                AdminTaskDetailSheet(task: task)
-                    .environmentObject(appState)
+                AdminTaskDetailSheet(task: task) { action in
+                    selectedTask = nil
+                    pendingAction = AdminTaskAction(task: task, kind: action)
+                }
+                .environmentObject(appState)
             }
+            .confirmationDialog(
+                pendingAction?.dialogTitle ?? "Confirm",
+                isPresented: Binding(
+                    get: { pendingAction != nil && pendingAction?.kind != .strike },
+                    set: { if !$0 { pendingAction = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let pendingAction {
+                    Button(pendingAction.confirmLabel, role: pendingAction.kind == .reject ? .destructive : nil) {
+                        perform(pendingAction)
+                    }
+                    Button("Cancel", role: .cancel) {
+                        self.pendingAction = nil
+                    }
+                }
+            } message: {
+                if let pendingAction {
+                    Text(pendingAction.message)
+                }
+            }
+            .alert("Issue strike", isPresented: Binding(
+                get: { pendingAction?.kind == .strike },
+                set: { if !$0 { pendingAction = nil } }
+            )) {
+                TextField("Reason", text: $strikeReason)
+                Button("Issue strike", role: .destructive) {
+                    if let pendingAction {
+                        appState.issueStrikeForProofTask(
+                            pendingAction.task,
+                            reason: strikeReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                ? "Proof not delivered per campaign terms"
+                                : strikeReason
+                        )
+                    }
+                    pendingAction = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingAction = nil
+                }
+            } message: {
+                Text("This records a policy strike against the creator linked to this booking.")
+            }
+        }
+    }
+
+    private func perform(_ action: AdminTaskAction) {
+        switch action.kind {
+        case .approve:
+            appState.approveTask(action.task)
+        case .reject:
+            appState.rejectTask(action.task)
+        case .strike:
+            break
+        }
+        pendingAction = nil
+    }
+}
+
+private struct AdminTaskAction {
+    enum Kind {
+        case approve
+        case reject
+        case strike
+    }
+
+    let task: AdminTask
+    let kind: Kind
+
+    var dialogTitle: String {
+        switch kind {
+        case .approve: "Approve task?"
+        case .reject: "Reject task?"
+        case .strike: "Issue strike?"
+        }
+    }
+
+    var confirmLabel: String {
+        switch kind {
+        case .approve: "Approve"
+        case .reject: "Reject"
+        case .strike: "Issue strike"
+        }
+    }
+
+    var message: String {
+        switch kind {
+        case .approve:
+            switch task.type {
+            case .creatorApplication: "This activates creator membership and Explore access."
+            case .venueApplication: "This enables the venue Studio workspace."
+            case .campaignReview: "This publishes the campaign live on Explore."
+            case .proofReview: "This marks proof as delivered."
+            }
+        case .reject:
+            "The applicant or submitter will remain paused until they resubmit."
+        case .strike:
+            "This records a policy strike against the creator."
         }
     }
 }
@@ -96,6 +201,7 @@ private struct AdminMetric: View {
 
 private struct AdminTaskCard: View {
     let task: AdminTask
+    let isProcessing: Bool
     let approve: () -> Void
     let reject: () -> Void
     let strike: () -> Void
@@ -135,6 +241,10 @@ private struct AdminTaskCard: View {
                         }
 
                         Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(MarviColor.muted)
                     }
                 }
                 .buttonStyle(.plain)
@@ -145,41 +255,51 @@ private struct AdminTaskCard: View {
                 }
 
                 if task.status == .open {
-                    HStack(spacing: 10) {
-                        Button(action: reject) {
-                            Label("Reject", systemImage: "xmark.circle")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 11)
+                    if isProcessing {
+                        HStack {
+                            ProgressView().tint(MarviColor.rose)
+                            Text("Updating…")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.muted)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(MarviColor.tomato)
-                        .background(MarviColor.tomato.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        HStack(spacing: 10) {
+                            Button(action: reject) {
+                                Label("Reject", systemImage: "xmark.circle")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 11)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(MarviColor.tomato)
+                            .background(MarviColor.tomato.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                        Button(action: approve) {
-                            Label("Approve", systemImage: "checkmark.circle")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 11)
+                            Button(action: approve) {
+                                Label("Approve", systemImage: "checkmark.circle")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 11)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.white)
+                            .background(MarviColor.emerald)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white)
-                        .background(MarviColor.emerald)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    }
 
-                    if task.type == .proofReview, task.subjectID != nil {
-                        Button(action: strike) {
-                            Label("Issue strike", systemImage: "exclamationmark.triangle.fill")
-                                .font(.caption.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
+                        if task.type == .proofReview, task.subjectID != nil {
+                            Button(action: strike) {
+                                Label("Issue strike", systemImage: "exclamationmark.triangle.fill")
+                                    .font(.caption.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(MarviColor.tomato)
+                            .background(MarviColor.tomato.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(MarviColor.tomato)
-                        .background(MarviColor.tomato.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                 }
             }
@@ -230,6 +350,10 @@ private struct AdminTaskDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
     let task: AdminTask
+    let onAction: (AdminTaskAction.Kind) -> Void
+
+    @State private var subjectDetail: AdminSubjectDetail?
+    @State private var isLoadingSubject = false
 
     var body: some View {
         NavigationStack {
@@ -243,9 +367,51 @@ private struct AdminTaskDetailSheet: View {
                                 detailRow("Type", task.type.rawValue)
                                 detailRow("Priority", task.priority)
                                 detailRow("Status", task.status.rawValue)
-                                detailRow("Date", task.dateLabel)
-                                if let subjectID = task.subjectID {
-                                    detailRow("Subject ID", subjectID.uuidString)
+                                detailRow("Submitted", task.dateLabel)
+                            }
+                        }
+
+                        if isLoadingSubject {
+                            MarviCard {
+                                HStack {
+                                    ProgressView().tint(MarviColor.rose)
+                                    Text("Loading applicant details…")
+                                        .font(.subheadline)
+                                        .foregroundStyle(MarviColor.muted)
+                                }
+                            }
+                        } else if let subjectDetail {
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Applicant profile")
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(MarviColor.ink)
+
+                                    detailRow("Name", subjectDetail.name)
+                                    if let handle = subjectDetail.handle {
+                                        detailRow("Instagram", handle)
+                                    }
+                                    if let city = subjectDetail.city {
+                                        detailRow("City", city)
+                                    }
+                                    if let area = subjectDetail.area {
+                                        detailRow("Area", area)
+                                    }
+                                    if let category = subjectDetail.category {
+                                        detailRow("Category", category.capitalized)
+                                    }
+                                    if let score = subjectDetail.score {
+                                        detailRow("Score", "\(score)")
+                                    }
+                                    if let audience = subjectDetail.audienceLabel {
+                                        detailRow("Audience", audience)
+                                    }
+                                    if !subjectDetail.niches.isEmpty {
+                                        detailRow("Niches", subjectDetail.niches.joined(separator: ", "))
+                                    }
+                                    if !subjectDetail.languages.isEmpty {
+                                        detailRow("Languages", subjectDetail.languages.joined(separator: ", "))
+                                    }
                                 }
                             }
                         }
@@ -269,16 +435,27 @@ private struct AdminTaskDetailSheet: View {
                                     Text("Proof links")
                                         .font(.headline.weight(.bold))
                                         .foregroundStyle(MarviColor.ink)
+                                    detailRow("Venue", booking.offer.venue)
+                                    detailRow("Deadline", booking.proofDeadline)
                                     if booking.proofLinks.isEmpty {
                                         Text("No links attached yet.")
                                             .font(.subheadline)
                                             .foregroundStyle(MarviColor.muted)
                                     } else {
                                         ForEach(booking.proofLinks, id: \.self) { link in
-                                            Text(link)
-                                                .font(.caption)
-                                                .foregroundStyle(MarviColor.rose)
-                                                .textSelection(.enabled)
+                                            if let url = proofURL(from: link) {
+                                                Link(destination: url) {
+                                                    Label(link, systemImage: "link")
+                                                        .font(.caption.weight(.semibold))
+                                                        .foregroundStyle(MarviColor.rose)
+                                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                                }
+                                            } else {
+                                                Text(link)
+                                                    .font(.caption)
+                                                    .foregroundStyle(MarviColor.rose)
+                                                    .textSelection(.enabled)
+                                            }
                                         }
                                     }
                                 }
@@ -309,11 +486,62 @@ private struct AdminTaskDetailSheet: View {
                             }) {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 8) {
+                                    Text("Campaign details")
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(MarviColor.ink)
                                     detailRow("Venue", offer.venue)
                                     detailRow("Area", offer.area)
                                     detailRow("Value", offer.valueLabel)
                                     detailRow("Slots", "\(offer.capacity)")
+                                    if !offer.deliverables.isEmpty {
+                                        detailRow("Deliverables", offer.deliverables.joined(separator: ", "))
+                                    }
                                 }
+                            }
+                        }
+
+                        if task.status == .open, appState.processingAdminTaskID != task.id {
+                            HStack(spacing: 10) {
+                                Button {
+                                    onAction(.reject)
+                                } label: {
+                                    Label("Reject", systemImage: "xmark.circle")
+                                        .font(.subheadline.weight(.bold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(MarviColor.tomato)
+                                .background(MarviColor.tomato.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                                Button {
+                                    onAction(.approve)
+                                } label: {
+                                    Label("Approve", systemImage: "checkmark.circle")
+                                        .font(.subheadline.weight(.bold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.white)
+                                .background(MarviColor.emerald)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+
+                            if task.type == .proofReview, task.subjectID != nil {
+                                Button {
+                                    onAction(.strike)
+                                } label: {
+                                    Label("Issue strike", systemImage: "exclamationmark.triangle.fill")
+                                        .font(.caption.weight(.bold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 11)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(MarviColor.tomato)
+                                .background(MarviColor.tomato.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                             }
                         }
                     }
@@ -326,6 +554,12 @@ private struct AdminTaskDetailSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .task {
+                guard subjectDetail == nil else { return }
+                isLoadingSubject = true
+                subjectDetail = await appState.loadAdminSubjectDetail(for: task)
+                isLoadingSubject = false
             }
         }
     }
@@ -354,5 +588,14 @@ private struct AdminTaskDetailSheet: View {
                 .foregroundStyle(MarviColor.ink)
                 .multilineTextAlignment(.trailing)
         }
+    }
+
+    private func proofURL(from link: String) -> URL? {
+        let trimmed = link.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.hasPrefix("http") {
+            return URL(string: trimmed)
+        }
+        return URL(string: "https://\(trimmed)")
     }
 }

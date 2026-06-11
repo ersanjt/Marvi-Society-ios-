@@ -28,6 +28,15 @@ enum PushNotificationService {
         center.add(request)
     }
 
+    static func cancelAllProofReminders() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            let proofIDs = requests
+                .map(\.identifier)
+                .filter { $0.hasPrefix("proof-") }
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: proofIDs)
+        }
+    }
+
     static func scheduleInstantOfferNearby(venueName: String) {
         let content = UNMutableNotificationContent()
         content.title = "Instant offer nearby"

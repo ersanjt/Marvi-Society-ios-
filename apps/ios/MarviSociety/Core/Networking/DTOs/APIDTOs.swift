@@ -175,7 +175,7 @@ struct AdminTaskRow: Decodable {
             type: AdminTaskType.fromAPI(type),
             title: title,
             subtitle: subtitle ?? "",
-            dateLabel: "Now",
+            dateLabel: APIDTOs.formatRelative(created_at),
             priority: priority ?? "Medium",
             status: AdminTaskStatus.fromAPI(status)
         )
@@ -240,6 +240,7 @@ struct VenueProfileRow: Decodable {
     let venue_name: String
     let area: String
     let category: String?
+    let status: String?
     let lat: Double?
     let lng: Double?
 
@@ -365,6 +366,21 @@ enum APIDTOs {
         let full = ISO8601DateFormatter()
         full.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return full.date(from: iso) ?? ISO8601DateFormatter().date(from: iso)
+    }
+
+    static func formatRelative(_ iso: String?) -> String {
+        guard let iso,
+              let date = parseISO8601(iso) else {
+            return "Now"
+        }
+        let interval = Date().timeIntervalSince(date)
+        if interval < 3600 { return "Now" }
+        if interval < 86400 { return "Today" }
+        if interval < 604_800 { return "This week" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
 }
 

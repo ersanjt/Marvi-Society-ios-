@@ -106,6 +106,8 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchNotifications() async throws -> [InboxMessage] { throw notConfigured() }
     func fetchSavedOfferIDs() async throws -> Set<UUID> { throw notConfigured() }
     func fetchAdminTasks() async throws -> [AdminTask] { throw notConfigured() }
+    func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? { throw notConfigured() }
+    func fetchVenueProfile(id: UUID) async throws -> VenueSummary? { throw notConfigured() }
     func fetchCampaigns() async throws -> [Campaign] { throw notConfigured() }
     func createCampaign(_ input: CreateCampaignInput) async throws -> Campaign { throw notConfigured() }
     func fetchVenueSummary() async throws -> VenueSummary? { throw notConfigured() }

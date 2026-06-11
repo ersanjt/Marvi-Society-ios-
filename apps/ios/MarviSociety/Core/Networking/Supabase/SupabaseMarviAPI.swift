@@ -152,6 +152,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 "tiktok_handle": profile.tiktokHandle,
                 "city": profile.city.lowercased(),
                 "full_name": profile.name,
+                "bio": profile.bio,
                 "niches": profile.niches,
                 "languages": profile.languages
             ]
@@ -180,6 +181,22 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             ]
         )
         return rows.map { $0.toTask() }
+    }
+
+    func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? {
+        let rows: [CreatorProfileRow] = try await client.select(
+            table: "creator_profiles",
+            query: [URLQueryItem(name: "user_id", value: "eq.\(userID.uuidString)")]
+        )
+        return rows.first?.toProfile()
+    }
+
+    func fetchVenueProfile(id: UUID) async throws -> VenueSummary? {
+        let rows: [VenueProfileRow] = try await client.select(
+            table: "venue_profiles",
+            query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString)")]
+        )
+        return rows.first?.toSummary()
     }
 
     func fetchCampaigns() async throws -> [Campaign] {

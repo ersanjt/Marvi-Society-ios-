@@ -450,6 +450,19 @@ struct Campaign: Codable, Identifiable, Hashable {
     }
 }
 
+struct AdminSubjectDetail: Equatable {
+    var name: String
+    var handle: String?
+    var city: String?
+    var area: String?
+    var category: String?
+    var niches: [String]
+    var languages: [String]
+    var score: Int?
+    var audienceLabel: String?
+    var status: String?
+}
+
 struct AdminTask: Codable, Identifiable, Hashable {
     let id: UUID
     var subjectID: UUID?
