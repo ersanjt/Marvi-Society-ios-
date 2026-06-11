@@ -1,5 +1,5 @@
 #!/bin/bash
-# Optional quality gate before push. Skip with: MARVI_SKIP_HOOKS=1 git push
+# Warn if migrations/manifest drift before push. Skip with: MARVI_SKIP_HOOKS=1 git push
 set -euo pipefail
 
 if [[ "${MARVI_SKIP_HOOKS:-0}" == "1" ]]; then
@@ -7,35 +7,12 @@ if [[ "${MARVI_SKIP_HOOKS:-0}" == "1" ]]; then
 fi
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-export MARVI_SKIP_IOS_BUILD=1
-export MARVI_SKIP_WEB_BUILD=1
-export MARVI_SKIP_HEALTH=1
 
-echo "pre-push: combining migrations..."
+echo "pre-push: checking migration manifest..."
 bash "$REPO_ROOT/infra/supabase/scripts/combine-migrations.sh" >/dev/null
 
-if git -C "$REPO_ROOT" diff --quiet release/manifest.json infra/supabase/ALL_MIGRATIONS_COMBINED.sql 2>/dev/null; then
-  :
-else
-  echo "pre-push: updating release manifest (database head)..."
-  bash "$REPO_ROOT/scripts/release/lib.sh" 2>/dev/null || true
-  python3 - "$REPO_ROOT/release/manifest.json" <<'PY' 2>/dev/null || true
-import json, sys, pathlib
-root = pathlib.Path(sys.argv[1]).parents[1]
-migs = sorted((root / "infra/supabase/migrations").glob("*.sql"))
-head = migs[-1].stem if migs else ""
-path = sys.argv[1]
-data = json.load(open(path, encoding="utf-8"))
-data.setdefault("components", {}).setdefault("database", {})
-data["components"]["database"]["migrationHead"] = head
-data["components"]["database"]["migrationCount"] = len(migs)
-json.dump(data, open(path, "w", encoding="utf-8"), indent=2)
-open(path, "a").write("\n")
-PY
-  git -C "$REPO_ROOT" add release/manifest.json infra/supabase/ALL_MIGRATIONS_COMBINED.sql 2>/dev/null || true
-  if ! git -C "$REPO_ROOT" diff --cached --quiet 2>/dev/null; then
-    git -C "$REPO_ROOT" commit -m "chore(ops): auto-update migration manifest on push" --no-verify 2>/dev/null || true
-  fi
+if ! git -C "$REPO_ROOT" diff --quiet -- release/manifest.json infra/supabase/ALL_MIGRATIONS_COMBINED.sql; then
+  echo "pre-push: WARNING — migration files changed. Run: npm run db:combine && git add release/manifest.json infra/supabase/ALL_MIGRATIONS_COMBINED.sql"
 fi
 
 echo "pre-push: OK"
