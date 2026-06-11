@@ -11,6 +11,7 @@
     "health": "bash scripts/check-health.sh",
     "db:combine": "bash infra/supabase/scripts/combine-migrations.sh",
     "db:push": "bash scripts/release/sync-database.sh",
+    "db:bootstrap": "bash scripts/bootstrap-supabase-remote.sh",
     "status": "bash scripts/release/status.sh",
     "verify": "bash scripts/release/verify.sh",
     "sync": "bash scripts/release/full-sync.sh",

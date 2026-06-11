@@ -1,18 +1,23 @@
--- Run in Supabase SQL Editor AFTER migrations and creating your first Auth user.
--- Replace YOUR_AUTH_USER_UUID with the UUID from Authentication → Users.
+-- Run in Supabase SQL Editor AFTER migrations.
+-- Easiest path: use bootstrap-production.sql (email-based, no UUID copy-paste).
 
--- 1) Seed Istanbul demo venues + offers + referral codes
-SELECT seed_istanbul_demo('YOUR_AUTH_USER_UUID');
+-- Or run this after replacing YOUR_EMAIL:
+-- SELECT * FROM infra/supabase/bootstrap-production.sql
 
--- 2) Promote your account to admin (for /admin console)
-UPDATE public.profiles
-SET role = 'admin', status = 'approved'
-WHERE id = 'YOUR_AUTH_USER_UUID';
+DO $$
+DECLARE
+    v_email TEXT := 'ersanjt.tab@gmail.com';
+    v_user_id UUID;
+BEGIN
+    SELECT id INTO v_user_id FROM auth.users WHERE lower(email) = lower(v_email);
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Sign in to the app with % first.', v_email;
+    END IF;
+    PERFORM public.seed_istanbul_demo(v_user_id);
+    UPDATE public.profiles SET role = 'admin', status = 'approved' WHERE id = v_user_id;
+END;
+$$;
 
--- 3) Optional: create a test venue owner (run after creating user in Auth dashboard)
--- UPDATE public.profiles SET role = 'venue', status = 'approved' WHERE email = 'venue@example.com';
-
--- 4) Verify
 SELECT venue_name, area, status FROM public.venue_profiles LIMIT 5;
 SELECT title, status, model FROM public.offers LIMIT 5;
-SELECT code FROM public.referral_codes;
+SELECT code, uses_count FROM public.referral_codes;

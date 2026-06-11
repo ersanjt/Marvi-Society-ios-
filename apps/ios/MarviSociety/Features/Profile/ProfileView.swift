@@ -6,6 +6,8 @@ struct ProfileView: View {
     @State private var isSavingProfile = false
     @State private var isSigningOut = false
     @State private var saveSuccessMessage: String?
+    @State private var nichesText = ""
+    @State private var languagesText = ""
 
     private var managementTitle: String {
         switch appState.selectedRole {
@@ -167,6 +169,16 @@ struct ProfileView: View {
                                 MarviTextField(placeholder: "City", text: $appState.profile.city)
                                 MarviTextField(placeholder: "Instagram handle", text: $appState.profile.handle, autocapitalization: .never)
                                 MarviTextField(placeholder: "TikTok handle", text: $appState.profile.tiktokHandle, autocapitalization: .never)
+                                MarviTextField(
+                                    placeholder: "Niches (comma separated)",
+                                    text: $nichesText,
+                                    autocapitalization: .words
+                                )
+                                MarviTextField(
+                                    placeholder: "Languages (comma separated)",
+                                    text: $languagesText,
+                                    autocapitalization: .words
+                                )
 
                                 if let instagramURL = socialURL(platform: "instagram", handle: appState.profile.handle) {
                                     Link(destination: instagramURL) {
@@ -193,6 +205,14 @@ struct ProfileView: View {
                                         Task {
                                             isSavingProfile = true
                                             saveSuccessMessage = nil
+                                            appState.profile.niches = nichesText
+                                                .split(separator: ",")
+                                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                                .filter { !$0.isEmpty }
+                                            appState.profile.languages = languagesText
+                                                .split(separator: ",")
+                                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                                .filter { !$0.isEmpty }
                                             await appState.saveProfileToServer()
                                             isSavingProfile = false
                                             if appState.lastSyncError == nil {
@@ -342,6 +362,8 @@ struct ProfileView: View {
             .toolbar(.hidden, for: .navigationBar)
             .task {
                 await appState.syncAllowedRoles()
+                nichesText = appState.profile.niches.joined(separator: ", ")
+                languagesText = appState.profile.languages.joined(separator: ", ")
             }
             .alert("Sign out?", isPresented: $isShowingSignOutConfirmation) {
                 Button("Cancel", role: .cancel) {}

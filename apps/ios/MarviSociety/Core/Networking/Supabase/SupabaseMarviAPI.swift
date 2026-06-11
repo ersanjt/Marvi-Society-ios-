@@ -151,7 +151,9 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 "instagram_handle": profile.handle,
                 "tiktok_handle": profile.tiktokHandle,
                 "city": profile.city.lowercased(),
-                "full_name": profile.name
+                "full_name": profile.name,
+                "niches": profile.niches,
+                "languages": profile.languages
             ]
         )
     }

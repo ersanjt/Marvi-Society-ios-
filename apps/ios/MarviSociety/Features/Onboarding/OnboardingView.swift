@@ -39,6 +39,7 @@ struct OnboardingView: View {
     @State private var step: OnboardingStep = .welcome
     @State private var instagramHandle = ""
     @State private var city = "Istanbul"
+    @State private var selectedNiches: Set<String> = []
     @State private var inviteCode = ""
     @State private var referralError = ""
     @State private var email = ""
@@ -275,6 +276,38 @@ struct OnboardingView: View {
 
                 MarviTextField(placeholder: "City", text: $city)
 
+                Text("Your niches")
+                    .font(.caption.weight(.bold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(MarviColor.muted)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(["Dining", "Nightlife", "Beauty", "Wellness", "Fitness", "Retail"], id: \.self) { niche in
+                            Button {
+                                if selectedNiches.contains(niche) {
+                                    selectedNiches.remove(niche)
+                                } else {
+                                    selectedNiches.insert(niche)
+                                }
+                            } label: {
+                                Text(niche)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(selectedNiches.contains(niche) ? .white : MarviColor.ink)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        selectedNiches.contains(niche)
+                                            ? AnyShapeStyle(MarviGradient.brand)
+                                            : AnyShapeStyle(MarviColor.panelElevated)
+                                    )
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
                 Text("Popular cities")
                     .font(.caption.weight(.bold))
                     .textCase(.uppercase)
@@ -445,6 +478,10 @@ struct OnboardingView: View {
         case .profile:
             appState.profile.handle = instagramHandle
             appState.profile.city = city
+            appState.profile.niches = Array(selectedNiches).sorted()
+            if appState.profile.languages.isEmpty {
+                appState.profile.languages = ["English"]
+            }
             advance(to: .agreement)
         case .agreement:
             await finishOnboarding()
@@ -528,6 +565,10 @@ struct OnboardingView: View {
     private func finishOnboarding() async {
         appState.profile.handle = instagramHandle
         appState.profile.city = city
+        appState.profile.niches = Array(selectedNiches).sorted()
+        if appState.profile.languages.isEmpty {
+            appState.profile.languages = ["English"]
+        }
 
         if appState.isAuthenticated {
             _ = await appState.saveProfileToServer()

@@ -12,8 +12,9 @@ Complete before submitting **Marvi Society** v1.0.
 ## Backend & website (blockers)
 
 - [ ] Supabase production project live
-- [ ] Run SQL: `infra/supabase/fix-user-account.sql` (includes hardening + account fix)
-- [ ] Run SQL: `infra/supabase/migrations/20260610000002_delete_own_account.sql`
+- [ ] Run migrations through head `20260614000001_production_integrity`
+- [ ] Run SQL: `infra/supabase/bootstrap-production.sql` (email-based seed + admin)
+- [ ] Or legacy: `fix-user-account.sql` + `grant-admin-ersanjt.sql` + `seed-after-deploy.sql`
 - [ ] Vercel deploy `apps/web` → `marvisociety.com`
 - [ ] Verify live URLs:
   - [ ] https://marvisociety.com/privacy

@@ -104,12 +104,25 @@ struct VenueStudioView: View {
                                 CampaignCard(campaign: campaign)
                             }
                         } else {
-                            MarviCard {
-                                EmptyStateView(
-                                    title: "Brands coming soon",
-                                    subtitle: "Manage brand partnerships from this tab in a future release.",
-                                    icon: "tag"
-                                )
+                            SectionTitle(
+                                title: "Brand partners",
+                                subtitle: "Campaigns linked to your venue workspace."
+                            )
+
+                            if appState.campaigns.isEmpty {
+                                MarviCard {
+                                    EmptyStateView(
+                                        title: "No brand campaigns yet",
+                                        subtitle: "Submit a campaign for admin review to publish on Explore.",
+                                        icon: "tag",
+                                        actionTitle: "Refresh",
+                                        action: { Task { await appState.refreshFromServer() } }
+                                    )
+                                }
+                            } else {
+                                ForEach(appState.campaigns) { campaign in
+                                    CampaignCard(campaign: campaign)
+                                }
                             }
                         }
 
