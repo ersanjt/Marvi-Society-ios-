@@ -488,6 +488,24 @@ struct OnboardingView: View {
         }
     }
 
+    private func inferredSignupLocale() -> String {
+        if appState.preferredLanguage == .turkish { return "tr" }
+        if Locale.current.language.languageCode?.identifier == "tr" { return "tr" }
+        let istanbulCities = ["istanbul", "kadıköy", "kadikoy", "beşiktaş", "besiktas", "şişli", "sisli"]
+        if istanbulCities.contains(city.lowercased()) { return "tr" }
+        if appState.profile.languages.contains(where: { $0.lowercased().contains("turk") }) { return "tr" }
+        return "en"
+    }
+
+    private func signupMetadata() -> [String: String] {
+        [
+            "locale": inferredSignupLocale(),
+            "city": city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            "instagram_handle": instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            "full_name": appState.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        ]
+    }
+
     private func signInWithEmailFlow() async {
         appleSignInError = nil
         appState.dismissSyncError()
@@ -498,7 +516,7 @@ struct OnboardingView: View {
         await appState.signInWithEmail(
             email.trimmingCharacters(in: .whitespacesAndNewlines),
             password: password,
-            metadata: [:]
+            metadata: signupMetadata()
         )
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
@@ -518,7 +536,7 @@ struct OnboardingView: View {
         await appState.signUpWithEmail(
             email.trimmingCharacters(in: .whitespacesAndNewlines),
             password: password,
-            metadata: [:]
+            metadata: signupMetadata()
         )
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
@@ -531,7 +549,7 @@ struct OnboardingView: View {
         appleSignInError = nil
         appState.dismissSyncError()
 
-        await appState.signInWithApple(using: appleSignIn, metadata: [:])
+        await appState.signInWithApple(using: appleSignIn, metadata: signupMetadata())
 
         if appState.isAuthenticated {
             instagramHandle = appState.profile.handle

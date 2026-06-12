@@ -12,8 +12,8 @@
       "version": "0.2.0"
     },
     "database": {
-      "migrationHead": "20260615000001_platform_completion",
-      "migrationCount": 12
+      "migrationHead": "20260616000001_transactional_email",
+      "migrationCount": 13
     }
   },
   "syncLog": [

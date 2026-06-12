@@ -157,6 +157,21 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 "languages": profile.languages
             ]
         )
+
+        let locale: String = {
+            if profile.languages.contains(where: { $0.lowercased().contains("turk") }) { return "tr" }
+            let city = profile.city.lowercased()
+            if city.contains("istanbul") || ["kadıköy", "kadikoy", "beşiktaş", "besiktas"].contains(city) {
+                return "tr"
+            }
+            return "en"
+        }()
+
+        try await client.patch(
+            table: "profiles",
+            query: [URLQueryItem(name: "id", value: "eq.\(userID)")],
+            body: ["preferred_locale": locale]
+        )
     }
 
     func fetchNotifications() async throws -> [InboxMessage] {
@@ -505,23 +520,37 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     private func applyOnboardingMetadata(_ metadata: [String: String]) async throws {
         guard let userID = await client.currentUserID() else { return }
 
-        var body: [String: Any] = [:]
+        var creatorBody: [String: Any] = [:]
+        var profileBody: [String: Any] = [:]
+
         if let handle = metadata["instagram_handle"] {
-            body["instagram_handle"] = handle
+            creatorBody["instagram_handle"] = handle
         }
         if let city = metadata["city"] {
-            body["city"] = city.lowercased()
+            creatorBody["city"] = city.lowercased()
         }
         if let name = metadata["full_name"], !name.isEmpty {
-            body["full_name"] = name
+            creatorBody["full_name"] = name
         }
-        guard !body.isEmpty else { return }
+        if let locale = metadata["locale"], !locale.isEmpty {
+            profileBody["preferred_locale"] = locale.lowercased().hasPrefix("tr") ? "tr" : "en"
+        }
 
-        try await client.patch(
-            table: "creator_profiles",
-            query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
-            body: body
-        )
+        if !creatorBody.isEmpty {
+            try await client.patch(
+                table: "creator_profiles",
+                query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
+                body: creatorBody
+            )
+        }
+
+        if !profileBody.isEmpty {
+            try await client.patch(
+                table: "profiles",
+                query: [URLQueryItem(name: "id", value: "eq.\(userID)")],
+                body: profileBody
+            )
+        }
     }
 }
 
