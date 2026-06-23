@@ -15,7 +15,7 @@ Complete before submitting **Marvi Society** v1.0.
 - [ ] Run migrations through head `20260614000001_production_integrity`
 - [ ] Run SQL: `infra/supabase/bootstrap-production.sql` (email-based seed + admin)
 - [ ] Or legacy: `fix-user-account.sql` + `grant-admin-ersanjt.sql` + `seed-after-deploy.sql`
-- [ ] Vercel deploy `apps/web` → `marvisociety.com`
+- [x] WHM deploy `apps/web` → `marvisociety.com` (PM2 + Apache proxy)
 - [ ] Verify live URLs:
   - [ ] https://marvisociety.com/privacy
   - [ ] https://marvisociety.com/terms
@@ -23,7 +23,7 @@ Complete before submitting **Marvi Society** v1.0.
   - [ ] https://marvisociety.com/delete-account
   - [ ] https://marvisociety.com/contact
 - [ ] Supabase Auth SMTP configured (for delete-account OTP emails)
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` set on Vercel (delete-account confirm route)
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` set on WHM (`/opt/marvisociety-web/apps/web/.env.production`)
 
 ## iOS build
 

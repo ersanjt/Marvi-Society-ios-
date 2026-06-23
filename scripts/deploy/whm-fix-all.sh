@@ -23,6 +23,19 @@ exec node apps/web/server.js
 EOF
 chmod +x "$MARVI_APP_DIR/start.sh"
 
+if [[ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  ENV_FILE="${MARVI_APP_DIR}/apps/web/.env.production"
+  mkdir -p "$(dirname "$ENV_FILE")"
+  cat > "$ENV_FILE" <<EOF
+NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-https://gaswjuvyzliislqrljof.supabase.co}
+NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_SA0BDjBy4ow7haaZzX7Zlg_t0wFvO0Y}
+NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://${MARVI_DOMAIN}}
+SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+EOF
+  chmod 600 "$ENV_FILE"
+  log "✓ Wrote production secrets to .env.production"
+fi
+
 log "Restarting PM2…"
 pm2 delete marvisociety-web 2>/dev/null || true
 cd "$MARVI_APP_DIR"

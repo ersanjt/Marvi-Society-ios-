@@ -17,17 +17,21 @@ echo ""
 echo "▶ Tip: use 'npm run sync' for full stack sync (DB + GitHub + verify)"
 echo ""
 
-echo "▶ 1/4 Health check (Supabase API)..."
+echo "▶ 0/5 App Store preflight (live site + RPCs)..."
+bash "$REPO_ROOT/scripts/app-store-preflight.sh" || true
+
+echo ""
+echo "▶ 1/5 Health check (Supabase API)..."
 bash "$REPO_ROOT/scripts/check-health.sh"
 
 echo ""
-echo "▶ 2/4 Build web (Next.js)..."
+echo "▶ 2/5 Build web (Next.js)..."
 cd "$REPO_ROOT/apps/web"
 npm install --silent 2>/dev/null || npm install
 npm run build
 
 echo ""
-echo "▶ 3/4 Build iOS..."
+echo "▶ 3/5 Build iOS..."
 cd "$REPO_ROOT/apps/ios"
 xcodebuild -project MarviSociety.xcodeproj -scheme MarviSociety \
   -destination 'generic/platform=iOS' -configuration Debug build \
@@ -36,7 +40,7 @@ xcodebuild -project MarviSociety.xcodeproj -scheme MarviSociety \
 APP="$HOME/Library/Developer/Xcode/DerivedData/MarviSociety-"*/Build/Products/Debug-iphoneos/MarviSociety.app
 
 echo ""
-echo "▶ 4/4 Install on iPhone (if connected)..."
+echo "▶ 4/5 Install on iPhone (if connected)..."
 if xcrun devicectl list devices 2>/dev/null | grep -q connected; then
   DEVICE_ID=$(xcrun devicectl list devices 2>/dev/null | awk '/connected/{print $NF; exit}' | tr -d '()')
   if [[ -n "$DEVICE_ID" && -d $APP ]]; then
@@ -56,8 +60,8 @@ echo ""
 echo "  SQL:  Run infra/supabase/safe-production-update.sql"
 echo "        in Supabase SQL Editor (NOT initial schema!)"
 echo ""
-echo "  Web:  Fix Vercel billing OR deploy apps/web elsewhere"
-echo "        Env: NEXT_PUBLIC_SUPABASE_URL, ANON_KEY, SERVICE_ROLE_KEY"
+echo "  WHM:  export SUPABASE_SERVICE_ROLE_KEY='…' && bash scripts/deploy/whm-fix-all.sh"
+echo "        (Supabase Dashboard → Settings → API → service_role)"
 echo ""
 echo "  Apple: developer.apple.com enroll (\$99) for App Store"
 echo ""
