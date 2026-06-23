@@ -45,3 +45,4 @@ bash scripts/deploy/build-web-standalone.sh
 
 export MARVI_ARCHIVE="$MARVI_SRC/apps/web/.deploy/marvisociety-web.tar.gz"
 bash scripts/deploy/whm-install.sh
+bash scripts/deploy/whm-fix-all.sh

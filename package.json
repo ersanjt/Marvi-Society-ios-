@@ -10,6 +10,7 @@
     "web:build": "npm run build --workspace=@marvi-society/web",
     "health": "bash scripts/check-health.sh",
     "db:combine": "bash infra/supabase/scripts/combine-migrations.sh",
+    "db:apply-combine": "bash infra/supabase/scripts/combine-apply-scripts.sh",
     "db:push": "bash scripts/release/sync-database.sh",
     "db:bootstrap": "bash scripts/bootstrap-supabase-remote.sh",
     "status": "bash scripts/release/status.sh",
