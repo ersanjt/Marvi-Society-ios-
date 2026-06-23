@@ -1,5 +1,5 @@
 #!/bin/bash
-# Self-contained repair: restart Node app + configure reverse proxy for marvisociety.com
+# Self-contained repair: restart Node app + Apache proxy (no nginx location override)
 set -uo pipefail
 
 MARVI_DOMAIN="${MARVI_DOMAIN:-marvisociety.com}"
@@ -10,10 +10,7 @@ MARVI_CPANEL_USER="${MARVI_CPANEL_USER:-marvisociety}"
 log() { echo "[marvi] $*"; }
 
 # ── 1. Restart Node app ─────────────────────────────────────────────
-if [[ ! -d "$MARVI_APP_DIR" ]]; then
-  echo "Missing $MARVI_APP_DIR — run whm-install-from-git.sh first." >&2
-  exit 1
-fi
+[[ -d "$MARVI_APP_DIR" ]] || { echo "Missing $MARVI_APP_DIR" >&2; exit 1; }
 
 cat > "$MARVI_APP_DIR/start.sh" <<'EOF'
 #!/bin/bash
@@ -26,98 +23,68 @@ exec node apps/web/server.js
 EOF
 chmod +x "$MARVI_APP_DIR/start.sh"
 
-log "Restarting PM2 on port ${MARVI_PORT}…"
+log "Restarting PM2…"
 pm2 delete marvisociety-web 2>/dev/null || true
 cd "$MARVI_APP_DIR"
 PORT="$MARVI_PORT" HOSTNAME=0.0.0.0 pm2 start ./start.sh --name marvisociety-web
-pm2 save
-sleep 2
+pm2 save && sleep 2
 
-if ! curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:${MARVI_PORT}/privacy" | grep -q 200; then
-  log "✗ App not responding on port ${MARVI_PORT}"
-  pm2 logs marvisociety-web --lines 20 --nostream || true
-  exit 1
-fi
-log "✓ App OK on http://127.0.0.1:${MARVI_PORT}/privacy"
+curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:${MARVI_PORT}/privacy" | grep -q 200 \
+  || { log "✗ App down on :${MARVI_PORT}"; pm2 logs marvisociety-web --lines 15 --nostream; exit 1; }
+log "✓ App OK on :${MARVI_PORT}"
 
-# ── 2. Detect cPanel user ───────────────────────────────────────────
-if [[ -f /etc/userdomains ]]; then
-  detected=$(awk -v d="$MARVI_DOMAIN" '$1==d {print $2; exit}' /etc/userdomains || true)
-  [[ -n "$detected" ]] && MARVI_CPANEL_USER="$detected"
-fi
+# ── 2. cPanel user ──────────────────────────────────────────────────
+[[ -f /etc/userdomains ]] && MARVI_CPANEL_USER=$(awk -v d="$MARVI_DOMAIN" '$1==d {print $2; exit}' /etc/userdomains || true)
+MARVI_CPANEL_USER="${MARVI_CPANEL_USER:-marvisociety}"
 DOCROOT="/home/${MARVI_CPANEL_USER}/public_html"
 mkdir -p "$DOCROOT"
 
-# ── 3. Clean up duplicate nginx configs from prior runs ─────────────
-log "Removing old marvi nginx configs…"
+# ── 3. Remove ALL marvi nginx overrides (they cause duplicate location /) ──
+log "Removing marvi nginx overrides (cPanel already has location /)…"
 rm -f /etc/nginx/conf.d/marvi-*.conf
 rm -f "/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}/marvi-"*.conf
 rm -f "/etc/nginx/ea-nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}/marvi-"*.conf
 
-# Single nginx location include (cPanel EA-Nginx merges this into the domain server block)
-NGINX_DIR="/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
-mkdir -p "$NGINX_DIR"
-cat > "${NGINX_DIR}/marvi-proxy.conf" <<EOF
-location / {
-    proxy_pass http://127.0.0.1:${MARVI_PORT};
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-    proxy_cache_bypass \$http_upgrade;
-}
-EOF
-log "nginx → ${NGINX_DIR}/marvi-proxy.conf (single file)"
+# ── 4. Apache proxy (nginx → apache → node) ─────────────────────────
+PROXY_CONF='<IfModule mod_proxy.c>
+  ProxyPreserveHost On
+  ProxyPass / http://127.0.0.1:'"${MARVI_PORT}"'/
+  ProxyPassReverse / http://127.0.0.1:'"${MARVI_PORT}"'/
+</IfModule>'
 
-# Apache userdata proxy (backend)
 for APACHE_BASE in std ssl; do
   APACHE_INC="/etc/apache2/conf.d/userdata/${APACHE_BASE}/2_4/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
   mkdir -p "$APACHE_INC"
-  cat > "${APACHE_INC}/marvi-proxy.conf" <<EOF
-<IfModule mod_proxy.c>
-  ProxyPreserveHost On
-  ProxyPass / http://127.0.0.1:${MARVI_PORT}/
-  ProxyPassReverse / http://127.0.0.1:${MARVI_PORT}/
-</IfModule>
-EOF
+  printf '%s\n' "$PROXY_CONF" > "${APACHE_INC}/marvi-proxy.conf"
+  log "Apache proxy → ${APACHE_INC}/marvi-proxy.conf"
 done
 
-cat > "$DOCROOT/.htaccess" <<EOF
-Options -Indexes
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^(.*)$ http://127.0.0.1:${MARVI_PORT}/\$1 [P,L]
-EOF
+echo "Options -Indexes" > "$DOCROOT/.htaccess"
 chown -R "${MARVI_CPANEL_USER}:${MARVI_CPANEL_USER}" "$DOCROOT" 2>/dev/null || true
 
-# ── 4. Rebuild & restart web servers ────────────────────────────────
+# ── 5. Rebuild & restart ────────────────────────────────────────────
 [[ -x /scripts/rebuildhttpdconf ]] && /scripts/rebuildhttpdconf
 [[ -x /usr/local/cpanel/scripts/rebuildnginx ]] && /usr/local/cpanel/scripts/rebuildnginx
-
-/scripts/restartsrv_httpd 2>/dev/null || systemctl restart httpd 2>/dev/null || true
 /scripts/restartsrv_nginx 2>/dev/null || systemctl restart nginx 2>/dev/null || true
+/scripts/restartsrv_httpd 2>/dev/null || systemctl restart httpd 2>/dev/null || true
 sleep 2
 
-# ── 5. Test ─────────────────────────────────────────────────────────
+# ── 6. Test ─────────────────────────────────────────────────────────
 SERVER_IP=$(curl -4 -sS ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 log "Tests:"
-curl -sS -o /dev/null -w "  port ${MARVI_PORT}/privacy → %{http_code}\n" "http://127.0.0.1:${MARVI_PORT}/privacy" || true
+curl -sS -o /dev/null -w "  :${MARVI_PORT}/privacy → %{http_code}\n" "http://127.0.0.1:${MARVI_PORT}/privacy" || true
 
-for target in "127.0.0.1" "${SERVER_IP}"; do
-  code=$(curl -sS -o /dev/null -w "%{http_code}" -H "Host: ${MARVI_DOMAIN}" "http://${target}/privacy" 2>/dev/null || echo "000")
-  log "  vhost ${target}/privacy → ${code}"
-done
-
-if ! systemctl is-active nginx >/dev/null 2>&1; then
-  log "✗ nginx not running — check: nginx -t"
-  nginx -t 2>&1 | tail -5 || true
-else
+if systemctl is-active nginx >/dev/null 2>&1; then
   log "✓ nginx running"
+  for target in "127.0.0.1" "${SERVER_IP}"; do
+    code=$(curl -sS -o /dev/null -w "%{http_code}" -H "Host: ${MARVI_DOMAIN}" "http://${target}/privacy" 2>/dev/null || echo "000")
+    log "  vhost ${target}/privacy → ${code}"
+  done
+else
+  log "✗ nginx still down — run: nginx -t"
+  nginx -t 2>&1 | tail -3 || true
 fi
 
 log ""
-log "Cloudflare DNS: A @ and www → ${SERVER_IP}  |  SSL: Full"
+log "Cloudflare: A @ and www → ${SERVER_IP}  |  SSL: Full"
 pm2 status marvisociety-web
