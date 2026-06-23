@@ -44,7 +44,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 export NODE_ENV=production
 export PORT="${PORT:-3000}"
-export HOSTNAME="${HOSTNAME:-0.0.0.0}"
+export HOSTNAME="0.0.0.0"
 exec node apps/web/server.js
 EOF
 chmod +x "$STAGE/start.sh"

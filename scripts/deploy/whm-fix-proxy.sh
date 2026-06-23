@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fix nginx/Apache reverse proxy for marvisociety.com → Node on :3000
-# Run as root after whm-install.sh
-set -euo pipefail
+# Run as root after whm-restart-app.sh
+set -uo pipefail
 
 MARVI_DOMAIN="${MARVI_DOMAIN:-marvisociety.com}"
 MARVI_PORT="${MARVI_PORT:-3000}"
@@ -17,11 +17,7 @@ fi
 DOCROOT="/home/${MARVI_CPANEL_USER}/public_html"
 mkdir -p "$DOCROOT"
 
-# cPanel EA4: nginx user include
-NGINX_DIR="/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
-if [[ -d /etc/nginx/conf.d/users ]] || mkdir -p "$NGINX_DIR" 2>/dev/null; then
-  log "Configuring nginx proxy → 127.0.0.1:${MARVI_PORT}"
-  cat > "${NGINX_DIR}/marvi-node-proxy.conf" <<EOF
+NGINX_PROXY=$(cat <<EOF
 # Marvi Society Next.js
 location / {
     proxy_pass http://127.0.0.1:${MARVI_PORT};
@@ -35,16 +31,30 @@ location / {
     proxy_cache_bypass \$http_upgrade;
 }
 EOF
-  if [[ -x /scripts/rebuildhttpdconf ]]; then
-    /scripts/rebuildhttpdconf
+)
+
+# cPanel EA4 nginx — try multiple known paths
+NGINX_CANDIDATES=(
+  "/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
+  "/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}"
+)
+nginx_written=false
+for dir in "${NGINX_CANDIDATES[@]}"; do
+  if mkdir -p "$dir" 2>/dev/null; then
+    log "Writing nginx proxy → ${dir}/marvi-node-proxy.conf"
+    printf '%s\n' "$NGINX_PROXY" > "${dir}/marvi-node-proxy.conf"
+    nginx_written=true
+    break
   fi
-  if [[ -x /usr/local/cpanel/scripts/rebuildnginx ]]; then
-    /usr/local/cpanel/scripts/rebuildnginx
-  fi
-  systemctl restart nginx 2>/dev/null || service nginx restart 2>/dev/null || true
+done
+
+if [[ "$nginx_written" == false ]] && [[ -d /etc/nginx/conf.d ]]; then
+  log "Fallback nginx include in conf.d"
+  printf '%s\n' "$NGINX_PROXY" > "/etc/nginx/conf.d/marvi-${MARVI_DOMAIN}.conf"
+  nginx_written=true
 fi
 
-# Apache userdata proxy (fallback)
+# Apache userdata proxy (cPanel)
 APACHE_INC="/etc/apache2/conf.d/userdata/std/2_4/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
 mkdir -p "$APACHE_INC"
 cat > "${APACHE_INC}/marvi-proxy.conf" <<EOF
@@ -54,28 +64,37 @@ cat > "${APACHE_INC}/marvi-proxy.conf" <<EOF
   ProxyPassReverse / http://127.0.0.1:${MARVI_PORT}/
 </IfModule>
 EOF
+log "Apache userdata → ${APACHE_INC}/marvi-proxy.conf"
 
-if [[ -x /scripts/rebuildhttpdconf ]]; then
-  /scripts/rebuildhttpdconf
-  systemctl restart httpd 2>/dev/null || service httpd restart 2>/dev/null || true
-fi
+# SSL variant
+APACHE_SSL="/etc/apache2/conf.d/userdata/ssl/2_4/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
+mkdir -p "$APACHE_SSL"
+cp "${APACHE_INC}/marvi-proxy.conf" "${APACHE_SSL}/marvi-proxy.conf"
 
-# Minimal index redirect fallback
-cat > "$DOCROOT/index.html" <<EOF
-<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/"></head>
-<body>Marvi Society — loading…</body></html>
+# .htaccess fallback (Apache backend)
+cat > "$DOCROOT/.htaccess" <<EOF
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.*)$ http://127.0.0.1:${MARVI_PORT}/\$1 [P,L]
 EOF
 chown -R "${MARVI_CPANEL_USER}:${MARVI_CPANEL_USER}" "$DOCROOT" 2>/dev/null || true
 
+if [[ -x /scripts/rebuildhttpdconf ]]; then
+  log "Rebuilding Apache config…"
+  /scripts/rebuildhttpdconf
+fi
+if [[ -x /usr/local/cpanel/scripts/rebuildnginx ]]; then
+  log "Rebuilding nginx config…"
+  /usr/local/cpanel/scripts/rebuildnginx
+fi
+
+systemctl restart httpd 2>/dev/null || service httpd restart 2>/dev/null || true
+systemctl restart nginx 2>/dev/null || service nginx restart 2>/dev/null || true
+
 log "Local tests:"
-curl -sS -o /dev/null -w "  port ${MARVI_PORT}/privacy → %{http_code}\n" "http://127.0.0.1:${MARVI_PORT}/privacy" || true
-curl -sS -o /dev/null -w "  vhost /privacy → %{http_code}\n" -H "Host: ${MARVI_DOMAIN}" "http://127.0.0.1/privacy" || true
+curl -sS -o /dev/null -w "  port ${MARVI_PORT}/privacy → %{http_code}\n" "http://127.0.0.1:${MARVI_PORT}/privacy" || echo "  port ${MARVI_PORT} → FAILED"
+curl -sS -o /dev/null -w "  vhost /privacy → %{http_code}\n" -H "Host: ${MARVI_DOMAIN}" "http://127.0.0.1/privacy" || echo "  vhost → FAILED"
 
 SERVER_IP=$(curl -4 -sS ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 log ""
-log "NEXT: Cloudflare DNS"
-log "  A  @   → ${SERVER_IP}  (Proxy ON orange cloud)"
-log "  A  www → ${SERVER_IP}"
-log "  SSL/TLS → Full"
-log ""
-log "Then test: curl -I https://marvisociety.com/privacy"
+log "Cloudflare DNS: A @ and www → ${SERVER_IP}  |  SSL: Full"
