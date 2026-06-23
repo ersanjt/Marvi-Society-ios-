@@ -28,7 +28,8 @@ if [[ ! -f "$MARVI_ARCHIVE" ]]; then
 fi
 
 # Node.js 20+
-if ! command -v node >/dev/null 2>&1 || [[ "$(node -p 'process.versions.node.split(\".\")[0]')" -lt 18 ]]; then
+node_major() { node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0; }
+if ! command -v node >/dev/null 2>&1 || [[ "$(node_major)" -lt 18 ]]; then
   log "Installing Node.js 20…"
   if command -v dnf >/dev/null 2>&1; then
     dnf module reset -y nodejs 2>/dev/null || true
@@ -110,8 +111,9 @@ log "Done."
 log "App:  http://127.0.0.1:${MARVI_PORT}"
 log "Site: https://${MARVI_DOMAIN}"
 log ""
-log "Cloudflare DNS: set A record @ → $(curl -sS ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')"
+SERVER_IP=$(curl -4 -sS ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+log "Cloudflare DNS: set A record @ → ${SERVER_IP}"
 log "Cloudflare SSL mode: Full (strict) after AutoSSL completes"
 log ""
-log "Test: curl -I http://127.0.0.1:${MARVI_PORT}/privacy"
+log "Then run: bash scripts/deploy/whm-fix-proxy.sh"
 pm2 status marvisociety-web
