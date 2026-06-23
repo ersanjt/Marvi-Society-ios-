@@ -56,7 +56,7 @@ export function AdminTaskQueue({ tasks, proofBookings = {} }: Props) {
 
                 {task.type === "proof_review" && booking ? (
                   <div className="mt-4 rounded-xl border border-panel-elevated bg-panel-elevated/40 p-4">
-                    <p className="text-xs font-bold uppercase text-emerald">Proof links</p>
+                    <p className="marvi-eyebrow">Proof links</p>
                     {booking.guest_name ? (
                       <p className="mt-1 text-sm text-muted">Guest: {booking.guest_name}</p>
                     ) : null}

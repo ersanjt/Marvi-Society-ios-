@@ -41,6 +41,8 @@ export default async function PortalDashboardPage() {
 
     if (user) {
       userEmail = user.email ?? null;
+      mode = "live";
+
       const { data: offerData } = await supabase
         .from("offers")
         .select("id, title, status, capacity, remaining_slots, venue_profiles(venue_name)")
@@ -53,10 +55,7 @@ export default async function PortalDashboardPage() {
         .order("created_at", { ascending: false })
         .limit(6);
 
-      if (offerData) {
-        offers = offerData as unknown as OfferRow[];
-        mode = "live";
-      }
+      if (offerData) offers = offerData as unknown as OfferRow[];
       if (bookingData) bookings = bookingData as unknown as BookingRow[];
     }
   } catch {
@@ -99,7 +98,7 @@ export default async function PortalDashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-12 md:px-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald">Venue studio</p>
+          <p className="marvi-eyebrow">Venue studio</p>
           <h1 className="font-serif text-3xl font-bold text-ink">Dashboard</h1>
           <p className="mt-1 text-sm text-muted">Mode: {mode}</p>
         </div>
@@ -111,7 +110,7 @@ export default async function PortalDashboardPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((m) => (
           <div key={m.label} className="marvi-card">
-            <p className="text-2xl font-bold text-emerald">{m.value}</p>
+            <p className="bg-brand-gradient bg-clip-text text-2xl font-bold text-transparent">{m.value}</p>
             <p className="text-sm font-bold text-ink">{m.label}</p>
             <p className="text-xs text-muted">{m.trend}</p>
           </div>

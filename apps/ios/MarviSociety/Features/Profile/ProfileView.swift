@@ -3,6 +3,11 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject private var appState: AppState
     @State private var isShowingSignOutConfirmation = false
+    @State private var isShowingPauseConfirmation = false
+    @State private var isShowingDeleteConfirmation = false
+    @State private var deleteConfirmationText = ""
+    @State private var isManagingAccount = false
+    @State private var accountActionMessage: String?
     @State private var isSavingProfile = false
     @State private var isSigningOut = false
     @State private var saveSuccessMessage: String?
@@ -11,10 +16,17 @@ struct ProfileView: View {
 
     private var managementTitle: String {
         switch appState.selectedRole {
-        case .creator: "Management"
-        case .venue: "Venue studio"
-        case .admin: "Admin console"
+        case .creator: appState.t(.management)
+        case .venue: appState.t(.venueStudio)
+        case .admin: appState.t(.adminConsole)
         }
+    }
+
+    private var languageSelection: Binding<AppLanguage> {
+        Binding(
+            get: { appState.preferredLanguage },
+            set: { appState.setPreferredLanguage($0, manual: true) }
+        )
     }
 
     var body: some View {
@@ -39,24 +51,24 @@ struct ProfileView: View {
                                     Text(appState.profile.audienceLabel.replacingOccurrences(of: " audience", with: ""))
                                         .font(.system(size: 36, weight: .bold, design: .rounded))
                                         .foregroundStyle(MarviColor.ink)
-                                    Text("Followers")
+                                    Text(appState.t(.followers))
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(MarviColor.muted)
                                 }
 
                                 Spacer()
 
-                                ProfileHealthRing(score: appState.profile.score, label: "Profile Health")
+                                ProfileHealthRing(score: appState.profile.score, label: appState.t(.profileHealth))
                             }
                         }
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 SectionTitle(
-                                    title: "Workspace",
+                                    title: appState.t(.workspace),
                                     subtitle: appState.accountRole == .admin
-                                        ? "Admin access enabled on this account."
-                                        : "Switch between creator, venue, and admin tools."
+                                        ? appState.t(.workspaceAdminSub)
+                                        : appState.t(.workspaceSwitchSub)
                                 )
 
                                 WorkspaceRolePicker(
@@ -82,19 +94,19 @@ struct ProfileView: View {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 14) {
                                     SectionTitle(
-                                        title: "Admin console",
-                                        subtitle: "Review creator applications, campaigns, and proof."
+                                        title: appState.t(.adminConsole),
+                                        subtitle: appState.t(.adminConsoleSub)
                                     )
 
                                     HStack(spacing: 12) {
                                         AdminQuickStat(
                                             value: "\(appState.openAdminTasks.count)",
-                                            label: "Open tasks",
+                                            label: appState.t(.openTasks),
                                             tint: MarviColor.tomato
                                         )
                                         AdminQuickStat(
                                             value: "\(appState.offers.count)",
-                                            label: "Live offers",
+                                            label: appState.t(.liveOffers),
                                             tint: MarviColor.emerald
                                         )
                                     }
@@ -102,7 +114,7 @@ struct ProfileView: View {
                                     Button {
                                         Task { await appState.openAdminConsole() }
                                     } label: {
-                                        Label("Open admin console", systemImage: "checkmark.shield.fill")
+                                        Label(appState.t(.openAdminConsole), systemImage: "checkmark.shield.fill")
                                             .font(.subheadline.weight(.bold))
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 13)
@@ -117,11 +129,11 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 14) {
-                                SectionTitle(title: "Creator signals", subtitle: "Used for invitation matching.")
+                                SectionTitle(title: appState.t(.creatorSignals), subtitle: appState.t(.creatorSignalsSub))
 
                                 HStack(spacing: 10) {
-                                    ScoreTile(value: "\(appState.profile.score)", label: "Score", icon: "star.fill", tint: MarviColor.gold)
-                                    ScoreTile(value: appState.profile.proofRate, label: "Delivery", icon: "checkmark.seal.fill", tint: MarviColor.emerald)
+                                    ScoreTile(value: "\(appState.profile.score)", label: appState.t(.scoreLabel), icon: "star.fill", tint: MarviColor.gold)
+                                    ScoreTile(value: appState.profile.proofRate, label: appState.t(.deliveryLabel), icon: "checkmark.seal.fill", tint: MarviColor.emerald)
                                 }
                             }
                         }
@@ -129,7 +141,7 @@ struct ProfileView: View {
                         if !appState.strikes.isEmpty {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    SectionTitle(title: "Strike history", subtitle: "Policy violations affect matching priority.")
+                                    SectionTitle(title: appState.t(.strikeHistory), subtitle: appState.t(.strikeHistorySub))
 
                                     ForEach(appState.strikes) { strike in
                                         HStack(alignment: .top, spacing: 10) {
@@ -150,34 +162,34 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "Social accounts", subtitle: "Linked profiles for verification and proof tracking.")
+                                SectionTitle(title: appState.t(.socialAccounts), subtitle: appState.t(.socialAccountsSub))
 
-                                MarviTextField(placeholder: "Display name", text: $appState.profile.name)
-                                MarviTextField(placeholder: "Bio", text: $appState.profile.bio)
-                                MarviTextField(placeholder: "City", text: $appState.profile.city)
-                                MarviTextField(placeholder: "Instagram handle", text: $appState.profile.handle, autocapitalization: .never)
-                                MarviTextField(placeholder: "TikTok handle", text: $appState.profile.tiktokHandle, autocapitalization: .never)
+                                MarviTextField(placeholder: appState.t(.displayName), text: $appState.profile.name)
+                                MarviTextField(placeholder: appState.t(.bio), text: $appState.profile.bio)
+                                MarviTextField(placeholder: appState.t(.cityField), text: $appState.profile.city)
+                                MarviTextField(placeholder: appState.t(.instagramPlaceholder), text: $appState.profile.handle, autocapitalization: .never)
+                                MarviTextField(placeholder: appState.t(.tiktokHandleField), text: $appState.profile.tiktokHandle, autocapitalization: .never)
                                 MarviTextField(
-                                    placeholder: "Niches (comma separated)",
+                                    placeholder: appState.t(.nichesComma),
                                     text: $nichesText,
                                     autocapitalization: .words
                                 )
                                 MarviTextField(
-                                    placeholder: "Languages (comma separated)",
+                                    placeholder: appState.t(.languagesComma),
                                     text: $languagesText,
                                     autocapitalization: .words
                                 )
 
                                 if let instagramURL = socialURL(platform: "instagram", handle: appState.profile.handle) {
                                     Link(destination: instagramURL) {
-                                        Label("Open Instagram profile", systemImage: "camera")
+                                        Label(appState.t(.openInstagram), systemImage: "camera")
                                             .font(.caption.weight(.bold))
                                     }
                                 }
 
                                 if let tiktokURL = socialURL(platform: "tiktok", handle: appState.profile.tiktokHandle) {
                                     Link(destination: tiktokURL) {
-                                        Label("Open TikTok profile", systemImage: "music.note")
+                                        Label(appState.t(.openTiktok), systemImage: "music.note")
                                             .font(.caption.weight(.bold))
                                     }
                                 }
@@ -204,12 +216,12 @@ struct ProfileView: View {
                                             await appState.saveProfileToServer()
                                             isSavingProfile = false
                                             if appState.lastSyncError == nil {
-                                                saveSuccessMessage = "Profile saved to your account."
+                                                saveSuccessMessage = appState.t(.profileSavedSuccess)
                                             }
                                         }
                                     } label: {
                                         Label(
-                                            isSavingProfile ? "Saving…" : "Save to account",
+                                            isSavingProfile ? appState.t(.saving) : appState.t(.saveToAccount),
                                             systemImage: "icloud.and.arrow.up"
                                         )
                                         .font(.subheadline.weight(.bold))
@@ -227,23 +239,26 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "Application checklist", subtitle: "\(completedChecklistSteps) of 6 steps complete")
-                                ChecklistRow(title: "Instagram connected", isDone: !appState.profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                                ChecklistRow(title: "City verified", isDone: !appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                                ChecklistRow(title: "Niche selected", isDone: !appState.profile.niches.isEmpty)
-                                ChecklistRow(title: "Audience reviewed", isDone: appState.profile.score > 0)
-                                ChecklistRow(title: "Creator references", isDone: !appState.profile.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                                ChecklistRow(title: "Agreement signed", isDone: appState.profile.status == .approved)
+                                SectionTitle(
+                                    title: appState.t(.applicationChecklist),
+                                    subtitle: "\(completedChecklistSteps) \(appState.t(.checklistProgress))"
+                                )
+                                ChecklistRow(title: appState.t(.instagramConnected), isDone: !appState.profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                ChecklistRow(title: appState.t(.cityVerified), isDone: !appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                ChecklistRow(title: appState.t(.nicheSelected), isDone: !appState.profile.niches.isEmpty)
+                                ChecklistRow(title: appState.t(.audienceReviewed), isDone: appState.profile.score > 0)
+                                ChecklistRow(title: appState.t(.creatorReferences), isDone: !appState.profile.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                ChecklistRow(title: appState.t(.agreementSigned), isDone: appState.profile.status == .approved)
                             }
                         }
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "Account")
+                                SectionTitle(title: appState.t(.accountSection))
 
                                 HStack {
                                     Label(
-                                        appState.isAuthenticated ? "Signed in" : "Not signed in",
+                                        appState.isAuthenticated ? appState.t(.signedIn) : appState.t(.notSignedIn),
                                         systemImage: appState.isAuthenticated ? "checkmark.seal.fill" : "person.crop.circle.badge.exclamationmark"
                                     )
                                     .font(.subheadline.weight(.semibold))
@@ -256,7 +271,7 @@ struct ProfileView: View {
                                 Button {
                                     Task { await appState.refreshFromServer() }
                                 } label: {
-                                    Label("Sync from server", systemImage: "arrow.triangle.2.circlepath")
+                                    Label(appState.t(.syncFromServer), systemImage: "arrow.triangle.2.circlepath")
                                         .font(.subheadline.weight(.bold))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)
@@ -278,7 +293,7 @@ struct ProfileView: View {
                                         isShowingSignOutConfirmation = true
                                     } label: {
                                         Label(
-                                            isSigningOut ? "Signing out…" : "Sign out",
+                                            isSigningOut ? appState.t(.signingOut) : appState.t(.signOut),
                                             systemImage: "rectangle.portrait.and.arrow.right"
                                         )
                                         .font(.subheadline.weight(.bold))
@@ -297,8 +312,8 @@ struct ProfileView: View {
                         #if DEBUG
                         MarviCard {
                             VStack(alignment: .leading, spacing: 8) {
-                                SectionTitle(title: "Developer", subtitle: "Mode: \(appState.backendLabel)")
-                                Text("Debug builds only.")
+                                SectionTitle(title: appState.t(.developer), subtitle: "Mode: \(appState.backendLabel)")
+                                Text(appState.t(.debugBuildsOnly))
                                     .font(.caption)
                                     .foregroundStyle(MarviColor.muted)
                             }
@@ -307,28 +322,103 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "Legal & account", subtitle: "Policies required for App Store review.")
+                                SectionTitle(
+                                    title: appState.t(.accountSection),
+                                    subtitle: appState.t(.accountSectionSub)
+                                )
+
+                                if appState.profile.status == .paused, appState.accountPausedBySelf {
+                                    Text(appState.t(.pausedSelfBannerSub))
+                                        .font(.caption)
+                                        .foregroundStyle(MarviColor.muted)
+
+                                    Button {
+                                        Task {
+                                            isManagingAccount = true
+                                            accountActionMessage = await appState.reactivateAccount()
+                                            isManagingAccount = false
+                                        }
+                                    } label: {
+                                        Label(
+                                            isManagingAccount ? appState.t(.reactivating) : appState.t(.reactivateAccount),
+                                            systemImage: "play.circle"
+                                        )
+                                        .font(.subheadline.weight(.bold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(MarviColor.emerald)
+                                    .background(MarviColor.emerald.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .disabled(isManagingAccount || appState.isSyncing)
+                                } else if appState.isAuthenticated {
+                                    Text(appState.t(.pauseAccountSub))
+                                        .font(.caption)
+                                        .foregroundStyle(MarviColor.muted)
+
+                                    Button {
+                                        isShowingPauseConfirmation = true
+                                    } label: {
+                                        Label(appState.t(.pauseAccount), systemImage: "pause.circle")
+                                            .font(.subheadline.weight(.bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(MarviColor.gold)
+                                    .background(MarviColor.gold.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .disabled(isManagingAccount || appState.isSyncing)
+
+                                    Button(role: .destructive) {
+                                        deleteConfirmationText = ""
+                                        isShowingDeleteConfirmation = true
+                                    } label: {
+                                        Label(appState.t(.deleteAccountForever), systemImage: "trash")
+                                            .font(.subheadline.weight(.bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(MarviColor.tomato)
+                                    .background(MarviColor.tomato.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .disabled(isManagingAccount || appState.isSyncing)
+                                }
+
+                                if let accountActionMessage {
+                                    Text(accountActionMessage)
+                                        .font(.caption)
+                                        .foregroundStyle(MarviColor.emerald)
+                                }
+                            }
+                        }
+
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                SectionTitle(title: appState.t(.legalSection), subtitle: appState.t(.legalSectionSub))
 
                                 Link(destination: AppLinks.privacyPolicy) {
-                                    Label("Privacy Policy", systemImage: "hand.raised")
+                                    Label(appState.t(.privacyPolicy), systemImage: "hand.raised")
                                 }
                                 Link(destination: AppLinks.termsOfService) {
-                                    Label("Terms of Service", systemImage: "doc.text")
+                                    Label(appState.t(.termsOfService), systemImage: "doc.text")
                                 }
                                 Link(destination: AppLinks.communityGuidelines) {
-                                    Label("Community Guidelines", systemImage: "shield.lefthalf.filled")
+                                    Label(appState.t(.communityGuidelines), systemImage: "shield.lefthalf.filled")
                                 }
                                 Link(destination: AppLinks.support) {
-                                    Label("Help & support", systemImage: "questionmark.circle")
+                                    Label(appState.t(.helpSupport), systemImage: "questionmark.circle")
                                 }
                                 Link(destination: AppLinks.deleteAccount) {
-                                    Label("Delete account", systemImage: "person.crop.circle.badge.minus")
+                                    Label(appState.t(.deleteOnWeb), systemImage: "safari")
                                 }
                                 Link(destination: AppLinks.supportEmail) {
-                                    Label("Email support", systemImage: "envelope")
+                                    Label(appState.t(.emailSupport), systemImage: "envelope")
                                 }
                                 Link(destination: URL(string: "mailto:support@marvisociety.com?subject=Safety%20report")!) {
-                                    Label("Report a safety issue", systemImage: "exclamationmark.bubble")
+                                    Label(appState.t(.reportSafety), systemImage: "exclamationmark.bubble")
                                 }
                             }
                         }
@@ -338,7 +428,7 @@ struct ProfileView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     SectionTitle(
                                         title: MarviL10n.t(.inboxTitle, language: appState.preferredLanguage),
-                                        subtitle: "\(appState.unreadInboxCount) unread"
+                                        subtitle: "\(appState.unreadInboxCount) \(appState.t(.unreadSuffix))"
                                     )
                                     NavigationLink {
                                         InboxView()
@@ -355,18 +445,18 @@ struct ProfileView: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 14) {
-                                SectionTitle(title: "Settings", subtitle: "Preferences saved on this device.")
+                                SectionTitle(title: appState.t(.settingsSection), subtitle: appState.t(.settingsSub))
 
-                                Picker("Language", selection: $appState.preferredLanguage) {
+                                Picker(appState.t(.languageLabel), selection: languageSelection) {
                                     ForEach(AppLanguage.allCases) { language in
                                         Text(language.label).tag(language)
                                     }
                                 }
                                 .pickerStyle(.segmented)
 
-                                Toggle("Push notifications", isOn: $appState.pushNotificationsEnabled)
-                                Toggle("Proof deadline reminders", isOn: $appState.proofRemindersEnabled)
-                                Toggle("Auto-save proof links", isOn: $appState.autoSaveProofLinks)
+                                Toggle(appState.t(.pushNotifications), isOn: $appState.pushNotificationsEnabled)
+                                Toggle(appState.t(.proofReminders), isOn: $appState.proofRemindersEnabled)
+                                Toggle(appState.t(.autoSaveProofLinks), isOn: $appState.autoSaveProofLinks)
                             }
                         }
                     }
@@ -380,9 +470,49 @@ struct ProfileView: View {
                 nichesText = appState.profile.niches.joined(separator: ", ")
                 languagesText = appState.profile.languages.joined(separator: ", ")
             }
-            .alert("Sign out?", isPresented: $isShowingSignOutConfirmation) {
-                Button("Cancel", role: .cancel) {}
-                Button("Sign out", role: .destructive) {
+            .alert(appState.t(.pauseConfirmTitle), isPresented: $isShowingPauseConfirmation) {
+                Button(appState.t(.cancel), role: .cancel) {}
+                Button(appState.t(.closeAccountBtn), role: .destructive) {
+                    Task {
+                        isManagingAccount = true
+                        accountActionMessage = nil
+                        if let error = await appState.pauseAccount() {
+                            accountActionMessage = error
+                        } else {
+                            accountActionMessage = appState.t(.accountPausedMessage)
+                        }
+                        isManagingAccount = false
+                    }
+                }
+            } message: {
+                Text(appState.t(.pauseConfirmMessage))
+            }
+            .alert(appState.t(.deleteConfirmTitle), isPresented: $isShowingDeleteConfirmation) {
+                TextField(appState.t(.typeDeleteHint), text: $deleteConfirmationText)
+                    .textInputAutocapitalization(.characters)
+                Button(appState.t(.cancel), role: .cancel) {
+                    deleteConfirmationText = ""
+                }
+                Button(appState.t(.deleteForeverBtn), role: .destructive) {
+                    let expected = appState.t(.deleteConfirmWord)
+                    guard deleteConfirmationText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        .compare(expected, options: .caseInsensitive) == .orderedSame else {
+                        accountActionMessage = appState.t(.errTypeDelete)
+                        return
+                    }
+                    Task {
+                        isManagingAccount = true
+                        accountActionMessage = await appState.deleteAccountPermanently()
+                        isManagingAccount = false
+                        deleteConfirmationText = ""
+                    }
+                }
+            } message: {
+                Text(appState.t(.deleteConfirmMessage))
+            }
+            .alert(appState.t(.signOutTitle), isPresented: $isShowingSignOutConfirmation) {
+                Button(appState.t(.cancel), role: .cancel) {}
+                Button(appState.t(.signOut), role: .destructive) {
                     Task {
                         isSigningOut = true
                         await appState.signOut()
@@ -390,7 +520,7 @@ struct ProfileView: View {
                     }
                 }
             } message: {
-                Text("You will return to onboarding and need to sign in again.")
+                Text(appState.t(.signOutMessage))
             }
         }
     }
@@ -415,6 +545,7 @@ struct ProfileView: View {
 }
 
 private struct PremiumProfileHeader: View {
+    @EnvironmentObject private var appState: AppState
     let profile: CreatorProfile
     let managementTitle: String
     let onManagement: () -> Void
@@ -437,12 +568,12 @@ private struct PremiumProfileHeader: View {
             }
 
             VStack(spacing: 10) {
-                Text(profile.name.isEmpty ? "Member" : profile.name)
+                Text(profile.name.isEmpty ? appState.t(.member) : profile.name)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(MarviColor.ink)
                     .padding(.top, 56)
 
-                Text(profile.niches.first ?? "Creator")
+                Text(profile.niches.first ?? appState.t(.creator))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(MarviColor.rose)
 
@@ -451,7 +582,7 @@ private struct PremiumProfileHeader: View {
                     .foregroundStyle(MarviColor.muted)
 
                 StatusPill(
-                    text: profile.status.rawValue,
+                    text: profile.status.label(for: appState.preferredLanguage),
                     tint: statusTint(for: profile.status),
                     systemImage: statusIcon(for: profile.status)
                 )

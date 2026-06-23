@@ -51,6 +51,9 @@ struct OnboardingView: View {
     @State private var acceptedTerms = false
     @State private var appleSignInError: String?
     @State private var inviteValidated = false
+    @State private var showPasswordResetConfirmation = false
+
+    private var lang: AppLanguage { appState.preferredLanguage }
 
     var body: some View {
         ZStack {
@@ -89,7 +92,17 @@ struct OnboardingView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear { applyResumeState() }
+        .onChange(of: appState.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated { applyResumeState() }
+        }
         .overlay { busyOverlay }
+        .alert(appState.t(.checkEmailTitle), isPresented: $showPasswordResetConfirmation) {
+            Button(appState.t(.ok)) {
+                appState.dismissPasswordResetMessage()
+            }
+        } message: {
+            Text(appState.passwordResetMessage ?? appState.t(.passwordResetDefault))
+        }
     }
 
     // MARK: - Steps
@@ -102,17 +115,17 @@ struct OnboardingView: View {
                 .padding(.bottom, 28)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Do what you can't")
+                Text(appState.t(.heroLine1))
                     .font(.system(size: 42, weight: .bold, design: .serif))
                     .foregroundStyle(MarviColor.ink)
                     .minimumScaleFactor(0.85)
                     .lineLimit(2)
 
-                Text("with Marvi Society")
+                Text(appState.t(.heroLine2))
                     .font(.system(size: 28, weight: .bold, design: .serif))
                     .foregroundStyle(MarviGradient.brand)
 
-                Text("Istanbul's invite-only club for creators and venues. Curated events, structured proof, trusted matching.")
+                Text(appState.t(.heroSubtitle))
                     .font(.subheadline)
                     .foregroundStyle(MarviColor.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -122,31 +135,42 @@ struct OnboardingView: View {
             Spacer(minLength: 28)
 
             HStack(spacing: 10) {
-                OnboardingPill(icon: "calendar", title: "When")
-                OnboardingPill(icon: "mappin.and.ellipse", title: "Where")
-                OnboardingPill(icon: "sparkles", title: "Event type")
+                OnboardingPill(icon: "calendar", title: appState.t(.when))
+                OnboardingPill(icon: "mappin.and.ellipse", title: appState.t(.whereAxis))
+                OnboardingPill(icon: "sparkles", title: appState.t(.eventTypeAxis))
             }
 
             VStack(spacing: 12) {
                 OnboardingFeatureRow(
                     icon: "checkmark.seal.fill",
-                    title: "Approved members only",
-                    subtitle: "Every creator application is reviewed by our team."
+                    title: appState.t(.featApprovedTitle),
+                    subtitle: appState.t(.featApprovedSub)
                 )
                 OnboardingFeatureRow(
                     icon: "building.2.fill",
-                    title: "Premium venue experiences",
-                    subtitle: "Dining, nightlife, wellness, and more."
+                    title: appState.t(.featVenuesTitle),
+                    subtitle: appState.t(.featVenuesSub)
                 )
                 OnboardingFeatureRow(
                     icon: "camera.fill",
-                    title: "Proof that protects venues",
-                    subtitle: "Submit content links after each collaboration."
+                    title: appState.t(.featProofTitle),
+                    subtitle: appState.t(.featProofSub)
                 )
             }
             .padding(.top, 22)
 
             Spacer(minLength: 8)
+
+            Button {
+                isCreatingAccount = false
+                advance(to: .signIn)
+            } label: {
+                Text(appState.t(.alreadyMemberSignIn))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(MarviColor.rose)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 24)
     }
@@ -155,11 +179,9 @@ struct OnboardingView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 OnboardingStepHeader(
-                    eyebrow: "Step 1 of 4",
-                    title: isCreatingAccount ? "Create your account" : "Sign in to continue",
-                    subtitle: isCreatingAccount
-                        ? "Use email and password. Your invite code comes next."
-                        : "Use your Marvi Society account. Profile details come next."
+                    eyebrow: appState.t(.step1of4),
+                    title: isCreatingAccount ? appState.t(.createAccount) : appState.t(.signInContinue),
+                    subtitle: isCreatingAccount ? appState.t(.createAccountSub) : appState.t(.signInSub)
                 )
 
                 Button {
@@ -168,7 +190,7 @@ struct OnboardingView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "apple.logo")
                             .font(.title3.weight(.semibold))
-                        Text(appleSignIn.isSigningIn ? "Signing in…" : "Sign in with Apple")
+                        Text(appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple))
                             .font(.headline.weight(.bold))
                     }
                     .foregroundStyle(.black)
@@ -182,28 +204,61 @@ struct OnboardingView: View {
 
                 HStack(spacing: 12) {
                     Rectangle().fill(MarviColor.border).frame(height: 1)
-                    Text("or email")
+                    Text(appState.t(.orEmail))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(MarviColor.muted)
                     Rectangle().fill(MarviColor.border).frame(height: 1)
                 }
 
                 VStack(spacing: 12) {
-                    MarviTextField(placeholder: "Email", text: $email, autocapitalization: .never)
-                    OnboardingSecureField(placeholder: "Password", text: $password)
+                    MarviTextField(placeholder: appState.t(.email), text: $email, autocapitalization: .never)
+                    OnboardingSecureField(placeholder: appState.t(.password), text: $password)
                 }
 
                 Button {
                     withAnimation { isCreatingAccount.toggle() }
                 } label: {
-                    Text(isCreatingAccount ? "Already a member? Sign in" : "New member? Create account")
+                    Text(isCreatingAccount ? appState.t(.alreadyMemberToggle) : appState.t(.newMemberCreate))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(MarviColor.rose)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.plain)
 
-                Text("Sign in with Apple needs an active Apple Developer account ($99/yr). Until then, use email to create an account and sign in.")
+                if !isCreatingAccount {
+                    Button {
+                        Task { await requestPasswordReset() }
+                    } label: {
+                        Text(appState.t(.forgotPasswordReset))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.muted)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBusy)
+                }
+
+                if AppState.isAccountAlreadyExistsMessage(appState.lastSyncError), isCreatingAccount {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(appState.t(.accountExistsTitle))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.tomato)
+                        Button {
+                            withAnimation {
+                                isCreatingAccount = false
+                                appState.dismissSyncError()
+                            }
+                        } label: {
+                            Text(appState.t(.signInToAccount))
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(MarviColor.emerald)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                Text(appState.t(.appleDevNotice))
                     .font(.caption2)
                     .foregroundStyle(MarviColor.muted)
                     .multilineTextAlignment(.center)
@@ -218,19 +273,19 @@ struct OnboardingView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 OnboardingStepHeader(
-                    eyebrow: "Step 2 of 4",
-                    title: "Enter your invite code",
-                    subtitle: "Marvi Society is invite-only. Ask your curator or venue partner for a code."
+                    eyebrow: appState.t(.step2of4),
+                    title: appState.t(.inviteTitle),
+                    subtitle: appState.t(.inviteSubtitle)
                 )
 
                 MarviTextField(
-                    placeholder: "e.g. MARVI-IST",
+                    placeholder: appState.t(.invitePlaceholder),
                     text: $inviteCode,
                     autocapitalization: .characters
                 )
 
                 if inviteValidated {
-                    Label("Invite code accepted", systemImage: "checkmark.circle.fill")
+                    Label(appState.t(.inviteAccepted), systemImage: "checkmark.circle.fill")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(MarviColor.emerald)
                 }
@@ -242,15 +297,15 @@ struct OnboardingView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Member benefits")
+                    Text(appState.t(.memberBenefits))
                         .font(.caption.weight(.bold))
                         .textCase(.uppercase)
                         .foregroundStyle(MarviColor.muted)
 
                     OnboardingFeatureRow(
                         icon: "star.fill",
-                        title: "Curated invitations",
-                        subtitle: "Access live campaigns matched to your niche."
+                        title: appState.t(.featCuratedTitle),
+                        subtitle: appState.t(.featCuratedSub)
                     )
                 }
             }
@@ -263,20 +318,20 @@ struct OnboardingView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 OnboardingStepHeader(
-                    eyebrow: "Step 3 of 4",
-                    title: "Your creator profile",
-                    subtitle: "Used for verification and invitation matching."
+                    eyebrow: appState.t(.step3of4),
+                    title: appState.t(.profileSetupTitle),
+                    subtitle: appState.t(.profileSetupSub)
                 )
 
                 MarviTextField(
-                    placeholder: "Instagram handle",
+                    placeholder: appState.t(.instagramPlaceholder),
                     text: $instagramHandle,
                     autocapitalization: .never
                 )
 
-                MarviTextField(placeholder: "City", text: $city)
+                MarviTextField(placeholder: appState.t(.cityPlaceholder), text: $city)
 
-                Text("Your niches")
+                Text(appState.t(.yourNiches))
                     .font(.caption.weight(.bold))
                     .textCase(.uppercase)
                     .foregroundStyle(MarviColor.muted)
@@ -308,7 +363,7 @@ struct OnboardingView: View {
                     }
                 }
 
-                Text("Popular cities")
+                Text(appState.t(.popularCities))
                     .font(.caption.weight(.bold))
                     .textCase(.uppercase)
                     .foregroundStyle(MarviColor.muted)
@@ -346,22 +401,22 @@ struct OnboardingView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 OnboardingStepHeader(
-                    eyebrow: "Step 4 of 4",
-                    title: "Membership agreement",
-                    subtitle: "Required before entering the club."
+                    eyebrow: appState.t(.step4of4),
+                    title: appState.t(.agreementTitle),
+                    subtitle: appState.t(.agreementSub)
                 )
 
                 MarviCard {
                     VStack(alignment: .leading, spacing: 16) {
                         Toggle(isOn: $confirmedAge18) {
-                            Text("I am 18 years of age or older.")
+                            Text(appState.t(.age18Toggle))
                                 .font(.subheadline)
                                 .foregroundStyle(MarviColor.ink)
                         }
                         .tint(MarviColor.rose)
 
                         Toggle(isOn: $acceptedTerms) {
-                            Text("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
+                            Text(appState.t(.termsToggle))
                                 .font(.subheadline)
                                 .foregroundStyle(MarviColor.ink)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -369,15 +424,15 @@ struct OnboardingView: View {
                         .tint(MarviColor.rose)
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Link("Privacy Policy", destination: AppLinks.privacyPolicy)
-                            Link("Terms of Service", destination: AppLinks.termsOfService)
-                            Link("Community Guidelines", destination: AppLinks.communityGuidelines)
+                            Link(appState.t(.privacyPolicy), destination: AppLinks.privacyPolicy)
+                            Link(appState.t(.termsOfService), destination: AppLinks.termsOfService)
+                            Link(appState.t(.communityGuidelines), destination: AppLinks.communityGuidelines)
                         }
                         .font(.caption.weight(.semibold))
                     }
                 }
 
-                Text("Venue and admin workspaces unlock automatically based on your account role.")
+                Text(appState.t(.venueWorkspaceNote))
                     .font(.caption)
                     .foregroundStyle(MarviColor.muted)
             }
@@ -399,8 +454,13 @@ struct OnboardingView: View {
     }
 
     private var primaryCTATitle: String {
-        if step == .signIn, appState.isAuthenticated { return "Continue" }
-        return step.ctaTitle
+        if step == .signIn, appState.isAuthenticated { return appState.t(.continueAction) }
+        switch step {
+        case .welcome: return appState.t(.getStarted)
+        case .signIn: return appState.t(.continueAction)
+        case .invite, .profile: return appState.t(.continueAction)
+        case .agreement: return appState.t(.joinMarvi)
+        }
     }
 
     private var canAdvancePrimary: Bool {
@@ -437,7 +497,13 @@ struct OnboardingView: View {
         if !appState.profile.city.isEmpty {
             city = appState.profile.city
         }
-        withAnimation { step = .invite }
+        Task {
+            if await appState.isExistingMemberOnServer() {
+                appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
+            } else {
+                withAnimation { step = .invite }
+            }
+        }
     }
 
     private func goBack() {
@@ -461,7 +527,11 @@ struct OnboardingView: View {
             advance(to: .signIn)
         case .signIn:
             if appState.isAuthenticated {
-                advance(to: .invite)
+                if await appState.isExistingMemberOnServer() {
+                    appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
+                } else {
+                    advance(to: .invite)
+                }
             } else if isCreatingAccount {
                 await signUpWithEmailFlow()
             } else {
@@ -520,9 +590,7 @@ struct OnboardingView: View {
         )
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
-            instagramHandle = appState.profile.handle
-            if !appState.profile.city.isEmpty { city = appState.profile.city }
-            advance(to: .invite)
+            await handlePostAuthentication()
         }
     }
 
@@ -539,9 +607,14 @@ struct OnboardingView: View {
             metadata: signupMetadata()
         )
 
+        if AppState.isAccountAlreadyExistsMessage(appState.lastSyncError) {
+            withAnimation { isCreatingAccount = false }
+            return
+        }
+
         if appState.lastSyncError == nil, appState.isAuthenticated {
             instagramHandle = appState.profile.handle
-            advance(to: .invite)
+            await handlePostAuthentication()
         }
     }
 
@@ -552,13 +625,31 @@ struct OnboardingView: View {
         await appState.signInWithApple(using: appleSignIn, metadata: signupMetadata())
 
         if appState.isAuthenticated {
-            instagramHandle = appState.profile.handle
-            if !appState.profile.city.isEmpty { city = appState.profile.city }
-            advance(to: .invite)
+            await handlePostAuthentication()
         } else if let error = appState.lastSyncError {
             appleSignInError = error
         } else if let error = appleSignIn.lastError {
             appleSignInError = error
+        }
+    }
+
+    private func handlePostAuthentication() async {
+        instagramHandle = appState.profile.handle
+        if !appState.profile.city.isEmpty { city = appState.profile.city }
+        selectedNiches = Set(appState.profile.niches)
+
+        if await appState.isExistingMemberOnServer() {
+            appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
+        } else {
+            advance(to: .invite)
+        }
+    }
+
+    private func requestPasswordReset() async {
+        appState.dismissSyncError()
+        await appState.requestPasswordReset(email: email)
+        if appState.passwordResetMessage != nil {
+            showPasswordResetConfirmation = true
         }
     }
 
@@ -567,14 +658,16 @@ struct OnboardingView: View {
         isValidatingReferral = true
         defer { isValidatingReferral = false }
 
-        let valid = await appState.validateReferralCode(inviteCode)
-        guard valid else {
-            referralError = "Invite code not recognized. Ask your curator for a valid code."
-            return false
-        }
-
+        // Redeem on the server (SECURITY DEFINER) — avoids brittle PostgREST filters on the client.
         if let redeemError = await appState.redeemReferralCode(inviteCode) {
-            referralError = redeemError
+            let lower = redeemError.lowercased()
+            if lower.contains("invalid invite") || lower.contains("invite code required") {
+                referralError = "Invite code not recognized. Ask your curator for a valid code."
+            } else if lower.contains("could not find the function") {
+                referralError = "Server setup incomplete. Run apply-referral-fix.sql in Supabase."
+            } else {
+                referralError = redeemError
+            }
             return false
         }
         return true
@@ -618,9 +711,9 @@ struct OnboardingView: View {
     }
 
     private var busyMessage: String {
-        if isValidatingReferral { return "Validating invite code…" }
-        if appState.isBootstrapping { return "Setting up your account…" }
-        return "Signing in…"
+        if isValidatingReferral { return appState.t(.validatingInvite) }
+        if appState.isBootstrapping { return appState.t(.settingUpAccount) }
+        return appState.t(.signingIn)
     }
 }
 

@@ -38,10 +38,8 @@ struct OfferDetailView: View {
                     if offer.collaborationModel == .event {
                         MarviCard {
                             SectionTitle(
-                                title: lang == .turkish ? "Etkinlik RSVP" : "Event RSVP",
-                                subtitle: lang == .turkish
-                                    ? "Katılımınız venue kapasitesinden düşülür."
-                                    : "Your attendance is reserved against venue capacity."
+                                title: appState.t(.eventRSVP),
+                                subtitle: appState.t(.eventRSVPSub)
                             )
                         }
                     }
@@ -49,40 +47,38 @@ struct OfferDetailView: View {
                     if offer.collaborationModel == .gift {
                         MarviCard {
                             SectionTitle(
-                                title: lang == .turkish ? "Hediye gönderimi" : "Gift delivery",
-                                subtitle: lang == .turkish
-                                    ? "Onay sırasında teslimat adresi gerekir."
-                                    : "A shipping address is required when you confirm."
+                                title: appState.t(.giftDelivery),
+                                subtitle: appState.t(.giftDeliverySub)
                             )
                         }
                     }
 
                     MarviCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            SectionTitle(title: "Campaign brief", subtitle: offer.description)
+                            SectionTitle(title: appState.t(.campaignBrief), subtitle: offer.description)
 
                             HStack(spacing: 10) {
-                                MetricTile(value: offer.dateLabel, label: "date", icon: "calendar", tint: offer.category.tint)
-                                MetricTile(value: offer.timeLabel, label: "time", icon: "clock", tint: MarviColor.blue)
+                                MetricTile(value: offer.dateLabel, label: appState.t(.metricDate), icon: "calendar", tint: offer.category.tint)
+                                MetricTile(value: offer.timeLabel, label: appState.t(.metricTime), icon: "clock", tint: MarviColor.blue)
                             }
 
                             HStack(spacing: 10) {
-                                MetricTile(value: offer.valueLabel, label: "creator value", icon: "gift", tint: MarviColor.gold)
-                                MetricTile(value: "\(offer.remaining)/\(offer.capacity)", label: "open slots", icon: "person.2", tint: MarviColor.aubergine)
+                                MetricTile(value: offer.valueLabel, label: appState.t(.creatorValue), icon: "gift", tint: MarviColor.gold)
+                                MetricTile(value: "\(offer.remaining)/\(offer.capacity)", label: appState.t(.openSlots), icon: "person.2", tint: MarviColor.aubergine)
                             }
                         }
                     }
 
                     MarviCard {
                         VStack(alignment: .leading, spacing: 10) {
-                            SectionTitle(title: "Capacity")
+                            SectionTitle(title: appState.t(.capacity))
 
                             HStack {
-                                Text("\(offer.capacity - offer.remaining) creators confirmed")
+                                Text(appState.tf(.creatorsConfirmed, offer.capacity - offer.remaining))
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(MarviColor.ink)
                                 Spacer()
-                                Text("\(Int(fillRatio * 100))% filled")
+                                Text(appState.tf(.percentFilled, Int(fillRatio * 100)))
                                     .font(.caption.weight(.bold))
                                     .foregroundStyle(MarviColor.muted)
                             }
@@ -91,12 +87,12 @@ struct OfferDetailView: View {
                         }
                     }
 
-                    DetailListCard(title: "Deliverables", icon: "checklist", items: offer.deliverables, tint: MarviColor.emerald)
-                    DetailListCard(title: "Requirements", icon: "shield.checkered", items: offer.requirements, tint: MarviColor.aubergine)
+                    DetailListCard(title: appState.t(.deliverables), icon: "checklist", items: offer.deliverables, tint: MarviColor.emerald)
+                    DetailListCard(title: appState.t(.requirements), icon: "shield.checkered", items: offer.requirements, tint: MarviColor.aubergine)
 
                     MarviCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("Host note", systemImage: "person.crop.square")
+                            Label(appState.t(.hostNote), systemImage: "person.crop.square")
                                 .font(.headline.weight(.bold))
                                 .foregroundStyle(MarviColor.ink)
                             Text(offer.hostNote)
@@ -108,10 +104,10 @@ struct OfferDetailView: View {
 
                     MarviCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            SectionTitle(title: "Acceptance terms")
-                            TermRow(icon: "clock.fill", title: "Attendance", value: "Arrive within the confirmed window.")
-                            TermRow(icon: "camera.fill", title: "Content", value: "Deliver all agreed links before the proof deadline.")
-                            TermRow(icon: "hand.raised.fill", title: "Policy", value: "No private guest filming without consent.")
+                            SectionTitle(title: appState.t(.acceptanceTerms))
+                            TermRow(icon: "clock.fill", title: appState.t(.termAttendance), value: appState.t(.termAttendanceVal))
+                            TermRow(icon: "camera.fill", title: appState.t(.termContent), value: appState.t(.termContentVal))
+                            TermRow(icon: "hand.raised.fill", title: appState.t(.termPolicy), value: appState.t(.termPolicyVal))
                         }
                     }
                 }
@@ -139,16 +135,16 @@ struct OfferDetailView: View {
             .background(MarviColor.panel.opacity(0.95))
         }
         .confirmationDialog(
-            "Cancel this invitation?",
+            appState.t(.cancelInvitationQ),
             isPresented: $showCancelConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Cancel invitation", role: .destructive) {
+            Button(appState.t(.cancelInvitation), role: .destructive) {
                 appState.cancel(offer)
             }
-            Button("Keep", role: .cancel) {}
+            Button(appState.t(.keepBtn), role: .cancel) {}
         } message: {
-            Text("The venue will be notified and your slot may be released.")
+            Text(appState.t(.venueNotifiedCancel))
         }
         .sheet(isPresented: $showGiftSheet) {
             AcceptExtrasSheet(
@@ -203,16 +199,16 @@ struct OfferDetailView: View {
     }
 
     private var primaryActionTitle: String {
-        if isPending { return "Please wait…" }
-        if isAccepted { return "Cancel invitation" }
-        if isUnderReview { return "Awaiting approval" }
-        if isPaused { return "Membership paused" }
-        if isFull { return "Fully booked" }
+        if isPending { return appState.t(.pleaseWait) }
+        if isAccepted { return appState.t(.cancelInvitation) }
+        if isUnderReview { return appState.t(.awaitingApproval) }
+        if isPaused { return appState.t(.membershipPaused) }
+        if isFull { return appState.t(.fullyBooked) }
         switch offer.collaborationModel {
-        case .instant: return MarviL10n.t(.useNow, language: lang)
-        case .event: return MarviL10n.t(.rsvpEvent, language: lang)
-        case .gift: return MarviL10n.t(.confirmGift, language: lang)
-        default: return MarviL10n.t(.acceptInvitation, language: lang)
+        case .instant: return appState.t(.useNow)
+        case .event: return appState.t(.rsvpEvent)
+        case .gift: return appState.t(.confirmGift)
+        default: return appState.t(.acceptInvitation)
         }
     }
 
@@ -227,6 +223,7 @@ struct OfferDetailView: View {
 
 private struct AcceptExtrasSheet<Content: View>: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
     let title: String
     let actionTitle: String
     @ViewBuilder let content: () -> Content
@@ -236,7 +233,7 @@ private struct AcceptExtrasSheet<Content: View>: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    SectionTitle(title: title, subtitle: "Required before confirming this collaboration.")
+                    SectionTitle(title: title, subtitle: appState.t(.extrasRequiredSub))
                     MarviCard { content() }
                     PrimaryActionButton(title: actionTitle, systemImage: "checkmark.circle") {
                         onConfirm()
@@ -250,7 +247,7 @@ private struct AcceptExtrasSheet<Content: View>: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
+                    Button(appState.t(.close)) { dismiss() }
                 }
             }
         }
@@ -259,6 +256,7 @@ private struct AcceptExtrasSheet<Content: View>: View {
 }
 
 private struct HeaderBlock: View {
+    @EnvironmentObject private var appState: AppState
     let offer: Offer
     let matchScore: Int
     let distanceLabel: String?
@@ -274,10 +272,10 @@ private struct HeaderBlock: View {
 
                 VStack(alignment: .leading, spacing: 9) {
                     HStack(spacing: 6) {
-                        StatusPill(text: offer.category.rawValue, tint: offer.category.tint, systemImage: offer.category.icon)
-                        StatusPill(text: offer.collaborationModel.rawValue, tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
+                        StatusPill(text: offer.category.label(for: appState.preferredLanguage), tint: offer.category.tint, systemImage: offer.category.icon)
+                        StatusPill(text: offer.collaborationModel.label(for: appState.preferredLanguage), tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
                         if isAccepted {
-                            StatusPill(text: "Confirmed", tint: MarviColor.emerald, systemImage: "checkmark")
+                            StatusPill(text: appState.t(.confirmedStatus), tint: MarviColor.emerald, systemImage: "checkmark")
                         }
                     }
 
@@ -304,9 +302,9 @@ private struct HeaderBlock: View {
 
             HStack(spacing: 10) {
                 if matchScore > 0 {
-                    StatusPill(text: "\(matchScore)% match", tint: MarviColor.gold, systemImage: "star.fill")
+                    StatusPill(text: appState.tf(.matchPercent, matchScore), tint: MarviColor.gold, systemImage: "star.fill")
                 }
-                StatusPill(text: "\(offer.remaining) slots left", tint: offer.category.tint, systemImage: "person.2")
+                StatusPill(text: appState.tf(.slotsLeft, offer.remaining), tint: offer.category.tint, systemImage: "person.2")
                 Spacer()
                 Button(action: toggleSaved) {
                     Image(systemName: isSaved ? "bookmark.fill" : "bookmark")

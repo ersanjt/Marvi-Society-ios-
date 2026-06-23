@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="Marvi Society">
+  <defs>
+    <linearGradient id="marvi-brand" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF2D78"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="url(#marvi-brand)"/>
+  <rect width="48" height="48" rx="12" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+  <text x="24" y="33" text-anchor="middle" fill="#FFFFFF" font-family="Georgia, 'Times New Roman', serif" font-size="24" font-weight="700">M</text>
+</svg>

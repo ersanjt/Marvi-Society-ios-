@@ -40,7 +40,7 @@ BEGIN
          ARRAY['1 Story with location tag'], ARRAY['Within 1 km'], 'Show check-in code at counter.', 'live', 40.9903, 29.0244);
 
     INSERT INTO public.referral_codes (code, owner_type, max_uses)
-    VALUES ('MARVI-IST', 'creator', 500), ('MARVI2026', 'venue', 100)
+    VALUES ('MARVI-IST', 'creator', 500), ('TURGUT', 'creator', 500), ('MARVI2026', 'venue', 100)
     ON CONFLICT (code) DO NOTHING;
 END;
 $$;

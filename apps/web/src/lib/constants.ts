@@ -1,25 +1,5 @@
-import { MARVI_URLS } from "@marvi/shared";
-
-export const SITE = {
-  name: "Marvi Society",
-  tagline: "Istanbul's private creator × venue collaboration club",
-  description:
-    "Approved creators discover curated venue experiences. Venues receive structured social content. Operators curate quality and trust.",
-  url: MARVI_URLS.site,
-  email: "hello@marvisociety.com",
-  supportEmail: "support@marvisociety.com",
-  appStoreUrl: "#",
-  playStoreUrl: "#",
-} as const;
-
+export { SITE, NAV_LINKS, ADMIN_NAV, PORTAL_NAV } from "@/config/site";
 export { MARVI_URLS, REFERRAL_CODES } from "@marvi/shared";
-
-export const NAV_LINKS = [
-  { href: "/brands", label: "Brands" },
-  { href: "/creators", label: "Creators" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/demo", label: "Get demo" },
-] as const;
 
 export const COLLABORATION_MODELS = [
   {

@@ -1,11 +1,19 @@
 import PhotosUI
 import SwiftUI
 
-private enum EventBucket: String, CaseIterable {
-    case requests = "Requests"
-    case toConfirm = "To confirm"
-    case toReview = "To review"
-    case toVisit = "To visit"
+private enum EventBucket: CaseIterable, Identifiable {
+    case requests, toConfirm, toReview, toVisit
+
+    var id: Self { self }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .requests: MarviL10n.t(.requests, language: language)
+        case .toConfirm: MarviL10n.t(.toConfirm, language: language)
+        case .toReview: MarviL10n.t(.toReview, language: language)
+        case .toVisit: MarviL10n.t(.toVisit, language: language)
+        }
+    }
 }
 
 struct BookingsView: View {
@@ -21,22 +29,22 @@ struct BookingsView: View {
     private var statusBadges: [StatusBadge] {
         [
             StatusBadge(
-                title: EventBucket.requests.rawValue,
+                title: EventBucket.requests.title(for: appState.preferredLanguage),
                 count: appState.pendingInviteBookings.count + appState.interestOffers.count,
                 tint: MarviColor.rose
             ),
             StatusBadge(
-                title: EventBucket.toConfirm.rawValue,
+                title: EventBucket.toConfirm.title(for: appState.preferredLanguage),
                 count: appState.bookings.filter { $0.stage == .confirmed }.count,
                 tint: MarviColor.aubergine
             ),
             StatusBadge(
-                title: EventBucket.toReview.rawValue,
+                title: EventBucket.toReview.title(for: appState.preferredLanguage),
                 count: appState.bookings.filter { $0.stage == .proofDue || $0.proofStatus == .pending }.count,
                 tint: MarviColor.gold
             ),
             StatusBadge(
-                title: EventBucket.toVisit.rawValue,
+                title: EventBucket.toVisit.title(for: appState.preferredLanguage),
                 count: appState.bookings.filter { $0.stage == .checkedIn }.count,
                 tint: MarviColor.blue
             )
@@ -45,8 +53,9 @@ struct BookingsView: View {
 
     private var activeBucket: EventBucket? {
         guard let id = selectedBucketID,
-              let badge = statusBadges.first(where: { $0.id == id }) else { return nil }
-        return EventBucket(rawValue: badge.title)
+              let index = statusBadges.firstIndex(where: { $0.id == id }),
+              index < EventBucket.allCases.count else { return nil }
+        return EventBucket.allCases[index]
     }
 
     private var displayedBookings: [Booking] {
@@ -81,11 +90,11 @@ struct BookingsView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("My Events")
+                                Text(appState.t(.myEventsTitle))
                                     .font(.system(size: 34, weight: .bold, design: .serif))
                                     .foregroundStyle(MarviColor.ink)
 
-                                Text("Your events organized")
+                                Text(appState.t(.myEventsSub))
                                     .font(.subheadline)
                                     .foregroundStyle(MarviColor.muted)
                             }
@@ -107,12 +116,13 @@ struct BookingsView: View {
                         SSSelectableStatusGrid(badges: statusBadges, selectedID: $selectedBucketID)
 
                         SSToggleTabs(
-                            leftTitle: "Pending Invites",
-                            rightTitle: "Interest Shown",
+                            leftTitle: appState.t(.pendingInvites),
+                            rightTitle: appState.t(.interestShown),
                             isRightSelected: $isInterestMode
                         )
 
                         SSFilterToolbar(
+                            language: appState.preferredLanguage,
                             onFilters: { selectedCategory = nil },
                             onSort: nil,
                             onLocation: nil,
@@ -132,7 +142,7 @@ struct BookingsView: View {
                         } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 10) {
-                                    SSFilterChip(title: "Category", icon: "tag") {
+                                    SSFilterChip(title: appState.t(.categoryLabel), icon: "tag") {
                                         selectedCategory = .dining
                                     }
                                 }
@@ -163,7 +173,7 @@ struct BookingsView: View {
                     InboxView()
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") { isShowingInbox = false }
+                                Button(appState.t(.done)) { isShowingInbox = false }
                             }
                         }
                 }
@@ -184,10 +194,10 @@ struct BookingsView: View {
         if displayedInterestOffers.isEmpty {
             MarviCard {
                 EmptyStateView(
-                    title: "No interest shown",
-                    subtitle: "Save events from Explore to track them here.",
+                    title: appState.t(.noInterestShown),
+                    subtitle: appState.t(.saveEventsExploreSub),
                     icon: "heart",
-                    actionTitle: "Refresh",
+                    actionTitle: appState.t(.refresh),
                     action: { Task { await appState.refreshFromServer() } }
                 )
             }
@@ -221,7 +231,7 @@ struct BookingsView: View {
                     title: emptyTitle,
                     subtitle: emptySubtitle,
                     icon: "calendar.badge.plus",
-                    actionTitle: "Refresh",
+                    actionTitle: appState.t(.refresh),
                     action: { Task { await appState.refreshFromServer() } }
                 )
             }
@@ -248,28 +258,25 @@ struct BookingsView: View {
 
     private var emptyTitle: String {
         switch activeBucket {
-        case .requests, .none: "No pending invites"
-        case .toConfirm: "Nothing to confirm"
-        case .toReview: "Nothing to review"
-        case .toVisit: "No visits scheduled"
+        case .requests, .none: appState.t(.noPendingInvites)
+        case .toConfirm: appState.t(.nothingToConfirm)
+        case .toReview: appState.t(.nothingToReview)
+        case .toVisit: appState.t(.noVisitsScheduled)
         }
     }
 
     private var emptySubtitle: String {
         switch activeBucket {
-        case .requests, .none:
-            "When a venue invites you directly, it appears here."
-        case .toConfirm:
-            "Confirmed visits waiting for your check-in show here."
-        case .toReview:
-            "Submit proof after your visit to move events forward."
-        case .toVisit:
-            "Checked-in collaborations appear here until proof is due."
+        case .requests, .none: appState.t(.emptyRequestsSub)
+        case .toConfirm: appState.t(.emptyConfirmSub)
+        case .toReview: appState.t(.emptyReviewSub)
+        case .toVisit: appState.t(.emptyVisitSub)
         }
     }
 }
 
 private struct InterestOfferCard: View {
+    @EnvironmentObject private var appState: AppState
     let offer: Offer
     let open: () -> Void
     let accept: () -> Void
@@ -300,8 +307,8 @@ private struct InterestOfferCard: View {
                 .buttonStyle(.plain)
 
                 SSDeclineAcceptRow(
-                    declineTitle: "Decline",
-                    acceptTitle: "Accept",
+                    declineTitle: appState.t(.decline),
+                    acceptTitle: appState.t(.accept),
                     onDecline: decline,
                     onAccept: accept
                 )
@@ -311,6 +318,7 @@ private struct InterestOfferCard: View {
 }
 
 private struct BookingCard: View {
+    @EnvironmentObject private var appState: AppState
     let booking: Booking
     let open: () -> Void
     let checkIn: () -> Void
@@ -327,7 +335,7 @@ private struct BookingCard: View {
                             .frame(width: 64, height: 72)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            StatusPill(text: booking.stage.rawValue, tint: stageTint, systemImage: "circle.fill")
+                            StatusPill(text: booking.stage.label(for: appState.preferredLanguage), tint: stageTint, systemImage: "circle.fill")
 
                             Text(booking.offer.title)
                                 .font(.headline.weight(.bold))
@@ -357,7 +365,7 @@ private struct BookingCard: View {
                 } else if booking.stage != .completed && booking.stage != .cancelled {
                     HStack(spacing: 10) {
                         Button(action: decline) {
-                            Text("Decline")
+                            Text(appState.t(.decline))
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 11)
@@ -382,7 +390,7 @@ private struct BookingCard: View {
 
                     if booking.stage == .checkedIn || booking.stage == .proofDue {
                         Button(action: submitProof) {
-                            Label("Submit proof", systemImage: "tray.and.arrow.up")
+                            Label(appState.t(.submitProof), systemImage: "tray.and.arrow.up")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 11)
@@ -403,9 +411,9 @@ private struct BookingCard: View {
 
     private var primaryActionTitle: String {
         switch booking.stage {
-        case .confirmed: "Check in"
-        case .checkedIn, .proofDue: "Add proof"
-        default: "Check in"
+        case .confirmed: appState.t(.checkIn)
+        case .checkedIn, .proofDue: appState.t(.addProof)
+        default: appState.t(.checkIn)
         }
     }
 
@@ -432,16 +440,17 @@ private struct BookingCard: View {
 // MARK: - Proof & Check-in sheets (unchanged)
 
 private struct BookingTimeline: View {
+    @EnvironmentObject private var appState: AppState
     let stage: BookingStage
     let proofStatus: ProofStatus
 
     var body: some View {
         HStack(spacing: 8) {
-            TimelineStep(title: "Confirm", isDone: true)
+            TimelineStep(title: appState.t(.timelineConfirm), isDone: true)
             TimelineLine(isDone: stage != .invited)
-            TimelineStep(title: "Check in", isDone: stage == .checkedIn || stage == .completed)
+            TimelineStep(title: appState.t(.timelineCheckIn), isDone: stage == .checkedIn || stage == .completed)
             TimelineLine(isDone: proofStatus == .pending || proofStatus == .approved)
-            TimelineStep(title: "Proof", isDone: proofStatus == .pending || proofStatus == .approved)
+            TimelineStep(title: appState.t(.timelineProof), isDone: proofStatus == .pending || proofStatus == .approved)
         }
         .padding(10)
         .background(MarviColor.panelElevated)
@@ -492,11 +501,11 @@ struct CheckInSheet: View {
             MarviScreen {
                 VStack(alignment: .leading, spacing: 20) {
                     SectionTitle(
-                        title: "Check in at venue",
-                        subtitle: "Enter the code shown by staff or use your booking reference."
+                        title: appState.t(.checkInAtVenue),
+                        subtitle: appState.t(.checkInSheetSub)
                     )
 
-                    MarviTextField(placeholder: "Check-in code", text: $code, autocapitalization: .characters)
+                    MarviTextField(placeholder: appState.t(.checkInCode), text: $code, autocapitalization: .characters)
 
                     if let errorMessage {
                         Text(errorMessage)
@@ -504,7 +513,7 @@ struct CheckInSheet: View {
                             .foregroundStyle(MarviColor.tomato)
                     }
 
-                    GradientCTA(title: isSubmitting ? "Checking in…" : "Confirm check-in") {
+                    GradientCTA(title: isSubmitting ? appState.t(.checkingIn) : appState.t(.confirmCheckIn)) {
                         Task {
                             isSubmitting = true
                             errorMessage = nil
@@ -520,11 +529,11 @@ struct CheckInSheet: View {
                 }
                 .padding(16)
             }
-            .navigationTitle("Check in")
+            .navigationTitle(appState.t(.checkInNav))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
+                    Button(appState.t(.close)) { dismiss() }
                 }
             }
         }
@@ -546,8 +555,8 @@ struct ProofSubmissionSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         SectionTitle(
-                            title: "Submit proof",
-                            subtitle: "Paste Instagram or TikTok links for \(booking.offer.venue)."
+                            title: appState.t(.submitProofTitle),
+                            subtitle: String(format: appState.t(.submitProofSub), booking.offer.venue)
                         )
 
                         MarviTextField(
@@ -557,7 +566,7 @@ struct ProofSubmissionSheet: View {
                         )
 
                         PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                            Label("Attach screenshot", systemImage: "photo")
+                            Label(appState.t(.attachScreenshot), systemImage: "photo")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -573,7 +582,7 @@ struct ProofSubmissionSheet: View {
                                 .foregroundStyle(MarviColor.tomato)
                         }
 
-                        GradientCTA(title: isSubmitting ? "Submitting…" : "Send to review") {
+                        GradientCTA(title: isSubmitting ? appState.t(.submitting) : appState.t(.sendToReview)) {
                             Task {
                                 isSubmitting = true
                                 errorMessage = nil
@@ -605,11 +614,11 @@ struct ProofSubmissionSheet: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Proof")
+            .navigationTitle(appState.t(.proofNav))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
+                    Button(appState.t(.close)) { dismiss() }
                 }
             }
         }

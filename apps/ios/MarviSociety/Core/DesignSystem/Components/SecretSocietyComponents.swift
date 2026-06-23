@@ -128,26 +128,28 @@ struct SSDiscoverAxisPills: View {
     let whenOptions: [String]
     let whereOptions: [String]
     let eventTypes: [String]
+    var language: AppLanguage = .turkish
     @Binding var selectedWhen: String?
     @Binding var selectedWhere: String?
     @Binding var selectedEventType: String?
 
     var body: some View {
         HStack(spacing: 10) {
-            axisMenu(icon: "calendar", title: "When", value: $selectedWhen, options: whenOptions)
-            axisMenu(icon: "mappin.and.ellipse", title: "Where", value: $selectedWhere, options: whereOptions)
-            axisMenu(icon: "sparkles", title: "Event type", value: $selectedEventType, options: eventTypes)
+            axisMenu(icon: "calendar", title: MarviL10n.t(.when, language: language), resetLabel: MarviL10n.t(.anyWhen, language: language), value: $selectedWhen, options: whenOptions)
+            axisMenu(icon: "mappin.and.ellipse", title: MarviL10n.t(.whereAxis, language: language), resetLabel: MarviL10n.t(.anyWhere, language: language), value: $selectedWhere, options: whereOptions)
+            axisMenu(icon: "sparkles", title: MarviL10n.t(.eventTypeAxis, language: language), resetLabel: MarviL10n.t(.anyType, language: language), value: $selectedEventType, options: eventTypes)
         }
     }
 
     private func axisMenu(
         icon: String,
         title: String,
+        resetLabel: String,
         value: Binding<String?>,
         options: [String]
     ) -> some View {
         Menu {
-            Button("Any \(title.lowercased())") { value.wrappedValue = nil }
+            Button(resetLabel) { value.wrappedValue = nil }
             Divider()
             ForEach(options, id: \.self) { option in
                 Button(option) { value.wrappedValue = option }
@@ -183,17 +185,18 @@ struct SSDiscoverAxisPills: View {
 struct SSExploreHeader: View {
     let city: String
     let eventCount: Int
+    var language: AppLanguage = .turkish
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Find and Explore Events")
+            Text(MarviL10n.t(.findExploreEvents, language: language))
                 .font(.caption.weight(.bold))
                 .textCase(.uppercase)
                 .tracking(1.2)
                 .foregroundStyle(MarviColor.muted)
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("Upcoming Events in")
+                Text(MarviL10n.t(.upNextInCity, language: language))
                     .font(.system(size: 26, weight: .bold, design: .serif))
                     .foregroundStyle(MarviColor.ink)
                 Text(city)
@@ -201,7 +204,7 @@ struct SSExploreHeader: View {
                     .foregroundStyle(MarviGradient.brand)
             }
 
-            Text("\(eventCount) Events found")
+            Text(String(format: MarviL10n.t(.eventsFound, language: language), eventCount))
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(MarviColor.rose)
         }
@@ -209,6 +212,7 @@ struct SSExploreHeader: View {
 }
 
 struct SSFilterToolbar: View {
+    let language: AppLanguage
     var onFilters: (() -> Void)?
     var onSort: (() -> Void)?
     var onLocation: (() -> Void)?
@@ -218,16 +222,16 @@ struct SSFilterToolbar: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 if let onFilters {
-                    SSFilterChip(title: "Filters", icon: "slider.horizontal.3", action: onFilters)
+                    SSFilterChip(title: MarviL10n.t(.filters, language: language), icon: "slider.horizontal.3", action: onFilters)
                 }
                 if let onSort {
-                    SSFilterChip(title: "Sort by", icon: "arrow.up.arrow.down", action: onSort)
+                    SSFilterChip(title: MarviL10n.t(.sortBy, language: language), icon: "arrow.up.arrow.down", action: onSort)
                 }
                 if let onLocation {
-                    SSFilterChip(title: "Location", icon: "mappin", action: onLocation)
+                    SSFilterChip(title: MarviL10n.t(.location, language: language), icon: "mappin", action: onLocation)
                 }
                 if let onDate {
-                    SSFilterChip(title: "Date", icon: "calendar", action: onDate)
+                    SSFilterChip(title: MarviL10n.t(.date, language: language), icon: "calendar", action: onDate)
                 }
             }
         }

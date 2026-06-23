@@ -110,6 +110,21 @@ actor SupabaseClient {
         try applyAuthResponse(from: data)
     }
 
+    func resetPassword(email: String) async throws {
+        let url = baseURL.appending(path: "auth/v1/recover")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode([
+            "email": email,
+            "redirect_to": "https://marvisociety.com/portal/login"
+        ])
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+    }
+
     func signOut() async throws {
         if let token {
             var request = URLRequest(url: baseURL.appending(path: "auth/v1/logout"))
@@ -189,10 +204,23 @@ actor SupabaseClient {
         try validate(response: response, data: data)
     }
 
+    func invokeFunction(name: String, body: [String: Any]) async throws -> Data {
+        let url = baseURL.appending(path: "functions/v1/\(name)")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        applyHeaders(&request, authenticated: true)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return data
+    }
+
     func rpc<T: Decodable>(
         function: String,
         body: [String: Any],
-        type: T.Type = T.self
+        type: T.Type = T.self,
+        decoder: JSONDecoder = JSONDecoder()
     ) async throws -> T {
         let url = baseURL.appending(path: "rest/v1/rpc/\(function)")
         var request = URLRequest(url: url)
@@ -204,7 +232,7 @@ actor SupabaseClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
         do {
-            return try JSONDecoder().decode(T.self, from: data)
+            return try decoder.decode(T.self, from: data)
         } catch {
             throw MarviAPIError.decoding(error)
         }
@@ -341,6 +369,8 @@ actor SupabaseClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if authenticated, let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         }
     }
 
@@ -355,7 +385,7 @@ actor SupabaseClient {
 
         guard (200...299).contains(http.statusCode) else {
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let message = json["message"] as? String ?? json["error_description"] as? String ?? json["msg"] as? String {
+               let message = json["message"] as? String ?? json["error_description"] as? String ?? json["msg"] as? String ?? json["error"] as? String {
                 throw MarviAPIError.server(message: message)
             }
             let body = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"

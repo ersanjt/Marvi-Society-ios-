@@ -17,6 +17,7 @@ final class AppState: ObservableObject {
     @Published var bookings: [Booking] = []
     @Published var campaigns: [Campaign] = []
     @Published var adminTasks: [AdminTask] = []
+    @Published var adminUsers: [AdminUserSummary] = []
     @Published var inboxMessages: [InboxMessage] = []
     @Published var profile = CreatorProfile.empty
     @Published var strikes: [Strike] = []
@@ -42,20 +43,27 @@ final class AppState: ObservableObject {
     @Published var hasLoadedInitialData = false
     @Published var needsReauthentication = false
     @Published var lastSyncError: String?
+    @Published var passwordResetMessage: String?
     @Published var isAuthenticated = false
     @Published var allowedRoles: [UserRole] = [.creator]
     @Published var accountRole: UserRole = .creator
+    @Published var accountPausedBySelf = false
     @Published var pendingOfferIDs: Set<UUID> = []
     @Published var venueReviewQueue: [VenueReviewItem] = []
+    @Published var myVenues: [VenueSummary] = []
     @Published var processingAdminTaskID: UUID?
     @Published var pendingDeepLink: MarviDeepLink?
     @Published var highlightedBookingID: UUID?
     @Published var pendingOfferNavigation: Offer?
-    @Published var preferredLanguage: AppLanguage = .english {
+    @Published private(set) var languageManuallySet = false {
+        didSet { saveSnapshot() }
+    }
+    @Published var preferredLanguage: AppLanguage = AppLanguage.inferredFromDevice() {
         didSet { saveSnapshot() }
     }
 
     private var lastNotifiedInstantOfferID: UUID?
+    private var lastLocationUploadAt: Date?
 
     let locationService = LocationService()
     var isRemoteMode: Bool { APIConfig.isSupabaseConfigured }
@@ -73,9 +81,14 @@ final class AppState: ObservableObject {
             pushNotificationsEnabled = snapshot.pushNotificationsEnabled
             proofRemindersEnabled = snapshot.proofRemindersEnabled
             autoSaveProofLinks = snapshot.autoSaveProofLinks
+            languageManuallySet = snapshot.languageManuallySet
+            preferredLanguage = snapshot.languageManuallySet
+                ? snapshot.preferredLanguage
+                : AppLanguage.inferredFromDevice()
         }
 
         isPersistenceReady = true
+        refreshLocation()
 
         guard isRemoteMode else { return }
 
@@ -107,8 +120,34 @@ final class AppState: ObservableObject {
         offers.filter { savedOfferIDs.contains($0.id) && !acceptedOfferIDs.contains($0.id) }
     }
 
+    var activeVenue: VenueSummary? {
+        myVenues.first(where: \.isActive) ?? myVenues.first
+    }
+
+    var hasMultipleVenues: Bool {
+        myVenues.count > 1
+    }
+
     var openAdminTasks: [AdminTask] {
         adminTasks.filter { $0.status == .open }
+    }
+
+    static func inferredSystemLanguage() -> AppLanguage {
+        AppLanguage.inferredFromDevice()
+    }
+
+    func setPreferredLanguage(_ language: AppLanguage, manual: Bool = false) {
+        if manual {
+            languageManuallySet = true
+        }
+        preferredLanguage = language
+    }
+
+    private func applyInferredLanguageFromLocation(latitude: Double, longitude: Double) {
+        guard !languageManuallySet else { return }
+        preferredLanguage = AppLanguage.isCoordinateInTurkey(latitude: latitude, longitude: longitude)
+            ? .turkish
+            : .english
     }
 
     var backendLabel: String { "Supabase" }
@@ -123,6 +162,15 @@ final class AppState: ObservableObject {
     }
 
     func handleLocationUpdate() {
+        if let coordinate = locationService.coordinate {
+            applyInferredLanguageFromLocation(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )
+        }
+
+        Task { await uploadUserLocationIfNeeded() }
+
         guard pushNotificationsEnabled, isAuthenticated else { return }
         guard let instant = nearbyOffers(withinKm: 3).first(where: { $0.collaborationModel == .instant }) else {
             return
@@ -281,15 +329,16 @@ final class AppState: ObservableObject {
         if await api.restoreSession() {
             isAuthenticated = true
             needsReauthentication = false
-            await refreshFromServer(retryOnUnauthorized: true)
+            try? await api.refreshSession()
             await syncAllowedRoles()
+            await refreshFromServer(retryOnUnauthorized: true)
             return
         }
 
         if hasCompletedOnboarding {
             needsReauthentication = true
             isAuthenticated = false
-            lastSyncError = "Your session expired. Please sign in again."
+            lastSyncError = t(.errSessionExpired)
         }
     }
 
@@ -337,11 +386,20 @@ final class AppState: ObservableObject {
                     lastSyncError = message
                 }
             }
+            if let loadedUsers = try? await api.fetchAdminUsers(search: nil, status: nil) {
+                adminUsers = loadedUsers
+            }
         } else if let loadedTasks = try? await api.fetchAdminTasks() {
             adminTasks = loadedTasks
         }
 
         if let loadedStrikes = try? await api.fetchStrikes() { strikes = loadedStrikes }
+
+        await syncAllowedRoles()
+
+        if allowedRoles.contains(.venue), let venues = try? await api.fetchMyVenues() {
+            myVenues = venues
+        }
         if let loadedCampaigns = try? await api.fetchCampaigns() { campaigns = loadedCampaigns }
         if allowedRoles.contains(.venue), let reviews = try? await api.fetchVenueReviewQueue() {
             venueReviewQueue = reviews
@@ -359,12 +417,10 @@ final class AppState: ObservableObject {
         }
 
         if !syncErrors.isEmpty {
-            lastSyncError = lastSyncError ?? "Some data could not be refreshed. Pull down to try again."
+            lastSyncError = lastSyncError ?? t(.errSomeDataRefresh)
         } else {
             lastSyncError = nil
         }
-
-        await syncAllowedRoles()
     }
 
     func syncAllowedRoles() async {
@@ -385,6 +441,7 @@ final class AppState: ObservableObject {
             if let membership = context.membershipStatus {
                 profile.status = membership
             }
+            accountPausedBySelf = context.pausedBySelf
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
         }
@@ -393,24 +450,200 @@ final class AppState: ObservableObject {
     func signOut() async {
         try? await api.signOut()
         clearServerState()
-        hasCompletedOnboarding = false
-        needsReauthentication = false
+        needsReauthentication = true
         hasLoadedInitialData = false
         isAuthenticated = false
         allowedRoles = [.creator]
         accountRole = .creator
         selectedRole = .creator
         SessionKeychain.clear()
-        persistence.reset()
+    }
+
+    /// True when the signed-in user already finished onboarding on the server.
+    func isExistingMemberOnServer() async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+
+        if let context = try? await api.fetchAccountContext() {
+            if context.referralCode != nil { return true }
+            if context.hasVenueProfile { return true }
+            if context.role == .admin { return true }
+            if context.membershipStatus == .approved { return true }
+        }
+
+        let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let city = profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !handle.isEmpty, !city.isEmpty { return true }
+        if !bookings.isEmpty { return true }
+
+        return false
+    }
+
+    func requestPasswordReset(email: String) async {
+        guard isRemoteMode else { return }
+
+        isSyncing = true
+        lastSyncError = nil
+        passwordResetMessage = nil
+        defer { isSyncing = false }
+
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            lastSyncError = t(.errEnterEmail)
+            return
+        }
+
+        do {
+            try await api.resetPassword(trimmed)
+            passwordResetMessage = t(.passwordResetDefault)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func dismissPasswordResetMessage() {
+        passwordResetMessage = nil
+    }
+
+    func pauseAccount() async -> String? {
+        guard isRemoteMode, isAuthenticated else {
+            return t(.errSignInRequired)
+        }
+
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            try await api.pauseOwnAccount()
+            accountPausedBySelf = true
+            profile.status = .paused
+            await refreshFromServer()
+            return nil
+        } catch {
+            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            lastSyncError = message
+            return message
+        }
+    }
+
+    func reactivateAccount() async -> String? {
+        guard isRemoteMode, isAuthenticated else {
+            return t(.errSignInRequired)
+        }
+
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            try await api.reactivateOwnAccount()
+            accountPausedBySelf = false
+            await refreshFromServer()
+            await syncAllowedRoles()
+            return nil
+        } catch {
+            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            lastSyncError = message
+            return message
+        }
+    }
+
+    func deleteAccountPermanently() async -> String? {
+        guard isRemoteMode, isAuthenticated else {
+            return t(.errSignInRequired)
+        }
+
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            try await api.deleteOwnAccountPermanently()
+            hasCompletedOnboarding = false
+            needsReauthentication = false
+            isAuthenticated = false
+            clearServerState()
+            SessionKeychain.clear()
+            persistence.reset()
+            return nil
+        } catch {
+            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            lastSyncError = message
+            return message
+        }
+    }
+
+    static func isAccountAlreadyExistsMessage(_ message: String?) -> Bool {
+        guard let message else { return false }
+        let lower = message.lowercased()
+        return lower.contains("already exists")
+            || lower.contains("already registered")
+            || lower.contains("already been registered")
+            || lower.contains("user already registered")
     }
 
     func loadVenueSummary() async -> VenueSummary? {
         guard isRemoteMode, isAuthenticated else { return nil }
         do {
+            if myVenues.isEmpty {
+                myVenues = try await api.fetchMyVenues()
+            }
+            if let activeVenue {
+                return activeVenue
+            }
             return try await api.fetchVenueSummary()
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             return nil
+        }
+    }
+
+    func switchActiveVenue(to venueID: UUID) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        isSyncing = true
+        defer { isSyncing = false }
+        do {
+            try await api.setActiveVenue(venueID)
+            myVenues = try await api.fetchMyVenues()
+            await refreshFromServer()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func registerVenue(
+        name: String,
+        area: String,
+        category: OfferCategory,
+        address: String = "",
+        contactName: String = "",
+        contactPhone: String = ""
+    ) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        let input = RegisterVenueInput(
+            venueName: name,
+            area: area,
+            category: category,
+            address: address,
+            contactName: contactName.isEmpty ? profile.displayName : contactName,
+            contactPhone: contactPhone
+        )
+
+        do {
+            _ = try await api.registerVenueLocation(input)
+            myVenues = try await api.fetchMyVenues()
+            await syncAllowedRoles()
+            await refreshFromServer()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
         }
     }
 
@@ -522,7 +755,7 @@ final class AppState: ObservableObject {
         }
 
         guard allowedRoles.contains(.admin) else {
-            lastSyncError = "Admin access is not enabled. Sign in, run grant-admin SQL in Supabase, then tap Sync from server."
+            lastSyncError = t(.errAdminAccessDisabled)
             return
         }
 
@@ -639,7 +872,7 @@ final class AppState: ObservableObject {
 
     func issueStrikeForProofTask(_ task: AdminTask, reason: String) {
         guard let bookingID = task.subjectID else {
-            lastSyncError = "This task has no linked booking."
+            lastSyncError = t(.errNoLinkedBooking)
             return
         }
         guard processingAdminTaskID == nil else { return }
@@ -670,9 +903,9 @@ final class AppState: ObservableObject {
     }
 
     func checkIn(_ booking: Booking, code: String) async -> String? {
-        guard isAuthenticated else { return "Please sign in to check in." }
+        guard isAuthenticated else { return t(.errSignInCheckIn) }
         let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty else { return "Enter the check-in code from the venue host." }
+        guard !normalized.isEmpty else { return t(.errEnterCheckInCode) }
 
         do {
             let updated = try await api.checkIn(bookingID: booking.id, code: normalized)
@@ -696,8 +929,8 @@ final class AppState: ObservableObject {
 
     func redeemReferralCode(_ code: String) async -> String? {
         let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard !normalized.isEmpty else { return "Enter a valid invite code." }
-        guard isAuthenticated else { return "Sign in before redeeming your invite." }
+        guard !normalized.isEmpty else { return t(.errEnterInviteCode) }
+        guard isAuthenticated else { return t(.errSignInRedeemInvite) }
         do {
             try await api.redeemReferralCode(normalized)
             return nil
@@ -720,16 +953,16 @@ final class AppState: ObservableObject {
     }
 
     func submitProof(for booking: Booking, links: [String], imageData: Data? = nil, fileName: String = "proof.jpg") async -> String? {
-        guard isAuthenticated else { return "Please sign in to submit proof." }
+        guard isAuthenticated else { return t(.errSignInSubmitProof) }
         var proofLinks = links
         if let imageData, !imageData.isEmpty {
             if let url = await uploadProofScreenshot(for: booking, imageData: imageData, fileName: fileName) {
                 proofLinks.append(url)
             } else if links.isEmpty {
-                return lastSyncError ?? "Could not upload screenshot."
+                return lastSyncError ?? t(.errUploadScreenshot)
             }
         }
-        guard !proofLinks.isEmpty else { return "Add at least one proof link or screenshot." }
+        guard !proofLinks.isEmpty else { return t(.errAddProofLink) }
         do {
             let updated = try await api.submitProof(bookingID: booking.id, links: proofLinks)
             updateBooking(updated.id) { $0 = updated }
@@ -766,7 +999,7 @@ final class AppState: ObservableObject {
         defer { isSyncing = false }
 
         do {
-            let campaign = try await api.createCampaign(input)
+            let campaign = try await api.createCampaign(input, venueID: activeVenue?.id)
             campaigns.insert(campaign, at: 0)
             await refreshFromServer()
             return true
@@ -801,6 +1034,144 @@ final class AppState: ObservableObject {
             } catch {
                 lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             }
+        }
+    }
+
+    func loadAdminUsers(search: String = "", status: String? = nil) async {
+        guard isRemoteMode, isAuthenticated, allowedRoles.contains(.admin) else { return }
+        do {
+            adminUsers = try await api.fetchAdminUsers(
+                search: search.isEmpty ? nil : search,
+                status: status
+            )
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func loadAdminUserDetail(userID: UUID) async -> AdminUserDetail? {
+        guard isRemoteMode, isAuthenticated, allowedRoles.contains(.admin) else { return nil }
+        do {
+            return try await api.fetchAdminUserDetail(userID: userID)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    func adminSetUserStatus(userID: UUID, status: MembershipStatus) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminSetMembershipStatus(userID: userID, status: status.rawValue)
+            await loadAdminUsers()
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func adminSendUserNotification(userID: UUID, title: String, body: String) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminSendNotification(userID: userID, title: title, body: body)
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func adminSendUserEmail(userID: UUID, subject: String, body: String) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminSendEmail(userID: userID, subject: subject, body: body)
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func adminSendInviteEmail(email: String, inviteCode: String?) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            _ = try await api.adminSendInvite(email: email, inviteCode: inviteCode)
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func adminCreateUserAccount(
+        email: String,
+        password: String?,
+        fullName: String,
+        city: String,
+        autoApprove: Bool = true
+    ) async -> (result: AdminProvisionResult?, error: String?) {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return (nil, t(.errAdminRequired))
+        }
+        do {
+            let result = try await api.adminCreateUser(
+                email: email,
+                password: password,
+                fullName: fullName,
+                city: city,
+                autoApprove: autoApprove
+            )
+            await loadAdminUsers()
+            return (result, nil)
+        } catch {
+            return (nil, friendlyErrorMessage(error) ?? error.localizedDescription)
+        }
+    }
+
+    func adminBroadcastInRadius(
+        lat: Double,
+        lng: Double,
+        radiusKm: Double,
+        title: String,
+        body: String
+    ) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            let count = try await api.adminNotifyUsersInRadius(
+                lat: lat,
+                lng: lng,
+                radiusKm: radiusKm,
+                title: title,
+                body: body
+            )
+            if count == 0 {
+                return t(.errNoUsersInArea)
+            }
+            return tf(.errSentToUsers, count, Int(radiusKm))
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    private func uploadUserLocationIfNeeded() async {
+        guard isRemoteMode, isAuthenticated, let coordinate = userCoordinate else { return }
+        if let lastLocationUploadAt, Date().timeIntervalSince(lastLocationUploadAt) < 300 {
+            return
+        }
+        do {
+            try await api.upsertUserLocation(lat: coordinate.lat, lng: coordinate.lng)
+            lastLocationUploadAt = Date()
+        } catch {
+            #if DEBUG
+            print("[MarviLocation] upload failed: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -864,7 +1235,9 @@ final class AppState: ObservableObject {
         bookings = []
         campaigns = []
         adminTasks = []
+        adminUsers = []
         venueReviewQueue = []
+        myVenues = []
         inboxMessages = []
         strikes = []
         savedOfferIDs = []
@@ -875,29 +1248,59 @@ final class AppState: ObservableObject {
         let raw = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         let lower = raw.lowercased()
 
+        if lower.contains("cannot be reactivated") {
+            return t(.errReactivateSupport)
+        }
+        if lower.contains("invalid login credentials")
+            || lower.contains("invalid email or password")
+            || lower.contains("invalid credentials") {
+            return t(.errWrongPassword)
+        }
+        if lower.contains("already registered")
+            || lower.contains("already been registered")
+            || lower.contains("user already registered")
+            || lower.contains("email address is already")
+            || lower.contains("user already exists") {
+            return t(.errAccountExists)
+        }
         if lower.contains("no slots") || lower.contains("remaining_slots") {
-            return "This invitation is full. Try another event."
+            return t(.errInvitationFull)
         }
         if lower.contains("already accepted") || lower.contains("duplicate") {
-            return "You already accepted this invitation."
+            return t(.errAlreadyAccepted)
         }
         if lower.contains("invalid check-in") || lower.contains("check-in code") {
-            return "Invalid check-in code. Ask the venue host for the correct code."
+            return t(.errCheckInInvalid)
         }
         if lower.contains("unauthorized") || lower.contains("jwt") {
-            return "Your session expired. Please sign in again."
+            return t(.errSessionExpired)
+        }
+        if lower.contains("no venue profile") || lower.contains("venue not found") {
+            return t(.errProfileNotReady)
+        }
+        if lower.contains("venue must be approved") {
+            return t(.locationPendingReview)
         }
         if lower.contains("creator profile") {
-            return "Your creator profile is not set up yet. Contact support."
+            return t(.errProfileNotReady)
+        }
+        if lower.contains("invalid invite") || lower.contains("invite code required") {
+            return t(.errInviteInvalid)
+        }
+        if lower.contains("could not find the function") && lower.contains("fetch_my_venues") {
+            return t(.errServerSetupMultiVenue)
+        }
+        if lower.contains("could not find the function") && lower.contains("redeem_referral_code") {
+            return t(.errServerSetupReferral)
         }
         if lower.contains("not authenticated") {
-            return "Please sign in to continue."
+            return t(.errNotAuthenticated)
         }
         if lower.contains("authenticationservices") || lower.contains("authorizationerror") {
-            return "Sign in with Apple is not available on this build. Use email sign-in."
+            return t(.errAppleSignInUnavailable)
         }
         if lower.contains("invalid api key") || lower.contains("invalid jwt") {
-            return "Server configuration error. Check Supabase anon key in Secrets.xcconfig."
+            return t(.errServerConfig)
         }
         return raw.isEmpty ? nil : raw
     }
@@ -910,7 +1313,9 @@ final class AppState: ObservableObject {
                 selectedRole: selectedRole,
                 pushNotificationsEnabled: pushNotificationsEnabled,
                 proofRemindersEnabled: proofRemindersEnabled,
-                autoSaveProofLinks: autoSaveProofLinks
+                autoSaveProofLinks: autoSaveProofLinks,
+                preferredLanguage: preferredLanguage,
+                languageManuallySet: languageManuallySet
             )
         )
     }

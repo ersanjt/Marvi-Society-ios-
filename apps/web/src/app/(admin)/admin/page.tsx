@@ -51,7 +51,7 @@ export default async function AdminPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-emerald">Live</p>
+        <p className="marvi-eyebrow">Live</p>
         <h1 className="font-serif text-3xl font-bold">Admin review queue</h1>
         <p className="mt-1 text-sm text-muted">
           Approve creators, campaigns, and proof submissions. Changes apply immediately in the mobile app.

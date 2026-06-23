@@ -1,13 +1,50 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isProduction, isSupabaseConfigured } from "@/config/env";
+import { inferLocaleFromRequest } from "@/lib/i18n/infer-locale";
+
+function applyLocaleCookie(request: NextRequest, response: NextResponse) {
+  if (request.cookies.get("locale")?.value) {
+    return;
+  }
+  const locale = inferLocaleFromRequest(request);
+  response.cookies.set("locale", locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+}
+
+function copyCookies(from: NextResponse, to: NextResponse) {
+  from.cookies.getAll().forEach((cookie) => {
+    to.cookies.set(cookie.name, cookie.value);
+  });
+}
+
+function redirectWithSession(
+  request: NextRequest,
+  baseResponse: NextResponse,
+  url: URL | string
+) {
+  const redirect = typeof url === "string" ? NextResponse.redirect(url) : NextResponse.redirect(url);
+  copyCookies(baseResponse, redirect);
+  applyLocaleCookie(request, redirect);
+  return redirect;
+}
+
+function loginRedirect(request: NextRequest, nextPath: string, baseResponse: NextResponse) {
+  const url = new URL("/portal/login", request.url);
+  url.searchParams.set("next", nextPath);
+  return redirectWithSession(request, baseResponse, url);
+}
 
 async function getUser(request: NextRequest, response: NextResponse) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes("YOUR_PROJECT")) {
+  if (!isSupabaseConfigured()) {
     return { user: null, response, configured: false };
   }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
@@ -23,24 +60,46 @@ async function getUser(request: NextRequest, response: NextResponse) {
     },
   });
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return { user, response, configured: true, supabase };
 }
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isProtectedPortal =
+    pathname.startsWith("/portal") && !pathname.startsWith("/portal/login");
+  const isProtectedAdmin =
+    pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
+
+  if (isProduction() && !isSupabaseConfigured() && (isProtectedPortal || isProtectedAdmin)) {
+    if (pathname.startsWith("/api/")) {
+      const response = NextResponse.json({ error: "Supabase is not configured" }, { status: 503 });
+      applyLocaleCookie(request, response);
+      return response;
+    }
+    return redirectWithSession(
+      request,
+      NextResponse.next({ request }),
+      new URL("/contact?error=configuration", request.url)
+    );
+  }
+
   let response = NextResponse.next({ request });
+  applyLocaleCookie(request, response);
   const { user, configured, supabase } = await getUser(request, response);
 
-  if (request.nextUrl.pathname.startsWith("/portal") && !request.nextUrl.pathname.startsWith("/portal/login")) {
+  if (isProtectedPortal) {
     if (configured && !user) {
-      return NextResponse.redirect(new URL("/portal/login", request.url));
+      return loginRedirect(request, pathname, response);
     }
   }
 
-  if (request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname.startsWith("/api/admin")) {
+  if (isProtectedAdmin) {
     if (configured) {
       if (!user) {
-        return NextResponse.redirect(new URL("/portal/login", request.url));
+        return loginRedirect(request, pathname, response);
       }
 
       if (supabase) {
@@ -51,10 +110,17 @@ export async function middleware(request: NextRequest) {
           .maybeSingle();
 
         if (profile?.role !== "admin") {
-          if (request.nextUrl.pathname.startsWith("/api/admin")) {
-            return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+          if (pathname.startsWith("/api/admin")) {
+            const denied = NextResponse.json({ error: "Admin access required" }, { status: 403 });
+            copyCookies(response, denied);
+            applyLocaleCookie(request, denied);
+            return denied;
           }
-          return NextResponse.redirect(new URL("/portal/dashboard", request.url));
+          return redirectWithSession(
+            request,
+            response,
+            new URL("/portal/dashboard", request.url)
+          );
         }
       }
     }
@@ -64,5 +130,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/portal/:path*", "/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };

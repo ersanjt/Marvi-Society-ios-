@@ -38,7 +38,7 @@ fun OnboardingScreen(onComplete: (handle: String, city: String, inviteCode: Stri
         if (error.isNotEmpty()) Text(error, color = MaterialTheme.colorScheme.error)
         Button(
             onClick = {
-                val valid = setOf("MARVI-IST", "MARVI2026", "TSS-REF")
+                val valid = setOf("MARVI-IST", "TURGUT", "MARVI2026", "TSS-REF")
                 if (inviteCode.uppercase() !in valid) {
                     error = "Invalid invite code. Try MARVI-IST."
                 } else {

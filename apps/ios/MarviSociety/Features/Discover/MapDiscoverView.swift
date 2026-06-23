@@ -53,8 +53,8 @@ struct MapDiscoverView: View {
                 VStack(spacing: 12) {
                     if appState.locationService.authorizationStatus == .denied {
                         LocationBanner(
-                            message: "Enable location to find instant offers nearby.",
-                            actionTitle: "Open Settings"
+                            message: appState.t(.mapLocationNeeded),
+                            actionTitle: appState.t(.enableLocation)
                         ) {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(url)
@@ -82,7 +82,7 @@ struct MapDiscoverView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
             }
-            .navigationTitle("Nearby")
+            .navigationTitle(appState.t(.nearYou))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -119,6 +119,7 @@ struct MapDiscoverView: View {
 }
 
 private struct MapOfferPin: View {
+    @EnvironmentObject private var appState: AppState
     let offer: Offer
     let isSelected: Bool
 
@@ -133,7 +134,7 @@ private struct MapOfferPin: View {
                 .shadow(radius: 4, y: 2)
 
             if offer.collaborationModel == .instant {
-                Text("Now")
+                Text(appState.t(.now))
                     .font(.system(size: 9, weight: .bold))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -146,13 +147,14 @@ private struct MapOfferPin: View {
 }
 
 private struct NearbyOffersStrip: View {
+    @EnvironmentObject private var appState: AppState
     let offers: [Offer]
     let distanceLabel: (Offer) -> String?
     let select: (Offer) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Near you")
+            Text(appState.t(.nearYou))
                 .font(.caption.weight(.bold))
                 .textCase(.uppercase)
                 .foregroundStyle(MarviColor.muted)
@@ -167,7 +169,7 @@ private struct NearbyOffersStrip: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Image(systemName: offer.collaborationModel.icon)
-                                    Text(offer.collaborationModel.rawValue)
+                                    Text(offer.collaborationModel.label(for: appState.preferredLanguage))
                                         .font(.caption2.weight(.bold))
                                 }
                                 .foregroundStyle(offer.category.tint)
@@ -200,6 +202,7 @@ private struct NearbyOffersStrip: View {
 }
 
 private struct MapOfferSheet: View {
+    @EnvironmentObject private var appState: AppState
     let offer: Offer
     let distanceLabel: String?
     let isAccepted: Bool
@@ -225,13 +228,13 @@ private struct MapOfferSheet: View {
             }
 
             HStack(spacing: 8) {
-                StatusPill(text: offer.collaborationModel.rawValue, tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
+                StatusPill(text: offer.collaborationModel.label(for: appState.preferredLanguage), tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
                 StatusPill(text: offer.valueLabel, tint: offer.category.tint, systemImage: "gift")
             }
 
             HStack(spacing: 10) {
                 Button(action: open) {
-                    Text("Details")
+                    Text(appState.t(.details))
                         .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -242,7 +245,7 @@ private struct MapOfferSheet: View {
 
                 if !isAccepted {
                     Button(action: accept) {
-                        Text(offer.collaborationModel == .instant ? "Use now" : "Accept")
+                        Text(offer.collaborationModel == .instant ? appState.t(.useNow) : appState.t(.accept))
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)

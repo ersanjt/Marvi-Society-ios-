@@ -11,7 +11,7 @@ export default function FAQPage() {
       <div className="mt-12 space-y-10">
         {FAQ_ITEMS.map((section) => (
           <section key={section.category}>
-            <h2 className="text-sm font-bold uppercase tracking-widest text-emerald">{section.category}</h2>
+            <h2 className="marvi-eyebrow">{section.category}</h2>
             <div className="mt-4 space-y-3">
               {section.questions.map((item) => (
                 <details key={item.q} className="marvi-card group">

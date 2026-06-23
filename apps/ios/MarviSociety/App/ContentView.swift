@@ -7,14 +7,14 @@ struct ContentView: View {
         Group {
             if !APIConfig.isSupabaseConfigured {
                 ConfigurationRequiredView()
+            } else if !appState.hasCompletedOnboarding {
+                OnboardingView()
             } else if appState.needsReauthentication {
                 ReauthView()
-            } else if appState.isBootstrapping && appState.hasCompletedOnboarding {
+            } else if appState.isBootstrapping {
                 BootstrapSplashView()
-            } else if appState.hasCompletedOnboarding {
-                MainAppShell()
             } else {
-                OnboardingView()
+                MainAppShell()
             }
         }
         .tint(MarviColor.rose)

@@ -88,6 +88,14 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
         throw notConfigured()
     }
 
+    func resetPassword(_ email: String) async throws {
+        throw notConfigured()
+    }
+
+    func pauseOwnAccount() async throws { throw notConfigured() }
+    func reactivateOwnAccount() async throws { throw notConfigured() }
+    func deleteOwnAccountPermanently() async throws { throw notConfigured() }
+
     func signOut() async throws {}
 
     func restoreSession() async -> Bool { false }
@@ -111,8 +119,11 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchAdminTasks() async throws -> [AdminTask] { throw notConfigured() }
     func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? { throw notConfigured() }
     func fetchVenueProfile(id: UUID) async throws -> VenueSummary? { throw notConfigured() }
+    func fetchMyVenues() async throws -> [VenueSummary] { throw notConfigured() }
+    func setActiveVenue(_ venueID: UUID) async throws { throw notConfigured() }
+    func registerVenueLocation(_ input: RegisterVenueInput) async throws -> VenueSummary { throw notConfigured() }
     func fetchCampaigns() async throws -> [Campaign] { throw notConfigured() }
-    func createCampaign(_ input: CreateCampaignInput) async throws -> Campaign { throw notConfigured() }
+    func createCampaign(_ input: CreateCampaignInput, venueID: UUID?) async throws -> Campaign { throw notConfigured() }
     func fetchVenueSummary() async throws -> VenueSummary? { throw notConfigured() }
     func hasVenueProfile() async throws -> Bool { throw notConfigured() }
     func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions) async throws -> Booking { throw notConfigured() }
@@ -139,6 +150,19 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
         throw notConfigured()
     }
     func issueStrike(creatorID: UUID, bookingID: UUID?, reason: String) async throws {
+        throw notConfigured()
+    }
+    func upsertUserLocation(lat: Double, lng: Double) async throws { throw notConfigured() }
+    func fetchAdminUsers(search: String?, status: String?) async throws -> [AdminUserSummary] { throw notConfigured() }
+    func fetchAdminUserDetail(userID: UUID) async throws -> AdminUserDetail { throw notConfigured() }
+    func adminSetMembershipStatus(userID: UUID, status: String) async throws { throw notConfigured() }
+    func adminSendNotification(userID: UUID, title: String, body: String) async throws { throw notConfigured() }
+    func adminSendEmail(userID: UUID, subject: String, body: String) async throws { throw notConfigured() }
+    func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult { throw notConfigured() }
+    func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
+        throw notConfigured()
+    }
+    func adminCreateUser(email: String, password: String?, fullName: String, city: String, autoApprove: Bool) async throws -> AdminProvisionResult {
         throw notConfigured()
     }
 }

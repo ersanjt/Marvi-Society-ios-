@@ -80,7 +80,7 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
             required
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2 tracking-widest"
+            className="mt-1 marvi-input tracking-widest"
             placeholder="000000"
           />
         </label>
@@ -108,7 +108,7 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2"
+          className="mt-1 marvi-input"
           placeholder="you@example.com"
         />
       </label>
@@ -121,7 +121,7 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
       {message && status === "error" ? <p className="text-sm text-tomato">{message}</p> : null}
       <p className="text-center text-xs text-muted">
         Need help?{" "}
-        <a href={`mailto:${supportEmail}`} className="font-bold text-emerald">
+        <a href={`mailto:${supportEmail}`} className="marvi-link">
           {supportEmail}
         </a>
       </p>

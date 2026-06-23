@@ -7,13 +7,11 @@ export default async function HomePage() {
   const { dict } = await getI18n();
   return (
     <>
-      <section className="relative overflow-hidden border-b border-black/5">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald/10 via-surface to-gold/10" />
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="marvi-screen-glow" />
         <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-20 md:grid-cols-2 md:px-6 md:py-28">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-emerald">
-              {dict.hero.eyebrow}
-            </p>
+            <p className="marvi-eyebrow">{dict.hero.eyebrow}</p>
             <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-ink md:text-5xl">
               {dict.hero.title}
             </h1>
@@ -35,15 +33,15 @@ export default async function HomePage() {
                 { value: "96%", label: "Proof rate" },
               ].map((stat) => (
                 <div key={stat.label} className="marvi-card py-4 text-center">
-                  <p className="text-2xl font-bold text-emerald">{stat.value}</p>
+                  <p className="bg-brand-gradient bg-clip-text text-2xl font-bold text-transparent">{stat.value}</p>
                   <p className="text-xs font-semibold text-muted">{stat.label}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="marvi-card bg-gradient-to-br from-ink to-aubergine p-8 text-white">
-            <p className="text-xs font-bold uppercase tracking-widest text-gold">Creator app preview</p>
+          <div className="marvi-card bg-brand-gradient-vertical p-8 text-white">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-gold">Creator app preview</p>
             <h2 className="mt-3 font-serif text-3xl font-bold">Discover · Nearby · Proof</h2>
             <ul className="mt-6 space-y-4 text-sm text-white/85">
               <li className="flex gap-3">
@@ -87,7 +85,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-black/5 bg-cool">
+      <section className="border-y border-border bg-surface-cool">
         <div className="mx-auto max-w-6xl px-4 py-20 md:px-6">
           <SectionHeading
             eyebrow="Global-ready architecture"
@@ -100,7 +98,7 @@ export default async function HomePage() {
               { title: "Brands", body: "Web portal for campaign builder, bookings list, and performance metrics.", href: "/brands" },
               { title: "Operators", body: "Admin console for applications, campaigns, proof review, and strikes.", href: "/admin" },
             ].map((card) => (
-              <Link key={card.title} href={card.href} className="marvi-card transition hover:border-emerald/30">
+              <Link key={card.title} href={card.href} className="marvi-card transition hover:border-rose/30">
                 <h3 className="font-bold text-ink">{card.title}</h3>
                 <p className="mt-2 text-sm text-muted">{card.body}</p>
               </Link>

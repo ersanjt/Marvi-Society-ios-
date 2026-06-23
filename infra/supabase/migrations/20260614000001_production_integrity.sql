@@ -270,6 +270,9 @@ $$;
 GRANT EXECUTE ON FUNCTION public.submit_campaign_for_review(TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, TEXT[]) TO authenticated;
 
 -- Exclude passed creators from swipe queue
+-- Must drop first: return column order changed vs 20260611000001_secret_society_parity.
+DROP FUNCTION IF EXISTS public.fetch_swipe_candidates(UUID);
+
 CREATE OR REPLACE FUNCTION public.fetch_swipe_candidates(p_offer_id UUID DEFAULT NULL)
 RETURNS TABLE (
     creator_id UUID,

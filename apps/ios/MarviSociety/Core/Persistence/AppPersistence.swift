@@ -7,6 +7,38 @@ struct AppSnapshot: Codable {
     var pushNotificationsEnabled: Bool
     var proofRemindersEnabled: Bool
     var autoSaveProofLinks: Bool
+    var preferredLanguage: AppLanguage
+    var languageManuallySet: Bool
+
+    init(
+        hasCompletedOnboarding: Bool,
+        selectedRole: UserRole,
+        pushNotificationsEnabled: Bool,
+        proofRemindersEnabled: Bool,
+        autoSaveProofLinks: Bool,
+        preferredLanguage: AppLanguage = AppLanguage.inferredFromDevice(),
+        languageManuallySet: Bool = false
+    ) {
+        self.hasCompletedOnboarding = hasCompletedOnboarding
+        self.selectedRole = selectedRole
+        self.pushNotificationsEnabled = pushNotificationsEnabled
+        self.proofRemindersEnabled = proofRemindersEnabled
+        self.autoSaveProofLinks = autoSaveProofLinks
+        self.preferredLanguage = preferredLanguage
+        self.languageManuallySet = languageManuallySet
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hasCompletedOnboarding = try container.decode(Bool.self, forKey: .hasCompletedOnboarding)
+        selectedRole = try container.decode(UserRole.self, forKey: .selectedRole)
+        pushNotificationsEnabled = try container.decode(Bool.self, forKey: .pushNotificationsEnabled)
+        proofRemindersEnabled = try container.decode(Bool.self, forKey: .proofRemindersEnabled)
+        autoSaveProofLinks = try container.decode(Bool.self, forKey: .autoSaveProofLinks)
+        languageManuallySet = try container.decodeIfPresent(Bool.self, forKey: .languageManuallySet) ?? false
+        preferredLanguage = try container.decodeIfPresent(AppLanguage.self, forKey: .preferredLanguage)
+            ?? AppLanguage.inferredFromDevice()
+    }
 }
 
 final class AppPersistence {
@@ -49,7 +81,8 @@ final class AppPersistence {
             selectedRole: legacy.selectedRole,
             pushNotificationsEnabled: legacy.pushNotificationsEnabled,
             proofRemindersEnabled: legacy.proofRemindersEnabled,
-            autoSaveProofLinks: legacy.autoSaveProofLinks
+            autoSaveProofLinks: legacy.autoSaveProofLinks,
+            preferredLanguage: AppLanguage.inferredFromDevice()
         )
         save(snapshot)
         return snapshot

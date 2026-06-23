@@ -3,27 +3,47 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-surface text-ink antialiased;
+  @apply bg-surface font-sans text-ink antialiased;
 }
 
 @layer components {
   .marvi-card {
-    @apply rounded-marvi border border-black/5 bg-panel p-6 shadow-sm;
+    @apply rounded-marvi-lg border border-border bg-panel p-6 shadow-panel;
   }
 
   .marvi-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-marvi bg-emerald px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald/90;
+    @apply inline-flex items-center justify-center gap-2 rounded-marvi bg-brand-gradient px-5 py-3 text-sm font-bold text-white shadow-rose transition hover:opacity-90;
   }
 
   .marvi-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-marvi border border-black/10 bg-panel px-5 py-3 text-sm font-bold text-ink transition hover:bg-cool;
+    @apply inline-flex items-center justify-center gap-2 rounded-marvi border border-border bg-panel-elevated px-5 py-3 text-sm font-bold text-ink transition hover:border-rose/30 hover:bg-panel;
+  }
+
+  .marvi-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-marvi bg-tomato px-5 py-3 text-sm font-bold text-white transition hover:bg-tomato/90;
+  }
+
+  .marvi-input {
+    @apply w-full rounded-marvi border border-border bg-panel-elevated px-4 py-3 text-sm text-ink outline-none ring-rose/30 transition placeholder:text-muted focus:ring-2;
   }
 
   .marvi-pill {
-    @apply inline-flex items-center gap-1.5 rounded-marvi px-3 py-1.5 text-xs font-bold;
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold;
+  }
+
+  .marvi-link {
+    @apply font-bold text-rose transition hover:text-rose/80;
+  }
+
+  .marvi-eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.14em] text-rose;
+  }
+
+  .marvi-screen-glow {
+    @apply pointer-events-none absolute inset-0 bg-brand-warm opacity-90;
   }
 }

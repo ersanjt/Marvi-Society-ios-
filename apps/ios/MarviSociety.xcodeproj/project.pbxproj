@@ -23,6 +23,7 @@
 		1A2B3C4D5E6F700000000115 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000014 /* InboxView.swift */; };
 		1A2B3C4D5E6F700000000116 /* AppPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000015 /* AppPersistence.swift */; };
 		1A2B3C4D5E6F700000000117 /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */; };
+		1A2B3C4D5E6F700000000183 /* AdminOperationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000182 /* AdminOperationsView.swift */; };
 		1A2B3C4D5E6F700000000130 /* APIConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000118 /* APIConfig.swift */; };
 		1A2B3C4D5E6F700000000131 /* MarviAPIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000119 /* MarviAPIError.swift */; };
 		1A2B3C4D5E6F700000000132 /* MarviAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000120 /* MarviAPI.swift */; };
@@ -46,6 +47,7 @@
 		1A2B3C4D5E6F700000000176 /* ReauthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000166 /* ReauthView.swift */; };
 		1A2B3C4D5E6F700000000177 /* SecretSocietyComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000167 /* SecretSocietyComponents.swift */; };
 		1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000168 /* MarviAppDelegate.swift */; };
+		1A2B3C4D5E6F700000000190 /* MarviL10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000191 /* MarviL10n.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +66,7 @@
 		1A2B3C4D5E6F700000000014 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000015 /* AppPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPersistence.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000182 /* AdminOperationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminOperationsView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000030 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000118 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
@@ -80,6 +83,7 @@
 		1A2B3C4D5E6F700000000151 /* MarviSociety.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MarviSociety.entitlements; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000152 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000153 /* AppLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLinks.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000191 /* MarviL10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarviL10n.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000154 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000156 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000158 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
@@ -179,6 +183,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000153 /* AppLinks.swift */,
+				1A2B3C4D5E6F700000000191 /* MarviL10n.swift */,
 				1A2B3C4D5E6F700000000410 /* DesignSystem */,
 				1A2B3C4D5E6F700000000411 /* Models */,
 				1A2B3C4D5E6F700000000412 /* Persistence */,
@@ -264,6 +269,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */,
+				1A2B3C4D5E6F700000000182 /* AdminOperationsView.swift */,
 			);
 			path = Admin;
 			sourceTree = "<group>";
@@ -476,6 +482,7 @@
 				1A2B3C4D5E6F700000000115 /* InboxView.swift in Sources */,
 				1A2B3C4D5E6F700000000116 /* AppPersistence.swift in Sources */,
 				1A2B3C4D5E6F700000000117 /* AdminDashboardView.swift in Sources */,
+				1A2B3C4D5E6F700000000183 /* AdminOperationsView.swift in Sources */,
 				1A2B3C4D5E6F700000000130 /* APIConfig.swift in Sources */,
 				1A2B3C4D5E6F700000000131 /* MarviAPIError.swift in Sources */,
 				1A2B3C4D5E6F700000000132 /* MarviAPI.swift in Sources */,
@@ -488,6 +495,7 @@
 				1A2B3C4D5E6F700000000143 /* MapDiscoverView.swift in Sources */,
 				1A2B3C4D5E6F700000000144 /* SessionKeychain.swift in Sources */,
 				1A2B3C4D5E6F700000000145 /* AppLinks.swift in Sources */,
+				1A2B3C4D5E6F700000000190 /* MarviL10n.swift in Sources */,
 				1A2B3C4D5E6F700000000170 /* Colors.swift in Sources */,
 				1A2B3C4D5E6F700000000171 /* Gradients.swift in Sources */,
 				1A2B3C4D5E6F700000000172 /* Color+Hex.swift in Sources */,

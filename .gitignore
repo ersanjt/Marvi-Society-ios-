@@ -16,6 +16,7 @@ GoogleService-Info.plist
 
 # Xcode
 apps/ios/**/DerivedData/
+apps/ios/**/.derivedData/
 apps/ios/**/build/
 apps/ios/**/*.xcuserstate
 apps/ios/**/xcuserdata/

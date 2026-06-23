@@ -1,26 +1,52 @@
 import SwiftUI
 
-private enum VenueReviewSegment: String, CaseIterable {
-    case checkedIn = "Checked in"
-    case checkedOut = "Checked out"
-    case noShow = "No show"
+private enum VenueReviewSegment: CaseIterable, Identifiable {
+    case checkedIn, checkedOut, noShow
+
+    var id: Self { self }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .checkedIn: MarviL10n.t(.segmentCheckedIn, language: language)
+        case .checkedOut: MarviL10n.t(.segmentCheckedOut, language: language)
+        case .noShow: MarviL10n.t(.segmentNoShow, language: language)
+        }
+    }
 }
 
-private enum VenueStudioTab: String, CaseIterable {
-    case establishments = "Establishments"
-    case brands = "Brands"
+private enum VenueStudioTab: CaseIterable, Identifiable {
+    case establishments, brands
+
+    var id: Self { self }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .establishments: MarviL10n.t(.tabEstablishments, language: language)
+        case .brands: MarviL10n.t(.tabBrands, language: language)
+        }
+    }
 }
 
 struct VenueStudioView: View {
     @EnvironmentObject private var appState: AppState
     @State private var isShowingBuilder = false
     @State private var isShowingSwipe = false
+    @State private var isShowingAddVenue = false
     @State private var reviewSegment: VenueReviewSegment = .checkedIn
     @State private var studioTab: VenueStudioTab = .establishments
     @State private var isShowingInbox = false
 
     private var firstName: String {
         appState.profile.displayName
+    }
+
+    private var liveCampaignForActiveVenue: Campaign? {
+        guard let active = appState.activeVenue else {
+            return appState.campaigns.first(where: { $0.status == .live })
+        }
+        return appState.campaigns.first(where: {
+            $0.status == .live && $0.venueName == active.venueName && $0.area == active.area
+        }) ?? appState.campaigns.first(where: { $0.status == .live })
     }
 
     private var filteredReviewQueue: [VenueReviewItem] {
@@ -47,25 +73,33 @@ struct VenueStudioView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         HomeHeader(
                             greeting: firstName,
-                            subtitle: "Venue partner workspace",
+                            subtitle: appState.t(.venuePartnerWorkspace),
                             onNotifications: { isShowingInbox = true }
                         )
                         .padding(.top, 4)
 
+                        VenueLocationsCard(
+                            venues: appState.myVenues,
+                            onSelect: { venue in
+                                Task { _ = await appState.switchActiveVenue(to: venue.id) }
+                            },
+                            onAdd: { isShowingAddVenue = true }
+                        )
+
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Manage your events")
+                            Text(appState.t(.manageEvents))
                                 .font(.system(size: 30, weight: .bold, design: .serif))
                                 .foregroundStyle(MarviColor.ink)
 
-                            Text("at your establishments")
+                            Text(appState.t(.atEstablishments))
                                 .font(.title3.weight(.semibold))
                                 .foregroundStyle(MarviGradient.brand)
                         }
 
-                        if let task = appState.campaigns.first(where: { $0.status == .live }) {
+                        if let task = liveCampaignForActiveVenue {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text("Live campaign")
+                                    Text(appState.t(.liveCampaign))
                                         .font(.caption.weight(.bold))
                                         .textCase(.uppercase)
                                         .foregroundStyle(MarviColor.muted)
@@ -74,11 +108,11 @@ struct VenueStudioView: View {
                                         .font(.headline.weight(.bold))
                                         .foregroundStyle(MarviColor.ink)
 
-                                    Text("\(task.venueName) · \(task.slots) creator slots")
+                                    Text(String(format: appState.t(.creatorSlotsVenue), task.venueName, task.slots))
                                         .font(.caption)
                                         .foregroundStyle(MarviColor.muted)
 
-                                    GradientCTA(title: "Review creators", action: { isShowingSwipe = true })
+                                    GradientCTA(title: appState.t(.reviewCreators), action: { isShowingSwipe = true })
                                 }
                             }
                         }
@@ -90,14 +124,14 @@ struct VenueStudioView: View {
 
                         SSSegmentedTabs(
                             options: VenueStudioTab.allCases,
-                            title: { $0.rawValue },
+                            title: { $0.title(for: appState.preferredLanguage) },
                             selection: $studioTab
                         )
 
                         if studioTab == .establishments {
                             SectionTitle(
-                                title: "Campaigns",
-                                subtitle: "\(appState.campaigns.count) active in this workspace"
+                                title: appState.t(.campaigns),
+                                subtitle: String(format: appState.t(.campaignsSub), appState.campaigns.count)
                             )
 
                             ForEach(appState.campaigns) { campaign in
@@ -105,17 +139,17 @@ struct VenueStudioView: View {
                             }
                         } else {
                             SectionTitle(
-                                title: "Brand partners",
-                                subtitle: "Campaigns linked to your venue workspace."
+                                title: appState.t(.brandPartners),
+                                subtitle: appState.t(.brandPartnersSub)
                             )
 
                             if appState.campaigns.isEmpty {
                                 MarviCard {
                                     EmptyStateView(
-                                        title: "No brand campaigns yet",
-                                        subtitle: "Submit a campaign for admin review to publish on Explore.",
+                                        title: appState.t(.noBrandCampaigns),
+                                        subtitle: appState.t(.noBrandCampaignsSub),
                                         icon: "tag",
-                                        actionTitle: "Refresh",
+                                        actionTitle: appState.t(.refresh),
                                         action: { Task { await appState.refreshFromServer() } }
                                     )
                                 }
@@ -130,8 +164,8 @@ struct VenueStudioView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
                                     SectionTitle(
-                                        title: "To Review",
-                                        subtitle: "Share your thoughts after creator visits."
+                                        title: appState.t(.toReview),
+                                        subtitle: appState.t(.toReviewVenueSub)
                                     )
                                     Spacer()
                                     if !filteredReviewQueue.isEmpty {
@@ -147,14 +181,14 @@ struct VenueStudioView: View {
 
                                 SSSegmentedTabs(
                                     options: VenueReviewSegment.allCases,
-                                    title: { $0.rawValue },
+                                    title: { $0.title(for: appState.preferredLanguage) },
                                     selection: $reviewSegment
                                 )
 
                                 if filteredReviewQueue.isEmpty {
                                     EmptyStateView(
-                                        title: "No reviews in this tab",
-                                        subtitle: "Creators appear here after check-in or checkout.",
+                                        title: appState.t(.noReviewsTab),
+                                        subtitle: appState.t(.noReviewsTabSub),
                                         icon: "star.bubble"
                                     )
                                 } else {
@@ -176,6 +210,10 @@ struct VenueStudioView: View {
                 CampaignBuilderSheet()
                     .environmentObject(appState)
             }
+            .sheet(isPresented: $isShowingAddVenue) {
+                AddVenueSheet()
+                    .environmentObject(appState)
+            }
             .fullScreenCover(isPresented: $isShowingSwipe) {
                 InfluencerSwipeView()
                     .environmentObject(appState)
@@ -185,7 +223,7 @@ struct VenueStudioView: View {
                     InboxView()
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") { isShowingInbox = false }
+                                Button(appState.t(.done)) { isShowingInbox = false }
                             }
                         }
                 }
@@ -202,7 +240,12 @@ struct InfluencerSwipeView: View {
     @State private var isLoading = true
 
     private var liveOfferID: UUID? {
-        appState.campaigns.first(where: { $0.status == .live })?.id
+        guard let active = appState.activeVenue else {
+            return appState.campaigns.first(where: { $0.status == .live })?.id
+        }
+        return appState.campaigns.first(where: {
+            $0.status == .live && $0.venueName == active.venueName && $0.area == active.area
+        })?.id ?? appState.campaigns.first(where: { $0.status == .live })?.id
     }
 
     var body: some View {
@@ -223,10 +266,10 @@ struct InfluencerSwipeView: View {
                     Spacer()
 
                     VStack(spacing: 2) {
-                        Text(appState.campaigns.first?.title ?? "Creator matching")
+                        Text(appState.campaigns.first?.title ?? appState.t(.creatorMatching))
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(MarviColor.ink)
-                        Text("\(candidates.count) creators left")
+                        Text(appState.tf(.creatorsLeft, candidates.count))
                             .font(.caption)
                             .foregroundStyle(MarviColor.muted)
                     }
@@ -240,7 +283,7 @@ struct InfluencerSwipeView: View {
                 if isLoading {
                     Spacer()
                     ProgressView().tint(MarviColor.rose).scaleEffect(1.3)
-                    Text("Loading creators…")
+                    Text(appState.t(.loadingCreators))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(MarviColor.muted)
                     Spacer()
@@ -266,19 +309,19 @@ struct InfluencerSwipeView: View {
                             .font(.system(size: 48))
                             .foregroundStyle(candidates.isEmpty ? MarviColor.muted : MarviColor.emerald)
 
-                        Text(candidates.isEmpty ? "No creators to match" : "Shortlist complete")
+                        Text(candidates.isEmpty ? appState.t(.noCreatorsMatch) : appState.t(.shortlistComplete))
                             .font(.title2.weight(.bold))
                             .foregroundStyle(MarviColor.ink)
 
                         Text(candidates.isEmpty
-                            ? "When your campaign is live, creator applications will appear here for swiping."
-                            : "All creators in this batch have been reviewed.")
+                            ? appState.t(.noCreatorsMatchSub)
+                            : appState.t(.allReviewedSub))
                             .font(.subheadline)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(MarviColor.muted)
                             .padding(.horizontal, 32)
 
-                        GradientCTA(title: "Close", action: { dismiss() })
+                        GradientCTA(title: appState.t(.close), action: { dismiss() })
                             .padding(.horizontal, 40)
                     }
                     .frame(maxHeight: .infinity)
@@ -356,7 +399,7 @@ private struct VenueReviewRow: View {
 
                 Spacer()
 
-                Text("Review")
+                Text(appState.t(.reviewLabel))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(MarviColor.rose)
             }
@@ -399,8 +442,8 @@ private struct VenueReviewDetailSheet: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 8) {
-                                SectionTitle(title: "Visit", subtitle: item.offerTitle)
-                                Text("Checked in \(item.checkedInLabel)")
+                                SectionTitle(title: appState.t(.visitLabel), subtitle: item.offerTitle)
+                                Text(String(format: appState.t(.checkedInAt), item.checkedInLabel))
                                     .font(.subheadline)
                                     .foregroundStyle(MarviColor.muted)
                             }
@@ -408,23 +451,23 @@ private struct VenueReviewDetailSheet: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 16) {
-                                SectionTitle(title: "Share your thoughts", subtitle: "Rate punctuality and presentation.")
+                                SectionTitle(title: appState.t(.shareThoughts), subtitle: appState.t(.shareThoughtsSub))
 
-                                ratingRow(title: "Punctuality", value: $punctuality)
-                                ratingRow(title: "Presentation", value: $presentation)
+                                ratingRow(title: appState.t(.punctuality), value: $punctuality)
+                                ratingRow(title: appState.t(.presentation), value: $presentation)
 
-                                MarviTextField(placeholder: "Optional note", text: $comment)
+                                MarviTextField(placeholder: appState.t(.optionalNote), text: $comment)
                             }
                         }
 
                         if item.hasReview {
-                            Label("Review already submitted — saving again will update it.", systemImage: "checkmark.circle.fill")
+                            Label(appState.t(.reviewAlreadySubmitted), systemImage: "checkmark.circle.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(MarviColor.emerald)
                         }
 
                         GradientCTA(
-                            title: isSubmitting ? "Saving…" : "Submit review",
+                            title: isSubmitting ? appState.t(.saving) : appState.t(.submitReview),
                             action: {
                                 Task {
                                     isSubmitting = true
@@ -444,11 +487,11 @@ private struct VenueReviewDetailSheet: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Creator review")
+            .navigationTitle(appState.t(.creatorReviewNav))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button(appState.t(.done)) { dismiss() }
                         .foregroundStyle(MarviColor.rose)
                 }
             }
@@ -474,6 +517,7 @@ private struct VenueReviewDetailSheet: View {
 }
 
 private struct SwipeCard: View {
+    @EnvironmentObject private var appState: AppState
     let candidate: InfluencerCandidate
     let offset: CGSize
 
@@ -505,11 +549,11 @@ private struct SwipeCard: View {
                 }
 
                 HStack(spacing: 10) {
-                    TraitBadge(title: "Punctuality", value: candidate.punctuality)
-                    TraitBadge(title: "Presentation", value: candidate.presentation)
+                    TraitBadge(title: appState.t(.punctuality), value: candidate.punctuality)
+                    TraitBadge(title: appState.t(.presentation), value: candidate.presentation)
                 }
 
-                Text("\(candidate.followers) followers")
+                Text(appState.tf(.followersCount, candidate.followers))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(MarviColor.rose)
             }
@@ -630,27 +674,27 @@ private struct CampaignBuilderSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    SectionTitle(title: "New campaign", subtitle: "Submitted for admin review before going live.")
+                    SectionTitle(title: appState.t(.newCampaign), subtitle: appState.t(.newCampaignSub))
 
                     MarviCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            MarviTextField(placeholder: "Campaign title", text: $title)
-                            MarviTextField(placeholder: "Venue name", text: $venueName)
+                            MarviTextField(placeholder: appState.t(.campaignTitlePh), text: $title)
+                            MarviTextField(placeholder: appState.t(.venueNamePh), text: $venueName)
                                 .disabled(venueLocked)
-                            MarviTextField(placeholder: "Area", text: $area)
+                            MarviTextField(placeholder: appState.t(.areaPh), text: $area)
                                 .disabled(venueLocked)
                             DatePicker(
-                                "Event date",
+                                appState.t(.eventDateLabel),
                                 selection: $campaignDate,
                                 in: Date()...,
                                 displayedComponents: .date
                             )
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(MarviColor.ink)
-                            MarviTextField(placeholder: "Value (e.g. Dinner for 2)", text: $valueLabel)
-                            MarviTextField(placeholder: "Deliverables, comma separated", text: $deliverablesText)
+                            MarviTextField(placeholder: appState.t(.valuePh), text: $valueLabel)
+                            MarviTextField(placeholder: appState.t(.deliverablesPh), text: $deliverablesText)
 
-                            Text("Collaboration model")
+                            Text(appState.t(.collaborationModelLabel))
                                 .font(.caption.weight(.bold))
                                 .textCase(.uppercase)
                                 .foregroundStyle(MarviColor.muted)
@@ -661,7 +705,7 @@ private struct CampaignBuilderSheet: View {
                                         Button {
                                             collaborationModel = model
                                         } label: {
-                                            Label(model.rawValue, systemImage: model.icon)
+                                            Label(model.label(for: appState.preferredLanguage), systemImage: model.icon)
                                                 .font(.caption.weight(.bold))
                                                 .padding(.horizontal, 12)
                                                 .padding(.vertical, 8)
@@ -679,7 +723,7 @@ private struct CampaignBuilderSheet: View {
                             }
 
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Creator slots: \(Int(slots))")
+                                Text(appState.tf(.creatorSlotsCount, Int(slots)))
                                     .font(.subheadline.weight(.bold))
                                     .foregroundStyle(MarviColor.ink)
                                 Slider(value: $slots, in: 2...30, step: 1)
@@ -689,7 +733,7 @@ private struct CampaignBuilderSheet: View {
                     }
 
                     PrimaryActionButton(
-                        title: isSubmitting ? "Submitting…" : "Send to admin review",
+                        title: isSubmitting ? appState.t(.submitting) : appState.t(.sendToAdminReview),
                         systemImage: "paperplane.fill",
                         isDisabled: !canSubmitCampaign || isSubmitting
                     ) {
@@ -714,15 +758,19 @@ private struct CampaignBuilderSheet: View {
                 .padding(16)
             }
             .background(MarviColor.surface.ignoresSafeArea())
-            .navigationTitle("Create")
+            .navigationTitle(appState.t(.createNav))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
+                    Button(appState.t(.close)) { dismiss() }
                 }
             }
             .task {
-                if let venue = await appState.loadVenueSummary() {
+                var venue = appState.activeVenue
+                if venue == nil {
+                    venue = await appState.loadVenueSummary()
+                }
+                if let venue {
                     venueName = venue.venueName
                     area = venue.area
                     category = venue.category
@@ -752,4 +800,191 @@ private struct CampaignBuilderSheet: View {
         formatter.dateFormat = "EEE, MMM d"
         return formatter
     }()
+}
+
+private struct VenueLocationsCard: View {
+    @EnvironmentObject private var appState: AppState
+    let venues: [VenueSummary]
+    let onSelect: (VenueSummary) -> Void
+    let onAdd: () -> Void
+
+    var body: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle(title: appState.t(.myLocations), subtitle: appState.t(.myLocationsSub))
+
+                if venues.isEmpty {
+                    EmptyStateView(
+                        title: appState.t(.addLocation),
+                        subtitle: appState.t(.addLocationSub),
+                        icon: "building.2.crop.circle",
+                        actionTitle: appState.t(.addLocation),
+                        action: onAdd
+                    )
+                } else {
+                    Text(appState.t(.selectLocation))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(MarviColor.muted)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(venues) { venue in
+                                Button { onSelect(venue) } label: {
+                                    VenueLocationChip(venue: venue)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            Button(action: onAdd) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text(appState.t(.addLocation))
+                                        .font(.caption.weight(.bold))
+                                }
+                                .foregroundStyle(MarviColor.rose)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(MarviColor.panelElevated)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct VenueLocationChip: View {
+    @EnvironmentObject private var appState: AppState
+    let venue: VenueSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: venue.category.icon)
+                    .font(.caption.weight(.bold))
+                Text(venue.venueName)
+                    .font(.caption.weight(.bold))
+                    .lineLimit(1)
+            }
+            Text(venue.area)
+                .font(.caption2)
+                .foregroundStyle(MarviColor.muted)
+                .lineLimit(1)
+
+            if venue.status == .underReview {
+                Text(appState.t(.locationPendingReview))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(MarviColor.gold)
+            }
+        }
+        .foregroundStyle(venue.isActive ? Color.white : MarviColor.ink)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            venue.isActive
+                ? AnyShapeStyle(MarviGradient.brand)
+                : AnyShapeStyle(MarviColor.panelElevated)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            if venue.isActive {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+            }
+        }
+    }
+}
+
+private struct AddVenueSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+
+    @State private var name = ""
+    @State private var area = ""
+    @State private var address = ""
+    @State private var contactPhone = ""
+    @State private var category: OfferCategory = .dining
+    @State private var isSubmitting = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionTitle(title: appState.t(.addLocation), subtitle: appState.t(.addLocationSub))
+
+                    MarviCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            MarviTextField(placeholder: appState.t(.venueNamePh), text: $name)
+                            MarviTextField(placeholder: appState.t(.areaPh), text: $area)
+                            MarviTextField(placeholder: appState.t(.addressOptional), text: $address)
+                            MarviTextField(placeholder: appState.t(.contactPhoneOptional), text: $contactPhone)
+
+                            Text(appState.t(.locationTypeLabel))
+                                .font(.caption.weight(.bold))
+                                .textCase(.uppercase)
+                                .foregroundStyle(MarviColor.muted)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(OfferCategory.allCases) { item in
+                                        Button { category = item } label: {
+                                            Label(item.label(for: appState.preferredLanguage), systemImage: item.icon)
+                                                .font(.caption.weight(.bold))
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .foregroundStyle(category == item ? .white : MarviColor.ink)
+                                                .background(
+                                                    category == item
+                                                        ? AnyShapeStyle(MarviGradient.brand)
+                                                        : AnyShapeStyle(MarviColor.panelElevated)
+                                                )
+                                                .clipShape(Capsule())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    PrimaryActionButton(
+                        title: isSubmitting ? appState.t(.submitting) : appState.t(.addLocation),
+                        systemImage: "building.2.fill",
+                        isDisabled: !canSubmit || isSubmitting
+                    ) {
+                        Task {
+                            isSubmitting = true
+                            let success = await appState.registerVenue(
+                                name: name,
+                                area: area,
+                                category: category,
+                                address: address,
+                                contactPhone: contactPhone
+                            )
+                            isSubmitting = false
+                            if success { dismiss() }
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .background(MarviColor.surface.ignoresSafeArea())
+            .navigationTitle(appState.t(.addLocation))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(appState.t(.close)) { dismiss() }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private var canSubmit: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !area.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 }

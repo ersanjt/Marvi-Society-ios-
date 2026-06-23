@@ -22,37 +22,46 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({
-      ok: true,
-      mode: "preview",
-      message: "Campaign saved in preview mode (sign in with Supabase to persist).",
-    });
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
 
   const collaborationModel = MODEL_MAP[String(model).toLowerCase()] ?? "invitation";
 
-  const { data: venues } = await supabase
-    .from("venue_profiles")
-    .select("id, category, status")
-    .eq("owner_user_id", user.id)
-    .limit(1);
+  let activeVenue: { id: string; category?: string } | null = null;
+  const { data: venues, error: venuesError } = await supabase.rpc("fetch_my_venues");
 
-  const venue = venues?.[0];
-  if (!venue) {
+  if (!venuesError && venues?.length) {
+    activeVenue =
+      venues.find((v: { is_active: boolean }) => v.is_active) ?? venues[0] ?? null;
+  }
+
+  if (!activeVenue) {
+    const { data: ownedVenues } = await supabase
+      .from("venue_profiles")
+      .select("id, category")
+      .eq("owner_user_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    activeVenue = ownedVenues?.[0] ?? null;
+  }
+
+  if (!activeVenue) {
     return NextResponse.json(
-      { error: "No venue profile linked to this account. Contact support to onboard." },
+      { error: "No venue profile linked to this account. Add a location in the portal." },
       { status: 400 }
     );
   }
 
   const { data: offerID, error: rpcError } = await supabase.rpc("submit_campaign_for_review", {
     p_title: title,
-    p_category: venue.category ?? "dining",
+    p_category: activeVenue.category ?? "dining",
     p_model: collaborationModel,
     p_date_label: dateLabel ?? "TBD",
     p_value_label: valueLabel ?? "Complimentary experience",
     p_slots: slots,
     p_deliverables: deliverables,
+    ...(venuesError ? {} : { p_venue_id: activeVenue.id }),
   });
 
   if (rpcError) {

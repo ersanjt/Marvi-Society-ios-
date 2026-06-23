@@ -44,11 +44,11 @@ export function CampaignForm() {
     <form className="marvi-card mt-8 space-y-4" onSubmit={onSubmit}>
       <label className="block text-sm font-semibold">
         Campaign title
-        <input name="title" required className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
+        <input name="title" required className="mt-1 marvi-input" />
       </label>
       <label className="block text-sm font-semibold">
         Collaboration model
-        <select name="model" className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2">
+        <select name="model" className="mt-1 marvi-input">
           <option value="invitation">Invitation</option>
           <option value="event">Event</option>
           <option value="gift">Gift</option>
@@ -57,11 +57,11 @@ export function CampaignForm() {
       </label>
       <label className="block text-sm font-semibold">
         Creator value (e.g. Dinner for 2)
-        <input name="valueLabel" className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
+        <input name="valueLabel" className="mt-1 marvi-input" />
       </label>
       <label className="block text-sm font-semibold">
         Creator slots
-        <input name="slots" type="number" min={1} defaultValue={5} required className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2" />
+        <input name="slots" type="number" min={1} defaultValue={5} required className="mt-1 marvi-input" />
       </label>
       <label className="block text-sm font-semibold">
         Deliverables (one per line)
@@ -69,7 +69,7 @@ export function CampaignForm() {
           name="deliverables"
           rows={4}
           required
-          className="mt-1 w-full rounded-marvi border border-black/10 px-3 py-2"
+          className="mt-1 marvi-input"
           placeholder={"3 Instagram stories\n1 Reel"}
         />
       </label>

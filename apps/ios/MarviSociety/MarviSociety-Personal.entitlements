@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Personal/free Apple Developer teams cannot use Sign In with Apple or Push Notifications.
+  Use this entitlements file for on-device testing via xcodebuild CODE_SIGN_ENTITLEMENTS override.
+-->
+<plist version="1.0">
+<dict/>
+</plist>

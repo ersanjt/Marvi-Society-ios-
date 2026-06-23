@@ -5,6 +5,9 @@ struct ReauthView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isSigningIn = false
+    @State private var showPasswordResetConfirmation = false
+
+    private var lang: AppLanguage { appState.preferredLanguage }
 
     var body: some View {
         NavigationStack {
@@ -15,18 +18,19 @@ struct ReauthView: View {
                     BrandMark(size: 64)
 
                     VStack(spacing: 8) {
-                        Text("Welcome back")
+                        Text(appState.t(.welcomeBack))
                             .font(.title2.weight(.bold))
                             .foregroundStyle(MarviColor.ink)
-                        Text("Sign in to continue to Marvi Society.")
+                        Text(appState.t(.signInToContinue))
                             .font(.subheadline)
                             .foregroundStyle(MarviColor.muted)
+                            .multilineTextAlignment(.center)
                     }
 
                     MarviCard {
                         VStack(spacing: 12) {
-                            MarviTextField(placeholder: "Email", text: $email, autocapitalization: .never)
-                            SecureField("Password", text: $password)
+                            MarviTextField(placeholder: appState.t(.email), text: $email, autocapitalization: .never)
+                            SecureField(appState.t(.password), text: $password)
                                 .padding(12)
                                 .foregroundStyle(MarviColor.ink)
                                 .background(MarviColor.panelElevated)
@@ -37,7 +41,7 @@ struct ReauthView: View {
                                 )
 
                             PrimaryActionButton(
-                                title: isSigningIn ? "Signing in…" : "Sign in",
+                                title: isSigningIn ? appState.t(.signingIn) : appState.t(.signIn),
                                 systemImage: "arrow.right.circle",
                                 isDisabled: email.isEmpty || password.isEmpty || isSigningIn
                             ) {
@@ -55,6 +59,22 @@ struct ReauthView: View {
                                     isSigningIn = false
                                 }
                             }
+
+                            Button {
+                                Task {
+                                    await appState.requestPasswordReset(email: email)
+                                    if appState.passwordResetMessage != nil {
+                                        showPasswordResetConfirmation = true
+                                    }
+                                }
+                            } label: {
+                                Text(appState.t(.forgotPasswordEmail))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(MarviColor.muted)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSigningIn)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -70,6 +90,13 @@ struct ReauthView: View {
                     Spacer()
                 }
             }
+        }
+        .alert(appState.t(.checkEmailTitle), isPresented: $showPasswordResetConfirmation) {
+            Button(appState.t(.ok)) {
+                appState.dismissPasswordResetMessage()
+            }
+        } message: {
+            Text(appState.passwordResetMessage ?? appState.t(.passwordResetDefault))
         }
     }
 }

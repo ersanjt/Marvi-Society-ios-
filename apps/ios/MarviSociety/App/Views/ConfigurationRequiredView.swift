@@ -7,10 +7,10 @@ struct ConfigurationRequiredView: View {
                 Spacer()
                 BrandMark(size: 72)
                 VStack(spacing: 10) {
-                    Text("Configuration required")
+                    Text(MarviL10n.t(.configurationRequired, language: .turkish))
                         .font(.title2.weight(.bold))
                         .foregroundStyle(MarviColor.ink)
-                    Text("Copy Config/Secrets.xcconfig.example to Secrets.xcconfig and add your Supabase project URL and anon key.")
+                    Text(MarviL10n.t(.configurationSub, language: .turkish))
                         .font(.subheadline)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(MarviColor.muted)

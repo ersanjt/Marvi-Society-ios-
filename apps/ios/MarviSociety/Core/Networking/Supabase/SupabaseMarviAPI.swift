@@ -32,6 +32,25 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         try await applyOnboardingMetadata(metadata)
     }
 
+    func resetPassword(_ email: String) async throws {
+        try await client.resetPassword(email: email)
+    }
+
+    func pauseOwnAccount() async throws {
+        try await client.rpcVoid(function: "pause_own_account", body: [:])
+    }
+
+    func reactivateOwnAccount() async throws {
+        try await client.rpcVoid(function: "reactivate_own_account", body: [:])
+    }
+
+    func deleteOwnAccountPermanently() async throws {
+        _ = try await client.invokeFunction(
+            name: "delete-own-account",
+            body: ["confirm": "DELETE"]
+        )
+    }
+
     func signOut() async throws {
         try await client.signOut()
     }
@@ -51,7 +70,17 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 body: [:]
             )
             if let row = rows.first {
-                return row.context
+                let base = row.context
+                if let profileContext = try? await fetchAccountContextFromProfiles() {
+                    return AccountContext(
+                        role: base.role,
+                        membershipStatus: base.membershipStatus ?? profileContext.membershipStatus,
+                        hasVenueProfile: base.hasVenueProfile || profileContext.hasVenueProfile,
+                        referralCode: profileContext.referralCode,
+                        pausedBySelf: profileContext.pausedBySelf
+                    )
+                }
+                return base
             }
         } catch {
             // Migration may not be applied yet — fall back to direct profile read.
@@ -72,14 +101,20 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         let rows: [ProfileRoleRow] = try await client.select(
             table: "profiles",
             query: [
-                URLQueryItem(name: "select", value: "role,status,email"),
+                URLQueryItem(name: "select", value: "role,status,email,referral_code,paused_by_self"),
                 URLQueryItem(name: "limit", value: "1")
             ]
         )
         let role = rows.first?.role.flatMap(UserRole.fromAPI) ?? .creator
         let status = MembershipStatus.fromAPI(rows.first?.status)
         let hasVenue = try await hasVenueProfile()
-        return AccountContext(role: role, membershipStatus: status, hasVenueProfile: hasVenue)
+        return AccountContext(
+            role: role,
+            membershipStatus: status,
+            hasVenueProfile: hasVenue,
+            referralCode: rows.first?.referral_code,
+            pausedBySelf: rows.first?.paused_by_self ?? false
+        )
     }
 
     // MARK: - Read
@@ -242,44 +277,58 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func fetchCampaigns() async throws -> [Campaign] {
-        guard let venue = try await fetchVenueSummary() else { return [] }
-
         let rows: [CampaignOfferRow] = try await client.select(
             table: "offers",
             query: [
                 URLQueryItem(name: "select", value: "*,venue_profiles(venue_name,area)"),
-                URLQueryItem(name: "venue_id", value: "eq.\(venue.id.uuidString)"),
                 URLQueryItem(name: "order", value: "created_at.desc")
             ]
         )
         return rows.map { $0.toCampaign() }
     }
 
-    func createCampaign(_ input: CreateCampaignInput) async throws -> Campaign {
+    func createCampaign(_ input: CreateCampaignInput, venueID: UUID?) async throws -> Campaign {
         guard let venue = try await fetchVenueSummary() else {
             throw MarviAPIError.server(message: "No venue profile linked to this account.")
         }
 
+        var body: [String: Any] = [
+            "p_title": input.title,
+            "p_category": input.category.apiValue,
+            "p_model": input.collaborationModel.apiValue,
+            "p_date_label": input.dateLabel,
+            "p_value_label": input.valueLabel,
+            "p_slots": input.slots,
+            "p_deliverables": input.deliverables
+        ]
+        if let venueID {
+            body["p_venue_id"] = venueID.uuidString
+        }
+
         struct OfferIDRow: Decodable { let id: UUID }
 
-        let row: OfferIDRow = try await client.rpc(
-            function: "submit_campaign_for_review",
-            body: [
-                "p_title": input.title,
-                "p_category": input.category.apiValue,
-                "p_model": input.collaborationModel.apiValue,
-                "p_date_label": input.dateLabel,
-                "p_value_label": input.valueLabel,
-                "p_slots": input.slots,
-                "p_deliverables": input.deliverables
-            ]
-        )
+        let row: OfferIDRow
+        do {
+            row = try await client.rpc(function: "submit_campaign_for_review", body: body)
+        } catch {
+            guard venueID != nil else { throw error }
+            var legacyBody = body
+            legacyBody.removeValue(forKey: "p_venue_id")
+            row = try await client.rpc(function: "submit_campaign_for_review", body: legacyBody)
+        }
+
+        let targetVenue: VenueSummary
+        if let venueID, venueID != venue.id, let selected = try await fetchVenueProfile(id: venueID) {
+            targetVenue = selected
+        } else {
+            targetVenue = venue
+        }
 
         return Campaign(
             id: row.id,
             title: input.title,
-            venueName: venue.venueName,
-            area: venue.area,
+            venueName: targetVenue.venueName,
+            area: targetVenue.area,
             category: input.category,
             dateLabel: input.dateLabel,
             valueLabel: input.valueLabel,
@@ -290,16 +339,115 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func fetchMyVenues() async throws -> [VenueSummary] {
+        do {
+            let rows: [MyVenueRow] = try await client.rpc(
+                function: "fetch_my_venues",
+                body: [:]
+            )
+            return rows.map { $0.toSummary() }
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            guard message.lowercased().contains("could not find the function") else {
+                throw error
+            }
+
+            guard let userID = await client.currentUserID() else { return [] }
+            let rows: [VenueProfileRow] = try await client.select(
+                table: "venue_profiles",
+                query: [
+                    URLQueryItem(name: "owner_user_id", value: "eq.\(userID)"),
+                    URLQueryItem(name: "order", value: "created_at.asc")
+                ]
+            )
+            return rows.enumerated().map { index, row in
+                row.toSummary(isActive: index == 0)
+            }
+        }
+    }
+
+    func setActiveVenue(_ venueID: UUID) async throws {
+        do {
+            try await client.rpcVoid(
+                function: "set_active_venue",
+                body: ["p_venue_id": venueID.uuidString]
+            )
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            if message.lowercased().contains("could not find the function") {
+                return
+            }
+            throw error
+        }
+    }
+
+    func registerVenueLocation(_ input: RegisterVenueInput) async throws -> VenueSummary {
+        do {
+            let venueID: UUID = try await client.rpc(
+                function: "register_venue_location",
+                body: [
+                    "p_venue_name": input.venueName,
+                    "p_area": input.area,
+                    "p_category": input.category.apiValue,
+                    "p_address": input.address,
+                    "p_contact_name": input.contactName,
+                    "p_contact_phone": input.contactPhone
+                ]
+            )
+
+            guard let venue = try await fetchVenueProfile(id: venueID) else {
+                throw MarviAPIError.server(message: "Venue created but could not be loaded.")
+            }
+            return venue
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            guard message.lowercased().contains("could not find the function") else {
+                throw error
+            }
+
+            struct VenueIDRow: Decodable { let id: UUID }
+            let row: VenueIDRow = try await client.insertReturning(
+                table: "venue_profiles",
+                body: [
+                    "venue_name": input.venueName,
+                    "area": input.area,
+                    "category": input.category.apiValue,
+                    "address": input.address,
+                    "contact_name": input.contactName,
+                    "contact_phone": input.contactPhone,
+                    "status": "under_review"
+                ]
+            )
+
+            try await client.insert(
+                table: "admin_tasks",
+                body: [
+                    "type": "venue_application",
+                    "subject_id": row.id.uuidString,
+                    "title": input.venueName,
+                    "subtitle": "\(input.area) · new location on existing account",
+                    "priority": "High",
+                    "status": "open"
+                ]
+            )
+
+            guard let venue = try await fetchVenueProfile(id: row.id) else {
+                throw MarviAPIError.server(message: "Venue created but could not be loaded.")
+            }
+            return venue
+        }
+    }
+
     func fetchVenueSummary() async throws -> VenueSummary? {
-        let rows: [VenueProfileRow] = try await client.select(
-            table: "venue_profiles",
-            query: [URLQueryItem(name: "limit", value: "1")]
-        )
-        return rows.first?.toSummary()
+        let venues = try await fetchMyVenues()
+        if let active = venues.first(where: \.isActive) {
+            return active
+        }
+        return venues.first
     }
 
     func hasVenueProfile() async throws -> Bool {
-        try await fetchVenueSummary() != nil
+        !(try await fetchMyVenues()).isEmpty
     }
 
     // MARK: - Write
@@ -464,15 +612,29 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func validateReferralCode(_ code: String) async throws -> Bool {
+        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard !normalized.isEmpty else { return false }
+
+        let filterValue = postgrestEqualsFilter(normalized)
         let rows: [ReferralRow] = try await client.select(
             table: "referral_codes",
             query: [
-                URLQueryItem(name: "select", value: "code"),
-                URLQueryItem(name: "code", value: "eq.\(code.uppercased())"),
+                URLQueryItem(name: "select", value: "code,uses_count,max_uses"),
+                URLQueryItem(name: "code", value: filterValue),
                 URLQueryItem(name: "limit", value: "1")
             ]
         )
-        return !rows.isEmpty
+        guard let row = rows.first else { return false }
+        if let maxUses = row.max_uses, row.uses_count >= maxUses { return false }
+        return true
+    }
+
+    private func postgrestEqualsFilter(_ value: String) -> String {
+        let needsQuotes = value.contains { !$0.isLetter && !$0.isNumber }
+        if needsQuotes {
+            return "eq.\"\(value)\""
+        }
+        return "eq.\(value)"
     }
 
     func redeemReferralCode(_ code: String) async throws {
@@ -514,6 +676,137 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         }
         try await client.insert(table: "strikes", body: body)
     }
+
+    func upsertUserLocation(lat: Double, lng: Double) async throws {
+        try await client.rpcVoid(
+            function: "upsert_user_location",
+            body: ["p_lat": lat, "p_lng": lng]
+        )
+    }
+
+    func fetchAdminUsers(search: String?, status: String?) async throws -> [AdminUserSummary] {
+        var body: [String: Any] = ["p_limit": 100]
+        if let search, !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_search"] = search
+        }
+        if let status, !status.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_status"] = status
+        }
+        let rows: [AdminUserSummary] = try await client.rpc(
+            function: "admin_list_users",
+            body: body,
+            type: [AdminUserSummary].self,
+            decoder: Self.adminDecoder
+        )
+        return rows
+    }
+
+    func fetchAdminUserDetail(userID: UUID) async throws -> AdminUserDetail {
+        try await client.rpc(
+            function: "admin_get_user_detail",
+            body: ["p_user_id": userID.uuidString],
+            type: AdminUserDetail.self,
+            decoder: Self.adminDecoder
+        )
+    }
+
+    func adminSetMembershipStatus(userID: UUID, status: String) async throws {
+        try await client.rpcVoid(
+            function: "admin_set_membership_status",
+            body: [
+                "p_user_id": userID.uuidString,
+                "p_status": status
+            ]
+        )
+    }
+
+    func adminSendNotification(userID: UUID, title: String, body: String) async throws {
+        try await client.rpcVoid(
+            function: "admin_send_notification",
+            body: [
+                "p_user_id": userID.uuidString,
+                "p_title": title,
+                "p_body": body,
+                "p_type": "admin"
+            ]
+        )
+    }
+
+    func adminSendEmail(userID: UUID, subject: String, body: String) async throws {
+        _ = try await client.rpcVoid(
+            function: "admin_send_email",
+            body: [
+                "p_user_id": userID.uuidString,
+                "p_subject": subject,
+                "p_body": body
+            ]
+        )
+    }
+
+    func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult {
+        var body: [String: Any] = [
+            "p_email": email.trimmingCharacters(in: .whitespacesAndNewlines),
+            "p_max_uses": 1
+        ]
+        if let inviteCode, !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_invite_code"] = inviteCode.uppercased()
+        }
+        return try await client.rpc(
+            function: "admin_send_invite",
+            body: body,
+            type: AdminInviteResult.self,
+            decoder: Self.adminDecoder
+        )
+    }
+
+    func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
+        try await client.rpc(
+            function: "admin_notify_users_in_radius",
+            body: [
+                "p_lat": lat,
+                "p_lng": lng,
+                "p_radius_km": radiusKm,
+                "p_title": title,
+                "p_body": body
+            ],
+            type: Int.self,
+            decoder: Self.adminDecoder
+        )
+    }
+
+    func adminCreateUser(
+        email: String,
+        password: String?,
+        fullName: String,
+        city: String,
+        autoApprove: Bool
+    ) async throws -> AdminProvisionResult {
+        var body: [String: Any] = [
+            "email": email.trimmingCharacters(in: .whitespacesAndNewlines),
+            "full_name": fullName.trimmingCharacters(in: .whitespacesAndNewlines),
+            "city": city.trimmingCharacters(in: .whitespacesAndNewlines),
+            "auto_approve": autoApprove,
+            "send_welcome_email": true
+        ]
+        if let password, !password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["password"] = password
+        }
+
+        let data = try await client.invokeFunction(name: "admin-provision-user", body: body)
+        let response = try JSONDecoder().decode(AdminProvisionResponse.self, from: data)
+        return AdminProvisionResult(
+            userID: response.userID,
+            email: response.email,
+            temporaryPassword: response.temporaryPassword,
+            autoApproved: response.autoApproved
+        )
+    }
+
+    private static let adminDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
 
     // MARK: - Private
 
@@ -558,6 +851,8 @@ private struct ProfileRoleRow: Decodable {
     let role: String?
     let status: String?
     let email: String?
+    let referral_code: String?
+    let paused_by_self: Bool?
 }
 
 private struct AccountContextRow: Decodable {
@@ -569,8 +864,24 @@ private struct AccountContextRow: Decodable {
         AccountContext(
             role: UserRole.fromAPI(role) ?? .creator,
             membershipStatus: MembershipStatus.fromAPI(status),
-            hasVenueProfile: has_venue_profile ?? false
+            hasVenueProfile: has_venue_profile ?? false,
+            referralCode: nil,
+            pausedBySelf: false
         )
+    }
+}
+
+private struct AdminProvisionResponse: Decodable {
+    let userID: UUID
+    let email: String
+    let temporaryPassword: String?
+    let autoApproved: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case email
+        case temporaryPassword = "temporary_password"
+        case autoApproved = "auto_approved"
     }
 }
 
@@ -580,6 +891,8 @@ private struct CreatorProfileHealRow: Decodable {
 
 private struct ReferralRow: Decodable {
     let code: String
+    let uses_count: Int
+    let max_uses: Int?
 }
 
 private struct StrikeRow: Decodable {

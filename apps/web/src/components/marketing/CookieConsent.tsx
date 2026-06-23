@@ -15,11 +15,11 @@ export function CookieConsent() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-black/10 bg-white/95 p-4 shadow-lg backdrop-blur">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-panel/95 p-4 shadow-lg backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-graphite">
           We use essential cookies for login and analytics to improve Marvi Society. See our{" "}
-          <a href="/privacy" className="font-semibold text-emerald hover:underline">
+          <a href="/privacy" className="marvi-link">
             Privacy Policy
           </a>
           .

@@ -12,5 +12,6 @@ export const OFFER_CATEGORIES = [
 ] as const;
 export const REFERRAL_CODES = {
   creatorDefault: "MARVI-IST",
+  turkishDefault: "TURGUT",
   venueDefault: "MARVI2026",
 } as const;

@@ -2,66 +2,37 @@ import SwiftUI
 
 struct AdminDashboardView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var tab: AdminConsoleTab = .queue
     @State private var selectedTask: AdminTask?
     @State private var pendingAction: AdminTaskAction?
     @State private var strikeReason = "Proof not delivered per campaign terms"
 
     var body: some View {
         NavigationStack {
-            MarviScreen {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        BrandLockup(subtitle: "Operations command")
-
-                        SectionTitle(
-                            title: "Admin control",
-                            subtitle: "Review applications, campaigns, proof submissions, and operational risk."
-                        )
-
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            AdminMetric(value: "\(appState.openAdminTasks.count)", label: "Open tasks", icon: "tray", tint: MarviColor.tomato)
-                            AdminMetric(value: "\(appState.offers.count)", label: "Live offers", icon: "sparkles", tint: MarviColor.emerald)
-                            AdminMetric(value: "\(appState.activeBookings.count)", label: "Bookings", icon: "calendar", tint: MarviColor.blue)
-                            AdminMetric(value: "\(appState.campaigns.count)", label: "Campaigns", icon: "megaphone", tint: MarviColor.gold)
-                            AdminMetric(value: "\(appState.strikes.count)", label: "Strikes", icon: "exclamationmark.triangle", tint: MarviColor.tomato)
-                        }
-
-                        SectionTitle(title: "Review queue", subtitle: "Approve or reject items before they go live.")
-
-                        if appState.openAdminTasks.isEmpty {
-                            MarviCard {
-                                EmptyStateView(
-                                    title: appState.isSyncing ? "Loading queue…" : "Queue is empty",
-                                    subtitle: appState.isSyncing
-                                        ? "Fetching the latest review tasks from Supabase."
-                                        : "No open review tasks. New applications and proof submissions appear here.",
-                                    icon: "tray",
-                                    actionTitle: "Refresh",
-                                    action: { Task { await appState.refreshFromServer() } }
-                                )
-                            }
-                        } else {
-                            ForEach(appState.openAdminTasks) { task in
-                                AdminTaskCard(
-                                    task: task,
-                                    isProcessing: appState.processingAdminTaskID == task.id
-                                ) {
-                                    pendingAction = AdminTaskAction(task: task, kind: .approve)
-                                } reject: {
-                                    pendingAction = AdminTaskAction(task: task, kind: .reject)
-                                } strike: {
-                                    pendingAction = AdminTaskAction(task: task, kind: .strike)
-                                } openDetail: {
-                                    selectedTask = task
-                                }
-                            }
-                        }
+            VStack(spacing: 0) {
+                Picker("Section", selection: $tab) {
+                    ForEach(AdminConsoleTab.allCases) { section in
+                        Label(section.title, systemImage: section.icon).tag(section)
                     }
-                    .padding(16)
                 }
-                .refreshable { await appState.refreshFromServer() }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+
+                Group {
+                    switch tab {
+                    case .queue:
+                        adminQueueContent
+                    case .users:
+                        AdminUsersTab()
+                    case .map:
+                        AdminMapTab()
+                    case .broadcast:
+                        AdminBroadcastTab()
+                    }
+                }
             }
-            .navigationTitle("Admin")
+            .navigationTitle(appState.t(.admin))
             .sheet(item: $selectedTask) { task in
                 AdminTaskDetailSheet(task: task) { action in
                     selectedTask = nil
@@ -70,7 +41,7 @@ struct AdminDashboardView: View {
                 .environmentObject(appState)
             }
             .confirmationDialog(
-                pendingAction?.dialogTitle ?? "Confirm",
+                pendingAction?.dialogTitle(for: appState.preferredLanguage) ?? appState.t(.confirm),
                 isPresented: Binding(
                     get: { pendingAction != nil && pendingAction?.kind != .strike },
                     set: { if !$0 { pendingAction = nil } }
@@ -78,39 +49,39 @@ struct AdminDashboardView: View {
                 titleVisibility: .visible
             ) {
                 if let pendingAction {
-                    Button(pendingAction.confirmLabel, role: pendingAction.kind == .reject ? .destructive : nil) {
+                    Button(pendingAction.confirmLabel(for: appState.preferredLanguage), role: pendingAction.kind == .reject ? .destructive : nil) {
                         perform(pendingAction)
                     }
-                    Button("Cancel", role: .cancel) {
+                    Button(appState.t(.cancel), role: .cancel) {
                         self.pendingAction = nil
                     }
                 }
             } message: {
                 if let pendingAction {
-                    Text(pendingAction.message)
+                    Text(pendingAction.message(for: appState.preferredLanguage))
                 }
             }
-            .alert("Issue strike", isPresented: Binding(
+            .alert(appState.t(.issueStrikeTitle), isPresented: Binding(
                 get: { pendingAction?.kind == .strike },
                 set: { if !$0 { pendingAction = nil } }
             )) {
-                TextField("Reason", text: $strikeReason)
-                Button("Issue strike", role: .destructive) {
+                TextField(appState.t(.reasonLabel), text: $strikeReason)
+                Button(appState.t(.issueStrike), role: .destructive) {
                     if let pendingAction {
                         appState.issueStrikeForProofTask(
                             pendingAction.task,
                             reason: strikeReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                ? "Proof not delivered per campaign terms"
+                                ? appState.t(.strikeDefaultReason)
                                 : strikeReason
                         )
                     }
                     pendingAction = nil
                 }
-                Button("Cancel", role: .cancel) {
+                Button(appState.t(.cancel), role: .cancel) {
                     pendingAction = nil
                 }
             } message: {
-                Text("This records a policy strike against the creator linked to this booking.")
+                Text(appState.t(.strikePolicyMessage))
             }
         }
     }
@@ -126,6 +97,61 @@ struct AdminDashboardView: View {
         }
         pendingAction = nil
     }
+
+    private var adminQueueContent: some View {
+        MarviScreen {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    BrandLockup(subtitle: appState.t(.operationsCommand))
+
+                    SectionTitle(
+                        title: appState.t(.adminControl),
+                        subtitle: appState.t(.adminControlSub)
+                    )
+
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        AdminMetric(value: "\(appState.openAdminTasks.count)", label: appState.t(.openTasks), icon: "tray", tint: MarviColor.tomato)
+                        AdminMetric(value: "\(appState.adminUsers.count)", label: appState.t(.usersLabel), icon: "person.3", tint: MarviColor.blue)
+                        AdminMetric(value: "\(appState.activeBookings.count)", label: appState.t(.bookingsLabel), icon: "calendar", tint: MarviColor.emerald)
+                        AdminMetric(value: "\(appState.strikes.count)", label: appState.t(.strikesLabel), icon: "exclamationmark.triangle", tint: MarviColor.tomato)
+                    }
+
+                    SectionTitle(title: appState.t(.reviewQueue), subtitle: appState.t(.reviewQueueSub))
+
+                    if appState.openAdminTasks.isEmpty {
+                        MarviCard {
+                            EmptyStateView(
+                                title: appState.isSyncing ? "Loading queue…" : "Queue is empty",
+                                subtitle: appState.isSyncing
+                                    ? "Fetching the latest review tasks from Supabase."
+                                    : "No open review tasks. New applications and proof submissions appear here.",
+                                icon: "tray",
+                                actionTitle: "Refresh",
+                                action: { Task { await appState.refreshFromServer() } }
+                            )
+                        }
+                    } else {
+                        ForEach(appState.openAdminTasks) { task in
+                            AdminTaskCard(
+                                task: task,
+                                isProcessing: appState.processingAdminTaskID == task.id
+                            ) {
+                                pendingAction = AdminTaskAction(task: task, kind: .approve)
+                            } reject: {
+                                pendingAction = AdminTaskAction(task: task, kind: .reject)
+                            } strike: {
+                                pendingAction = AdminTaskAction(task: task, kind: .strike)
+                            } openDetail: {
+                                selectedTask = task
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .refreshable { await appState.refreshFromServer() }
+        }
+    }
 }
 
 private struct AdminTaskAction {
@@ -138,35 +164,45 @@ private struct AdminTaskAction {
     let task: AdminTask
     let kind: Kind
 
-    var dialogTitle: String {
+    var dialogTitle: String { dialogTitle(for: .english) }
+
+    func dialogTitle(for language: AppLanguage) -> String {
         switch kind {
-        case .approve: "Approve task?"
-        case .reject: "Reject task?"
-        case .strike: "Issue strike?"
+        case .approve: language == .turkish ? "Görev onaylansın mı?" : "Approve task?"
+        case .reject: language == .turkish ? "Görev reddedilsin mi?" : "Reject task?"
+        case .strike: language == .turkish ? "Uyarı verilsin mi?" : "Issue strike?"
         }
     }
 
-    var confirmLabel: String {
+    var confirmLabel: String { confirmLabel(for: .english) }
+
+    func confirmLabel(for language: AppLanguage) -> String {
         switch kind {
-        case .approve: "Approve"
-        case .reject: "Reject"
-        case .strike: "Issue strike"
+        case .approve: MarviL10n.t(.approve, language: language)
+        case .reject: MarviL10n.t(.decline, language: language)
+        case .strike: MarviL10n.t(.issueStrike, language: language)
         }
     }
 
-    var message: String {
+    var message: String { message(for: .english) }
+
+    func message(for language: AppLanguage) -> String {
         switch kind {
         case .approve:
             switch task.type {
-            case .creatorApplication: "This activates creator membership and Explore access."
-            case .venueApplication: "This enables the venue Studio workspace."
-            case .campaignReview: "This publishes the campaign live on Explore."
-            case .proofReview: "This marks proof as delivered."
+            case .creatorApplication:
+                language == .turkish ? "Creator üyeliği ve Keşfet erişimi aktif olur." : "This activates creator membership and Explore access."
+            case .venueApplication:
+                language == .turkish ? "Mekân Stüdyo çalışma alanı açılır." : "This enables the venue Studio workspace."
+            case .campaignReview:
+                language == .turkish ? "Kampanya Keşfet'te canlı yayınlanır." : "This publishes the campaign live on Explore."
+            case .proofReview:
+                language == .turkish ? "Kanıt teslim edildi olarak işaretlenir." : "This marks proof as delivered."
             }
         case .reject:
-            "The applicant or submitter will remain paused until they resubmit."
+            language == .turkish ? "Başvuran yeniden gönderene kadar duraklatılmış kalır." : "The applicant or submitter will remain paused until they resubmit."
         case .strike:
-            "This records a policy strike against the creator."
+            MarviL10n.t(.strikePolicyMessage, language: language)
         }
     }
 }
@@ -200,6 +236,7 @@ private struct AdminMetric: View {
 }
 
 private struct AdminTaskCard: View {
+    @EnvironmentObject private var appState: AppState
     let task: AdminTask
     let isProcessing: Bool
     let approve: () -> Void
@@ -258,7 +295,7 @@ private struct AdminTaskCard: View {
                     if isProcessing {
                         HStack {
                             ProgressView().tint(MarviColor.rose)
-                            Text("Updating…")
+                            Text(appState.t(.updating))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(MarviColor.muted)
                         }
@@ -266,7 +303,7 @@ private struct AdminTaskCard: View {
                     } else {
                         HStack(spacing: 10) {
                             Button(action: reject) {
-                                Label("Reject", systemImage: "xmark.circle")
+                                Label(appState.t(.decline), systemImage: "xmark.circle")
                                     .font(.subheadline.weight(.bold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 11)
@@ -277,7 +314,7 @@ private struct AdminTaskCard: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                             Button(action: approve) {
-                                Label("Approve", systemImage: "checkmark.circle")
+                                Label(appState.t(.approve), systemImage: "checkmark.circle")
                                     .font(.subheadline.weight(.bold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 11)
@@ -375,7 +412,7 @@ private struct AdminTaskDetailSheet: View {
                             MarviCard {
                                 HStack {
                                     ProgressView().tint(MarviColor.rose)
-                                    Text("Loading applicant details…")
+                                    Text(appState.t(.loadingApplicant))
                                         .font(.subheadline)
                                         .foregroundStyle(MarviColor.muted)
                                 }
@@ -383,7 +420,7 @@ private struct AdminTaskDetailSheet: View {
                         } else if let subjectDetail {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Text("Applicant profile")
+                                    Text(appState.t(.applicantProfile))
                                         .font(.headline.weight(.bold))
                                         .foregroundStyle(MarviColor.ink)
 
@@ -418,7 +455,7 @@ private struct AdminTaskDetailSheet: View {
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Review context")
+                                Text(appState.t(.reviewContext))
                                     .font(.headline.weight(.bold))
                                     .foregroundStyle(MarviColor.ink)
                                 Text(contextSummary)
@@ -432,13 +469,13 @@ private struct AdminTaskDetailSheet: View {
                            let booking = appState.bookings.first(where: { $0.id == bookingID }) {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("Proof links")
+                                    Text(appState.t(.proofLinks))
                                         .font(.headline.weight(.bold))
                                         .foregroundStyle(MarviColor.ink)
                                     detailRow("Venue", booking.offer.venue)
                                     detailRow("Deadline", booking.proofDeadline)
                                     if booking.proofLinks.isEmpty {
-                                        Text("No links attached yet.")
+                                        Text(appState.t(.noLinksYet))
                                             .font(.subheadline)
                                             .foregroundStyle(MarviColor.muted)
                                     } else {
@@ -486,7 +523,7 @@ private struct AdminTaskDetailSheet: View {
                             }) {
                             MarviCard {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("Campaign details")
+                                    Text(appState.t(.campaignDetails))
                                         .font(.headline.weight(.bold))
                                         .foregroundStyle(MarviColor.ink)
                                     detailRow("Venue", offer.venue)
@@ -505,7 +542,7 @@ private struct AdminTaskDetailSheet: View {
                                 Button {
                                     onAction(.reject)
                                 } label: {
-                                    Label("Reject", systemImage: "xmark.circle")
+                                    Label(appState.t(.decline), systemImage: "xmark.circle")
                                         .font(.subheadline.weight(.bold))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)
@@ -518,7 +555,7 @@ private struct AdminTaskDetailSheet: View {
                                 Button {
                                     onAction(.approve)
                                 } label: {
-                                    Label("Approve", systemImage: "checkmark.circle")
+                                    Label(appState.t(.approve), systemImage: "checkmark.circle")
                                         .font(.subheadline.weight(.bold))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 12)

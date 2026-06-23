@@ -9,91 +9,87 @@ struct InboxView: View {
         NavigationStack {
             MarviScreen {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        BrandLockup(subtitle: MarviL10n.t(.inboxTitle, language: lang))
+                    VStack(alignment: .leading, spacing: 16) {
+                        BrandLockup(subtitle: appState.t(.inboxTitle))
 
                         SectionTitle(
-                            title: MarviL10n.t(.inboxTitle, language: lang),
-                            subtitle: lang == .turkish
-                                ? "Onaylar, hatırlatmalar ve venue güncellemeleri."
-                                : "Operational updates, confirmations, and reminders."
+                            title: appState.t(.inboxTitle),
+                            subtitle: appState.t(.inboxSub)
                         )
 
                         if appState.inboxMessages.isEmpty {
-                            MarviCard {
-                                EmptyStateView(
-                                    title: appState.isSyncing ? "Loading…" : MarviL10n.t(.inboxEmpty, language: lang),
-                                    subtitle: appState.isSyncing
-                                        ? (lang == .turkish ? "Bildirimler yükleniyor." : "Fetching your latest notifications.")
-                                        : (lang == .turkish
-                                            ? "Onaylar ve hatırlatmalar burada görünür."
-                                            : "Confirmations, reminders, and venue updates will appear here."),
-                                    icon: "tray",
-                                    actionTitle: appState.isSyncing ? nil : "Refresh",
-                                    action: appState.isSyncing ? nil : { Task { await appState.refreshFromServer() } }
-                                )
-                            }
+                            EmptyStateView(
+                                title: appState.isSyncing ? appState.t(.loading) : appState.t(.inboxEmpty),
+                                subtitle: appState.isSyncing
+                                    ? appState.t(.inboxLoading)
+                                    : appState.t(.inboxSub),
+                                icon: "bell.slash"
+                            )
+                            .padding(.top, 24)
                         } else {
-                            ForEach(appState.inboxMessages) { message in
-                                Button {
-                                    appState.openInboxMessage(message)
-                                } label: {
-                                    MarviCard {
-                                        HStack(alignment: .top, spacing: 12) {
-                                            Image(systemName: message.icon)
-                                                .font(.headline.weight(.semibold))
-                                                .foregroundStyle(message.tint.color)
-                                                .frame(width: 38, height: 38)
-                                                .background(message.tint.color.opacity(0.12))
-                                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                                            VStack(alignment: .leading, spacing: 5) {
-                                                HStack {
-                                                    Text(message.title)
-                                                        .font(.subheadline.weight(.bold))
-                                                        .foregroundStyle(MarviColor.ink)
-
-                                                    if !message.isRead {
-                                                        Circle()
-                                                            .fill(MarviColor.rose)
-                                                            .frame(width: 8, height: 8)
-                                                    }
-
-                                                    Spacer()
-
-                                                    Text(message.dateLabel)
-                                                        .font(.caption)
-                                                        .foregroundStyle(MarviColor.muted)
-                                                }
-
-                                                Text(message.body)
-                                                    .font(.subheadline)
-                                                    .foregroundStyle(MarviColor.graphite)
-                                                    .fixedSize(horizontal: false, vertical: true)
-
-                                                if message.deepLink != nil {
-                                                    Label(
-                                                        lang == .turkish ? "Aç" : "Open",
-                                                        systemImage: "arrow.right.circle.fill"
-                                                    )
-                                                    .font(.caption.weight(.bold))
-                                                    .foregroundStyle(MarviColor.emerald)
-                                                }
-                                            }
-                                        }
+                            LazyVStack(spacing: 12) {
+                                ForEach(appState.inboxMessages) { message in
+                                    InboxMessageRow(message: message, openLabel: appState.t(.openAction)) {
+                                        appState.openInboxMessage(message)
                                     }
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
                     .padding(16)
                 }
-                .refreshable {
-                    await appState.refreshFromServer()
+            }
+            .navigationTitle(appState.t(.inboxTitle))
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(appState.t(.refresh)) {
+                        Task { await appState.refreshFromServer() }
+                    }
                 }
             }
-            .navigationTitle(MarviL10n.t(.inboxTitle, language: lang))
         }
+    }
+}
+
+private struct InboxMessageRow: View {
+    let message: InboxMessage
+    let openLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(message.title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                        .multilineTextAlignment(.leading)
+                    Text(message.body)
+                        .font(.caption)
+                        .foregroundStyle(MarviColor.muted)
+                        .multilineTextAlignment(.leading)
+                    Text(message.dateLabel)
+                        .font(.caption2)
+                        .foregroundStyle(MarviColor.muted)
+                }
+                Spacer()
+                if !message.isRead {
+                    Circle()
+                        .fill(MarviColor.rose)
+                        .frame(width: 8, height: 8)
+                }
+                Text(openLabel)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(MarviColor.emerald)
+            }
+            .padding(14)
+            .background(MarviColor.panel)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

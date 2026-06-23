@@ -311,6 +311,7 @@ struct EmptyStateView: View {
 
 struct SyncErrorBanner: View {
     let message: String
+    var retryTitle: String = MarviL10n.t(.retry, language: .turkish)
     let onRetry: () -> Void
     let onDismiss: () -> Void
 
@@ -326,7 +327,7 @@ struct SyncErrorBanner: View {
 
             Spacer(minLength: 8)
 
-            Button("Retry", action: onRetry)
+            Button(retryTitle, action: onRetry)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(MarviColor.rose)
 
@@ -351,23 +352,41 @@ struct SyncErrorBanner: View {
 
 struct MembershipStatusBanner: View {
     let status: MembershipStatus
+    var language: AppLanguage = .turkish
+    var pausedBySelf = false
+    var onReactivate: (() -> Void)?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .foregroundStyle(tint)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: icon)
+                    .foregroundStyle(tint)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(MarviColor.ink)
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(MarviColor.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(MarviColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
             }
 
-            Spacer(minLength: 0)
+            if status == .paused, pausedBySelf, let onReactivate {
+                Button(action: onReactivate) {
+                    Text(MarviL10n.t(.reactivateMyAccount, language: language))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(MarviColor.emerald)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(MarviColor.emerald.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(14)
         .background(tint.opacity(0.1))
@@ -380,20 +399,20 @@ struct MembershipStatusBanner: View {
 
     private var title: String {
         switch status {
-        case .underReview: "Application under review"
-        case .approved: "Membership approved"
-        case .paused: "Membership paused"
+        case .underReview: MarviL10n.t(.underReviewBanner, language: language)
+        case .approved: MarviL10n.t(.approvedBanner, language: language)
+        case .paused: pausedBySelf ? MarviL10n.t(.pausedSelfBanner, language: language) : MarviL10n.t(.pausedAdminBanner, language: language)
         }
     }
 
     private var message: String {
         switch status {
-        case .underReview:
-            "You can browse events while we verify your profile. Accepting invitations may be limited until approval."
-        case .approved:
-            "Your creator profile is active. Accept invitations and submit proof after each visit."
+        case .underReview: MarviL10n.t(.underReviewBannerSub, language: language)
+        case .approved: MarviL10n.t(.approvedBannerSub, language: language)
         case .paused:
-            "Your account is paused. Contact support to restore access."
+            pausedBySelf
+                ? MarviL10n.t(.pausedSelfBannerSub, language: language)
+                : MarviL10n.t(.pausedAdminBannerSub, language: language)
         }
     }
 
@@ -448,6 +467,8 @@ struct OfferListSkeleton: View {
 }
 
 struct BootstrapSplashView: View {
+    @EnvironmentObject private var appState: AppState
+
     var body: some View {
         ZStack {
             MarviColor.surface.ignoresSafeArea()
@@ -455,7 +476,7 @@ struct BootstrapSplashView: View {
                 BrandMark(size: 72)
                 ProgressView()
                     .tint(MarviColor.rose)
-                Text("Loading your workspace…")
+                Text(appState.t(.loadingWorkspace))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(MarviColor.muted)
             }
@@ -466,6 +487,7 @@ struct BootstrapSplashView: View {
 // MARK: - Premium components (Secret Society style)
 
 struct HomeHeader: View {
+    @EnvironmentObject private var appState: AppState
     let greeting: String
     let subtitle: String
     var onSearch: (() -> Void)?
@@ -483,7 +505,7 @@ struct HomeHeader: View {
             .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Hi, \(greeting)")
+                Text("\(MarviL10n.t(.hiGreeting, language: appState.preferredLanguage)), \(greeting)")
                     .font(.title3.weight(.bold))
                     .foregroundStyle(MarviColor.ink)
 
@@ -750,62 +772,4 @@ private struct StudioGridTile: View {
         .buttonStyle(.plain)
         .disabled(action == nil)
     }
-}
-
-enum MarviL10n {
-    static func t(_ key: Key, language: AppLanguage) -> String {
-        switch language {
-        case .english: english[key] ?? key.rawValue
-        case .turkish: turkish[key] ?? english[key] ?? key.rawValue
-        }
-    }
-
-    enum Key: String {
-        case explore, myEvents, profile, studio, inbox, account, admin
-        case acceptInvitation, rsvpEvent, confirmGift, useNow
-        case shippingAddress, guestCount, saveProfile, syncFromServer
-        case openAdminConsole, inboxTitle, inboxEmpty
-    }
-
-    private static let english: [Key: String] = [
-        .explore: "Explore",
-        .myEvents: "My Events",
-        .profile: "Profile",
-        .studio: "Studio",
-        .inbox: "Inbox",
-        .account: "Account",
-        .admin: "Admin",
-        .acceptInvitation: "Accept invitation",
-        .rsvpEvent: "Confirm RSVP",
-        .confirmGift: "Confirm gift delivery",
-        .useNow: "Use now",
-        .shippingAddress: "Shipping address",
-        .guestCount: "Guest count",
-        .saveProfile: "Save to account",
-        .syncFromServer: "Sync from server",
-        .openAdminConsole: "Open admin console",
-        .inboxTitle: "Inbox",
-        .inboxEmpty: "Inbox is clear"
-    ]
-
-    private static let turkish: [Key: String] = [
-        .explore: "Keşfet",
-        .myEvents: "Etkinliklerim",
-        .profile: "Profil",
-        .studio: "Stüdyo",
-        .inbox: "Gelen Kutusu",
-        .account: "Hesap",
-        .admin: "Admin",
-        .acceptInvitation: "Daveti kabul et",
-        .rsvpEvent: "RSVP onayla",
-        .confirmGift: "Hediye gönderimini onayla",
-        .useNow: "Hemen kullan",
-        .shippingAddress: "Teslimat adresi",
-        .guestCount: "Misafir sayısı",
-        .saveProfile: "Hesaba kaydet",
-        .syncFromServer: "Sunucudan senkronize et",
-        .openAdminConsole: "Admin konsolunu aç",
-        .inboxTitle: "Gelen Kutusu",
-        .inboxEmpty: "Gelen kutusu boş"
-    ]
 }

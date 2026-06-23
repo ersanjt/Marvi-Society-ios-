@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 type Locale = "en" | "tr";
-type Template = "welcome_application" | "membership_approved";
+type Template = "welcome_application" | "membership_approved" | "admin_message" | "invite_code";
 
 type OutboxRow = {
   id: string;
@@ -28,7 +28,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;background:#0a0a0c;font-family:-apple-system,BinkMacSystemFont,'Segoe UI',sans-serif;color:#f5f5f7;padding:32px 16px;">
+<body style="margin:0;background:#0a0a0c;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#f5f5f7;padding:32px 16px;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#141418;border-radius:16px;border:1px solid #2a2a32;">
     <tr><td style="padding:28px 28px 8px;">
       <p style="margin:0;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#ff2f77;font-weight:700;">Marvi Society</p>
@@ -68,27 +68,64 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
     };
   }
 
-  if (locale === "tr") {
+  if (template === "membership_approved") {
+    if (locale === "tr") {
+      return {
+        subject: "Marvi Society — kaydınız onaylandı",
+        html: wrap(
+          `Tebrikler ${name}!`,
+          `<p><strong>Kaydınız onaylandı.</strong> Artık Marvi Society creator üyesisiniz.</p>
+           <p>İstanbul'daki seçilmiş venue davetlerini keşfetmek için uygulamayı açın ve Explore sekmesine gidin.</p>
+           <p>İyi iş birlikleri dileriz.</p>`
+        ),
+      };
+    }
     return {
-      subject: "Marvi Society — kaydınız onaylandı",
+      subject: "Marvi Society — your registration is approved",
       html: wrap(
-        `Tebrikler ${name}!`,
-        `<p><strong>Kaydınız onaylandı.</strong> Artık Marvi Society creator üyesisiniz.</p>
-         <p>İstanbul'daki seçilmiş venue davetlerini keşfetmek için uygulamayı açın ve Explore sekmesine gidin.</p>
-         <p>İyi iş birlikleri dileriz.</p>`
+        `Congratulations ${name}!`,
+        `<p><strong>Your registration has been accepted.</strong> You are now an approved Marvi Society creator.</p>
+         <p>Open the app and head to Explore to discover curated venue invitations in Istanbul.</p>
+         <p>Welcome to the club.</p>`
       ),
     };
   }
 
-  return {
-    subject: "Marvi Society — your registration is approved",
-    html: wrap(
-      `Congratulations ${name}!`,
-      `<p><strong>Your registration has been accepted.</strong> You are now an approved Marvi Society creator.</p>
-       <p>Open the app and head to Explore to discover curated venue invitations in Istanbul.</p>
-       <p>Welcome to the club.</p>`
-    ),
-  };
+  if (template === "admin_message") {
+    const subject = vars.subject ?? "Marvi Society";
+    const body = (vars.body ?? "").replace(/\n/g, "<br/>");
+    const recipient = vars.name ?? "Member";
+    if (locale === "tr") {
+      return { subject, html: wrap(`Merhaba ${recipient},`, `<p>${body}</p>`) };
+    }
+    return { subject, html: wrap(`Hi ${recipient},`, `<p>${body}</p>`) };
+  }
+
+  if (template === "invite_code") {
+    const code = vars.invite_code ?? "MARVI-IST";
+    if (locale === "tr") {
+      return {
+        subject: "Marvi Society — davet kodunuz",
+        html: wrap(
+          "Creator davetiniz",
+          `<p>Marvi Society'ye katılmak için uygulamayı indirin ve kayıt sırasında bu kodu girin:</p>
+           <p style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#ff2f77;">${code}</p>
+           <p><a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
+        ),
+      };
+    }
+    return {
+      subject: "Marvi Society — your invite code",
+      html: wrap(
+        "Your creator invite",
+        `<p>Download the app and enter this code during signup:</p>
+         <p style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#ff2f77;">${code}</p>
+         <p><a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
+      ),
+    };
+  }
+
+  throw new Error(`Unknown template: ${template}`);
 }
 
 async function sendWithResend(to: string, subject: string, html: string) {

@@ -34,6 +34,7 @@ struct MainAppShell: View {
             if let error = appState.lastSyncError {
                 SyncErrorBanner(
                     message: error,
+                    retryTitle: appState.t(.retry),
                     onRetry: { Task { await appState.refreshFromServer() } },
                     onDismiss: { appState.dismissSyncError() }
                 )
@@ -94,17 +95,13 @@ struct MainAppShell: View {
             .onChange(of: appState.locationService.coordinate?.latitude) { _, _ in
                 appState.handleLocationUpdate()
             }
-            .onChange(of: appState.pendingOfferNavigation?.id) { _, _ in
-                guard let offer = appState.pendingOfferNavigation else { return }
-                appState.pendingOfferNavigation = nil
-            }
         }
         .fullScreenCover(isPresented: $appState.isPresentingAdminConsole) {
             NavigationStack {
                 AdminDashboardView()
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button("Close") {
+                            Button(appState.t(.close)) {
                                 appState.isPresentingAdminConsole = false
                             }
                             .fontWeight(.semibold)

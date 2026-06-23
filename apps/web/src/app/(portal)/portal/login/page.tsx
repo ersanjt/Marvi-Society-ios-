@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/portal/LoginForm";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata = { title: "Brand login" };
 
@@ -9,9 +10,11 @@ export default function PortalLoginPage() {
       <div className="marvi-card">
         <h1 className="font-serif text-2xl font-bold text-ink">Brand portal</h1>
         <p className="mt-2 text-sm text-muted">Sign in to manage campaigns, bookings, and metrics.</p>
-        <LoginForm />
+        <Suspense fallback={<p className="mt-8 text-sm text-muted">Loading…</p>}>
+          <LoginForm />
+        </Suspense>
         <p className="mt-6 text-center text-xs text-muted">
-          No account? <Link href="/demo" className="font-bold text-emerald">Request a demo</Link>
+          No account? <Link href="/demo" className="marvi-link">Request a demo</Link>
         </p>
       </div>
     </div>

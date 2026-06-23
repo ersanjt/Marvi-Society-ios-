@@ -23,7 +23,7 @@ export function LegalDocument({ doc }: { doc: LegalDocumentType }) {
         </section>
       ))}
 
-      <p className="border-t border-black/10 pt-6 text-sm">{doc.contactNote}</p>
+      <p className="border-t border-border pt-6 text-sm">{doc.contactNote}</p>
     </div>
   );
 }

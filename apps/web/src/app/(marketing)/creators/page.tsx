@@ -30,13 +30,13 @@ export default function CreatorsPage() {
         ))}
       </div>
 
-      <div className="marvi-card mt-12 bg-emerald text-white">
+      <div className="marvi-card mt-12 bg-brand-gradient-vertical text-white">
         <h3 className="font-serif text-2xl font-bold">Join the creator community</h3>
         <p className="mt-3 max-w-2xl text-sm text-white/85">
           Requirements: independent creator account, original content, typically 5,000+ followers. Applications reviewed by {SITE.name} operators.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <a href={SITE.appStoreUrl} className="marvi-btn-secondary !text-ink">
+          <a href={SITE.appStoreUrl} className="marvi-btn-secondary">
             Download on App Store
           </a>
           <Link href="/faq" className="inline-flex items-center rounded-marvi border border-white/30 px-5 py-3 text-sm font-bold text-white hover:bg-white/10">

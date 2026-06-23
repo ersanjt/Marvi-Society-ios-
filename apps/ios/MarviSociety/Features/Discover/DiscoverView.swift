@@ -35,12 +35,17 @@ struct DiscoverView: View {
     @State private var sortMode: DiscoverSort = .newest
     @State private var isShowingSortMenu = false
 
-    private let whenOptions = ["Tonight", "This week", "Weekend"]
-    private let eventTypes = ["Dining", "Nightlife", "Wellness", "Beauty"]
+    private var whenOptions: [String] {
+        [appState.t(.tonight), appState.t(.thisWeek), appState.t(.weekend)]
+    }
+
+    private var eventTypes: [String] {
+        OfferCategory.allCases.map { $0.label(for: appState.preferredLanguage) }
+    }
 
     private var cityLabel: String {
         let city = appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
-        return city.isEmpty ? "Your city" : city
+        return city.isEmpty ? appState.t(.yourCity) : city
     }
 
     private var whereOptions: [String] {
@@ -51,7 +56,7 @@ struct DiscoverView: View {
     private var calendarDays: [CalendarDay] {
         let calendar = Calendar.current
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.locale = Locale(identifier: appState.preferredLanguage == .turkish ? "tr_TR" : "en_US_POSIX")
         formatter.dateFormat = "EEE"
         let dayFormatter = DateFormatter()
         dayFormatter.dateFormat = "d"
@@ -78,7 +83,7 @@ struct DiscoverView: View {
                 offer.venue.localizedCaseInsensitiveContains(searchText) ||
                 offer.area.localizedCaseInsensitiveContains(searchText)
             let matchesWhere = selectedWhere == nil || offer.area.localizedCaseInsensitiveContains(selectedWhere!)
-            let matchesType = selectedEventType == nil || offer.category.rawValue.localizedCaseInsensitiveContains(selectedEventType!)
+            let matchesType = selectedEventType == nil || offer.category.label(for: appState.preferredLanguage).localizedCaseInsensitiveContains(selectedEventType!)
             let matchesWhen = matchesWhenFilter(offer: offer, selection: selectedWhen)
             let matchesDay = matchesCalendarDay(offer: offer, dayIndex: selectedCalendarDay)
             let matchesFilter: Bool
@@ -112,18 +117,19 @@ struct DiscoverView: View {
         let today = calendar.startOfDay(for: Date())
 
         switch selection {
-        case "Tonight":
-            if label.contains("tonight") || label.contains("today") { return true }
+        case appState.t(.tonight):
+            if label.contains("tonight") || label.contains("today") || label.contains("bu gece") || label.contains("bugün") { return true }
             let weekday = calendar.component(.weekday, from: today)
             let symbols = calendar.shortWeekdaySymbols.map { $0.lowercased() }
             let todayName = symbols[weekday - 1]
             return label.contains(todayName)
-        case "This week":
+        case appState.t(.thisWeek):
             return calendarDays.contains { day in
                 label.contains(day.label) || label.contains(day.weekday.lowercased())
             }
-        case "Weekend":
+        case appState.t(.weekend):
             return label.contains("sat") || label.contains("sun") || label.contains("weekend")
+                || label.contains("cum") || label.contains("paz")
         default:
             return true
         }
@@ -154,21 +160,29 @@ struct DiscoverView: View {
                     VStack(alignment: .leading, spacing: 22) {
                         HomeHeader(
                             greeting: firstName,
-                            subtitle: "\(cityLabel) · Private access",
+                            subtitle: "\(cityLabel) · \(appState.t(.privateAccess))",
                             onNotifications: { isShowingInbox = true }
                         )
                         .padding(.top, 4)
 
                         if appState.profile.status != .approved {
-                            MembershipStatusBanner(status: appState.profile.status)
+                            MembershipStatusBanner(
+                                status: appState.profile.status,
+                                language: appState.preferredLanguage,
+                                pausedBySelf: appState.accountPausedBySelf,
+                                onReactivate: {
+                                    Task { _ = await appState.reactivateAccount() }
+                                }
+                            )
                         }
 
-                        SSExploreHeader(city: cityLabel, eventCount: filteredOffers.count)
+                        SSExploreHeader(city: cityLabel, eventCount: filteredOffers.count, language: appState.preferredLanguage)
 
                         SSDiscoverAxisPills(
                             whenOptions: whenOptions,
                             whereOptions: whereOptions,
                             eventTypes: eventTypes,
+                            language: appState.preferredLanguage,
                             selectedWhen: $selectedWhen,
                             selectedWhere: $selectedWhere,
                             selectedEventType: $selectedEventType
@@ -177,7 +191,7 @@ struct DiscoverView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
                                 ForEach(OfferCategory.allCases, id: \.self) { category in
-                                    SSFilterChip(title: category.rawValue, icon: "tag") {
+                                    SSFilterChip(title: category.label(for: appState.preferredLanguage), icon: "tag") {
                                         selectedCategory = selectedCategory == category ? nil : category
                                     }
                                     .opacity(selectedCategory == nil || selectedCategory == category ? 1 : 0.45)
@@ -186,6 +200,7 @@ struct DiscoverView: View {
                         }
 
                         SSFilterToolbar(
+                            language: appState.preferredLanguage,
                             onFilters: {
                                 selectedFilter = selectedFilter == .all ? .saved : .all
                             },
@@ -193,20 +208,22 @@ struct DiscoverView: View {
                             onLocation: { selectedWhere = whereOptions.first },
                             onDate: { selectedCalendarDay = 0 }
                         )
-                        .confirmationDialog("Sort events", isPresented: $isShowingSortMenu, titleVisibility: .visible) {
-                            ForEach(DiscoverSort.allCases, id: \.self) { mode in
-                                Button(mode.rawValue) { sortMode = mode }
-                            }
+                        .confirmationDialog(appState.t(.sortEvents), isPresented: $isShowingSortMenu, titleVisibility: .visible) {
+                            Button(appState.t(.sortNewest)) { sortMode = .newest }
+                            Button(appState.t(.sortFewSlots)) { sortMode = .slots }
+                            Button(appState.t(.sortBestMatch)) { sortMode = .match }
                         }
 
                         SSSegmentedTabs(
                             options: DiscoverMode.allCases,
-                            title: { $0.rawValue },
+                            title: { mode in
+                                mode == .list ? appState.t(.listMode) : appState.t(.mapMode)
+                            },
                             selection: $discoverMode
                         )
 
                         if !filteredOffers.isEmpty {
-                            SSFeaturedEventsCarousel(title: "Featured Events") {
+                            SSFeaturedEventsCarousel(title: appState.t(.featuredEvents)) {
                                 ForEach(filteredOffers.prefix(5)) { offer in
                                     FeaturedEventCompact(
                                         offer: offer,
@@ -229,13 +246,24 @@ struct DiscoverView: View {
                         EventCalendarStrip(selectedDay: $selectedCalendarDay, days: calendarDays)
 
                         FilterPillRow(
-                            items: OfferFilter.allCases.map(\.rawValue),
+                            items: [
+                                appState.t(.filterAll),
+                                appState.t(.filterSaved),
+                                appState.t(.filterFewSlots)
+                            ],
                             selected: Binding(
-                                get: { selectedFilter == .all ? nil : selectedFilter.rawValue },
+                                get: {
+                                    switch selectedFilter {
+                                    case .all: return nil
+                                    case .saved: return appState.t(.filterSaved)
+                                    case .urgent: return appState.t(.filterFewSlots)
+                                    }
+                                },
                                 set: { newValue in
-                                    if let newValue,
-                                       let filter = OfferFilter.allCases.first(where: { $0.rawValue == newValue }) {
-                                        selectedFilter = filter
+                                    if newValue == appState.t(.filterSaved) {
+                                        selectedFilter = .saved
+                                    } else if newValue == appState.t(.filterFewSlots) {
+                                        selectedFilter = .urgent
                                     } else {
                                         selectedFilter = .all
                                     }
@@ -250,12 +278,12 @@ struct DiscoverView: View {
                         } else if filteredOffers.isEmpty {
                             MarviCard {
                                 EmptyStateView(
-                                    title: appState.isSyncing ? "Loading events…" : "No events yet",
+                                    title: appState.isSyncing ? appState.t(.loadingEvents) : appState.t(.noEventsYet),
                                     subtitle: appState.isSyncing
-                                        ? "Fetching live campaigns from the server."
-                                        : "New venue invitations appear here when published for \(cityLabel). Pull down to refresh.",
+                                        ? appState.t(.fetchingLive)
+                                        : String(format: appState.t(.newVenueInvites), cityLabel),
                                     icon: "calendar.badge.clock",
-                                    actionTitle: appState.isSyncing ? nil : "Refresh",
+                                    actionTitle: appState.isSyncing ? nil : appState.t(.refresh),
                                     action: appState.isSyncing ? nil : { Task { await appState.refreshFromServer() } }
                                 )
                             }
@@ -281,7 +309,7 @@ struct DiscoverView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .searchable(text: $searchText, prompt: "Venue, area, category")
+            .searchable(text: $searchText, prompt: appState.t(.searchVenuePrompt))
             .navigationDestination(item: $selectedOffer) { offer in
                 OfferDetailView(offer: offer)
             }
@@ -296,7 +324,7 @@ struct DiscoverView: View {
                     InboxView()
                         .toolbar {
                             ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") { isShowingInbox = false }
+                                Button(appState.t(.done)) { isShowingInbox = false }
                             }
                         }
                 }
@@ -341,6 +369,7 @@ private struct FeaturedEventCompact: View {
 }
 
 private struct FeaturedEventHero: View {
+    @EnvironmentObject private var appState: AppState
     let offer: Offer
     let matchScore: Int
     let isSaved: Bool
@@ -356,7 +385,7 @@ private struct FeaturedEventHero: View {
                     .frame(height: 200)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Featured Event")
+                    Text(appState.t(.featuredEvent))
                         .font(.caption.weight(.bold))
                         .textCase(.uppercase)
                         .foregroundStyle(MarviColor.rose)
@@ -371,9 +400,9 @@ private struct FeaturedEventHero: View {
 
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    StatusPill(text: offer.category.rawValue, tint: MarviColor.rose, systemImage: offer.category.icon)
+                    StatusPill(text: offer.category.label(for: appState.preferredLanguage), tint: MarviColor.rose, systemImage: offer.category.icon)
                     if matchScore > 0 {
-                        StatusPill(text: "\(matchScore)% match", tint: MarviColor.gold, systemImage: "star.fill")
+                        StatusPill(text: appState.tf(.matchPercent, matchScore), tint: MarviColor.gold, systemImage: "star.fill")
                     }
                     Spacer()
                     Button(action: toggleSaved) {
@@ -393,7 +422,7 @@ private struct FeaturedEventHero: View {
                     InfoBadge(icon: "gift", text: offer.valueLabel)
                 }
 
-                GradientCTA(title: "View event brief", action: open)
+                GradientCTA(title: appState.t(.viewEventBrief), action: open)
             }
             .padding(16)
             .background(MarviColor.panel)
@@ -407,6 +436,7 @@ private struct FeaturedEventHero: View {
 }
 
 private struct EventListCard: View {
+    @EnvironmentObject private var appState: AppState
     let offer: Offer
     let isSaved: Bool
     let isAccepted: Bool
@@ -434,7 +464,7 @@ private struct EventListCard: View {
                     HStack(spacing: 8) {
                         Label(offer.dateLabel, systemImage: "calendar")
                         if isAccepted {
-                            StatusPill(text: "Confirmed", tint: MarviColor.emerald, systemImage: "checkmark")
+                            StatusPill(text: appState.t(.confirmedStatus), tint: MarviColor.emerald, systemImage: "checkmark")
                         }
                     }
                     .font(.caption)
@@ -462,16 +492,17 @@ private struct EventListCard: View {
 }
 
 private struct CollaborationModelStrip: View {
+    @EnvironmentObject private var appState: AppState
     @Binding var selectedModel: CollaborationModel?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ModelChip(title: "All", icon: "square.grid.2x2", isSelected: selectedModel == nil) {
+                ModelChip(title: appState.t(.filterAll), icon: "square.grid.2x2", isSelected: selectedModel == nil) {
                     selectedModel = nil
                 }
                 ForEach(CollaborationModel.allCases) { model in
-                    ModelChip(title: model.rawValue, icon: model.icon, isSelected: selectedModel == model) {
+                    ModelChip(title: model.label(for: appState.preferredLanguage), icon: model.icon, isSelected: selectedModel == model) {
                         selectedModel = model
                     }
                 }

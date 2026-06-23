@@ -5,6 +5,8 @@ struct AccountContext: Equatable {
     let role: UserRole
     let membershipStatus: MembershipStatus?
     let hasVenueProfile: Bool
+    let referralCode: String?
+    let pausedBySelf: Bool
 }
 
 enum UserRole: String, CaseIterable, Codable, Identifiable {
@@ -291,6 +293,30 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable {
         case .turkish: "Türkçe"
         }
     }
+
+    /// Fallback when no locale signal is available.
+    static var defaultApp: AppLanguage { .english }
+
+    /// Device/App Store region and system language (before GPS).
+    static func inferredFromDevice() -> AppLanguage {
+        if isDeviceLikelyInTurkey { return .turkish }
+        return .english
+    }
+
+    static var isDeviceLikelyInTurkey: Bool {
+        let region = Locale.current.region?.identifier
+            ?? Locale.current.language.region?.identifier
+        if region?.uppercased() == "TR" { return true }
+
+        let preferred = Locale.preferredLanguages.first?.lowercased() ?? ""
+        if preferred.hasPrefix("tr") { return true }
+
+        return false
+    }
+
+    static func isCoordinateInTurkey(latitude: Double, longitude: Double) -> Bool {
+        latitude >= 35.8 && latitude <= 42.3 && longitude >= 25.9 && longitude <= 44.9
+    }
 }
 
 enum MarviDeepLink: Equatable {
@@ -420,13 +446,44 @@ struct VenueMetric: Identifiable {
     let icon: String
 }
 
-struct VenueSummary: Codable, Hashable {
+struct VenueSummary: Codable, Hashable, Identifiable {
     let id: UUID
     let venueName: String
     let area: String
     let category: OfferCategory
+    let status: MembershipStatus?
+    let isActive: Bool
     let latitude: Double?
     let longitude: Double?
+
+    init(
+        id: UUID,
+        venueName: String,
+        area: String,
+        category: OfferCategory,
+        status: MembershipStatus? = nil,
+        isActive: Bool = false,
+        latitude: Double? = nil,
+        longitude: Double? = nil
+    ) {
+        self.id = id
+        self.venueName = venueName
+        self.area = area
+        self.category = category
+        self.status = status
+        self.isActive = isActive
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+}
+
+struct RegisterVenueInput: Sendable {
+    let venueName: String
+    let area: String
+    let category: OfferCategory
+    let address: String
+    let contactName: String
+    let contactPhone: String
 }
 
 struct CreateCampaignInput: Sendable {
@@ -568,5 +625,192 @@ struct InboxMessage: Codable, Identifiable {
         case "booking": return .inbox
         default: return nil
         }
+    }
+}
+
+struct AdminUserSummary: Identifiable, Hashable, Codable {
+    var id: UUID { userID }
+    let userID: UUID
+    var email: String?
+    var role: String?
+    var status: String?
+    var fullName: String?
+    var instagramHandle: String?
+    var city: String?
+    var strikeCount: Int
+    var bookingCount: Int
+    var lastLat: Double?
+    var lastLng: Double?
+    var lastSeenAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case email, role, status
+        case fullName = "full_name"
+        case instagramHandle = "instagram_handle"
+        case city
+        case strikeCount = "strike_count"
+        case bookingCount = "booking_count"
+        case lastLat = "last_lat"
+        case lastLng = "last_lng"
+        case lastSeenAt = "last_seen_at"
+    }
+
+    var displayName: String {
+        if let fullName, !fullName.isEmpty { return fullName }
+        if let instagramHandle, !instagramHandle.isEmpty { return instagramHandle }
+        return email ?? userID.uuidString.prefix(8).description
+    }
+
+    var hasLiveLocation: Bool {
+        lastLat != nil && lastLng != nil
+    }
+}
+
+struct AdminUserDetail: Codable {
+    let userID: UUID
+    var email: String?
+    var role: String?
+    var status: String?
+    var referralCode: String?
+    var phone: String?
+    var creatorCity: String?
+    var creatorHandle: String?
+    var creatorScore: Int?
+    var locationLat: Double?
+    var locationLng: Double?
+    var locationUpdatedAt: Date?
+    var bookingSummaries: [String]
+    var strikeSummaries: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case email, role, status
+        case referralCode = "referral_code"
+        case phone, creator, location, bookings, strikes
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        userID = try container.decode(UUID.self, forKey: .userID)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        role = try container.decodeIfPresent(String.self, forKey: .role)
+        status = try container.decodeIfPresent(String.self, forKey: .status)
+        referralCode = try container.decodeIfPresent(String.self, forKey: .referralCode)
+        phone = try container.decodeIfPresent(String.self, forKey: .phone)
+
+        if let creator = try container.decodeIfPresent([String: JSONValue].self, forKey: .creator) {
+            creatorCity = creator["city"]?.stringValue
+            creatorHandle = creator["instagram_handle"]?.stringValue
+            creatorScore = creator["score"]?.intValue
+        } else {
+            creatorCity = nil
+            creatorHandle = nil
+            creatorScore = nil
+        }
+
+        if let location = try container.decodeIfPresent([String: JSONValue].self, forKey: .location) {
+            locationLat = location["lat"]?.doubleValue
+            locationLng = location["lng"]?.doubleValue
+            locationUpdatedAt = location["updated_at"]?.dateValue
+        } else {
+            locationLat = nil
+            locationLng = nil
+            locationUpdatedAt = nil
+        }
+
+        bookingSummaries = (try? container.decode([BookingSummary].self, forKey: .bookings))?.map(\.label) ?? []
+        strikeSummaries = (try? container.decode([StrikeSummary].self, forKey: .strikes))?.map(\.label) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {}
+
+    private struct BookingSummary: Decodable {
+        let stage: String?
+        let offerTitle: String?
+        let venueName: String?
+
+        enum CodingKeys: String, CodingKey {
+            case stage
+            case offerTitle = "offer_title"
+            case venueName = "venue_name"
+        }
+
+        var label: String {
+            [offerTitle, venueName, stage].compactMap { $0 }.joined(separator: " · ")
+        }
+    }
+
+    private struct StrikeSummary: Decodable {
+        let reason: String?
+        let severity: String?
+
+        var label: String {
+            [severity, reason].compactMap { $0 }.joined(separator: " · ")
+        }
+    }
+}
+
+private enum JSONValue: Decodable {
+    case string(String)
+    case number(Double)
+    case other
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let string = try? container.decode(String.self) {
+            self = .string(string)
+        } else if let number = try? container.decode(Double.self) {
+            self = .number(number)
+        } else {
+            self = .other
+        }
+    }
+
+    var stringValue: String? {
+        if case .string(let value) = self { return value }
+        return nil
+    }
+
+    var doubleValue: Double? {
+        switch self {
+        case .number(let value): return value
+        case .string(let value): return Double(value)
+        default: return nil
+        }
+    }
+
+    var intValue: Int? {
+        guard let doubleValue else { return nil }
+        return Int(doubleValue)
+    }
+
+    var dateValue: Date? {
+        guard let stringValue else { return nil }
+        return ISO8601DateFormatter().date(from: stringValue)
+    }
+}
+
+struct AdminInviteResult: Codable {
+    let email: String
+    let inviteCode: String
+
+    enum CodingKeys: String, CodingKey {
+        case email
+        case inviteCode = "invite_code"
+    }
+}
+
+struct AdminProvisionResult: Codable {
+    let userID: UUID
+    let email: String
+    let temporaryPassword: String?
+    let autoApproved: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case email
+        case temporaryPassword = "temporary_password"
+        case autoApproved = "auto_approved"
     }
 }

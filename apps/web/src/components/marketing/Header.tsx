@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/brand/BrandMark";
 import { LocaleSwitcher } from "@/components/marketing/LocaleSwitcher";
 import { NAV_LINKS, SITE } from "@/lib/constants";
 import { type Locale, getDictionary } from "@/lib/i18n/dictionaries";
@@ -7,15 +8,15 @@ export function Header({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-black/5 bg-surface/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-border bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 md:px-6">
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-marvi bg-emerald text-sm font-bold text-white">
-            M
-          </div>
+          <BrandMark size={40} />
           <div>
-            <p className="font-serif text-lg font-bold leading-tight">{SITE.name}</p>
-            <p className="text-xs text-muted">Istanbul · Private access</p>
+            <p className="font-serif text-lg font-bold leading-tight text-ink">{SITE.name}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+              Istanbul · {locale === "tr" ? "Özel erişim" : "Private access"}
+            </p>
           </div>
         </Link>
 
@@ -24,7 +25,7 @@ export function Header({ locale }: { locale: Locale }) {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-semibold text-graphite transition hover:text-emerald"
+              className="text-sm font-semibold text-graphite transition hover:text-rose"
             >
               {link.label === "Brands"
                 ? dict.nav.brands
