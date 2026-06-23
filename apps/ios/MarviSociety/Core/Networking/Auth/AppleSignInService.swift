@@ -94,7 +94,7 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
         }
 
         switch ASAuthorizationError.Code(rawValue: nsError.code) {
-        case .canceled:
+        case .canceled, .none:
             return nil
         case .unknown:
             return "Sign in with Apple is not available on this device build. Use email sign-in instead."
@@ -102,6 +102,14 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
             return "Apple sign-in failed. Use email sign-in or try again later."
         case .notInteractive:
             return "Apple sign-in could not start. Use email sign-in."
+        case .matchedExcludedCredential:
+            return "Apple sign-in failed. Use email sign-in or try again later."
+        case .credentialImport, .credentialExport:
+            return "Apple sign-in failed. Use email sign-in or try again later."
+        case .preferSignInWithApple:
+            return nil
+        case .deviceNotConfiguredForPasskeyCreation:
+            return "Apple sign-in is not configured on this device. Use email sign-in."
         @unknown default:
             return "Apple sign-in is unavailable. Use email sign-in."
         }

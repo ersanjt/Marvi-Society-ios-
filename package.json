@@ -15,6 +15,7 @@
     "db:bootstrap": "bash scripts/bootstrap-supabase-remote.sh",
     "status": "bash scripts/release/status.sh",
     "verify": "bash scripts/release/verify.sh",
+    "verify:e2e": "bash scripts/app-store/verify-e2e.sh",
     "sync": "bash scripts/release/full-sync.sh",
     "sync:github": "bash scripts/release/sync-github.sh",
     "rollback": "bash scripts/release/rollback.sh",
