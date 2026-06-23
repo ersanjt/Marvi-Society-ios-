@@ -61,4 +61,4 @@ SELECT 'profiles' AS check_name, email, role, status FROM public.profiles WHERE 
 SELECT 'creator' AS check_name, full_name, city, status FROM public.creator_profiles cp
 JOIN auth.users u ON u.id = cp.user_id WHERE u.email = 'review@marvisociety.com';
 SELECT 'offers_live' AS check_name, count(*) FROM public.offers WHERE status = 'live';
-SELECT 'referral_creator' AS check_name, code, is_active, uses_count, max_uses FROM public.referral_codes WHERE code = 'MARVI-IST';
+SELECT 'referral_creator' AS check_name, code, owner_type, uses_count, max_uses FROM public.referral_codes WHERE code = 'MARVI-IST';

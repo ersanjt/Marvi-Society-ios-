@@ -128,5 +128,5 @@ WHERE u.email = 'review@marvisociety.com';
 
 SELECT 'offers_live' AS check_name, count(*)::text AS value FROM public.offers WHERE status = 'live';
 
-SELECT 'referral' AS check_name, code, is_active, uses_count, max_uses
+SELECT 'referral' AS check_name, code, owner_type, uses_count, max_uses
 FROM public.referral_codes WHERE code = 'MARVI-IST';

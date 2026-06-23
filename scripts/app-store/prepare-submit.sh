@@ -14,7 +14,7 @@ bash "$REPO_ROOT/scripts/app-store-preflight.sh"
 
 echo ""
 echo "Manual steps remaining:"
-echo "  1. Supabase SQL Editor → infra/supabase/setup-review-account.sql"
+echo "  1. Supabase SQL Editor → infra/supabase/provision-review-account.sql"
 echo "  2. Supabase Auth → SMTP (mail.marvisociety.com or Resend)"
 echo "  3. App Store Connect → docs/app-store/SUBMIT_NOW.md"
 echo ""
