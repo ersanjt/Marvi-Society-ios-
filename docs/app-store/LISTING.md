@@ -112,19 +112,21 @@ https://marvisociety.com/privacy
 ## Review notes (for Apple)
 
 ```
-Marvi Society is an invite-only B2B2C marketplace. Test credentials:
+Marvi Society is an invite-only creator × venue marketplace for Istanbul.
 
-Email: [provide test account]
-Password: [provide test password]
-Invite code: [provide valid referral code from referral_codes table]
+Test account:
+Email: review@marvisociety.com
+Password: MarviReview2026!
+Invite code (if prompted on first launch): MARVI-IST
 
-The app requires Supabase backend (production). Sign in → Explore shows live venue offers → Accept creates a booking.
+Flow: Sign in → Explore tab shows live venue offers → tap offer → Accept → appears in My Events.
 
-Account deletion: Profile → Delete account → opens https://marvisociety.com/delete-account (email OTP verification).
+Sign in with Apple is also supported.
 
-Sign in with Apple is enabled for Release builds. Email/password also supported for review.
+Account deletion: Profile → Delete Account (opens https://marvisociety.com/delete-account with email OTP).
 
-No IAP. No ads. 18+ confirmed at onboarding.
+No in-app purchases. No ads. 18+ confirmed at onboarding.
+Export: app uses HTTPS only (no custom encryption).
 ```
 
 ## Screenshot storyboard (6.7" iPhone)
