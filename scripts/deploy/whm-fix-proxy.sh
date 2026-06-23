@@ -17,8 +17,14 @@ fi
 DOCROOT="/home/${MARVI_CPANEL_USER}/public_html"
 mkdir -p "$DOCROOT"
 
+# Disable directory listing — was showing "Index of /"
+if [[ -f "$DOCROOT/.htaccess" ]]; then
+  grep -q 'Options -Indexes' "$DOCROOT/.htaccess" || sed -i '1i Options -Indexes' "$DOCROOT/.htaccess" 2>/dev/null || true
+else
+  echo "Options -Indexes" > "$DOCROOT/.htaccess"
+fi
+
 NGINX_PROXY=$(cat <<EOF
-# Marvi Society Next.js
 location / {
     proxy_pass http://127.0.0.1:${MARVI_PORT};
     proxy_http_version 1.1;
@@ -33,26 +39,23 @@ location / {
 EOF
 )
 
-# cPanel EA4 nginx — try multiple known paths
+# cPanel userdata nginx include (primary path on EA4)
+CPANEL_NGINX="/var/cpanel/userdata/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
+mkdir -p "$CPANEL_NGINX"
+log "cPanel nginx include → ${CPANEL_NGINX}/nginx.conf.include"
+printf '%s\n' "$NGINX_PROXY" > "${CPANEL_NGINX}/nginx.conf.include"
+
+# Legacy EA4 path
 NGINX_CANDIDATES=(
   "/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
   "/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}"
 )
-nginx_written=false
 for dir in "${NGINX_CANDIDATES[@]}"; do
   if mkdir -p "$dir" 2>/dev/null; then
-    log "Writing nginx proxy → ${dir}/marvi-node-proxy.conf"
+    log "nginx conf.d → ${dir}/marvi-node-proxy.conf"
     printf '%s\n' "$NGINX_PROXY" > "${dir}/marvi-node-proxy.conf"
-    nginx_written=true
-    break
   fi
 done
-
-if [[ "$nginx_written" == false ]] && [[ -d /etc/nginx/conf.d ]]; then
-  log "Fallback nginx include in conf.d"
-  printf '%s\n' "$NGINX_PROXY" > "/etc/nginx/conf.d/marvi-${MARVI_DOMAIN}.conf"
-  nginx_written=true
-fi
 
 # Apache userdata proxy (cPanel)
 APACHE_INC="/etc/apache2/conf.d/userdata/std/2_4/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
