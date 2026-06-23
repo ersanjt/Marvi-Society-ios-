@@ -48,42 +48,31 @@ fi
 DOCROOT="/home/${MARVI_CPANEL_USER}/public_html"
 mkdir -p "$DOCROOT"
 
-NGINX_PROXY='location / {
-    proxy_pass http://127.0.0.1:'"${MARVI_PORT}"';
+# ── 3. Clean up duplicate nginx configs from prior runs ─────────────
+log "Removing old marvi nginx configs…"
+rm -f /etc/nginx/conf.d/marvi-*.conf
+rm -f "/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}/marvi-"*.conf
+rm -f "/etc/nginx/ea-nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}/marvi-"*.conf
+
+# Single nginx location include (cPanel EA-Nginx merges this into the domain server block)
+NGINX_DIR="/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
+mkdir -p "$NGINX_DIR"
+cat > "${NGINX_DIR}/marvi-proxy.conf" <<EOF
+location / {
+    proxy_pass http://127.0.0.1:${MARVI_PORT};
     proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-}'
-
-# EA-Nginx per-domain include (directory, NOT userdata file path)
-for NGINX_DIR in \
-  "/etc/nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}" \
-  "/etc/nginx/ea-nginx/conf.d/users/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"; do
-  if mkdir -p "$NGINX_DIR" 2>/dev/null; then
-    log "nginx → ${NGINX_DIR}/marvi-proxy.conf"
-    printf '%s\n' "$NGINX_PROXY" > "${NGINX_DIR}/marvi-proxy.conf"
-  fi
-done
-
-# Global fallback include
-if [[ -d /etc/nginx/conf.d ]]; then
-  cat > "/etc/nginx/conf.d/marvi-${MARVI_DOMAIN}.conf" <<EOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name ${MARVI_DOMAIN} www.${MARVI_DOMAIN};
-    ${NGINX_PROXY}
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_cache_bypass \$http_upgrade;
 }
 EOF
-  log "nginx global → /etc/nginx/conf.d/marvi-${MARVI_DOMAIN}.conf"
-fi
+log "nginx → ${NGINX_DIR}/marvi-proxy.conf (single file)"
 
-# Apache userdata proxy (backend behind nginx on some setups)
+# Apache userdata proxy (backend)
 for APACHE_BASE in std ssl; do
   APACHE_INC="/etc/apache2/conf.d/userdata/${APACHE_BASE}/2_4/${MARVI_CPANEL_USER}/${MARVI_DOMAIN}"
   mkdir -p "$APACHE_INC"
@@ -95,7 +84,6 @@ for APACHE_BASE in std ssl; do
 </IfModule>
 EOF
 done
-log "Apache userdata proxy configured"
 
 cat > "$DOCROOT/.htaccess" <<EOF
 Options -Indexes
@@ -105,18 +93,15 @@ RewriteRule ^(.*)$ http://127.0.0.1:${MARVI_PORT}/\$1 [P,L]
 EOF
 chown -R "${MARVI_CPANEL_USER}:${MARVI_CPANEL_USER}" "$DOCROOT" 2>/dev/null || true
 
-# ── 3. Rebuild & start web servers ──────────────────────────────────
+# ── 4. Rebuild & restart web servers ────────────────────────────────
 [[ -x /scripts/rebuildhttpdconf ]] && /scripts/rebuildhttpdconf
 [[ -x /usr/local/cpanel/scripts/rebuildnginx ]] && /usr/local/cpanel/scripts/rebuildnginx
 
-systemctl start httpd 2>/dev/null || service httpd start 2>/dev/null || true
-systemctl start nginx 2>/dev/null || service nginx start 2>/dev/null || true
-/scripts/restartsrv_httpd 2>/dev/null || true
-/scripts/restartsrv_nginx 2>/dev/null || true
-
+/scripts/restartsrv_httpd 2>/dev/null || systemctl restart httpd 2>/dev/null || true
+/scripts/restartsrv_nginx 2>/dev/null || systemctl restart nginx 2>/dev/null || true
 sleep 2
 
-# ── 4. Test ─────────────────────────────────────────────────────────
+# ── 5. Test ─────────────────────────────────────────────────────────
 SERVER_IP=$(curl -4 -sS ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 log "Tests:"
 curl -sS -o /dev/null -w "  port ${MARVI_PORT}/privacy → %{http_code}\n" "http://127.0.0.1:${MARVI_PORT}/privacy" || true
@@ -126,6 +111,13 @@ for target in "127.0.0.1" "${SERVER_IP}"; do
   log "  vhost ${target}/privacy → ${code}"
 done
 
+if ! systemctl is-active nginx >/dev/null 2>&1; then
+  log "✗ nginx not running — check: nginx -t"
+  nginx -t 2>&1 | tail -5 || true
+else
+  log "✓ nginx running"
+fi
+
 log ""
-log "Done. Cloudflare DNS: A @ and www → ${SERVER_IP}  |  SSL: Full"
+log "Cloudflare DNS: A @ and www → ${SERVER_IP}  |  SSL: Full"
 pm2 status marvisociety-web
