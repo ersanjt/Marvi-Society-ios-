@@ -43,6 +43,7 @@ apps/android/.cxx/
 # Node / Web (future)
 apps/web/node_modules/
 apps/web/.next/
+apps/web/.deploy/
 apps/web/out/
 apps/web/.vercel/
 apps/web/dist/
