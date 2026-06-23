@@ -1,8 +1,6 @@
 -- Apple App Store review account bootstrap
--- Prerequisites:
---   1. Create review@marvisociety.com in cPanel (done)
---   2. Sign up in iOS app OR run scripts/app-store/provision-review-account.sh
---   3. Run this SQL in Supabase SQL Editor
+-- ⚠️  Run ONLY in Supabase SQL Editor — NOT bash scripts here.
+-- Prefer: infra/supabase/provision-review-account.sql (creates auth user + profile in one step)
 
 DO $$
 DECLARE

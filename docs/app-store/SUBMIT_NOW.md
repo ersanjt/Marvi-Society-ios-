@@ -1,5 +1,8 @@
 # App Store — Final submit guide (Marvi Society v1.0)
 
+> **مهم:** فایل‌های `.sh` فقط در **WHM Terminal** اجرا شوند.  
+> فایل‌های `.sql` فقط در **Supabase SQL Editor** اجرا شوند.
+
 ## ✅ Already done (production)
 
 - WHM deploy live — `https://marvisociety.com` health **ok**
@@ -10,22 +13,33 @@
 
 ---
 
-## Step 1 — Review account (15 min)
+## Step 1 — Review account (5 min)
 
-### A. Create Supabase auth user (WHM or Mac)
+### Supabase SQL Editor only
+
+1. Open **SQL → New query**
+2. Paste **entire** file: `infra/supabase/provision-review-account.sql`
+3. Click **Run**
+4. Results should show: `auth_user`, `profiles` (approved), `creator` (approved), `offers_live` ≥ 1
+
+Credentials for Apple Review Notes:
+
+| Field | Value |
+|-------|--------|
+| Email | `review@marvisociety.com` |
+| Password | `MarviReview2026!` |
+| Invite code | `MARVI-IST` (only if app asks on first launch) |
+
+### Optional: WHM Terminal (not SQL Editor)
 
 ```bash
 export SUPABASE_SERVICE_ROLE_KEY='YOUR_sb_secret_KEY'
 bash scripts/app-store/provision-review-account.sh
 ```
 
-Default password: `MarviReview2026!` (change in script if needed)
+Then run `setup-review-account.sql` if profile row missing.
 
-### B. Approve profile in Supabase SQL Editor
-
-Paste and run: `infra/supabase/setup-review-account.sql`
-
-### C. Test on iPhone
+### Test on iPhone
 
 1. Sign out → Sign in with **review@marvisociety.com** / password
 2. If new user: invite code **MARVI-IST** (creator code, not MARVI2026)
