@@ -68,6 +68,10 @@ actor SupabaseClient {
         try applyAuthResponse(from: data)
     }
 
+    func signInWithOAuth(accessToken: String, refreshToken: String?) async throws {
+        setSession(accessToken: accessToken, refreshToken: refreshToken)
+    }
+
     func signInWithEmail(_ email: String, password: String) async throws {
         var components = URLComponents(
             url: baseURL.appending(path: "auth/v1/token"),
@@ -102,7 +106,10 @@ actor SupabaseClient {
         request.httpBody = try JSONSerialization.data(withJSONObject: [
             "email": email,
             "password": password,
-            "data": metadata
+            "data": metadata,
+            "options": [
+                "email_redirect_to": AppLinks.authCallback.absoluteString
+            ]
         ])
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -118,7 +125,7 @@ actor SupabaseClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode([
             "email": email,
-            "redirect_to": "https://marvisociety.com/portal/login"
+            "redirect_to": AppLinks.passwordReset.absoluteString
         ])
 
         let (data, response) = try await URLSession.shared.data(for: request)

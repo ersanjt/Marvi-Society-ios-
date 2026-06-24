@@ -1,15 +1,30 @@
 import { CampaignForm } from "@/components/portal/CampaignForm";
+import { MarviScreen, PageHeader } from "@/components/design/MarviUI";
+import { getI18n } from "@/lib/i18n/locale";
+import { getPortalAdminDict } from "@/lib/i18n/portal-admin";
 import Link from "next/link";
 
-export const metadata = { title: "New campaign" };
+export async function generateMetadata() {
+  const { locale } = await getI18n();
+  return { title: getPortalAdminDict(locale).portal.campaign.metaTitle };
+}
 
-export default function NewCampaignPage() {
+export default async function NewCampaignPage() {
+  const { locale } = await getI18n();
+  const dict = getPortalAdminDict(locale);
+  const c = dict.portal.campaign;
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 md:px-6">
-      <Link href="/portal/dashboard" className="text-sm marvi-link">← Back to dashboard</Link>
-      <h1 className="mt-4 font-serif text-3xl font-bold">Campaign builder</h1>
-      <p className="mt-2 text-sm text-muted">Drafts are sent to admin review before going live.</p>
-      <CampaignForm />
-    </div>
+    <MarviScreen>
+      <div className="mx-auto max-w-2xl px-4 py-10 md:px-6 md:py-12">
+        <Link href="/portal/dashboard" className="text-sm font-semibold text-rose transition hover:text-rose/80">
+          {c.back}
+        </Link>
+        <div className="mt-4">
+          <PageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle} />
+        </div>
+        <CampaignForm dict={dict} />
+      </div>
+    </MarviScreen>
   );
 }

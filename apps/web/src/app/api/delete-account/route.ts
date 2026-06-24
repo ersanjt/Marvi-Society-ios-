@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isProduction, isSupabaseConfigured } from "@/config/env";
 
 /** Step 1: send email OTP via Supabase Auth (requires SMTP in Supabase dashboard). */
 export async function POST(request: Request) {
@@ -11,16 +12,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey || url.includes("YOUR_PROJECT")) {
+  if (!isSupabaseConfigured()) {
+    if (isProduction()) {
+      return NextResponse.json(
+        { error: "Account deletion is temporarily unavailable. Email support@marvisociety.com." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({
       ok: true,
       mode: "preview",
       message: "Configure Supabase env vars for production deletion flow.",
     });
   }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
   const supabase = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },

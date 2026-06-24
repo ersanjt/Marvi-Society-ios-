@@ -7,10 +7,13 @@ Transactional emails (signup + membership approved) are sent via **[Resend](http
 | Address | Purpose |
 |---------|---------|
 | **hello@marvisociety.com** | **From** address (recommended) — welcome & approval emails |
-| **support@marvisociety.com** | **Reply-to** — user questions (already in legal pages) |
+| **support@marvisociety.com** | **Reply-to** + contact form notifications — **must exist in cPanel** |
+| **review@marvisociety.com** | Apple App Review login (not for bulk email) |
 | **noreply@marvisociety.com** | Optional alternative From if you prefer |
 
-You do **not** need a full Google Workspace inbox for sending — Resend sends on your behalf after DNS verification.
+> **cPanel typo fix:** If you created `suppoert@`, create **`support@`** or forward `support@` → your inbox. The app and legal pages use `support@marvisociety.com` everywhere.
+
+You do **not** need separate inboxes for `welcome@`, `deleteotp@`, etc. — all transactional mail sends from **hello@** via Resend.
 
 ## Step 1 — Resend account + domain
 
@@ -44,16 +47,18 @@ cd infra/supabase
 supabase functions deploy send-email --project-ref gaswjuvyzliislqrljof
 ```
 
-## Step 4 — Run database migration
+## Step 4 — Run database migrations
 
-SQL Editor → run:
+SQL Editor → run (in order):
 
-`infra/supabase/migrations/20260616000001_transactional_email.sql`
+1. `infra/supabase/migrations/20260616000001_transactional_email.sql`
+2. `infra/supabase/migrations/20260624000001_email_production_hardening.sql`
 
 This adds:
 - `profiles.preferred_locale`
-- `email_outbox` queue
-- Welcome email on signup
+- `email_outbox` queue + dispatch diagnostics
+- `contact_messages` table
+- Welcome email on signup (skipped for `review@marvisociety.com`)
 - Approval email when admin approves creator
 
 ## Step 5 — Auto-dispatch (choose one)
@@ -79,14 +84,32 @@ ALTER DATABASE postgres SET marvi.edge_function_url = 'https://gaswjuvyzliislqrl
 ALTER DATABASE postgres SET marvi.service_role_key = 'YOUR_SERVICE_ROLE_KEY';
 ```
 
-## Step 6 — Auth emails (OTP / password reset)
+## Step 6 — Auth emails (password reset / signup confirm)
 
-Supabase → **Authentication → SMTP Settings**:
+**Root cause of `localhost` links on iPhone:** Supabase **Site URL** must be `https://marvisociety.com`, not `http://localhost:3000`.
 
-- Enable custom SMTP (Resend SMTP: `smtp.resend.com`, port 465, user `resend`, password = API key)
-- Sender: `hello@marvisociety.com`
+### Dashboard
 
-Used for delete-account OTP on the website.
+1. **Authentication → URL Configuration**
+   - Site URL: `https://marvisociety.com`
+   - Redirect URLs: see `infra/supabase/auth-email-templates/README.md`
+
+2. **Authentication → Email Templates**
+   - Paste branded HTML from `infra/supabase/auth-email-templates/` (TR subjects in README)
+
+3. **Authentication → SMTP Settings** (recommended)
+   - Resend SMTP, sender `hello@marvisociety.com`
+
+### Web pages (must be deployed)
+
+- `/auth/reset-password` — user sets new password after email link
+- `/auth/callback` — email confirm / magic link
+
+Verify: `npm run verify:auth`
+
+Full guide (FA): `docs/AUTH_EMAIL_FIX_FA.md`
+
+Used for: password reset, email confirm, magic link — **not** `email_outbox` / `send-email`.
 
 ## Language rules
 
@@ -105,8 +128,28 @@ iOS sends `locale` in signup metadata from app language (Settings → Language).
 |----------|------|------------|
 | `welcome_application` | User signs up | Başvurunuz alındı |
 | `membership_approved` | Admin approves creator | Kaydınız onaylandı |
+| `invite_code` | Admin sends invite | Davet kodunuz |
+| `admin_message` | Admin custom email | (custom subject) |
+| `contact_form` | Web `/contact` form | [Contact] … |
+| `demo_request` | Web `/demo` form | [Demo] … |
 
-## Verify
+**Auth SMTP (Supabase):** delete-account OTP, password reset — not via `email_outbox`.
+
+## Verify (automated)
+
+```bash
+npm run verify:emails   # edge function, health, outbox, contact API
+npm run verify:e2e      # login, explore, web pages
+```
+
+Health check for edge function:
+
+```bash
+curl -s https://gaswjuvyzliislqrljof.supabase.co/functions/v1/send-email
+# → {"ok":true,"service":"send-email","resendConfigured":true,...}
+```
+
+## Verify (SQL)
 
 ```sql
 SELECT id, to_email, template, locale, status, created_at
@@ -130,5 +173,7 @@ curl -X POST 'https://gaswjuvyzliislqrljof.supabase.co/functions/v1/send-email' 
 |-------|-----|
 | `RESEND_API_KEY is not configured` | Add secret + redeploy function |
 | Domain not verified | Complete DNS in Resend |
-| Rows stay `pending` | Set up Database Webhook or pg_net |
+| Rows stay `pending` | Set up Database Webhook or pg_net; check `error_message` for "Dispatch not configured" |
+| `send-email` HTTP 404 | Deploy function: `bash scripts/deploy/setup-production-email.sh` |
+| Contact form 503 | Set `SUPABASE_SERVICE_ROLE_KEY` on WHM + run migration `20260624000001` |
 | Wrong language | User re-signs with correct locale; update `profiles.preferred_locale` |

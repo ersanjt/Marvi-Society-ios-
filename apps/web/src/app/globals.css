@@ -16,11 +16,11 @@ body {
   }
 
   .marvi-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-marvi bg-brand-gradient px-5 py-3 text-sm font-bold text-white shadow-rose transition hover:opacity-90;
+    @apply inline-flex items-center justify-center gap-2 rounded-marvi bg-brand-gradient px-5 py-3 text-sm font-bold text-white shadow-rose transition hover:opacity-90 active:scale-[0.98];
   }
 
   .marvi-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-marvi border border-border bg-panel-elevated px-5 py-3 text-sm font-bold text-ink transition hover:border-rose/30 hover:bg-panel;
+    @apply inline-flex items-center justify-center gap-2 rounded-marvi border border-border bg-panel-elevated px-5 py-3 text-sm font-bold text-ink transition hover:border-rose/30 hover:bg-panel active:scale-[0.98];
   }
 
   .marvi-btn-danger {
@@ -28,7 +28,7 @@ body {
   }
 
   .marvi-input {
-    @apply w-full rounded-marvi border border-border bg-panel-elevated px-4 py-3 text-sm text-ink outline-none ring-rose/30 transition placeholder:text-muted focus:ring-2;
+    @apply w-full rounded-marvi border border-border bg-panel-elevated px-4 py-3 text-sm text-ink outline-none ring-rose/30 transition placeholder:text-muted focus:border-rose/40 focus:ring-2;
   }
 
   .marvi-pill {
@@ -45,5 +45,17 @@ body {
 
   .marvi-screen-glow {
     @apply pointer-events-none absolute inset-0 bg-brand-warm opacity-90;
+  }
+
+  .marvi-legal p {
+    @apply mt-3 text-sm leading-relaxed text-muted;
+  }
+
+  .marvi-legal h2 {
+    @apply font-serif text-xl font-bold text-ink;
+  }
+
+  .marvi-legal ul {
+    @apply mt-3 list-disc space-y-2 pl-5 text-sm text-muted;
   }
 }

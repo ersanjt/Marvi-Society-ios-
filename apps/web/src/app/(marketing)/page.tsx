@@ -1,23 +1,26 @@
 import Link from "next/link";
+import { AppShowcase } from "@/components/marketing/AppShowcase";
+import { CollaborationModelCard } from "@/components/marketing/CollaborationModelCard";
+import { PhoneFrame } from "@/components/marketing/AppScreenshot";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
-import { COLLABORATION_MODELS, SITE } from "@/lib/constants";
+import { IconBuilding, IconCalendar, IconShield, IconSparkles } from "@/components/design/MarviIcons";
+import { MarviScreen, MetricTile } from "@/components/design/MarviUI";
+import { COLLABORATION_MODELS } from "@/lib/constants";
 import { getI18n } from "@/lib/i18n/locale";
 
 export default async function HomePage() {
-  const { dict } = await getI18n();
+  const { dict, locale } = await getI18n();
+
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="marvi-screen-glow" />
-        <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-20 md:grid-cols-2 md:px-6 md:py-28">
+      <MarviScreen className="border-b border-border">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
           <div>
             <p className="marvi-eyebrow">{dict.hero.eyebrow}</p>
-            <h1 className="mt-4 font-serif text-4xl font-bold leading-tight text-ink md:text-5xl">
+            <h1 className="mt-4 font-serif text-4xl font-bold leading-[1.1] text-ink md:text-5xl lg:text-[3.25rem]">
               {dict.hero.title}
             </h1>
-            <p className="mt-5 max-w-lg text-lg text-muted">
-              {SITE.description} Structured invitations, real-time map offers, and proof workflows — built for operators who care about quality.
-            </p>
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted">{dict.hero.subtitle}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/creators" className="marvi-btn-primary">
                 {dict.hero.ctaCreators}
@@ -27,94 +30,97 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-3">
-              {[
-                { value: "42+", label: "Venues" },
-                { value: "128", label: "Creators" },
-                { value: "96%", label: "Proof rate" },
-              ].map((stat) => (
-                <div key={stat.label} className="marvi-card py-4 text-center">
-                  <p className="bg-brand-gradient bg-clip-text text-2xl font-bold text-transparent">{stat.value}</p>
-                  <p className="text-xs font-semibold text-muted">{stat.label}</p>
-                </div>
-              ))}
+              <MetricTile
+                icon={<IconBuilding size={18} />}
+                value="42+"
+                label={dict.hero.statVenues}
+                tone="aubergine"
+              />
+              <MetricTile
+                icon={<IconSparkles size={18} />}
+                value="128"
+                label={dict.hero.statCreators}
+                tone="rose"
+              />
+              <MetricTile
+                icon={<IconCalendar size={18} />}
+                value="96%"
+                label={dict.hero.statProof}
+                tone="emerald"
+              />
             </div>
           </div>
 
-          <div className="marvi-card bg-brand-gradient-vertical p-8 text-white">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-gold">Creator app preview</p>
-            <h2 className="mt-3 font-serif text-3xl font-bold">Discover · Nearby · Proof</h2>
-            <ul className="mt-6 space-y-4 text-sm text-white/85">
-              <li className="flex gap-3">
-                <span className="text-gold">01</span>
-                Browse curated Istanbul invitations by category and model
-              </li>
-              <li className="flex gap-3">
-                <span className="text-gold">02</span>
-                Open the map for instant café and walk-in offers nearby
-              </li>
-              <li className="flex gap-3">
-                <span className="text-gold">03</span>
-                Check in, post content, submit proof links — done
-              </li>
-            </ul>
-            <Link href="/demo" className="marvi-btn-primary mt-8 w-full">
-              Request brand demo
-            </Link>
-          </div>
+          <PhoneFrame
+            src="/screenshots/iphone/marvi-01-kesfet.png"
+            alt={locale === "tr" ? "Keşfet ekranı" : "Explore screen"}
+            priority
+            className="md:justify-self-end"
+          />
         </div>
-      </section>
+      </MarviScreen>
 
       <section className="mx-auto max-w-6xl px-4 py-20 md:px-6">
         <SectionHeading
-          eyebrow="Collaboration models"
-          title="Four ways to partner — you choose the model"
-          subtitle="Parity with leading platforms. Invitation, events, gifting, and instant walk-in experiences."
+          eyebrow={dict.showcase.eyebrow}
+          title={dict.showcase.title}
+          subtitle={dict.showcase.subtitle}
         />
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
-          {COLLABORATION_MODELS.map((model) => (
-            <article key={model.id} className="marvi-card">
-              <div className="flex items-start gap-4">
-                <span className="text-2xl">{model.icon}</span>
-                <div>
-                  <h3 className="text-lg font-bold text-ink">{model.title}</h3>
-                  <p className="mt-2 text-sm text-muted">{model.description}</p>
-                </div>
-              </div>
-            </article>
-          ))}
+        <div className="mt-12">
+          <AppShowcase locale={locale} />
         </div>
       </section>
 
       <section className="border-y border-border bg-surface-cool">
         <div className="mx-auto max-w-6xl px-4 py-20 md:px-6">
           <SectionHeading
-            eyebrow="Global-ready architecture"
-            title="iOS today. Android and web portal next."
-            subtitle="One API contract, Supabase backend, admin review queues, and venue analytics."
+            eyebrow={dict.models.eyebrow}
+            title={dict.models.title}
+            subtitle={dict.models.subtitle}
           />
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {[
-              { title: "Creators", body: "Native iOS app with Discover, map, bookings, and proof submission.", href: "/creators" },
-              { title: "Brands", body: "Web portal for campaign builder, bookings list, and performance metrics.", href: "/brands" },
-              { title: "Operators", body: "Admin console for applications, campaigns, proof review, and strikes.", href: "/admin" },
-            ].map((card) => (
-              <Link key={card.title} href={card.href} className="marvi-card transition hover:border-rose/30">
-                <h3 className="font-bold text-ink">{card.title}</h3>
-                <p className="mt-2 text-sm text-muted">{card.body}</p>
-              </Link>
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
+            {COLLABORATION_MODELS.map((model) => (
+              <CollaborationModelCard key={model.id} model={model} locale={locale} />
             ))}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-20 text-center md:px-6">
-        <h2 className="font-serif text-3xl font-bold text-ink">Ready to launch in Istanbul?</h2>
-        <p className="mx-auto mt-4 max-w-xl text-muted">
-          Join the private club connecting creators and venues with structured content delivery.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/demo" className="marvi-btn-primary">Book a demo</Link>
-          <Link href="/faq" className="marvi-btn-secondary">Read FAQ</Link>
+      <section className="mx-auto max-w-6xl px-4 py-20 md:px-6">
+        <SectionHeading
+          eyebrow={dict.platform.eyebrow}
+          title={dict.platform.title}
+          subtitle={dict.platform.subtitle}
+        />
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {[
+            { title: locale === "tr" ? "Üreticiler" : "Creators", body: dict.platform.creators, href: "/creators", icon: <IconSparkles size={20} />, tone: "rose" as const },
+            { title: locale === "tr" ? "Markalar" : "Brands", body: dict.platform.brands, href: "/brands", icon: <IconBuilding size={20} />, tone: "aubergine" as const },
+            { title: locale === "tr" ? "Operatörler" : "Operators", body: dict.platform.operators, href: "/admin", icon: <IconShield size={20} />, tone: "gold" as const },
+          ].map((card) => (
+            <Link key={card.href} href={card.href} className="marvi-card group block transition hover:border-rose/30">
+              <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-marvi bg-rose/15 text-rose group-hover:bg-brand-gradient group-hover:text-white ${card.tone === "aubergine" ? "bg-aubergine/15 text-aubergine" : ""} ${card.tone === "gold" ? "bg-gold/15 text-gold" : ""}`}>
+                {card.icon}
+              </div>
+              <h3 className="font-bold text-ink">{card.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{card.body}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t border-border bg-panel">
+        <div className="mx-auto max-w-6xl px-4 py-20 text-center md:px-6">
+          <h2 className="font-serif text-3xl font-bold text-ink md:text-4xl">{dict.cta.title}</h2>
+          <p className="mx-auto mt-4 max-w-xl text-muted">{dict.cta.subtitle}</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link href="/demo" className="marvi-btn-primary">
+              {dict.cta.demo}
+            </Link>
+            <Link href="/faq" className="marvi-btn-secondary">
+              {dict.cta.faq}
+            </Link>
+          </div>
         </div>
       </section>
     </>

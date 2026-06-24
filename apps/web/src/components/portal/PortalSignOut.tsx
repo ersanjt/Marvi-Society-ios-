@@ -3,7 +3,7 @@
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-export function PortalSignOut() {
+export function PortalSignOut({ label }: { label: string }) {
   const router = useRouter();
 
   async function signOut() {
@@ -17,7 +17,7 @@ export function PortalSignOut() {
 
   return (
     <button type="button" onClick={signOut} className="text-muted hover:text-tomato">
-      Sign out
+      {label}
     </button>
   );
 }

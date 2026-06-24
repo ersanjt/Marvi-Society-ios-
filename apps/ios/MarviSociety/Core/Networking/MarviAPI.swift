@@ -6,6 +6,7 @@ protocol MarviAPI: Sendable {
     var accessToken: String? { get async }
 
     func signInWithApple(idToken: String, nonce: String, metadata: [String: String]) async throws
+    func signInWithGoogle(accessToken: String, refreshToken: String?, metadata: [String: String]) async throws
     func signInWithEmail(_ email: String, password: String, metadata: [String: String]) async throws
     func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async throws
     func resetPassword(_ email: String) async throws

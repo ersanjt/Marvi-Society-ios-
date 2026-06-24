@@ -8,6 +8,7 @@
   "scripts": {
     "web:dev": "npm run dev --workspace=@marvi-society/web",
     "web:build": "npm run build --workspace=@marvi-society/web",
+    "web:deploy": "npm run web:build && npm run deploy --workspace=@marvi-society/web",
     "health": "bash scripts/check-health.sh",
     "db:combine": "bash infra/supabase/scripts/combine-migrations.sh",
     "db:apply-combine": "bash infra/supabase/scripts/combine-apply-scripts.sh",
@@ -16,6 +17,10 @@
     "status": "bash scripts/release/status.sh",
     "verify": "bash scripts/release/verify.sh",
     "verify:e2e": "bash scripts/app-store/verify-e2e.sh",
+    "verify:emails": "bash scripts/app-store/verify-emails.sh",
+    "verify:auth": "bash scripts/app-store/verify-auth-urls.sh",
+    "resubmit:all": "bash scripts/app-store/resubmit-all.sh",
+    "build:ios": "bash scripts/app-store/build-ios-release.sh",
     "sync": "bash scripts/release/full-sync.sh",
     "sync:github": "bash scripts/release/sync-github.sh",
     "rollback": "bash scripts/release/rollback.sh",

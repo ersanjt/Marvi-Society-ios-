@@ -20,8 +20,16 @@ port = 54323
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/portal/dashboard"]
+site_url = "https://marvisociety.com"
+additional_redirect_urls = [
+  "https://marvisociety.com/auth/reset-password",
+  "https://marvisociety.com/auth/callback",
+  "https://marvisociety.com/portal/dashboard",
+  "https://marvisociety.com/portal/login",
+  "http://localhost:3000/auth/reset-password",
+  "http://localhost:3000/auth/callback",
+  "http://localhost:3000/portal/dashboard",
+]
 jwt_expiry = 3600
 enable_signup = true
 

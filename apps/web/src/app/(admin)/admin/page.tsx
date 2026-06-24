@@ -2,10 +2,26 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AdminTaskQueue } from "@/components/admin/AdminTaskQueue";
+import {
+  IconBuilding,
+  IconCalendar,
+  IconShield,
+  IconSparkles,
+} from "@/components/design/MarviIcons";
+import { MetricTile, PageHeader, SyncBanner } from "@/components/design/MarviUI";
+import { getI18n } from "@/lib/i18n/locale";
+import { getPortalAdminDict, tReplace } from "@/lib/i18n/portal-admin";
 
-export const metadata = { title: "Admin console" };
+export async function generateMetadata() {
+  const { locale } = await getI18n();
+  return { title: getPortalAdminDict(locale).admin.queue.metaTitle };
+}
 
 export default async function AdminPage() {
+  const { locale } = await getI18n();
+  const dict = getPortalAdminDict(locale);
+  const q = dict.admin.queue;
+
   const auth = await requireAdmin();
   if (!auth.ok) {
     redirect("/portal/login?next=/admin");
@@ -49,41 +65,29 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
-      <div>
-        <p className="marvi-eyebrow">Live</p>
-        <h1 className="font-serif text-3xl font-bold">Admin review queue</h1>
-        <p className="mt-1 text-sm text-muted">
-          Approve creators, campaigns, and proof submissions. Changes apply immediately in the mobile app.
-        </p>
-      </div>
+    <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-12">
+      <PageHeader eyebrow={q.eyebrow} title={q.title} subtitle={q.subtitle} />
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <MetricCard label="Open tasks" value={openTasks ?? 0} />
-        <MetricCard label="Live offers" value={liveOffers ?? 0} />
-        <MetricCard label="Bookings" value={activeBookings ?? 0} />
-        <MetricCard label="In review" value={reviewCampaigns ?? 0} />
-        <MetricCard label="Strikes" value={strikes ?? 0} />
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <MetricTile icon={<IconShield size={18} />} value={String(openTasks ?? 0)} label={q.openTasks} tone="rose" />
+        <MetricTile icon={<IconSparkles size={18} />} value={String(liveOffers ?? 0)} label={q.liveOffers} tone="emerald" />
+        <MetricTile icon={<IconCalendar size={18} />} value={String(activeBookings ?? 0)} label={q.bookings} tone="blue" />
+        <MetricTile icon={<IconBuilding size={18} />} value={String(reviewCampaigns ?? 0)} label={q.inReview} tone="gold" />
+        <MetricTile icon={<IconShield size={18} />} value={String(strikes ?? 0)} label={q.strikes} tone="tomato" />
       </div>
 
       {error ? (
-        <p className="mt-8 rounded-xl border border-tomato/30 bg-tomato/10 p-4 text-sm text-tomato">
-          Could not load tasks: {error.message}
-        </p>
+        <div className="mt-8">
+          <SyncBanner tone="error" message={tReplace(q.loadError, { message: error.message })} />
+        </div>
       ) : null}
 
-      <div className="mt-8">
-        <AdminTaskQueue tasks={tasks} proofBookings={proofBookingMap} />
+      <div className="mt-10">
+        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{q.openTasksHeading}</h2>
+        <div className="mt-4">
+          <AdminTaskQueue dict={dict} locale={locale} tasks={tasks} proofBookings={proofBookingMap} />
+        </div>
       </div>
-    </div>
-  );
-}
-
-function MetricCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="marvi-card p-4">
-      <p className="text-2xl font-bold text-ink">{value}</p>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
     </div>
   );
 }

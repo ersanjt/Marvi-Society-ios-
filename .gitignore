@@ -8,6 +8,8 @@ Desktop.ini
 .env.*
 !.env.example
 apps/ios/Config/Secrets.xcconfig
+apps/ios/Config/.apple-supabase-secret.jwt
+apps/ios/Config/APPLE_SUPABASE_PASTE.txt
 *.pem
 *.p12
 *.mobileprovision

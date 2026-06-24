@@ -53,6 +53,22 @@ enum APIConfig {
         mode == .supabase && supabaseURL != nil && supabaseAnonKey != nil
     }
 
+    /// Sign in with Apple requires Supabase Apple provider + Services ID. Off by default for App Store safety.
+    static var appleSignInEnabled: Bool {
+        guard let raw = stringValue(for: "MARVI_APPLE_SIGN_IN_ENABLED")?.lowercased() else {
+            return false
+        }
+        return raw == "1" || raw == "true" || raw == "yes"
+    }
+
+    /// Google (Gmail) OAuth via Supabase. Requires Google provider in Supabase Dashboard.
+    static var googleSignInEnabled: Bool {
+        guard let raw = stringValue(for: "MARVI_GOOGLE_SIGN_IN_ENABLED")?.lowercased() else {
+            return false
+        }
+        return raw == "1" || raw == "true" || raw == "yes"
+    }
+
     static func makeAPI() -> any MarviAPI {
         guard isSupabaseConfigured, let url = supabaseURL, let key = supabaseAnonKey else {
             return UnconfiguredMarviAPI.shared
@@ -77,6 +93,10 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func signInWithApple(idToken: String, nonce: String, metadata: [String: String]) async throws {
+        throw notConfigured()
+    }
+
+    func signInWithGoogle(accessToken: String, refreshToken: String?, metadata: [String: String]) async throws {
         throw notConfigured()
     }
 

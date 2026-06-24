@@ -417,7 +417,7 @@ struct ProfileView: View {
                                 Link(destination: AppLinks.supportEmail) {
                                     Label(appState.t(.emailSupport), systemImage: "envelope")
                                 }
-                                Link(destination: URL(string: "mailto:support@marvisociety.com?subject=Safety%20report")!) {
+                                Link(destination: AppLinks.safetyReportEmail) {
                                     Label(appState.t(.reportSafety), systemImage: "exclamationmark.bubble")
                                 }
                             }

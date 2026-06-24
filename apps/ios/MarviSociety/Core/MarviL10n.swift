@@ -23,9 +23,9 @@ enum MarviL10n {
         case featProofTitle, featProofSub
         case step1of4, step2of4, step3of4, step4of4
         case createAccount, signInContinue, welcomeBackSignIn, createAccountSub, signInSub
-        case orEmail, newMemberCreate, alreadyMemberToggle, forgotPasswordReset
+        case orEmail, orAppleSignIn, orContinueWith, newMemberCreate, alreadyMemberToggle, forgotPasswordReset
         case accountExistsTitle, signInToAccount
-        case signInWithApple, signingIn, appleDevNotice
+        case signInWithApple, signInWithGoogle, signingIn, appleDevNotice, emailSignInRecommended
         case inviteTitle, inviteSubtitle, invitePlaceholder, inviteAccepted, memberBenefits
         case featCuratedTitle, featCuratedSub
         case profileSetupTitle, profileSetupSub, instagramPlaceholder, cityPlaceholder
@@ -175,13 +175,15 @@ enum MarviL10n {
         .welcomeBackSignIn: "Welcome back — enter your email and password.",
         .createAccountSub: "Use email and password. Your invite code comes next.",
         .signInSub: "Welcome back — enter your email and password.",
-        .orEmail: "or email", .newMemberCreate: "New member? Create account",
+        .orEmail: "or email", .orAppleSignIn: "or Apple", .orContinueWith: "or continue with",
+        .newMemberCreate: "New member? Create account",
         .alreadyMemberToggle: "Already a member? Sign in",
         .forgotPasswordReset: "Forgot password? Reset via email",
         .accountExistsTitle: "This email is already registered.",
         .signInToAccount: "Sign in to your account",
-        .signInWithApple: "Sign in with Apple", .signingIn: "Signing in…",
+        .signInWithApple: "Sign in with Apple", .signInWithGoogle: "Continue with Google", .signingIn: "Signing in…",
         .appleDevNotice: "Sign in with Apple needs an active Apple Developer account ($99/yr). Until then, use email to create an account and sign in.",
+        .emailSignInRecommended: "Sign in with the email and password for your Marvi account.",
         .inviteTitle: "Enter your invite code",
         .inviteSubtitle: "Marvi Society is invite-only. Ask your curator or venue partner for a code.",
         .invitePlaceholder: "e.g. MARVI-IST or TURGUT",
@@ -470,13 +472,15 @@ enum MarviL10n {
         .welcomeBackSignIn: "Tekrar hoş geldin — e-posta ve şifreni gir.",
         .createAccountSub: "E-posta ve şifre kullan. Davet kodun bir sonraki adımda.",
         .signInSub: "Tekrar hoş geldin — e-posta ve şifreni gir.",
-        .orEmail: "veya e-posta", .newMemberCreate: "Yeni üye misin? Hesap oluştur",
+        .orEmail: "veya e-posta", .orAppleSignIn: "veya Apple", .orContinueWith: "veya şununla devam et",
+        .newMemberCreate: "Yeni üye misin? Hesap oluştur",
         .alreadyMemberToggle: "Zaten üye misin? Giriş yap",
         .forgotPasswordReset: "Şifreni mi unuttun? E-posta ile sıfırla",
         .accountExistsTitle: "Bu e-posta zaten kayıtlı.",
         .signInToAccount: "Hesabına giriş yap",
-        .signInWithApple: "Apple ile giriş yap", .signingIn: "Giriş yapılıyor…",
+        .signInWithApple: "Apple ile giriş yap", .signInWithGoogle: "Google ile devam et", .signingIn: "Giriş yapılıyor…",
         .appleDevNotice: "Apple ile giriş için aktif Apple Developer hesabı ($99/yıl) gerekir. Şimdilik e-posta ile hesap oluşturup giriş yapabilirsin.",
+        .emailSignInRecommended: "Marvi hesabınızın e-posta adresi ve şifresi ile giriş yapın.",
         .inviteTitle: "Davet kodunu gir",
         .inviteSubtitle: "Marvi Society davetiye usulüdür. Küratöründen veya mekân partnerinden kod iste.",
         .invitePlaceholder: "ör. MARVI-IST veya TURGUT",

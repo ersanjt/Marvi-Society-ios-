@@ -33,8 +33,10 @@ private enum OnboardingStep: Int, CaseIterable {
 // MARK: - Root
 
 struct OnboardingView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject private var appState: AppState
     @StateObject private var appleSignIn = AppleSignInService()
+    @StateObject private var googleSignIn = GoogleSignInService()
 
     @State private var step: OnboardingStep = .welcome
     @State private var instagramHandle = ""
@@ -89,6 +91,8 @@ struct OnboardingView: View {
                     onPrimary: { Task { await handlePrimaryAction() } }
                 )
             }
+            .frame(maxWidth: horizontalSizeClass == .regular ? 520 : .infinity)
+            .frame(maxWidth: .infinity)
         }
         .preferredColorScheme(.dark)
         .onAppear { applyResumeState() }
@@ -184,32 +188,6 @@ struct OnboardingView: View {
                     subtitle: isCreatingAccount ? appState.t(.createAccountSub) : appState.t(.signInSub)
                 )
 
-                Button {
-                    Task { await signInWithAppleFlow() }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "apple.logo")
-                            .font(.title3.weight(.semibold))
-                        Text(appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple))
-                            .font(.headline.weight(.bold))
-                    }
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(appleSignIn.isSigningIn || isBusy)
-
-                HStack(spacing: 12) {
-                    Rectangle().fill(MarviColor.border).frame(height: 1)
-                    Text(appState.t(.orEmail))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(MarviColor.muted)
-                    Rectangle().fill(MarviColor.border).frame(height: 1)
-                }
-
                 VStack(spacing: 12) {
                     MarviTextField(placeholder: appState.t(.email), text: $email, autocapitalization: .never)
                     OnboardingSecureField(placeholder: appState.t(.password), text: $password)
@@ -258,11 +236,64 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Text(appState.t(.appleDevNotice))
-                    .font(.caption2)
-                    .foregroundStyle(MarviColor.muted)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
+                if APIConfig.googleSignInEnabled || APIConfig.appleSignInEnabled {
+                    HStack(spacing: 12) {
+                        Rectangle().fill(MarviColor.border).frame(height: 1)
+                        Text(appState.t(.orContinueWith))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.muted)
+                        Rectangle().fill(MarviColor.border).frame(height: 1)
+                    }
+
+                    if APIConfig.googleSignInEnabled {
+                        Button {
+                            Task { await signInWithGoogleFlow() }
+                        } label: {
+                            HStack(spacing: 10) {
+                                GoogleMark()
+                                Text(googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle))
+                                    .font(.headline.weight(.bold))
+                            }
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(MarviColor.border, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(googleSignIn.isSigningIn || isBusy)
+                    }
+
+                    if APIConfig.appleSignInEnabled {
+                        Button {
+                            Task { await signInWithAppleFlow() }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "apple.logo")
+                                    .font(.title3.weight(.semibold))
+                                Text(appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple))
+                                    .font(.headline.weight(.bold))
+                            }
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(appleSignIn.isSigningIn || isBusy)
+                    }
+                } else {
+                    Text(appState.t(.emailSignInRecommended))
+                        .font(.caption2)
+                        .foregroundStyle(MarviColor.muted)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
@@ -444,7 +475,7 @@ struct OnboardingView: View {
     // MARK: - State
 
     private var isBusy: Bool {
-        isSigningInWithEmail || appleSignIn.isSigningIn || isValidatingReferral || appState.isBootstrapping
+        isSigningInWithEmail || appleSignIn.isSigningIn || googleSignIn.isSigningIn || isValidatingReferral || appState.isBootstrapping
     }
 
     private var displayedError: String? {
@@ -615,6 +646,21 @@ struct OnboardingView: View {
         if appState.lastSyncError == nil, appState.isAuthenticated {
             instagramHandle = appState.profile.handle
             await handlePostAuthentication()
+        }
+    }
+
+    private func signInWithGoogleFlow() async {
+        appleSignInError = nil
+        appState.dismissSyncError()
+
+        await appState.signInWithGoogle(using: googleSignIn, metadata: signupMetadata())
+
+        if appState.isAuthenticated {
+            await handlePostAuthentication()
+        } else if let error = appState.lastSyncError {
+            appleSignInError = error
+        } else if let error = googleSignIn.lastError {
+            appleSignInError = error
         }
     }
 
@@ -924,6 +970,26 @@ private struct OnboardingPill: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(MarviGradient.brand.opacity(0.35), lineWidth: 1)
         )
+    }
+}
+
+private struct GoogleMark: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white)
+                .frame(width: 22, height: 22)
+                .overlay(Circle().stroke(Color(hex: "#DADCE0"), lineWidth: 1))
+            Text("G")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color(hex: "#4285F4"), Color(hex: "#34A853"), Color(hex: "#FBBC05"), Color(hex: "#EA4335")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
     }
 }
 

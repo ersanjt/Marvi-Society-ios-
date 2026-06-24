@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FilterPill, SkeletonBlock, SyncBanner } from "@/components/design/MarviUI";
+import type { PortalAdminDict } from "@/lib/i18n/portal-admin";
 
 type VenueRow = {
   id: string;
@@ -11,7 +13,7 @@ type VenueRow = {
   is_active: boolean;
 };
 
-export function VenueSwitcher() {
+export function VenueSwitcher({ dict }: { dict: PortalAdminDict }) {
   const [venues, setVenues] = useState<VenueRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -19,6 +21,7 @@ export function VenueSwitcher() {
   const [area, setArea] = useState("");
   const [category, setCategory] = useState("dining");
   const [message, setMessage] = useState<string | null>(null);
+  const v = dict.portal.venues;
 
   async function loadVenues() {
     setLoading(true);
@@ -41,7 +44,7 @@ export function VenueSwitcher() {
     });
     if (!res.ok) {
       const data = await res.json();
-      setMessage(data.error ?? "Could not switch venue");
+      setMessage(data.error ?? v.switchFailed);
       return;
     }
     await loadVenues();
@@ -57,7 +60,7 @@ export function VenueSwitcher() {
     });
     const data = await res.json();
     if (!res.ok) {
-      setMessage(data.error ?? "Could not add venue");
+      setMessage(data.error ?? v.addFailed);
       return;
     }
     setName("");
@@ -66,80 +69,76 @@ export function VenueSwitcher() {
     await loadVenues();
   }
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="border-b border-border bg-panel/80 px-4 py-3 md:px-6">
+        <div className="mx-auto flex max-w-6xl gap-2">
+          <SkeletonBlock className="h-9 w-32" />
+          <SkeletonBlock className="h-9 w-40" />
+          <SkeletonBlock className="h-9 w-36" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border-b border-border bg-panel/80 px-4 py-3 md:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">Your locations</p>
-            <p className="text-sm text-graphite">One account — manage every restaurant, hotel, or shop.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{v.yourLocations}</p>
+            <p className="text-sm text-graphite">{v.multiVenueHint}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="rounded-full bg-gradient-to-r from-rose to-aubergine px-4 py-2 text-sm font-bold text-white"
-          >
-            Add location
+          <button type="button" onClick={() => setShowForm((value) => !value)} className="marvi-btn-primary text-xs">
+            {v.addLocation}
           </button>
         </div>
 
         {venues.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {venues.map((venue) => (
-              <button
+              <FilterPill
                 key={venue.id}
-                type="button"
+                label={`${venue.venue_name} · ${venue.area}${venue.status !== "approved" ? ` (${v.pending})` : ""}`}
+                active={venue.is_active}
                 onClick={() => switchVenue(venue.id)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  venue.is_active
-                    ? "bg-gradient-to-r from-rose to-aubergine text-white"
-                    : "bg-surface text-graphite hover:text-rose"
-                }`}
-              >
-                {venue.venue_name} · {venue.area}
-                {venue.status !== "approved" ? " (pending)" : ""}
-              </button>
+              />
             ))}
           </div>
         )}
 
         {showForm && (
-          <form onSubmit={addVenue} className="grid gap-2 rounded-2xl border border-border bg-surface p-4 md:grid-cols-4">
+          <form onSubmit={addVenue} className="grid gap-2 rounded-marvi-lg border border-border bg-surface p-4 md:grid-cols-4">
             <input
-              className="rounded-xl border border-border bg-panel px-3 py-2 text-sm"
-              placeholder="Venue name"
+              className="marvi-input"
+              placeholder={v.venueName}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
             <input
-              className="rounded-xl border border-border bg-panel px-3 py-2 text-sm"
-              placeholder="Area"
+              className="marvi-input"
+              placeholder={v.areaPlaceholder}
               value={area}
               onChange={(e) => setArea(e.target.value)}
               required
             />
-            <select
-              className="rounded-xl border border-border bg-panel px-3 py-2 text-sm"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="dining">Restaurant / Dining</option>
-              <option value="wellness">Hotel / Wellness</option>
-              <option value="retail">Shop / Retail</option>
-              <option value="nightlife">Nightlife</option>
-              <option value="beauty">Beauty</option>
-              <option value="fitness">Fitness</option>
+            <select className="marvi-input" value={category} onChange={(e) => setCategory(e.target.value)}>
+              {(Object.keys(v.categories) as Array<keyof typeof v.categories>).map((key) => (
+                <option key={key} value={key}>
+                  {v.categories[key]}
+                </option>
+              ))}
             </select>
-            <button type="submit" className="rounded-xl bg-ink px-4 py-2 text-sm font-bold text-white">
-              Submit for review
+            <button type="submit" className="marvi-btn-secondary">
+              {v.submitForReview}
             </button>
           </form>
         )}
 
-        {message && <p className="text-sm text-rose">{message}</p>}
+        {message ? <SyncBanner tone="error" message={message} /> : null}
+
+        {venues.length === 0 && !showForm ? <p className="text-sm text-muted">{v.noVenues}</p> : null}
       </div>
     </div>
   );

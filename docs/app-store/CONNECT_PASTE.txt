@@ -1,0 +1,45 @@
+Paste into App Store Connect → App Review Information → Notes:
+
+IMPORTANT — Please use EMAIL sign-in only (not Apple or Google).
+
+Email: review@marvisociety.com
+Password: MarviReview2026!
+
+Pre-approved admin demo account with:
+• Approved creator profile + live Istanbul offers in Explore (Kesfet)
+• Approved venue profile (switch workspace in Profile → Çalışma alanı)
+• Pre-populated booking in My Events (Etkinliklerim)
+• Admin tools (Profile → workspace switcher → Admin)
+• Referral MARVI-IST already applied — no invite step after login
+
+Review flow (iPhone or iPad):
+1. Get started → Sign in with EMAIL and password above
+2. Explore → tap any offer → Accept → My Events
+3. Profile → switch Creator / Venue / Admin workspaces
+4. Delete account: Profile → Legal → https://marvisociety.com/delete-account
+
+Sign in with Apple and Google are disabled in build 1.0 (6).
+Build 1.0 (6) includes iPad onboarding layout fixes.
+
+No in-app purchases. Invitation-only membership by design.
+
+---
+Paste into App Review → Reply to App Review:
+
+Thank you for the detailed feedback on submission 4e7dbf2a-e85f-42df-95e9-ee6b8551e2ce.
+
+We addressed both issues in build 1.0 (6):
+
+1. Sign in with Apple — We removed Apple and Google sign-in from this build so reviewers use the email demo account only. This prevents the Apple sign-in error seen on iPad.
+
+2. Demo access — We provide a full admin account with pre-approved creator and venue profiles, live Explore content, a pre-populated booking in My Events, and all workspaces.
+
+Demo credentials:
+Email: review@marvisociety.com
+Password: MarviReview2026!
+
+After email sign-in, Explore shows live campaigns. Profile → workspace switcher opens Creator, Venue, and Admin tools.
+
+Please test on iPad using email sign-in only. Build 1.0 (6) is attached.
+
+Thank you.

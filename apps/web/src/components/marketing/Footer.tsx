@@ -1,7 +1,8 @@
+import Image from "next/image";
+import Link from "next/link";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { SITE } from "@/lib/constants";
 import { type Locale, getDictionary } from "@/lib/i18n/dictionaries";
-import Link from "next/link";
 
 export function Footer({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale);
@@ -14,7 +15,13 @@ export function Footer({ locale }: { locale: Locale }) {
             <BrandMark size={44} />
             <p className="font-serif text-2xl font-bold text-ink">{SITE.name}</p>
           </div>
-          <p className="mt-4 max-w-md text-sm text-muted">{SITE.tagline}</p>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">{SITE.tagline}</p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <a href={SITE.appStoreUrl} className="marvi-btn-secondary text-xs">
+              App Store
+            </a>
+            <Image src="/app-icon.png" alt="" width={40} height={40} className="rounded-marvi" />
+          </div>
         </div>
 
         <div>

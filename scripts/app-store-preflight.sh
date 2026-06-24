@@ -21,9 +21,13 @@ for path in / /privacy /terms /community-guidelines /delete-account /contact; do
 done
 
 health=$(curl -sS -m 10 "https://marvisociety.com/api/health" 2>/dev/null || echo "")
-if echo "$health" | grep -q '"status":"ok"'; then ok "API health → ok"
-elif echo "$health" | grep -q degraded; then warn "API health degraded (set SUPABASE_SERVICE_ROLE_KEY on server)"
-else bad "API health unreachable"; fi
+if echo "$health" | grep -q '"status":"ok"'; then
+  ok "API health → ok"
+elif echo "$health" | grep -q degraded; then
+  bad "API health degraded — set SUPABASE_SERVICE_ROLE_KEY on WHM server"
+else
+  bad "API health unreachable"
+fi
 
 echo ""
 echo "Supabase:"

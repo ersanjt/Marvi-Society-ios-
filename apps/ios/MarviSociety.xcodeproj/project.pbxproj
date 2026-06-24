@@ -31,6 +31,7 @@
 		1A2B3C4D5E6F700000000135 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000123 /* SupabaseClient.swift */; };
 		1A2B3C4D5E6F700000000136 /* SupabaseMarviAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000124 /* SupabaseMarviAPI.swift */; };
 		1A2B3C4D5E6F700000000137 /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */; };
+		1A2B3C4D5E6F70000000015A /* GoogleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000159 /* GoogleSignInService.swift */; };
 		1A2B3C4D5E6F700000000141 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000138 /* LocationService.swift */; };
 		1A2B3C4D5E6F700000000142 /* PushNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000139 /* PushNotificationService.swift */; };
 		1A2B3C4D5E6F700000000143 /* MapDiscoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000140 /* MapDiscoverView.swift */; };
@@ -76,6 +77,8 @@
 		1A2B3C4D5E6F700000000123 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000124 /* SupabaseMarviAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseMarviAPI.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000159 /* GoogleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInService.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F70000000015B /* Marvi-URLTypes.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Marvi-URLTypes.plist"; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000138 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000139 /* PushNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationService.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000140 /* MapDiscoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDiscoverView.swift; sourceTree = "<group>"; };
@@ -213,6 +216,7 @@
 			children = (
 				1A2B3C4D5E6F700000000020 /* Assets.xcassets */,
 				1A2B3C4D5E6F700000000158 /* Secrets.plist */,
+				1A2B3C4D5E6F70000000015B /* Marvi-URLTypes.plist */,
 				1A2B3C4D5E6F700000000404 /* Preview Content */,
 			);
 			path = Resources;
@@ -365,6 +369,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000125 /* AppleSignInService.swift */,
+				1A2B3C4D5E6F700000000159 /* GoogleSignInService.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -458,7 +463,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "PLIST=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Secrets.plist\"\nif [ ! -f \"$PLIST\" ]; then exit 0; fi\n/usr/libexec/PlistBuddy -c \"Set :MARVI_SUPABASE_URL ${MARVI_SUPABASE_URL}\" \"$PLIST\"\n/usr/libexec/PlistBuddy -c \"Set :MARVI_SUPABASE_ANON_KEY ${MARVI_SUPABASE_ANON_KEY}\" \"$PLIST\"\n/usr/libexec/PlistBuddy -c \"Set :MARVI_API_MODE ${MARVI_API_MODE}\" \"$PLIST\"\n";
+			shellScript = "PLIST=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Secrets.plist\"\nif [ ! -f \"$PLIST\" ]; then exit 0; fi\nset_plist() {\n  local key=\"$1\"\n  local value=\"$2\"\n  if /usr/libexec/PlistBuddy -c \"Print :$key\" \"$PLIST\" >/dev/null 2>&1; then\n    /usr/libexec/PlistBuddy -c \"Set :$key $value\" \"$PLIST\"\n  else\n    /usr/libexec/PlistBuddy -c \"Add :$key string $value\" \"$PLIST\"\n  fi\n}\nset_plist MARVI_SUPABASE_URL \"${MARVI_SUPABASE_URL}\"\nset_plist MARVI_SUPABASE_ANON_KEY \"${MARVI_SUPABASE_ANON_KEY}\"\nset_plist MARVI_API_MODE \"${MARVI_API_MODE}\"\nset_plist MARVI_APPLE_SIGN_IN_ENABLED \"${MARVI_APPLE_SIGN_IN_ENABLED:-NO}\"\nset_plist MARVI_GOOGLE_SIGN_IN_ENABLED \"${MARVI_GOOGLE_SIGN_IN_ENABLED:-NO}\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -490,6 +495,7 @@
 				1A2B3C4D5E6F700000000135 /* SupabaseClient.swift in Sources */,
 				1A2B3C4D5E6F700000000136 /* SupabaseMarviAPI.swift in Sources */,
 				1A2B3C4D5E6F700000000137 /* AppleSignInService.swift in Sources */,
+				1A2B3C4D5E6F70000000015A /* GoogleSignInService.swift in Sources */,
 				1A2B3C4D5E6F700000000141 /* LocationService.swift in Sources */,
 				1A2B3C4D5E6F700000000142 /* PushNotificationService.swift in Sources */,
 				1A2B3C4D5E6F700000000143 /* MapDiscoverView.swift in Sources */,
@@ -642,15 +648,18 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "MarviSociety/MarviSociety-Device.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MarviSociety/Resources/Marvi-URLTypes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Marvi Society";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_MARVI_API_MODE = "$(MARVI_API_MODE)";
+				INFOPLIST_KEY_MARVI_APPLE_SIGN_IN_ENABLED = "$(MARVI_APPLE_SIGN_IN_ENABLED)";
+				INFOPLIST_KEY_MARVI_GOOGLE_SIGN_IN_ENABLED = "$(MARVI_GOOGLE_SIGN_IN_ENABLED)";
 				INFOPLIST_KEY_MARVI_SUPABASE_ANON_KEY = "$(MARVI_SUPABASE_ANON_KEY)";
 				INFOPLIST_KEY_MARVI_SUPABASE_URL = "$(MARVI_SUPABASE_URL)";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Marvi Society uses your location to show nearby instant collaborations on the map.";
@@ -677,15 +686,18 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MarviSociety/MarviSociety.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MarviSociety/Resources/Marvi-URLTypes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Marvi Society";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_MARVI_API_MODE = "$(MARVI_API_MODE)";
+				INFOPLIST_KEY_MARVI_APPLE_SIGN_IN_ENABLED = "$(MARVI_APPLE_SIGN_IN_ENABLED)";
+				INFOPLIST_KEY_MARVI_GOOGLE_SIGN_IN_ENABLED = "$(MARVI_GOOGLE_SIGN_IN_ENABLED)";
 				INFOPLIST_KEY_MARVI_SUPABASE_ANON_KEY = "$(MARVI_SUPABASE_ANON_KEY)";
 				INFOPLIST_KEY_MARVI_SUPABASE_URL = "$(MARVI_SUPABASE_URL)";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Marvi Society uses your location to show nearby instant collaborations on the map.";

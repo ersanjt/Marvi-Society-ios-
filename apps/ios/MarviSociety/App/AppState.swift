@@ -725,6 +725,32 @@ final class AppState: ObservableObject {
         }
     }
 
+    func signInWithGoogle(using service: GoogleSignInService, metadata: [String: String]) async {
+        guard isRemoteMode else { return }
+        guard let supabaseURL = APIConfig.supabaseURL, let anonKey = APIConfig.supabaseAnonKey else { return }
+
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            let tokens = try await service.signIn(supabaseURL: supabaseURL, anonKey: anonKey)
+            try await api.signInWithGoogle(
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                metadata: metadata
+            )
+            isAuthenticated = true
+            needsReauthentication = false
+            await refreshFromServer()
+            await syncAllowedRoles()
+        } catch MarviAPIError.cancelled {
+            // User dismissed Google sign-in — no error banner.
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
     // MARK: - Onboarding
 
     func completeOnboarding(role: UserRole) {
@@ -1297,6 +1323,12 @@ final class AppState: ObservableObject {
             return t(.errNotAuthenticated)
         }
         if lower.contains("authenticationservices") || lower.contains("authorizationerror") {
+            return t(.errAppleSignInUnavailable)
+        }
+        if lower.contains("provider") && lower.contains("apple") {
+            return t(.errAppleSignInUnavailable)
+        }
+        if lower.contains("unsupported provider") || lower.contains("validation_failed") {
             return t(.errAppleSignInUnavailable)
         }
         if lower.contains("invalid api key") || lower.contains("invalid jwt") {

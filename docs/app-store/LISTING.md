@@ -114,19 +114,20 @@ https://marvisociety.com/privacy
 ```
 Marvi Society is an invite-only creator × venue marketplace for Istanbul.
 
+IMPORTANT — Use EMAIL sign-in only (not Sign in with Apple).
+
 Test account:
 Email: review@marvisociety.com
 Password: MarviReview2026!
-Invite code (if prompted on first launch): MARVI-IST
 
-Flow: Sign in → Explore tab shows live venue offers → tap offer → Accept → appears in My Events.
+Account includes admin + approved creator + venue profiles with live Explore content (9+ offers).
+Profile → workspace switcher: Creator, Venue, Admin.
 
-Sign in with Apple is also supported.
+Flow: Sign in → Explore → tap offer → Accept → My Events.
+Account deletion: Profile → Delete Account → https://marvisociety.com/delete-account
 
-Account deletion: Profile → Delete Account (opens https://marvisociety.com/delete-account with email OTP).
-
-No in-app purchases. No ads. 18+ confirmed at onboarding.
-Export: app uses HTTPS only (no custom encryption).
+No in-app purchases. 18+ confirmed at onboarding.
+Export: HTTPS only (no custom encryption).
 ```
 
 ## Screenshot storyboard (6.7" iPhone)

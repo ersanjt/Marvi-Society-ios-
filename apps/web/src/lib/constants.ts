@@ -5,30 +5,42 @@ export const COLLABORATION_MODELS = [
   {
     id: "invitation",
     title: "Invitation",
+    titleTr: "Davet",
     description:
       "Schedule creator visits at your preferred dates. Ideal for restaurants, salons, and content-guaranteed experiences.",
-    icon: "📅",
+    descriptionTr:
+      "Tercih ettiğiniz tarihlerde üretici ziyaretleri planlayın. Restoranlar, salonlar ve içerik garantili deneyimler için ideal.",
+    iconId: "invitation" as const,
   },
   {
     id: "event",
     title: "Event",
+    titleTr: "Etkinlik",
     description:
       "Host group experiences with multiple creators. Manage RSVPs and measure reach from one place.",
-    icon: "🎉",
+    descriptionTr:
+      "Birden fazla üreticiyle grup deneyimleri düzenleyin. RSVP'leri yönetin ve erişimi tek yerden ölçün.",
+    iconId: "event" as const,
   },
   {
     id: "gift",
     title: "Gift",
+    titleTr: "Hediye",
     description:
       "Ship products to creators and receive guaranteed authentic content with tracked delivery.",
-    icon: "🎁",
+    descriptionTr:
+      "Ürünleri üreticilere gönderin ve takip edilen teslimatla garantili özgün içerik alın.",
+    iconId: "gift" as const,
   },
   {
     id: "instant",
     title: "Instant",
+    titleTr: "Anlık",
     description:
       "Walk-in collaborations nearby. Creators open the map, accept, visit, and post — no waiting.",
-    icon: "⚡",
+    descriptionTr:
+      "Yakındaki walk-in iş birlikleri. Üreticiler haritayı açar, kabul eder, ziyaret eder ve paylaşır — bekleme yok.",
+    iconId: "instant" as const,
   },
 ] as const;
 

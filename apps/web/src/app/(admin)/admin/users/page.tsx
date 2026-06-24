@@ -2,10 +2,20 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AdminUserDirectory } from "@/components/admin/AdminUserDirectory";
+import { PageHeader, SyncBanner } from "@/components/design/MarviUI";
+import { getI18n } from "@/lib/i18n/locale";
+import { getPortalAdminDict, tReplace } from "@/lib/i18n/portal-admin";
 
-export const metadata = { title: "Admin users" };
+export async function generateMetadata() {
+  const { locale } = await getI18n();
+  return { title: getPortalAdminDict(locale).admin.users.metaTitle };
+}
 
 export default async function AdminUsersPage() {
+  const { locale } = await getI18n();
+  const dict = getPortalAdminDict(locale);
+  const u = dict.admin.users;
+
   const auth = await requireAdmin();
   if (!auth.ok) {
     redirect("/portal/login?next=/admin/users");
@@ -19,23 +29,20 @@ export default async function AdminUsersPage() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-blue">Directory</p>
-        <h1 className="font-serif text-3xl font-bold">User management</h1>
-        <p className="mt-1 text-sm text-muted">
-          Approve, block, email, notify, invite, or create accounts directly.
-        </p>
-      </div>
+    <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-12">
+      <PageHeader eyebrow={u.eyebrow} title={u.title} subtitle={u.subtitle} />
 
       {error ? (
-        <p className="mt-8 rounded-xl border border-tomato/30 bg-tomato/10 p-4 text-sm text-tomato">
-          Run apply-admin-operations.sql in Supabase first. ({error.message})
-        </p>
+        <div className="mt-8">
+          <SyncBanner
+            tone="error"
+            message={tReplace(u.sqlError, { message: error.message })}
+          />
+        </div>
       ) : null}
 
-      <div className="mt-8">
-        <AdminUserDirectory initialUsers={data ?? []} />
+      <div className="mt-10">
+        <AdminUserDirectory dict={dict} locale={locale} initialUsers={data ?? []} />
       </div>
     </div>
   );

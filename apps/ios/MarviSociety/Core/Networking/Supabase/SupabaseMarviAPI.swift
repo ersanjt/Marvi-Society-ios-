@@ -20,6 +20,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         try await applyOnboardingMetadata(metadata)
     }
 
+    func signInWithGoogle(accessToken: String, refreshToken: String?, metadata: [String: String]) async throws {
+        try await client.signInWithOAuth(accessToken: accessToken, refreshToken: refreshToken)
+        try await applyOnboardingMetadata(metadata)
+    }
+
     func signInWithEmail(_ email: String, password: String, metadata: [String: String]) async throws {
         try await client.signInWithEmail(email, password: password)
         if !metadata.isEmpty {

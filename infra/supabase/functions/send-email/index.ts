@@ -1,7 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 type Locale = "en" | "tr";
-type Template = "welcome_application" | "membership_approved" | "admin_message" | "invite_code";
+type Template =
+  | "welcome_application"
+  | "membership_approved"
+  | "admin_message"
+  | "invite_code"
+  | "contact_form"
+  | "demo_request";
 
 type OutboxRow = {
   id: string;
@@ -125,6 +131,37 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
     };
   }
 
+  if (template === "contact_form") {
+    const fromName = vars.name ?? "Visitor";
+    const fromEmail = vars.email ?? REPLY_TO;
+    const subjectLine = vars.subject ?? "Support request";
+    const body = (vars.message ?? "").replace(/\n/g, "<br/>");
+    return {
+      subject: `[Contact] ${subjectLine}`,
+      html: wrap(
+        "New contact form message",
+        `<p><strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
+         <p><strong>Subject:</strong> ${subjectLine}</p>
+         <p>${body}</p>`
+      ),
+    };
+  }
+
+  if (template === "demo_request") {
+    const body = (vars.message ?? "—").replace(/\n/g, "<br/>");
+    return {
+      subject: `[Demo] ${vars.company ?? "New lead"} — ${vars.name ?? "Unknown"}`,
+      html: wrap(
+        "New demo request",
+        `<p><strong>Name:</strong> ${vars.name ?? "—"}</p>
+         <p><strong>Company:</strong> ${vars.company ?? "—"}</p>
+         <p><strong>Email:</strong> ${vars.email ?? "—"}</p>
+         <p><strong>Website:</strong> ${vars.website ?? "—"}</p>
+         <p><strong>Message:</strong><br/>${body}</p>`
+      ),
+    };
+  }
+
   throw new Error(`Unknown template: ${template}`);
 }
 
@@ -157,6 +194,16 @@ async function sendWithResend(to: string, subject: string, html: string) {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "GET") {
+    return Response.json({
+      ok: true,
+      service: "send-email",
+      resendConfigured: Boolean(RESEND_API_KEY),
+      from: FROM_EMAIL,
+      replyTo: REPLY_TO,
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }

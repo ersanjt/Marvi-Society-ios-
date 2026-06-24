@@ -2,6 +2,7 @@
 
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { isPreviewMode } from "@/config/env";
+import type { PortalAdminDict } from "@/lib/i18n/portal-admin";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -13,13 +14,15 @@ function safeNextPath(value: string | null): string {
   return value;
 }
 
-export function LoginForm() {
+export function LoginForm({ dict }: { dict: PortalAdminDict }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const previewMode = isPreviewMode();
+  const c = dict.common;
+  const p = dict.portal.login;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -35,7 +38,7 @@ export function LoginForm() {
     }
 
     if (!isSupabaseConfigured()) {
-      setError("Sign-in is unavailable until Supabase is configured.");
+      setError(p.signInUnavailable);
       setLoading(false);
       return;
     }
@@ -55,30 +58,30 @@ export function LoginForm() {
   return (
     <form className="mt-8 space-y-4" onSubmit={onSubmit}>
       <label className="block text-sm font-semibold">
-        Email
+        {c.email}
         <input name="email" type="email" required className="mt-1 w-full rounded-marvi border border-border bg-panel-elevated px-3 py-2 text-ink outline-none ring-rose/30 focus:ring-2" />
       </label>
       <label className="block text-sm font-semibold">
-        Password
+        {c.password}
         <input name="password" type="password" required className="mt-1 w-full rounded-marvi border border-border bg-panel-elevated px-3 py-2 text-ink outline-none ring-rose/30 focus:ring-2" />
       </label>
       {error ? <p className="text-sm text-tomato">{error}</p> : null}
       <button type="submit" className="marvi-btn-primary w-full" disabled={loading}>
-        {loading ? "Signing in…" : "Sign in"}
+        {loading ? c.signingIn : c.signIn}
       </button>
       <p className="text-center text-xs text-muted">
         {previewMode ? (
           <>
-            Local preview mode — no Supabase required.{" "}
+            {p.previewMode}{" "}
             <Link href="/demo" className="marvi-link">
-              Request a demo
+              {p.requestDemo}
             </Link>
           </>
         ) : (
           <>
-            Need access?{" "}
+            {p.needAccess}{" "}
             <Link href="/demo" className="marvi-link">
-              Request a demo
+              {p.requestDemo}
             </Link>
           </>
         )}

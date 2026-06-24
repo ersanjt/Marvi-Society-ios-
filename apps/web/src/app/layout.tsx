@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   icons: {
     icon: "/favicon.svg",
-    apple: "/logo.svg",
+    apple: "/app-icon.png",
   },
   openGraph: {
     title: SITE.name,
@@ -20,7 +20,14 @@ export const metadata: Metadata = {
     siteName: SITE.name,
     type: "website",
     url: SITE.url,
-    images: [{ url: "/logo.svg", width: 48, height: 48, alt: SITE.name }],
+    images: [
+      {
+        url: "/screenshots/iphone/marvi-01-kesfet.png",
+        width: 1284,
+        height: 2778,
+        alt: `${SITE.name} — Explore`,
+      },
+    ],
   },
   alternates: {
     languages: {

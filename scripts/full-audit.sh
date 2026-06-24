@@ -42,6 +42,17 @@ echo "Building web..."
 (cd "$REPO_ROOT/apps/web" && npm run build -q) && echo "✓ Web BUILD SUCCEEDED" || echo "✗ Web BUILD FAILED"
 
 echo ""
+echo "Production site:"
+health=$(curl -sS -m 10 "https://marvisociety.com/api/health" 2>/dev/null || echo "")
+if echo "$health" | grep -q '"status":"ok"'; then
+  echo "  ✓ marvisociety.com/api/health → ok"
+elif echo "$health" | grep -q degraded; then
+  echo "  ✗ marvisociety.com/api/health → degraded (SUPABASE_SERVICE_ROLE_KEY missing on server)"
+else
+  echo "  ✗ marvisociety.com/api/health → unreachable"
+fi
+
+echo ""
 echo "Local config reminders:"
 if [[ -f "$REPO_ROOT/apps/web/.env.local" ]]; then
   if grep -q '^SUPABASE_SERVICE_ROLE_KEY=$' "$REPO_ROOT/apps/web/.env.local" 2>/dev/null; then

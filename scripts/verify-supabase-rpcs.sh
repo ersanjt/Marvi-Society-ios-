@@ -73,6 +73,7 @@ echo ""
 echo "Account lifecycle:"
 check_rpc_exists "pause_own_account" || FAIL=1
 check_rpc_exists "reactivate_own_account" || FAIL=1
+check_rpc_exists "delete_own_account" || FAIL=1
 
 echo ""
 echo "Schema:"
@@ -88,6 +89,15 @@ else
   else
     echo "  ? profiles query HTTP $code"
   fi
+fi
+
+del_resp=$(api_get "deletion_requests?select=id&limit=0")
+del_code=$(echo "$del_resp" | tail -1)
+if [[ "$del_code" == "200" ]]; then
+  echo "  ✓ deletion_requests table"
+else
+  echo "  ✗ deletion_requests — missing (run apply-account-lifecycle.sql or demo_leads migration)"
+  FAIL=1
 fi
 
 echo ""
