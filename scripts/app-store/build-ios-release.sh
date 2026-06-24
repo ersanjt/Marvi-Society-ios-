@@ -15,7 +15,7 @@ echo "Marvi Society — iOS Release Build"
 echo "================================"
 echo ""
 
-xcodebuild -version | head -1
+xcodebuild -version 2>/dev/null | sed -n '1p'
 
 cd "$IOS_DIR"
 rm -rf "$ARCHIVE" "$EXPORT_DIR"

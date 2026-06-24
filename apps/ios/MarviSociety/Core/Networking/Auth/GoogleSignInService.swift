@@ -8,7 +8,7 @@ struct OAuthSessionTokens {
     let refreshToken: String?
 }
 
-/// Google (and other Supabase OAuth providers) via ASWebAuthenticationSession — no Google SDK required.
+/// Google (Supabase OAuth) via ASWebAuthenticationSession — no Google SDK required.
 @MainActor
 final class GoogleSignInService: NSObject, ObservableObject {
     @Published var isSigningIn = false
@@ -16,12 +16,10 @@ final class GoogleSignInService: NSObject, ObservableObject {
 
     private var continuation: CheckedContinuation<OAuthSessionTokens, Error>?
     private var authSession: ASWebAuthenticationSession?
-    private var pkceVerifier: String?
-    private var pendingSupabaseURL: URL?
-    private var pendingAnonKey: String?
 
     static let callbackScheme = "marvisociety"
-    static var redirectURL: String { AppLinks.iosOAuthCallback.absoluteString }
+    /// Direct deep link — Supabase must allowlist `marvisociety://auth/callback` (no web page needed).
+    static var redirectURL: String { AppLinks.oauthCallbackDeepLink }
 
     func signIn(supabaseURL: URL, anonKey: String) async throws -> OAuthSessionTokens {
         isSigningIn = true
@@ -29,16 +27,11 @@ final class GoogleSignInService: NSObject, ObservableObject {
         defer {
             isSigningIn = false
             authSession = nil
-            pkceVerifier = nil
-            pendingSupabaseURL = nil
-            pendingAnonKey = nil
+            continuation = nil
         }
 
         let verifier = Self.generateCodeVerifier()
         let challenge = Self.codeChallenge(from: verifier)
-        pkceVerifier = verifier
-        pendingSupabaseURL = supabaseURL
-        pendingAnonKey = anonKey
 
         guard var components = URLComponents(
             url: supabaseURL.appending(path: "auth/v1/authorize"),
@@ -61,28 +54,41 @@ final class GoogleSignInService: NSObject, ObservableObject {
         }
 
         return try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
+                self.continuation = continuation
 
-            let session = ASWebAuthenticationSession(
-                url: authorizeURL,
-                callbackURLScheme: Self.callbackScheme
-            ) { [weak self] callbackURL, error in
-                Task { @MainActor in
-                    self?.handleAuthCallback(callbackURL: callbackURL, error: error)
+                let session = ASWebAuthenticationSession(
+                    url: authorizeURL,
+                    callbackURLScheme: Self.callbackScheme
+                ) { [weak self] callbackURL, error in
+                    Task { @MainActor in
+                        self?.handleAuthCallback(
+                            callbackURL: callbackURL,
+                            error: error,
+                            supabaseURL: supabaseURL,
+                            anonKey: anonKey,
+                            verifier: verifier
+                        )
+                    }
+                }
+
+                session.presentationContextProvider = self
+                session.prefersEphemeralWebBrowserSession = false
+                self.authSession = session
+
+                if !session.start() {
+                    self.continuation = nil
+                    continuation.resume(throwing: MarviAPIError.server(message: "Could not start Google sign-in."))
                 }
             }
-
-            session.presentationContextProvider = self
-            self.authSession = session
-
-            if !session.start() {
-                self.continuation = nil
-                continuation.resume(throwing: MarviAPIError.server(message: "Could not start Google sign-in."))
-            }
-        }
     }
 
-    private func handleAuthCallback(callbackURL: URL?, error: Error?) {
+    private func handleAuthCallback(
+        callbackURL: URL?,
+        error: Error?,
+        supabaseURL: URL,
+        anonKey: String,
+        verifier: String
+    ) {
         guard let continuation else { return }
         self.continuation = nil
 
@@ -104,7 +110,12 @@ final class GoogleSignInService: NSObject, ObservableObject {
 
         Task { @MainActor in
             do {
-                let tokens = try await self.resolveTokens(from: callbackURL)
+                let tokens = try await Self.resolveTokens(
+                    from: callbackURL,
+                    supabaseURL: supabaseURL,
+                    anonKey: anonKey,
+                    verifier: verifier
+                )
                 continuation.resume(returning: tokens)
             } catch {
                 self.lastError = error.localizedDescription
@@ -113,10 +124,15 @@ final class GoogleSignInService: NSObject, ObservableObject {
         }
     }
 
-    private func resolveTokens(from url: URL) async throws -> OAuthSessionTokens {
-        var params = Self.parseQueryItems(url.query)
+    private static func resolveTokens(
+        from url: URL,
+        supabaseURL: URL,
+        anonKey: String,
+        verifier: String
+    ) async throws -> OAuthSessionTokens {
+        var params = parseQueryItems(url.query)
         if params.isEmpty, let fragment = url.fragment, !fragment.isEmpty {
-            params = Self.parseQueryItems(fragment)
+            params = parseQueryItems(fragment)
         }
 
         if let errorDescription = params["error_description"] ?? params["error"] {
@@ -131,12 +147,7 @@ final class GoogleSignInService: NSObject, ObservableObject {
         }
 
         if let code = params["code"], !code.isEmpty {
-            guard let supabaseURL = pendingSupabaseURL,
-                  let anonKey = pendingAnonKey,
-                  let verifier = pkceVerifier else {
-                throw MarviAPIError.invalidResponse
-            }
-            return try await Self.exchangeAuthorizationCode(
+            return try await exchangeAuthorizationCode(
                 code,
                 verifier: verifier,
                 supabaseURL: supabaseURL,
@@ -145,27 +156,7 @@ final class GoogleSignInService: NSObject, ObservableObject {
         }
 
         throw MarviAPIError.server(
-            message: "Google sign-in did not return a session. Deploy /auth/callback on marvisociety.com and add redirect URLs in Supabase."
-        )
-    }
-
-    static func parseTokens(from url: URL) throws -> OAuthSessionTokens {
-        var params = parseQueryItems(url.query)
-        if params.isEmpty, let fragment = url.fragment, !fragment.isEmpty {
-            params = parseQueryItems(fragment)
-        }
-
-        if let errorDescription = params["error_description"] ?? params["error"] {
-            throw MarviAPIError.server(message: errorDescription.replacingOccurrences(of: "+", with: " "))
-        }
-
-        guard let accessToken = params["access_token"], !accessToken.isEmpty else {
-            throw MarviAPIError.server(message: "Google sign-in did not return a session.")
-        }
-
-        return OAuthSessionTokens(
-            accessToken: accessToken,
-            refreshToken: params["refresh_token"]
+            message: "Google sign-in did not return a session. Check Supabase redirect URLs include https://marvisociety.com/auth/callback"
         )
     }
 
@@ -200,9 +191,11 @@ final class GoogleSignInService: NSObject, ObservableObject {
         }
 
         guard (200 ... 299).contains(http.statusCode) else {
-            let message = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error_description"] as? String
-                ?? (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["msg"] as? String
-                ?? "Google sign-in token exchange failed."
+            let json = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let message = json?["error_description"] as? String
+                ?? json?["msg"] as? String
+                ?? json?["message"] as? String
+                ?? "Google sign-in token exchange failed (HTTP \(http.statusCode))."
             throw MarviAPIError.server(message: message)
         }
 

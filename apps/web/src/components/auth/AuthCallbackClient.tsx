@@ -7,7 +7,7 @@ import { MarviScreen, SyncBanner } from "@/components/design/MarviUI";
 import { createClient } from "@/lib/supabase/client";
 
 export function AuthCallbackClient() {
-  const [status, setStatus] = useState<"loading" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "error" | "ios-bounce">("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -15,6 +15,8 @@ export function AuthCallbackClient() {
 
     // iOS OAuth: bounce HTTPS callback → app deep link so ASWebAuthenticationSession can finish.
     if (params.get("client") === "ios") {
+      setStatus("ios-bounce");
+
       const code = params.get("code");
       const error = params.get("error");
       const errorDescription = params.get("error_description");
@@ -30,8 +32,13 @@ export function AuthCallbackClient() {
         deepLink += `?${qs.toString()}`;
       }
 
-      window.location.replace(deepLink + hash);
-      return;
+      const target = deepLink + hash;
+      window.location.replace(target);
+      // Fallback if replace does not hand off to the native app sheet.
+      const fallback = window.setTimeout(() => {
+        window.location.href = target;
+      }, 600);
+      return () => window.clearTimeout(fallback);
     }
 
     const supabase = createClient();
@@ -83,6 +90,9 @@ export function AuthCallbackClient() {
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-16 text-center">
         <BrandLockup subtitle="Authentication" size={48} />
         {status === "loading" ? <p className="mt-8 text-sm text-muted">Signing you in…</p> : null}
+        {status === "ios-bounce" ? (
+          <p className="mt-8 text-sm text-muted">Returning to Marvi Society app…</p>
+        ) : null}
         {status === "error" ? (
           <div className="mt-8 w-full">
             <SyncBanner tone="error" message={message} />

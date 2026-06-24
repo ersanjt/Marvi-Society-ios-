@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReauthView: View {
     @EnvironmentObject private var appState: AppState
+    @StateObject private var googleSignIn = GoogleSignInService()
     @State private var email = ""
     @State private var password = ""
     @State private var isSigningIn = false
@@ -43,21 +44,42 @@ struct ReauthView: View {
                             PrimaryActionButton(
                                 title: isSigningIn ? appState.t(.signingIn) : appState.t(.signIn),
                                 systemImage: "arrow.right.circle",
-                                isDisabled: email.isEmpty || password.isEmpty || isSigningIn
+                                isDisabled: email.isEmpty || password.isEmpty || isBusy
                             ) {
-                                Task {
-                                    isSigningIn = true
-                                    await appState.signInWithEmail(
-                                        email.trimmingCharacters(in: .whitespacesAndNewlines),
-                                        password: password,
-                                        metadata: [:]
-                                    )
-                                    if appState.isAuthenticated {
-                                        appState.needsReauthentication = false
-                                        appState.dismissSyncError()
-                                    }
-                                    isSigningIn = false
+                                Task { await signInWithEmail() }
+                            }
+
+                            if APIConfig.googleSignInEnabled {
+                                HStack(spacing: 12) {
+                                    Rectangle().fill(MarviColor.border).frame(height: 1)
+                                    Text(appState.t(.orContinueWith))
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(MarviColor.muted)
+                                    Rectangle().fill(MarviColor.border).frame(height: 1)
                                 }
+
+                                Button {
+                                    Task { await signInWithGoogle() }
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "g.circle.fill")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.red)
+                                        Text(googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle))
+                                            .font(.headline.weight(.bold))
+                                    }
+                                    .foregroundStyle(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 15)
+                                    .background(.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .stroke(MarviColor.border, lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isBusy)
                             }
 
                             Button {
@@ -74,12 +96,12 @@ struct ReauthView: View {
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.plain)
-                            .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSigningIn)
+                            .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBusy)
                         }
                     }
                     .padding(.horizontal, 16)
 
-                    if let error = appState.lastSyncError {
+                    if let error = appState.lastSyncError ?? googleSignIn.lastError {
                         Text(error)
                             .font(.caption)
                             .foregroundStyle(MarviColor.tomato)
@@ -97,6 +119,34 @@ struct ReauthView: View {
             }
         } message: {
             Text(appState.passwordResetMessage ?? appState.t(.passwordResetDefault))
+        }
+    }
+
+    private var isBusy: Bool {
+        isSigningIn || googleSignIn.isSigningIn || appState.isSyncing
+    }
+
+    private func signInWithEmail() async {
+        isSigningIn = true
+        appState.dismissSyncError()
+        await appState.signInWithEmail(
+            email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password,
+            metadata: [:]
+        )
+        if appState.isAuthenticated {
+            appState.needsReauthentication = false
+            appState.dismissSyncError()
+        }
+        isSigningIn = false
+    }
+
+    private func signInWithGoogle() async {
+        appState.dismissSyncError()
+        await appState.signInWithGoogle(using: googleSignIn, metadata: [:])
+        if appState.isAuthenticated {
+            appState.needsReauthentication = false
+            appState.dismissSyncError()
         }
     }
 }

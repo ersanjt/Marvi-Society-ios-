@@ -68,6 +68,16 @@ async function getUser(request: NextRequest, response: NextResponse) {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // iOS OAuth: instant redirect to app deep link (before any React / portal session).
+  if (pathname === "/auth/ios-callback") {
+    const deepLink = new URL("marvisociety://auth/callback");
+    request.nextUrl.searchParams.forEach((value, key) => {
+      deepLink.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(deepLink.toString());
+  }
+
   const isProtectedPortal =
     pathname.startsWith("/portal") && !pathname.startsWith("/portal/login");
   const isProtectedAdmin =
