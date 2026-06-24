@@ -18,8 +18,8 @@ Review flow (iPhone or iPad):
 3. Profile → switch Creator / Venue / Admin workspaces
 4. Delete account: Profile → Legal → https://marvisociety.com/delete-account
 
-Sign in with Apple and Google are disabled in build 1.0 (6).
-Build 1.0 (6) includes iPad onboarding layout fixes.
+Sign in with Apple and Google are disabled in build 1.0 (10).
+Build 1.0 (10) includes iPad onboarding layout fixes.
 
 No in-app purchases. Invitation-only membership by design.
 
@@ -28,7 +28,7 @@ Paste into App Review → Reply to App Review:
 
 Thank you for the detailed feedback on submission 4e7dbf2a-e85f-42df-95e9-ee6b8551e2ce.
 
-We addressed both issues in build 1.0 (6):
+We addressed both issues in build 1.0 (10):
 
 1. Sign in with Apple — We removed Apple and Google sign-in from this build so reviewers use the email demo account only. This prevents the Apple sign-in error seen on iPad.
 
@@ -40,6 +40,6 @@ Password: MarviReview2026!
 
 After email sign-in, Explore shows live campaigns. Profile → workspace switcher opens Creator, Venue, and Admin tools.
 
-Please test on iPad using email sign-in only. Build 1.0 (6) is attached.
+Please test on iPad using email sign-in only. Build 1.0 (10) is attached.
 
 Thank you.

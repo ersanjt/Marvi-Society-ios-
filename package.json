@@ -17,6 +17,7 @@
     "status": "bash scripts/release/status.sh",
     "verify": "bash scripts/release/verify.sh",
     "verify:e2e": "bash scripts/app-store/verify-e2e.sh",
+    "verify:all": "bash scripts/release/verify-all.sh",
     "verify:emails": "bash scripts/app-store/verify-emails.sh",
     "verify:auth": "bash scripts/app-store/verify-auth-urls.sh",
     "resubmit:all": "bash scripts/app-store/resubmit-all.sh",
