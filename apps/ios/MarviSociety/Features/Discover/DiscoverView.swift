@@ -153,7 +153,11 @@ struct DiscoverView: View {
         NavigationStack {
             MarviScreen {
                 if discoverMode == .map {
-                    MapDiscoverView()
+                    MapDiscoverView {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) {
+                            discoverMode = .list
+                        }
+                    }
                         .environmentObject(appState)
                 } else {
                 ScrollView {
