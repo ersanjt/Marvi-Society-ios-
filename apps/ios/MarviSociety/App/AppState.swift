@@ -1271,8 +1271,16 @@ final class AppState: ObservableObject {
     }
 
     private func friendlyErrorMessage(_ error: Error) -> String? {
+        if case MarviAPIError.emailConfirmationRequired = error {
+            return t(.errConfirmEmail)
+        }
+
         let raw = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         let lower = raw.lowercased()
+
+        if lower.contains("confirm your account") || lower.contains("confirmation link") {
+            return t(.errConfirmEmail)
+        }
 
         if lower.contains("cannot be reactivated") {
             return t(.errReactivateSupport)
@@ -1333,6 +1341,11 @@ final class AppState: ObservableObject {
         }
         if lower.contains("invalid api key") || lower.contains("invalid jwt") {
             return t(.errServerConfig)
+        }
+        if lower.contains("couldn't be read")
+            || lower.contains("could not be read")
+            || lower.contains("data couldn") {
+            return t(.errSomeDataRefresh)
         }
         return raw.isEmpty ? nil : raw
     }

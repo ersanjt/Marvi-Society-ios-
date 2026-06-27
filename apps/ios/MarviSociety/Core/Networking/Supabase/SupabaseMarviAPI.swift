@@ -33,7 +33,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async throws {
-        try await client.signUp(email: email, password: password, metadata: metadata)
+        let sessionCreated = try await client.signUp(email: email, password: password, metadata: metadata)
+        guard sessionCreated else {
+            // Supabase has email confirmation enabled: no session yet.
+            throw MarviAPIError.emailConfirmationRequired
+        }
         try await applyOnboardingMetadata(metadata)
     }
 

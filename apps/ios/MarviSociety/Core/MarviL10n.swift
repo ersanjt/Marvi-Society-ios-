@@ -76,7 +76,7 @@ enum MarviL10n {
         case errSessionExpired, errSignInRequired, errWrongPassword, errAccountExists
         case errInviteInvalid, errInviteFull, errCheckInInvalid, errProfileNotReady
         case errReactivateSupport, errEnterEmail, errTypeDelete, errSomeDataRefresh
-        case errInvitationFull, errAlreadyAccepted, errNotAuthenticated
+        case errInvitationFull, errAlreadyAccepted, errNotAuthenticated, errConfirmEmail
         // Misc
         case openAdminConsole, bootstrapLoading, syncErrorTitle, hiGreeting
         case saveProfile, mapLocationNeeded, enableLocation, instantNearby
@@ -294,6 +294,7 @@ enum MarviL10n {
         .errSomeDataRefresh: "Some data could not be refreshed. Pull down to try again.",
         .errAlreadyAccepted: "You already accepted this invitation.",
         .errNotAuthenticated: "Please sign in to continue.",
+        .errConfirmEmail: "We sent a confirmation link to your email. Open it to verify your account, then come back and sign in.",
         .openAdminConsole: "Open admin console",
         .bootstrapLoading: "Loading your club…",
         .syncErrorTitle: "Could not sync",
@@ -594,6 +595,7 @@ enum MarviL10n {
         .errSomeDataRefresh: "Bazı veriler yenilenemedi. Aşağı çekip tekrar dene.",
         .errAlreadyAccepted: "Bu daveti zaten kabul ettin.",
         .errNotAuthenticated: "Devam etmek için giriş yap.",
+        .errConfirmEmail: "E-postana bir onay bağlantısı gönderdik. Hesabını doğrulamak için aç, sonra buraya dönüp giriş yap.",
         .openAdminConsole: "Yönetim konsolunu aç",
         .bootstrapLoading: "Kulübün yükleniyor…",
         .syncErrorTitle: "Senkronize edilemedi",

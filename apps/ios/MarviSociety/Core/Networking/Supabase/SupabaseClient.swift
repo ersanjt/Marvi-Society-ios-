@@ -97,7 +97,11 @@ actor SupabaseClient {
         try applyAuthResponse(from: data)
     }
 
-    func signUp(email: String, password: String, metadata: [String: String]) async throws {
+    /// Returns true when the signup response includes an active session
+    /// (email confirmation disabled). Returns false when Supabase requires
+    /// the user to confirm their email before a session is issued.
+    @discardableResult
+    func signUp(email: String, password: String, metadata: [String: String]) async throws -> Bool {
         let url = baseURL.appending(path: "auth/v1/signup")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -114,7 +118,7 @@ actor SupabaseClient {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        try applyAuthResponse(from: data)
+        return try applyAuthResponse(from: data, requireSession: false)
     }
 
     func resetPassword(email: String) async throws {
@@ -400,13 +404,21 @@ actor SupabaseClient {
         }
     }
 
-    private func applyAuthResponse(from data: Data) throws {
-        let session = try JSONDecoder().decode(AuthSession.self, from: data)
-        setSession(accessToken: session.access_token, refreshToken: session.refresh_token)
+    @discardableResult
+    private func applyAuthResponse(from data: Data, requireSession: Bool = true) throws -> Bool {
+        let session = try? JSONDecoder().decode(AuthSession.self, from: data)
+        if let accessToken = session?.access_token, !accessToken.isEmpty {
+            setSession(accessToken: accessToken, refreshToken: session?.refresh_token)
+            return true
+        }
+        if requireSession {
+            throw MarviAPIError.invalidResponse
+        }
+        return false
     }
 }
 
 private struct AuthSession: Decodable {
-    let access_token: String
+    let access_token: String?
     let refresh_token: String?
 }

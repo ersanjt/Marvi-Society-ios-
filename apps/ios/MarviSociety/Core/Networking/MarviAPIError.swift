@@ -6,6 +6,7 @@ enum MarviAPIError: LocalizedError {
     case unauthorized
     case invalidResponse
     case cancelled
+    case emailConfirmationRequired
     case server(message: String)
     case decoding(Error)
     case network(Error)
@@ -22,6 +23,8 @@ enum MarviAPIError: LocalizedError {
             "Your session expired. Please sign in again."
         case .invalidResponse:
             "Unexpected server response."
+        case .emailConfirmationRequired:
+            "Please confirm your account from the email we just sent, then sign in."
         case .server(let message):
             message
         case .decoding(let error):
