@@ -71,7 +71,14 @@ MARVI_API_MODE = supabase
 ```
 
 4. Configure Sign in with Apple capability + bundle ID `com.marvisociety.app`.
-5. Archive → Upload to App Store Connect → TestFlight.
+5. Build and upload:
+
+```bash
+npm run build:ios
+npm run upload:ios
+```
+
+See [TESTFLIGHT_UPLOAD.md](./app-store/TESTFLIGHT_UPLOAD.md) for API key setup.
 
 ---
 

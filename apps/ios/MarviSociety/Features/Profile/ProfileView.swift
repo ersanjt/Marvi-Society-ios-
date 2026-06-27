@@ -1,5 +1,19 @@
 import SwiftUI
 
+private enum ProfileInsightTab: String, CaseIterable {
+    case engagement
+    case health
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .engagement:
+            language == .turkish ? "Etkileşim" : "Engagement"
+        case .health:
+            language == .turkish ? "Profil Sağlığı" : "Profile Health"
+        }
+    }
+}
+
 struct ProfileView: View {
     @EnvironmentObject private var appState: AppState
     @State private var isShowingSignOutConfirmation = false
@@ -13,6 +27,7 @@ struct ProfileView: View {
     @State private var saveSuccessMessage: String?
     @State private var nichesText = ""
     @State private var languagesText = ""
+    @State private var selectedInsightTab: ProfileInsightTab = .engagement
 
     private var managementTitle: String {
         switch appState.selectedRole {
@@ -46,19 +61,17 @@ struct ProfileView: View {
                         )
 
                         MarviCard {
-                            HStack(spacing: 20) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(appState.profile.audienceLabel.replacingOccurrences(of: " audience", with: ""))
-                                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                                        .foregroundStyle(MarviColor.ink)
-                                    Text(appState.t(.followers))
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(MarviColor.muted)
+                            VStack(alignment: .leading, spacing: 14) {
+                                ProfileInsightPicker(
+                                    selected: $selectedInsightTab,
+                                    language: appState.preferredLanguage
+                                )
+
+                                if selectedInsightTab == .engagement {
+                                    ProfileEngagementPanel(profile: appState.profile, followersLabel: appState.t(.followers))
+                                } else {
+                                    ProfileHealthPanel(profile: appState.profile, healthLabel: appState.t(.profileHealth))
                                 }
-
-                                Spacer()
-
-                                ProfileHealthRing(score: appState.profile.score, label: appState.t(.profileHealth))
                             }
                         }
 
@@ -638,6 +651,144 @@ private struct AdminQuickStat: View {
         .padding(12)
         .background(tint.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+private struct ProfileInsightPicker: View {
+    @Binding var selected: ProfileInsightTab
+    let language: AppLanguage
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(ProfileInsightTab.allCases, id: \.rawValue) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        selected = tab
+                    }
+                } label: {
+                    Text(tab.title(for: language).uppercased())
+                        .font(.caption2.weight(.bold))
+                        .tracking(0.9)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(selected == tab ? .white : MarviColor.muted)
+                        .background(
+                            selected == tab
+                                ? AnyShapeStyle(MarviGradient.brand)
+                                : AnyShapeStyle(MarviColor.panelElevated)
+                        )
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+private struct ProfileEngagementPanel: View {
+    let profile: CreatorProfile
+    let followersLabel: String
+
+    private var cleanAudience: String {
+        profile.audienceLabel.replacingOccurrences(of: " audience", with: "")
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 12) {
+                ProfileBigMetric(value: cleanAudience, label: followersLabel, icon: "person.2.fill", tint: MarviColor.rose)
+                ProfileBigMetric(value: "\(profile.niches.count)", label: "Niches", icon: "tag.fill", tint: MarviColor.aubergine)
+            }
+
+            VStack(spacing: 10) {
+                AnalyticsBar(label: "Content fit", value: min(Double(max(profile.niches.count, 1)) / 6.0, 1), tint: MarviColor.rose)
+                AnalyticsBar(label: "Languages", value: min(Double(max(profile.languages.count, 1)) / 3.0, 1), tint: MarviColor.blue)
+                AnalyticsBar(label: "Delivery", value: proofRateValue, tint: MarviColor.emerald)
+            }
+        }
+    }
+
+    private var proofRateValue: Double {
+        let digits = profile.proofRate.filter { $0.isNumber }
+        guard let number = Double(digits) else { return 0 }
+        return min(number / 100.0, 1)
+    }
+}
+
+private struct ProfileHealthPanel: View {
+    let profile: CreatorProfile
+    let healthLabel: String
+
+    var body: some View {
+        HStack(spacing: 18) {
+            VStack(alignment: .leading, spacing: 12) {
+                ProfileBigMetric(value: "\(profile.score)", label: "Score", icon: "star.fill", tint: MarviColor.gold)
+                ProfileBigMetric(value: profile.proofRate, label: "Delivery", icon: "checkmark.seal.fill", tint: MarviColor.emerald)
+            }
+
+            Spacer()
+
+            ProfileHealthRing(score: profile.score, label: healthLabel)
+        }
+    }
+}
+
+private struct ProfileBigMetric: View {
+    let value: String
+    let label: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(tint)
+
+            Text(value)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(MarviColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MarviColor.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(13)
+        .background(MarviColor.panelElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct AnalyticsBar: View {
+    let label: String
+    let value: Double
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(MarviColor.graphite)
+                Spacer()
+                Text("\(Int(value * 100))%")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(tint)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(MarviColor.panelElevated)
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: geo.size.width * value)
+                }
+            }
+            .frame(height: 7)
+        }
     }
 }
 

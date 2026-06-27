@@ -28,12 +28,12 @@ enum MarviL10n {
         case signInWithApple, signInWithGoogle, signingIn, appleDevNotice, emailSignInRecommended
         case inviteTitle, inviteSubtitle, invitePlaceholder, inviteAccepted, memberBenefits
         case featCuratedTitle, featCuratedSub
-        case profileSetupTitle, profileSetupSub, instagramPlaceholder, cityPlaceholder
+        case profileSetupTitle, profileSetupSub, fullNamePlaceholder, instagramPlaceholder, cityPlaceholder
         case yourNiches, popularCities
         case agreementTitle, agreementSub, age18Toggle, termsToggle
         case joinMarvi, welcome, signInStep, inviteStep, profileStep, agreementStep
         case validatingInvite, settingUpAccount, checkEmailTitle
-        case passwordResetDefault
+        case passwordResetDefault, passwordResetInstructions
         // Discover
         case privateAccess, yourCity, findExploreEvents, eventsCount
         case filterAll, filterSaved, filterFewSlots, sortNewest, sortFewSlots, sortBestMatch
@@ -173,7 +173,7 @@ enum MarviL10n {
         .step3of4: "Step 3 of 4", .step4of4: "Step 4 of 4",
         .createAccount: "Create your account", .signInContinue: "Sign in to continue",
         .welcomeBackSignIn: "Welcome back — enter your email and password.",
-        .createAccountSub: "Use email and password. Your invite code comes next.",
+        .createAccountSub: "Full name, email, and password. Invite code and profile come next.",
         .signInSub: "Welcome back — enter your email and password.",
         .orEmail: "or email", .orAppleSignIn: "or Apple", .orContinueWith: "or continue with",
         .newMemberCreate: "New member? Create account",
@@ -193,6 +193,7 @@ enum MarviL10n {
         .featCuratedSub: "Access live campaigns matched to your niche.",
         .profileSetupTitle: "Your creator profile",
         .profileSetupSub: "Used for verification and invitation matching.",
+        .fullNamePlaceholder: "Full name",
         .instagramPlaceholder: "Instagram handle", .cityPlaceholder: "City",
         .yourNiches: "Your niches", .popularCities: "Popular cities",
         .agreementTitle: "Membership agreement",
@@ -206,6 +207,7 @@ enum MarviL10n {
         .settingUpAccount: "Setting up your account…",
         .checkEmailTitle: "Check your email",
         .passwordResetDefault: "If an account exists for this email, we sent a password reset link.",
+        .passwordResetInstructions: "Open the email on this device, tap the link, then set a new password on marvisociety.com. Return here and sign in.",
         .privateAccess: "Private access", .yourCity: "Your city",
         .findExploreEvents: "Find and Explore Events", .eventsCount: "events",
         .filterAll: "All", .filterSaved: "Saved", .filterFewSlots: "Few slots",
@@ -470,7 +472,7 @@ enum MarviL10n {
         .step3of4: "Adım 3 / 4", .step4of4: "Adım 4 / 4",
         .createAccount: "Hesabını oluştur", .signInContinue: "Devam etmek için giriş yap",
         .welcomeBackSignIn: "Tekrar hoş geldin — e-posta ve şifreni gir.",
-        .createAccountSub: "E-posta ve şifre kullan. Davet kodun bir sonraki adımda.",
+        .createAccountSub: "Ad soyad, e-posta ve şifre. Davet kodu ve profil sonraki adımlarda.",
         .signInSub: "Tekrar hoş geldin — e-posta ve şifreni gir.",
         .orEmail: "veya e-posta", .orAppleSignIn: "veya Apple", .orContinueWith: "veya şununla devam et",
         .newMemberCreate: "Yeni üye misin? Hesap oluştur",
@@ -490,6 +492,7 @@ enum MarviL10n {
         .featCuratedSub: "Nişine uygun canlı kampanyalara eriş.",
         .profileSetupTitle: "Creator profilin",
         .profileSetupSub: "Doğrulama ve davet eşleşmesi için kullanılır.",
+        .fullNamePlaceholder: "Ad soyad",
         .instagramPlaceholder: "Instagram kullanıcı adı", .cityPlaceholder: "Şehir",
         .yourNiches: "Nişlerin", .popularCities: "Popüler şehirler",
         .agreementTitle: "Üyelik sözleşmesi",
@@ -503,6 +506,7 @@ enum MarviL10n {
         .settingUpAccount: "Hesabın hazırlanıyor…",
         .checkEmailTitle: "E-postanı kontrol et",
         .passwordResetDefault: "Bu e-postayla kayıtlı bir hesap varsa şifre sıfırlama linki gönderdik.",
+        .passwordResetInstructions: "E-postayı bu cihazda aç, linke dokun ve marvisociety.com üzerinde yeni şifreni belirle. Sonra buraya dönüp giriş yap.",
         .privateAccess: "Özel erişim", .yourCity: "Şehrin",
         .findExploreEvents: "Etkinlikleri Keşfet", .eventsCount: "etkinlik",
         .filterAll: "Tümü", .filterSaved: "Kaydedilenler", .filterFewSlots: "Az kontenjan",

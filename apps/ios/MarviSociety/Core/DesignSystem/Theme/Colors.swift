@@ -2,6 +2,8 @@ import SwiftUI
 
 enum MarviColor {
     static let ink = Color(hex: "#F5F5F7")
+    /// Dark text for light surfaces (map cards, white buttons).
+    static let inkOnLight = Color(hex: "#1C1C1E")
     static let graphite = Color(hex: "#C8C8CC")
     static let surface = Color(hex: "#0A0A0C")
     static let surfaceCool = Color(hex: "#121216")

@@ -30,6 +30,36 @@ private enum OnboardingStep: Int, CaseIterable {
     }
 }
 
+private enum SignupIntent: String, CaseIterable {
+    case creator
+    case business
+
+    var icon: String {
+        switch self {
+        case .creator: "sparkles"
+        case .business: "building.2"
+        }
+    }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .creator:
+            language == .turkish ? "Creator olarak katıl" : "Sign up as a Creator"
+        case .business:
+            language == .turkish ? "Business olarak katıl" : "Sign up as a Business"
+        }
+    }
+
+    func subtitle(for language: AppLanguage) -> String {
+        switch self {
+        case .creator:
+            language == .turkish ? "Davetleri keşfet, kabul et ve kanıt gönder." : "Explore curated invites, accept, and submit proof."
+        case .business:
+            language == .turkish ? "Mekânını ekle, kampanya oluştur ve creator seç." : "Add venues, create campaigns, and swipe creators."
+        }
+    }
+}
+
 // MARK: - Root
 
 struct OnboardingView: View {
@@ -46,14 +76,17 @@ struct OnboardingView: View {
     @State private var referralError = ""
     @State private var email = ""
     @State private var password = ""
+    @State private var fullName = ""
     @State private var isSigningInWithEmail = false
     @State private var isValidatingReferral = false
     @State private var isCreatingAccount = false
+    @State private var signupIntent: SignupIntent = .creator
     @State private var confirmedAge18 = false
     @State private var acceptedTerms = false
     @State private var appleSignInError: String?
     @State private var inviteValidated = false
     @State private var showPasswordResetConfirmation = false
+    @State private var pendingSignupOnboarding = false
 
     private var lang: AppLanguage { appState.preferredLanguage }
 
@@ -106,14 +139,16 @@ struct OnboardingView: View {
             }
         } message: {
             Text(appState.passwordResetMessage ?? appState.t(.passwordResetDefault))
+            + Text("\n\n") + Text(appState.t(.passwordResetInstructions))
         }
     }
 
     // MARK: - Steps
 
     private var welcomeStep: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer(minLength: 12)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer(minLength: 12)
 
             BrandMark(size: 72)
                 .padding(.bottom, 28)
@@ -165,6 +200,29 @@ struct OnboardingView: View {
 
             Spacer(minLength: 8)
 
+            VStack(spacing: 10) {
+                SignupIntentCard(
+                    intent: .creator,
+                    language: appState.preferredLanguage,
+                    isSelected: signupIntent == .creator
+                ) {
+                    signupIntent = .creator
+                    isCreatingAccount = true
+                    advance(to: .signIn)
+                }
+
+                SignupIntentCard(
+                    intent: .business,
+                    language: appState.preferredLanguage,
+                    isSelected: signupIntent == .business
+                ) {
+                    signupIntent = .business
+                    isCreatingAccount = true
+                    advance(to: .signIn)
+                }
+            }
+            .padding(.bottom, 14)
+
             Button {
                 isCreatingAccount = false
                 advance(to: .signIn)
@@ -175,8 +233,10 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
         }
-        .padding(.horizontal, 24)
     }
 
     private var signInStep: some View {
@@ -184,11 +244,39 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 22) {
                 OnboardingStepHeader(
                     eyebrow: appState.t(.step1of4),
-                    title: isCreatingAccount ? appState.t(.createAccount) : appState.t(.signInContinue),
+                    title: isCreatingAccount ? signupIntent.title(for: appState.preferredLanguage) : appState.t(.signInContinue),
                     subtitle: isCreatingAccount ? appState.t(.createAccountSub) : appState.t(.signInSub)
                 )
 
+                if isCreatingAccount {
+                    HStack(spacing: 10) {
+                        ForEach(SignupIntent.allCases, id: \.rawValue) { intent in
+                            Button {
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                    signupIntent = intent
+                                }
+                            } label: {
+                                Label(intent == .creator ? appState.t(.creator) : "Business", systemImage: intent.icon)
+                                    .font(.caption.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 11)
+                                    .foregroundStyle(signupIntent == intent ? .white : MarviColor.graphite)
+                                    .background(
+                                        signupIntent == intent
+                                            ? AnyShapeStyle(MarviGradient.brand)
+                                            : AnyShapeStyle(MarviColor.panelElevated)
+                                    )
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
                 VStack(spacing: 12) {
+                    if isCreatingAccount {
+                        MarviTextField(placeholder: appState.t(.fullNamePlaceholder), text: $fullName)
+                    }
                     MarviTextField(placeholder: appState.t(.email), text: $email, autocapitalization: .never)
                     OnboardingSecureField(placeholder: appState.t(.password), text: $password)
                 }
@@ -500,6 +588,9 @@ struct OnboardingView: View {
             return true
         case .signIn:
             if appState.isAuthenticated { return !isBusy }
+            if isCreatingAccount {
+                return canSignUpWithEmail && !isBusy
+            }
             return canSignInWithEmail && !isBusy
         case .invite:
             guard appState.isAuthenticated else { return false }
@@ -513,6 +604,12 @@ struct OnboardingView: View {
 
     private var canSignInWithEmail: Bool {
         !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !password.isEmpty
+    }
+
+    private var canSignUpWithEmail: Bool {
+        canSignInWithEmail &&
+            !fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            password.count >= 8
     }
 
     private var isProfileValid: Bool {
@@ -603,7 +700,9 @@ struct OnboardingView: View {
             "locale": inferredSignupLocale(),
             "city": city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             "instagram_handle": instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines),
-            "full_name": appState.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            "full_name": fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? appState.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                : fullName.trimmingCharacters(in: .whitespacesAndNewlines)
         ]
     }
 
@@ -632,6 +731,9 @@ struct OnboardingView: View {
         isSigningInWithEmail = true
         defer { isSigningInWithEmail = false }
 
+        pendingSignupOnboarding = true
+        appState.profile.name = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+
         await appState.signUpWithEmail(
             email.trimmingCharacters(in: .whitespacesAndNewlines),
             password: password,
@@ -639,8 +741,13 @@ struct OnboardingView: View {
         )
 
         if AppState.isAccountAlreadyExistsMessage(appState.lastSyncError) {
+            pendingSignupOnboarding = false
             withAnimation { isCreatingAccount = false }
             return
+        }
+
+        if appState.lastSyncError != nil {
+            pendingSignupOnboarding = false
         }
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
@@ -683,6 +790,12 @@ struct OnboardingView: View {
         instagramHandle = appState.profile.handle
         if !appState.profile.city.isEmpty { city = appState.profile.city }
         selectedNiches = Set(appState.profile.niches)
+
+        if pendingSignupOnboarding {
+            pendingSignupOnboarding = false
+            advance(to: .invite)
+            return
+        }
 
         if await appState.isExistingMemberOnServer() {
             appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
@@ -731,7 +844,7 @@ struct OnboardingView: View {
             _ = await appState.saveProfileToServer()
         }
 
-        appState.completeOnboarding(role: .creator)
+        appState.completeOnboarding(role: signupIntent == .business ? .venue : .creator)
     }
 
     @ViewBuilder
@@ -970,6 +1083,54 @@ private struct OnboardingPill: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(MarviGradient.brand.opacity(0.35), lineWidth: 1)
         )
+    }
+}
+
+private struct SignupIntentCard: View {
+    let intent: SignupIntent
+    let language: AppLanguage
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: intent.icon)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(isSelected ? .white : MarviColor.rose)
+                    .frame(width: 42, height: 42)
+                    .background(
+                        isSelected
+                            ? AnyShapeStyle(MarviGradient.brand)
+                            : AnyShapeStyle(MarviColor.rose.opacity(0.12))
+                    )
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(intent.title(for: language))
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                    Text(intent.subtitle(for: language))
+                        .font(.caption)
+                        .foregroundStyle(MarviColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(MarviColor.muted)
+            }
+            .padding(14)
+            .background(MarviColor.panel.opacity(0.9))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(isSelected ? MarviColor.rose.opacity(0.45) : MarviColor.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

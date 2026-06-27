@@ -472,10 +472,17 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             body: body
         )
         let bookings = try await fetchBookings()
-        guard let booking = bookings.first(where: { $0.id == row.id }) else {
-            throw MarviAPIError.server(message: "Booking not found after accept")
+        if let booking = bookings.first(where: { $0.id == row.id }) {
+            return booking
         }
-        return booking
+
+        // Join can fail if nested offer data is missing — build from RPC row + live offers.
+        let offers = try await fetchOffers(city: "istanbul")
+        if let offer = offers.first(where: { $0.id == offerID }) {
+            return row.toBooking(offer: offer)
+        }
+
+        throw MarviAPIError.server(message: "Booking not found after accept")
     }
 
     func cancelOffer(_ offerID: UUID) async throws {

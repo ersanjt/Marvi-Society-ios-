@@ -119,6 +119,7 @@ struct ReauthView: View {
             }
         } message: {
             Text(appState.passwordResetMessage ?? appState.t(.passwordResetDefault))
+            + Text("\n\n") + Text(appState.t(.passwordResetInstructions))
         }
     }
 

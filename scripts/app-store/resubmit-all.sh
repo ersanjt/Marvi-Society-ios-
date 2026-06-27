@@ -30,9 +30,16 @@ bash "$REPO_ROOT/scripts/app-store/build-ios-release.sh" || FAIL=1
 
 bash "$REPO_ROOT/scripts/app-store/verify-e2e.sh" || FAIL=1
 
+IPA="$REPO_ROOT/apps/ios/.build/export/MarviSociety.ipa"
+if [[ -f "${HOME}/.appstoreconnect/private_keys/AuthKey_JT328F7C3Z.p8" ]] || [[ -n "${APP_STORE_CONNECT_API_KEY_PATH:-}" ]]; then
+  bash "$REPO_ROOT/scripts/ios/upload-testflight.sh" "$IPA" || FAIL=1
+else
+  echo "⚠ Skipping TestFlight upload — install API key (see docs/app-store/TESTFLIGHT_UPLOAD.md)"
+fi
+
 echo ""
 echo "── App Store Connect (manual) ──"
-echo "  1. Upload $REPO_ROOT/apps/ios/.build/export/MarviSociety.ipa"
+echo "  1. TestFlight: wait for processing of $IPA"
 echo "  2. App Review Information:"
 echo "       review@marvisociety.com / MarviReview2026!"
 echo "  3. Notes: docs/app-store/CONNECT_PASTE.txt"

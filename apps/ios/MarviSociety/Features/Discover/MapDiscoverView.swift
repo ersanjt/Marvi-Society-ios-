@@ -138,7 +138,7 @@ private struct MapHeader: View {
                 Button(action: onClose) {
                     Image(systemName: "chevron.left")
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(MarviColor.ink)
+                        .foregroundStyle(MarviColor.inkOnLight)
                         .frame(width: 40, height: 40)
                         .background(.white)
                         .clipShape(Circle())
@@ -151,7 +151,7 @@ private struct MapHeader: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.headline.weight(.bold))
-                    .foregroundStyle(MarviColor.ink)
+                    .foregroundStyle(MarviColor.inkOnLight)
                 Text(subtitle)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(MarviColor.muted)
@@ -242,13 +242,13 @@ private struct NearbyOffersStrip: View {
 
                                 Text(offer.title)
                                     .font(.subheadline.weight(.bold))
-                                    .foregroundStyle(MarviColor.ink)
+                                    .foregroundStyle(MarviColor.inkOnLight)
                                     .lineLimit(2)
 
                                 if let distance = distanceLabel(offer) {
                                     Label(distance, systemImage: "location")
                                         .font(.caption)
-                                        .foregroundStyle(MarviColor.muted)
+                                        .foregroundStyle(MarviColor.graphite)
                                 }
                             }
                             .frame(width: 180, alignment: .leading)
@@ -285,11 +285,11 @@ private struct MapOfferSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(offer.title)
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(MarviColor.ink)
+                        .foregroundStyle(MarviColor.inkOnLight)
                         .lineLimit(2)
                     Text("\(offer.venue) · \(offer.area)")
                         .font(.subheadline)
-                        .foregroundStyle(MarviColor.muted)
+                        .foregroundStyle(MarviColor.graphite)
                 }
                 Spacer()
                 if let distanceLabel {
@@ -312,8 +312,8 @@ private struct MapOfferSheet: View {
                         .padding(.vertical, 12)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(MarviColor.ink)
-                .background(.white.opacity(0.86))
+                .foregroundStyle(MarviColor.inkOnLight)
+                .background(Color.white.opacity(0.92))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 if !isAccepted {

@@ -12,6 +12,8 @@ apps/ios/Config/.apple-supabase-secret.jwt
 apps/ios/Config/APPLE_SUPABASE_PASTE.txt
 *.pem
 *.p12
+*.p8
+AuthKey_*.p8
 *.mobileprovision
 google-services.json
 GoogleService-Info.plist

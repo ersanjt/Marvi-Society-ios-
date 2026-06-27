@@ -22,6 +22,8 @@
     "verify:auth": "bash scripts/app-store/verify-auth-urls.sh",
     "resubmit:all": "bash scripts/app-store/resubmit-all.sh",
     "build:ios": "bash scripts/app-store/build-ios-release.sh",
+    "upload:ios": "bash scripts/ios/upload-testflight.sh",
+    "testflight": "npm run build:ios && npm run upload:ios",
     "sync": "bash scripts/release/full-sync.sh",
     "sync:github": "bash scripts/release/sync-github.sh",
     "rollback": "bash scripts/release/rollback.sh",

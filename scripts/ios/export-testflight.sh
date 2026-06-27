@@ -43,10 +43,8 @@ IPA="$(find "$EXPORT" -maxdepth 1 -name '*.ipa' | head -1)"
 if [[ -n "$IPA" ]]; then
   echo "✓ IPA ready: $IPA"
   echo ""
-  echo "Upload options:"
-  echo "  1. Xcode → Window → Organizer → Distribute App"
-  echo "  2. Transporter app (drag IPA)"
-  echo "  3. xcrun altool --upload-app -f \"$IPA\" -t ios --apiKey KEY --apiIssuer ISSUER"
+  echo "Upload: npm run upload:ios"
+  echo "   or: bash scripts/ios/upload-testflight.sh \"$IPA\""
 else
   echo "✓ Archive: $ARCHIVE (open in Organizer to upload)"
 fi
