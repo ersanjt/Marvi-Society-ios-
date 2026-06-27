@@ -9,12 +9,12 @@ enum AdminConsoleTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    func title(for language: AppLanguage) -> String {
         switch self {
-        case .queue: "Queue"
-        case .users: "Users"
-        case .map: "Map"
-        case .broadcast: "Broadcast"
+        case .queue: MarviL10n.t(.adminTabQueue, language: language)
+        case .users: MarviL10n.t(.adminTabUsers, language: language)
+        case .map: MarviL10n.t(.adminTabMap, language: language)
+        case .broadcast: MarviL10n.t(.adminTabBroadcast, language: language)
         }
     }
 
@@ -33,7 +33,7 @@ struct AdminUsersTab: View {
     @State private var searchText = ""
     @State private var selectedUser: AdminUserSummary?
     @State private var inviteEmail = ""
-    @State private var inviteCode = "TURGUT"
+    @State private var inviteCode = ""
     @State private var createEmail = ""
     @State private var createName = ""
     @State private var createCity = "istanbul"

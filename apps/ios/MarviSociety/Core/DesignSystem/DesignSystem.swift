@@ -722,6 +722,7 @@ struct MarviTextField: View {
 }
 
 struct StudioStatusGrid: View {
+    @EnvironmentObject private var appState: AppState
     let onCreate: () -> Void
     let onSwipe: () -> Void
 
@@ -729,12 +730,12 @@ struct StudioStatusGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 10) {
-            StudioGridTile(title: "Under\nReview", icon: "clock", tint: MarviColor.gold)
-            StudioGridTile(title: "Upcoming\nEvents", icon: "calendar", tint: MarviColor.blue)
-            StudioGridTile(title: "Open for\nswipe", icon: "hand.draw", tint: MarviColor.rose, action: onSwipe)
-            StudioGridTile(title: "Happening", icon: "sparkles", tint: MarviColor.emerald)
-            StudioGridTile(title: "Past", icon: "archivebox", tint: MarviColor.muted)
-            StudioGridTile(title: "Create", icon: "plus", tint: MarviColor.aubergine, action: onCreate)
+            StudioGridTile(title: appState.t(.studioUnderReview), icon: "clock", tint: MarviColor.gold)
+            StudioGridTile(title: appState.t(.studioUpcoming), icon: "calendar", tint: MarviColor.blue)
+            StudioGridTile(title: appState.t(.studioOpenSwipe), icon: "hand.draw", tint: MarviColor.rose, action: onSwipe)
+            StudioGridTile(title: appState.t(.studioHappening), icon: "sparkles", tint: MarviColor.emerald)
+            StudioGridTile(title: appState.t(.studioPast), icon: "archivebox", tint: MarviColor.muted)
+            StudioGridTile(title: appState.t(.studioCreate), icon: "plus", tint: MarviColor.aubergine, action: onCreate)
         }
     }
 }

@@ -357,8 +357,8 @@ private struct BookingCard: View {
 
                 if booking.stage == .invited {
                     SSDeclineAcceptRow(
-                        declineTitle: "Decline",
-                        acceptTitle: "Accept",
+                        declineTitle: appState.t(.decline),
+                        acceptTitle: appState.t(.accept),
                         onDecline: decline,
                         onAccept: accept
                     )
@@ -397,7 +397,7 @@ private struct BookingCard: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(.white)
-                        .background(MarviColor.panelElevated)
+                        .background(MarviGradient.brand)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }

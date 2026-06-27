@@ -7,9 +7,9 @@ private enum ProfileInsightTab: String, CaseIterable {
     func title(for language: AppLanguage) -> String {
         switch self {
         case .engagement:
-            language == .turkish ? "Etkileşim" : "Engagement"
+            MarviL10n.t(.profileEngagement, language: language)
         case .health:
-            language == .turkish ? "Profil Sağlığı" : "Profile Health"
+            MarviL10n.t(.profileHealth, language: language)
         }
     }
 }

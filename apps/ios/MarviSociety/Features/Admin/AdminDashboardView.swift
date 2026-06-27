@@ -12,7 +12,7 @@ struct AdminDashboardView: View {
             VStack(spacing: 0) {
                 Picker("Section", selection: $tab) {
                     ForEach(AdminConsoleTab.allCases) { section in
-                        Label(section.title, systemImage: section.icon).tag(section)
+                        Label(section.title(for: appState.preferredLanguage), systemImage: section.icon).tag(section)
                     }
                 }
                 .pickerStyle(.segmented)

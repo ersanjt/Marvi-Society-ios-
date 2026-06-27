@@ -98,6 +98,18 @@ def existing_submissions(token: str, app_id: str) -> list:
     return res.get("data", [])
 
 
+def cancel_submission(token, sub_id):
+    """Cancel an in-flight review submission so the version becomes editable."""
+    api(
+        "PATCH",
+        f"/v1/reviewSubmissions/{sub_id}",
+        token,
+        {"data": {"type": "reviewSubmissions", "id": sub_id, "attributes": {"canceled": True}}},
+    )
+    print(f"✓ Canceled in-flight submission {sub_id}")
+    time.sleep(6)
+
+
 def show_status(token: str):
     app = get_app(token)
     print(f"App: {app['attributes'].get('name')}  id={app['id']}  bundle={app['attributes'].get('bundleId')}")
@@ -126,13 +138,24 @@ def submit(token: str, build_version: str, wait: bool):
     app = get_app(token)
     app_id = app["id"]
 
+    # 0. If a previous submission is in-flight, cancel it so we can swap the build.
+    for s in existing_submissions(token, app_id):
+        state = s["attributes"].get("state")
+        if state in {"WAITING_FOR_REVIEW", "READY_FOR_REVIEW"}:
+            print(f"→ Existing submission state={state}; canceling to swap in build {build_version}")
+            cancel_submission(token, s["id"])
+
     # 1. Resolve an editable version
-    versions = get_versions(token, app_id)
     version = None
-    for v in versions:
-        if v["attributes"].get("appStoreState") in EDITABLE_STATES:
-            version = v
+    for _ in range(6):
+        versions = get_versions(token, app_id)
+        for v in versions:
+            if v["attributes"].get("appStoreState") in EDITABLE_STATES:
+                version = v
+                break
+        if version:
             break
+        time.sleep(10)
     if version is None:
         raise SystemExit(
             "No editable app store version found. States: "

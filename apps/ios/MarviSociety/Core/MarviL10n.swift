@@ -122,6 +122,9 @@ enum MarviL10n {
         case confirm, issueStrike, reasonLabel, issueStrikeTitle, strikeDefaultReason
         case operationsCommand, adminControl, adminControlSub
         case usersLabel, bookingsLabel, strikesLabel, reviewQueue, reviewQueueSub
+        case adminTabQueue, adminTabUsers, adminTabMap, adminTabBroadcast
+        case studioUnderReview, studioUpcoming, studioOpenSwipe, studioHappening, studioPast, studioCreate
+        case profileEngagement
         case geoBroadcast, geoBroadcastSub, sendToArea, locationUnavailable
         case inviteEmailQueued, noUsersLoaded, noUsersLoadedSub, searchUsersPrompt
         case approve, block, approvedMsg, accountBlocked
@@ -390,6 +393,10 @@ enum MarviL10n {
         .adminControlSub: "Review applications, campaigns, proof submissions, and operational risk.",
         .usersLabel: "Users", .bookingsLabel: "Bookings", .strikesLabel: "Strikes",
         .reviewQueue: "Review queue", .reviewQueueSub: "Approve or reject items before they go live.",
+        .adminTabQueue: "Queue", .adminTabUsers: "Users", .adminTabMap: "Map", .adminTabBroadcast: "Broadcast",
+        .studioUnderReview: "Under\nReview", .studioUpcoming: "Upcoming\nEvents", .studioOpenSwipe: "Open for\nswipe",
+        .studioHappening: "Happening", .studioPast: "Past", .studioCreate: "Create",
+        .profileEngagement: "Engagement",
         .geoBroadcast: "Geo broadcast",
         .geoBroadcastSub: "Send an in-app notification to approved users whose last shared location is within the radius.",
         .sendToArea: "Send to area", .locationUnavailable: "Location unavailable.",
@@ -691,6 +698,10 @@ enum MarviL10n {
         .adminControlSub: "Başvuruları, kampanyaları, kanıt gönderimlerini ve operasyonel riski incele.",
         .usersLabel: "Kullanıcılar", .bookingsLabel: "Rezervasyonlar", .strikesLabel: "Uyarılar",
         .reviewQueue: "İnceleme kuyruğu", .reviewQueueSub: "Yayınlanmadan önce öğeleri onayla veya reddet.",
+        .adminTabQueue: "Kuyruk", .adminTabUsers: "Kullanıcılar", .adminTabMap: "Harita", .adminTabBroadcast: "Yayın",
+        .studioUnderReview: "İncelemede", .studioUpcoming: "Yaklaşan\nEtkinlikler", .studioOpenSwipe: "Swipe\naçık",
+        .studioHappening: "Devam eden", .studioPast: "Geçmiş", .studioCreate: "Oluştur",
+        .profileEngagement: "Etkileşim",
         .geoBroadcast: "Konum yayını",
         .geoBroadcastSub: "Son konum paylaşımı yarıçap içinde olan onaylı kullanıcılara uygulama içi bildirim gönder.",
         .sendToArea: "Bölgeye gönder", .locationUnavailable: "Konum kullanılamıyor.",
