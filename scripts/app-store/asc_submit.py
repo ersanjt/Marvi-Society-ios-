@@ -138,12 +138,21 @@ def submit(token: str, build_version: str, wait: bool):
     app = get_app(token)
     app_id = app["id"]
 
-    # 0. If a previous submission is in-flight, cancel it so we can swap the build.
+    # 0. Cancel any in-flight or unresolved submission so we can resubmit cleanly.
     for s in existing_submissions(token, app_id):
         state = s["attributes"].get("state")
-        if state in {"WAITING_FOR_REVIEW", "READY_FOR_REVIEW"}:
-            print(f"→ Existing submission state={state}; canceling to swap in build {build_version}")
+        if state in {"WAITING_FOR_REVIEW", "READY_FOR_REVIEW", "UNRESOLVED_ISSUES"}:
+            print(f"→ Existing submission state={state}; canceling to resubmit build {build_version}")
             cancel_submission(token, s["id"])
+            # Wait for cancellation to release the version.
+            for _ in range(10):
+                still = [
+                    x for x in existing_submissions(token, app_id)
+                    if x["attributes"].get("state") in {"CANCELING", "WAITING_FOR_REVIEW", "READY_FOR_REVIEW", "UNRESOLVED_ISSUES"}
+                ]
+                if not still:
+                    break
+                time.sleep(12)
 
     # 1. Resolve an editable version
     version = None
@@ -197,11 +206,11 @@ def submit(token: str, build_version: str, wait: bool):
     )
     print("✓ Build attached to version")
 
-    # 4. Reuse or create a review submission
-    subs = existing_submissions(token, app_id)
+    # 4. Reuse a fresh READY_FOR_REVIEW submission, else create a new one.
+    # (UNRESOLVED_ISSUES/rejected submissions were canceled in step 0.)
     sub_id = None
-    for s in subs:
-        if s["attributes"].get("state") in {"READY_FOR_REVIEW", "UNRESOLVED_ISSUES"}:
+    for s in existing_submissions(token, app_id):
+        if s["attributes"].get("state") == "READY_FOR_REVIEW":
             sub_id = s["id"]
             print(f"→ Reusing open review submission {sub_id}")
             break
