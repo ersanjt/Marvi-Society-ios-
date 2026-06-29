@@ -18,6 +18,11 @@
   },
   "syncLog": [
     {
+      "at": "2026-06-29T11:55:15Z",
+      "status": "ok",
+      "message": "pushed d22a4ee to origin/main"
+    },
+    {
       "at": "2026-06-29T11:55:11Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
