@@ -18,6 +18,11 @@
   },
   "syncLog": [
     {
+      "at": "2026-06-29T11:55:11Z",
+      "status": "partial",
+      "message": "migrations combined; CLI not linked"
+    },
+    {
       "at": "2026-06-11T20:31:43Z",
       "status": "ok",
       "message": "pushed 1242714 to origin/main"

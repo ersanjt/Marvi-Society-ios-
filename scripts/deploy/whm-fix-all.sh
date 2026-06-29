@@ -12,15 +12,8 @@ log() { echo "[marvi] $*"; }
 # ── 1. Restart Node app ─────────────────────────────────────────────
 [[ -d "$MARVI_APP_DIR" ]] || { echo "Missing $MARVI_APP_DIR" >&2; exit 1; }
 
-cat > "$MARVI_APP_DIR/start.sh" <<'EOF'
-#!/bin/bash
-set -euo pipefail
-cd "$(dirname "$0")"
-export NODE_ENV=production
-export PORT="${PORT:-3000}"
-export HOSTNAME="0.0.0.0"
-exec node apps/web/server.js
-EOF
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cp "$SCRIPT_DIR/marvi-pm2-start.sh" "$MARVI_APP_DIR/start.sh"
 chmod +x "$MARVI_APP_DIR/start.sh"
 
 if [[ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then

@@ -13,16 +13,8 @@ if [[ ! -d "$MARVI_APP_DIR" ]]; then
   exit 1
 fi
 
-# HOSTNAME on Linux is often the machine name; Next.js binds to it instead of 0.0.0.0
-cat > "$MARVI_APP_DIR/start.sh" <<'EOF'
-#!/bin/bash
-set -euo pipefail
-cd "$(dirname "$0")"
-export NODE_ENV=production
-export PORT="${PORT:-3000}"
-export HOSTNAME="0.0.0.0"
-exec node apps/web/server.js
-EOF
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cp "$SCRIPT_DIR/marvi-pm2-start.sh" "$MARVI_APP_DIR/start.sh"
 chmod +x "$MARVI_APP_DIR/start.sh"
 
 log "Restarting PM2 on port ${MARVI_PORT}…"

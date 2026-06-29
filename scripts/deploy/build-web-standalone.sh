@@ -37,16 +37,8 @@ NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
 EOF
 
-# PM2 / cPanel start helper
-cat > "$STAGE/start.sh" <<'EOF'
-#!/bin/bash
-set -euo pipefail
-cd "$(dirname "$0")"
-export NODE_ENV=production
-export PORT="${PORT:-3000}"
-export HOSTNAME="0.0.0.0"
-exec node apps/web/server.js
-EOF
+# PM2 / cPanel start helper (loads apps/web/.env.production at runtime)
+cp "$(dirname "$0")/marvi-pm2-start.sh" "$STAGE/start.sh"
 chmod +x "$STAGE/start.sh"
 
 mkdir -p "$OUT"
