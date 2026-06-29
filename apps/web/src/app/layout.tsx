@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SITE } from "@/config/site";
 import { getLocale } from "@/lib/i18n/locale";
+import { RecoveryRedirectGuard } from "@/components/auth/RecoveryRedirectGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -42,7 +43,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale}>
-      <body>{children}</body>
+      <body>
+        <RecoveryRedirectGuard />
+        {children}
+      </body>
     </html>
   );
 }
