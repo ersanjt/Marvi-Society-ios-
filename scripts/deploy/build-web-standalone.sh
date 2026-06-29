@@ -38,7 +38,7 @@ SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
 EOF
 
 # PM2 / cPanel start helper (loads apps/web/.env.production at runtime)
-cp "$(dirname "$0")/marvi-pm2-start.sh" "$STAGE/start.sh"
+cp "$ROOT/scripts/deploy/marvi-pm2-start.sh" "$STAGE/start.sh"
 chmod +x "$STAGE/start.sh"
 
 mkdir -p "$OUT"
