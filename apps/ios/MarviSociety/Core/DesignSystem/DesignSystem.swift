@@ -54,19 +54,13 @@ struct BrandMark: View {
     var size: CGFloat = 46
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(MarviGradient.brand)
-
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(.white.opacity(0.22), lineWidth: 1)
-
-            Text("M")
-                .font(.system(size: size * 0.48, weight: .bold, design: .serif))
-                .foregroundStyle(.white)
-        }
-        .frame(width: size, height: size)
-        .accessibilityLabel("Marvi Society")
+        Image("BrandMark")
+            .resizable()
+            .interpolation(.high)
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous))
+            .accessibilityLabel("Marvi Society")
     }
 }
 

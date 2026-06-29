@@ -1,26 +1,26 @@
-import { MARVI_BRAND } from "@/config/brand";
+import Image from "next/image";
 
 type BrandMarkProps = {
   size?: number;
   className?: string;
 };
 
-/** Matches iOS `BrandMark` — gradient tile + serif M */
+/** Matches iOS `BrandMark` — uses the app-icon artwork */
 export function BrandMark({ size = 40, className = "" }: BrandMarkProps) {
   return (
-    <div
-      className={`flex shrink-0 items-center justify-center bg-gradient-to-r from-rose to-aubergine font-serif font-bold text-white shadow-lg shadow-rose/25 ring-1 ring-inset ring-white/20 ${className}`}
+    <Image
+      src="/brand-mark.png"
+      alt="Marvi Society"
+      width={size}
+      height={size}
+      priority
+      className={`shrink-0 object-cover ${className}`}
       style={{
         width: size,
         height: size,
-        borderRadius: MARVI_BRAND.radius.mark,
-        fontSize: Math.round(size * 0.48),
+        borderRadius: Math.round(size * 0.2237),
       }}
-      aria-label="Marvi Society"
-      role="img"
-    >
-      M
-    </div>
+    />
   );
 }
 
