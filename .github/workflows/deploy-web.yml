@@ -31,12 +31,10 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
-        working-directory: apps/web
-        run: npm ci
+        run: npm install --workspace=@marvi-society/web --include-workspace-root
 
       - name: Build web app
-        working-directory: apps/web
-        run: npm run build
+        run: npm run web:build
 
       - name: Deploy to Vercel
         if: env.VERCEL_TOKEN != ''
