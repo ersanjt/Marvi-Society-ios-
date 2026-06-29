@@ -65,6 +65,77 @@ export const dictionaries = {
       title: "Frequently asked questions",
       subtitle: "Membership, collaborations, and venue partnerships.",
     },
+    forms: {
+      contact: {
+        title: "Contact support",
+        subtitle: "Account help, campaigns, safety reports, and partnership inquiries.",
+        name: "Name",
+        email: "Email",
+        subject: "Subject",
+        message: "Message",
+        subjectGeneral: "General support",
+        subjectAccount: "Account help",
+        subjectCampaign: "Campaign / booking",
+        subjectSafety: "Safety report",
+        subjectPartnership: "Partnership",
+        submit: "Send message",
+        sending: "Sending…",
+        sent: "Message sent.",
+        failed: "Failed to send message.",
+        orEmail: "Or email us directly at",
+        safetyTitle: "Safety & moderation",
+        safetyBody: "Report abusive behavior or urgent trust issues.",
+        safetyCta: "Report an issue",
+        configError:
+          "The venue portal is temporarily unavailable because Supabase is not configured in production. Please contact support while we restore access.",
+      },
+      demo: {
+        eyebrow: "Demo",
+        title: "See Marvi Society in action",
+        subtitle: "For brands and venues. Creators should apply via the iOS app.",
+        creatorNoticePre: "Are you a creator? This form is for brand partners.",
+        creatorNoticeLink: "Download the iOS app",
+        creatorNoticePost: "to apply for membership.",
+        firstName: "First name",
+        lastName: "Last name",
+        company: "Company / venue",
+        email: "Email",
+        website: "Website",
+        message: "Message",
+        submit: "Request demo",
+        sending: "Sending…",
+        submitted: "Demo request submitted. We'll contact you soon.",
+        failed: "Failed",
+      },
+      deleteAccount: {
+        title: "Manage your account",
+        subtitle: "Temporarily pause your membership or permanently delete your Marvi Society account.",
+        pauseTitle: "Temporarily close account",
+        pauseBody:
+          "Pauses your membership, stops push notifications, and cancels pending invitations. Your profile and history stay saved — reactivate anytime from Profile → Reactivate account in the iOS app.",
+        pauseHelp: "If our team paused your account for policy reasons, contact",
+        permanentEyebrow: "Permanent",
+        permanentTitle: "Delete account forever",
+        permanentSubtitle: "Verify your registered email. This removes all data and cannot be undone.",
+        emailLabel: "Registered email",
+        emailHint:
+          "We will email a one-time verification code. Apple requires that you can delete your account and associated data.",
+        sendCode: "Send verification code",
+        sending: "Sending…",
+        codeLabel: "6-digit verification code",
+        codeHint:
+          "Enter the code from your email. Deletion is permanent and removes bookings, profile data, and proof history.",
+        deleteBtn: "Permanently delete account",
+        deleting: "Deleting…",
+        useDifferentEmail: "Use a different email",
+        needHelp: "Need help?",
+        doneNote: "You may close this page. The iOS app will require a new sign-in.",
+        codeSentDefault: "Verification code sent.",
+        failedSend: "Failed to send code",
+        failedDelete: "Deletion failed",
+        deletedDefault: "Account deleted.",
+      },
+    },
     footer: {
       product: "Product",
       legal: "Legal",
@@ -145,6 +216,77 @@ export const dictionaries = {
       title: "Sıkça sorulan sorular",
       subtitle: "Üyelik, iş birlikleri ve mekan ortaklıkları.",
     },
+    forms: {
+      contact: {
+        title: "Destek ile iletişim",
+        subtitle: "Hesap yardımı, kampanyalar, güvenlik bildirimleri ve ortaklık talepleri.",
+        name: "Ad Soyad",
+        email: "E-posta",
+        subject: "Konu",
+        message: "Mesaj",
+        subjectGeneral: "Genel destek",
+        subjectAccount: "Hesap yardımı",
+        subjectCampaign: "Kampanya / rezervasyon",
+        subjectSafety: "Güvenlik bildirimi",
+        subjectPartnership: "Ortaklık",
+        submit: "Mesaj gönder",
+        sending: "Gönderiliyor…",
+        sent: "Mesaj gönderildi.",
+        failed: "Mesaj gönderilemedi.",
+        orEmail: "Veya doğrudan e-posta gönderin:",
+        safetyTitle: "Güvenlik ve moderasyon",
+        safetyBody: "Taciz edici davranışları veya acil güven sorunlarını bildirin.",
+        safetyCta: "Sorun bildir",
+        configError:
+          "Supabase production ortamında yapılandırılmadığı için mekan portalı geçici olarak kullanılamıyor. Erişimi geri yüklerken lütfen destek ile iletişime geçin.",
+      },
+      demo: {
+        eyebrow: "Demo",
+        title: "Marvi Society'yi iş başında görün",
+        subtitle: "Markalar ve mekanlar için. İçerik üreticileri iOS uygulamasından başvurmalıdır.",
+        creatorNoticePre: "İçerik üreticisi misiniz? Bu form marka ortakları içindir.",
+        creatorNoticeLink: "iOS uygulamasını indirin",
+        creatorNoticePost: "ve üyelik için başvurun.",
+        firstName: "Ad",
+        lastName: "Soyad",
+        company: "Şirket / mekan",
+        email: "E-posta",
+        website: "Web sitesi",
+        message: "Mesaj",
+        submit: "Demo talep et",
+        sending: "Gönderiliyor…",
+        submitted: "Demo talebiniz alındı. Kısa süre içinde sizinle iletişime geçeceğiz.",
+        failed: "Başarısız",
+      },
+      deleteAccount: {
+        title: "Hesabınızı yönetin",
+        subtitle: "Üyeliğinizi geçici olarak duraklatın veya Marvi Society hesabınızı kalıcı olarak silin.",
+        pauseTitle: "Hesabı geçici olarak kapat",
+        pauseBody:
+          "Üyeliğinizi duraklatır, bildirimleri durdurur ve bekleyen davetleri iptal eder. Profiliniz ve geçmişiniz saklı kalır — iOS uygulamasında Profil → Hesabı yeniden etkinleştir bölümünden istediğiniz zaman geri açabilirsiniz.",
+        pauseHelp: "Ekibimiz hesabınızı politika nedeniyle duraklattıysa şu adresle iletişime geçin:",
+        permanentEyebrow: "Kalıcı",
+        permanentTitle: "Hesabı kalıcı olarak sil",
+        permanentSubtitle: "Kayıtlı e-postanızı doğrulayın. Bu işlem tüm verileri siler ve geri alınamaz.",
+        emailLabel: "Kayıtlı e-posta",
+        emailHint:
+          "Tek kullanımlık bir doğrulama kodu e-posta ile göndereceğiz. Apple, hesabınızı ve ilişkili verileri silebilmenizi gerektirir.",
+        sendCode: "Doğrulama kodu gönder",
+        sending: "Gönderiliyor…",
+        codeLabel: "6 haneli doğrulama kodu",
+        codeHint:
+          "E-postanızdaki kodu girin. Silme kalıcıdır; rezervasyonları, profil verilerini ve kanıt geçmişini kaldırır.",
+        deleteBtn: "Hesabı kalıcı olarak sil",
+        deleting: "Siliniyor…",
+        useDifferentEmail: "Farklı bir e-posta kullan",
+        needHelp: "Yardım mı lazım?",
+        doneNote: "Bu sayfayı kapatabilirsiniz. iOS uygulaması yeniden giriş isteyecektir.",
+        codeSentDefault: "Doğrulama kodu gönderildi.",
+        failedSend: "Kod gönderilemedi",
+        failedDelete: "Silme başarısız",
+        deletedDefault: "Hesap silindi.",
+      },
+    },
     footer: {
       product: "Ürün",
       legal: "Yasal",
@@ -162,6 +304,12 @@ export const dictionaries = {
 } as const;
 
 export type Locale = keyof typeof dictionaries;
+export type Dictionary = (typeof dictionaries)["en"];
+
+/** Value-widened (string) form dictionaries so EN and TR literal shapes are interchangeable as props. */
+export type ContactFormDict = { [K in keyof Dictionary["forms"]["contact"]]: string };
+export type DemoFormDict = { [K in keyof Dictionary["forms"]["demo"]]: string };
+export type DeleteAccountFormDict = { [K in keyof Dictionary["forms"]["deleteAccount"]]: string };
 
 export function getDictionary(locale: Locale) {
   return dictionaries[locale] ?? dictionaries.en;

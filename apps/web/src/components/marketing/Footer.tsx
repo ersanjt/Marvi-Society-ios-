@@ -9,8 +9,8 @@ export function Footer({ locale }: { locale: Locale }) {
 
   return (
     <footer className="border-t border-border bg-panel">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">
-        <div className="md:col-span-2">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-12 sm:gap-10 md:grid-cols-4 md:px-6 md:py-14">
+        <div className="col-span-2 md:col-span-2">
           <div className="flex items-center gap-3">
             <BrandMark size={44} />
             <p className="font-serif text-2xl font-bold text-ink">{SITE.name}</p>

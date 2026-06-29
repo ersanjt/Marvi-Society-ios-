@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { DemoFormDict } from "@/lib/i18n/dictionaries";
 
-export function DemoForm() {
+export function DemoForm({ t }: { t: DemoFormDict }) {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -25,11 +26,11 @@ export function DemoForm() {
     const data = await res.json();
     if (!res.ok) {
       setStatus("error");
-      setMessage(data.error ?? "Failed");
+      setMessage(data.error ?? t.failed);
       return;
     }
     setStatus("done");
-    setMessage(data.message ?? "Demo request submitted. We'll contact you soon.");
+    setMessage(data.message ?? t.submitted);
     e.currentTarget.reset();
   }
 
@@ -37,32 +38,32 @@ export function DemoForm() {
     <form className="marvi-card mt-6 space-y-4" onSubmit={onSubmit}>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block text-sm font-semibold">
-          First name
-          <input name="firstName" required className="mt-1 marvi-input" />
+          {t.firstName}
+          <input name="firstName" required className="mt-1 marvi-input" autoComplete="given-name" />
         </label>
         <label className="block text-sm font-semibold">
-          Last name
-          <input name="lastName" required className="mt-1 marvi-input" />
+          {t.lastName}
+          <input name="lastName" required className="mt-1 marvi-input" autoComplete="family-name" />
         </label>
       </div>
       <label className="block text-sm font-semibold">
-        Company / venue
-        <input name="company" required className="mt-1 marvi-input" />
+        {t.company}
+        <input name="company" required className="mt-1 marvi-input" autoComplete="organization" />
       </label>
       <label className="block text-sm font-semibold">
-        Email
-        <input type="email" name="email" required className="mt-1 marvi-input" />
+        {t.email}
+        <input type="email" name="email" required className="mt-1 marvi-input" autoComplete="email" />
       </label>
       <label className="block text-sm font-semibold">
-        Website
-        <input type="url" name="website" className="mt-1 marvi-input" />
+        {t.website}
+        <input type="url" name="website" className="mt-1 marvi-input" inputMode="url" />
       </label>
       <label className="block text-sm font-semibold">
-        Message
+        {t.message}
         <textarea name="message" rows={4} className="mt-1 marvi-input" />
       </label>
       <button type="submit" className="marvi-btn-primary w-full" disabled={status === "loading"}>
-        {status === "loading" ? "Sending…" : "Request demo"}
+        {status === "loading" ? t.sending : t.submit}
       </button>
       {message ? (
         <p className={`text-sm ${status === "error" ? "text-tomato" : "text-emerald"}`}>{message}</p>

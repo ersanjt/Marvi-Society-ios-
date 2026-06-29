@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import type { DeleteAccountFormDict } from "@/lib/i18n/dictionaries";
 
 type Step = "email" | "code" | "done";
 
-export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
+export function DeleteAccountForm({ supportEmail, t }: { supportEmail: string; t: DeleteAccountFormDict }) {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -26,11 +27,11 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
     setStatus("idle");
     if (!res.ok) {
       setStatus("error");
-      setMessage(data.error ?? "Failed to send code");
+      setMessage(data.error ?? t.failedSend);
       return;
     }
 
-    setMessage(data.message ?? "Verification code sent.");
+    setMessage(data.message ?? t.codeSentDefault);
     setStep("code");
   }
 
@@ -49,11 +50,11 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
     setStatus("idle");
     if (!res.ok) {
       setStatus("error");
-      setMessage(data.error ?? "Deletion failed");
+      setMessage(data.error ?? t.failedDelete);
       return;
     }
 
-    setMessage(data.message ?? "Account deleted.");
+    setMessage(data.message ?? t.deletedDefault);
     setStep("done");
   }
 
@@ -61,7 +62,7 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
     return (
       <div className="marvi-card mt-10 space-y-4 text-center">
         <p className="text-sm font-semibold text-emerald">{message}</p>
-        <p className="text-xs text-muted">You may close this page. The iOS app will require a new sign-in.</p>
+        <p className="text-xs text-muted">{t.doneNote}</p>
       </div>
     );
   }
@@ -71,7 +72,7 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
       <form className="marvi-card mt-10 space-y-4" onSubmit={confirmDeletion}>
         <p className="text-sm text-muted">{message}</p>
         <label className="block text-sm font-semibold">
-          6-digit verification code
+          {t.codeLabel}
           <input
             type="text"
             inputMode="numeric"
@@ -84,15 +85,13 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
             placeholder="000000"
           />
         </label>
-        <p className="text-xs text-muted">
-          Enter the code from your email. Deletion is permanent and removes bookings, profile data, and proof history.
-        </p>
+        <p className="text-xs text-muted">{t.codeHint}</p>
         <button type="submit" className="marvi-btn-primary w-full" disabled={status === "loading"}>
-          {status === "loading" ? "Deleting…" : "Permanently delete account"}
+          {status === "loading" ? t.deleting : t.deleteBtn}
         </button>
         {status === "error" && message ? <p className="text-sm text-tomato">{message}</p> : null}
         <button type="button" className="w-full text-xs text-muted underline" onClick={() => setStep("email")}>
-          Use a different email
+          {t.useDifferentEmail}
         </button>
       </form>
     );
@@ -101,7 +100,7 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
   return (
     <form className="marvi-card mt-10 space-y-4" onSubmit={requestCode}>
       <label className="block text-sm font-semibold">
-        Registered email
+        {t.emailLabel}
         <input
           type="email"
           name="email"
@@ -110,17 +109,16 @@ export function DeleteAccountForm({ supportEmail }: { supportEmail: string }) {
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 marvi-input"
           placeholder="you@example.com"
+          autoComplete="email"
         />
       </label>
-      <p className="text-xs text-muted">
-        We will email a one-time verification code. Apple requires that you can delete your account and associated data.
-      </p>
+      <p className="text-xs text-muted">{t.emailHint}</p>
       <button type="submit" className="marvi-btn-primary w-full" disabled={status === "loading"}>
-        {status === "loading" ? "Sending…" : "Send verification code"}
+        {status === "loading" ? t.sending : t.sendCode}
       </button>
       {message && status === "error" ? <p className="text-sm text-tomato">{message}</p> : null}
       <p className="text-center text-xs text-muted">
-        Need help?{" "}
+        {t.needHelp}{" "}
         <a href={`mailto:${supportEmail}`} className="marvi-link">
           {supportEmail}
         </a>
