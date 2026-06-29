@@ -24,7 +24,7 @@
     "build:ios": "bash scripts/app-store/build-ios-release.sh",
     "upload:ios": "bash scripts/ios/upload-testflight.sh",
     "testflight": "npm run build:ios && npm run upload:ios",
-    "submit:review": "python3 scripts/app-store/asc_submit.py --build 13 --wait",
+    "submit:review": "python3 scripts/app-store/asc_submit.py --version 1.1 --build 1 --wait",
     "submit:status": "python3 scripts/app-store/asc_submit.py --status",
     "sync": "bash scripts/release/full-sync.sh",
     "sync:github": "bash scripts/release/sync-github.sh",

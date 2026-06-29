@@ -78,15 +78,47 @@ def get_versions(token: str, app_id: str) -> list:
     return res.get("data", [])
 
 
-def find_build(token, app_id, build_version):
+def find_build(token, app_id, build_version, marketing_version):
     res = api(
         "GET",
         f"/v1/builds?filter[app]={app_id}&filter[version]={build_version}"
-        f"&filter[preReleaseVersion.version]={MARKETING_VERSION}&limit=5",
+        f"&filter[preReleaseVersion.version]={marketing_version}&limit=5",
         token,
     )
     data = res.get("data", [])
     return data[0] if data else None
+
+
+def ensure_editable_version(token, app_id, marketing_version):
+    """Return an editable appStoreVersion for the given marketing version, creating it if needed."""
+    versions = get_versions(token, app_id)
+    for v in versions:
+        if v["attributes"].get("versionString") == marketing_version:
+            state = v["attributes"].get("appStoreState")
+            if state in EDITABLE_STATES:
+                return v
+            if state in {"READY_FOR_SALE", "PENDING_DEVELOPER_RELEASE", "PROCESSING_FOR_APP_STORE"}:
+                raise SystemExit(
+                    f"Version {marketing_version} is already {state}. Bump the marketing version."
+                )
+            return v
+    # Create a new App Store version (e.g. 1.1 after 1.0 shipped).
+    res = api(
+        "POST",
+        "/v1/appStoreVersions",
+        token,
+        {
+            "data": {
+                "type": "appStoreVersions",
+                "attributes": {"platform": "IOS", "versionString": marketing_version},
+                "relationships": {"app": {"data": {"type": "apps", "id": app_id}}},
+            }
+        },
+    )
+    created = res["data"]
+    print(f"✓ Created App Store version {marketing_version} id={created['id']}")
+    time.sleep(3)
+    return created
 
 
 def existing_submissions(token: str, app_id: str) -> list:
@@ -134,7 +166,7 @@ def show_status(token: str):
         print(f"  - state={s['attributes'].get('state')}  id={s['id']}")
 
 
-def submit(token: str, build_version: str, wait: bool):
+def submit(token: str, build_version: str, wait: bool, marketing_version: str):
     app = get_app(token)
     app_id = app["id"]
 
@@ -154,39 +186,24 @@ def submit(token: str, build_version: str, wait: bool):
                     break
                 time.sleep(12)
 
-    # 1. Resolve an editable version
-    version = None
-    for _ in range(6):
-        versions = get_versions(token, app_id)
-        for v in versions:
-            if v["attributes"].get("appStoreState") in EDITABLE_STATES:
-                version = v
-                break
-        if version:
-            break
-        time.sleep(10)
-    if version is None:
-        raise SystemExit(
-            "No editable app store version found. States: "
-            + ", ".join(v["attributes"].get("appStoreState", "?") for v in versions)
-            + "\nOpen App Store Connect and make sure version 1.0 is in 'Prepare for Submission'."
-        )
+    # 1. Resolve or create an editable version for this marketing version.
+    version = ensure_editable_version(token, app_id, marketing_version)
     version_id = version["id"]
-    print(f"→ Editable version {version['attributes'].get('versionString')} (state={version['attributes'].get('appStoreState')}) id={version_id}")
+    print(f"→ Version {marketing_version} (state={version['attributes'].get('appStoreState')}) id={version_id}")
 
     # 2. Find + wait for the build
     deadline = time.time() + (30 * 60 if wait else 0)
     build = None
     while True:
-        build = find_build(token, app_id, build_version)
+        build = find_build(token, app_id, build_version, marketing_version)
         state = build["attributes"].get("processingState") if build else None
         if build and state == "VALID":
-            print(f"✓ Build 1.0({build_version}) is processed (VALID) id={build['id']}")
+            print(f"✓ Build {marketing_version}({build_version}) is processed (VALID) id={build['id']}")
             break
-        print(f"… build 1.0({build_version}) state={state or 'NOT FOUND'} (waiting={wait})")
+        print(f"… build {marketing_version}({build_version}) state={state or 'NOT FOUND'} (waiting={wait})")
         if not wait or time.time() > deadline:
             if not build:
-                raise SystemExit(f"Build 1.0({build_version}) not found yet. Re-run with --wait once it appears.")
+                raise SystemExit(f"Build {marketing_version}({build_version}) not found yet. Re-run with --wait once it appears.")
             if state != "VALID":
                 raise SystemExit(f"Build not ready (state={state}). Re-run with --wait.")
         time.sleep(30)
@@ -266,7 +283,8 @@ def submit(token: str, build_version: str, wait: bool):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--status", action="store_true")
-    p.add_argument("--build", default="13")
+    p.add_argument("--version", default=os.environ.get("ASC_MARKETING_VERSION", "1.1"))
+    p.add_argument("--build", default="1")
     p.add_argument("--wait", action="store_true")
     args = p.parse_args()
 
@@ -277,7 +295,7 @@ def main():
     if args.status:
         show_status(token)
     else:
-        submit(token, args.build, args.wait)
+        submit(token, args.build, args.wait, args.version)
 
 
 if __name__ == "__main__":

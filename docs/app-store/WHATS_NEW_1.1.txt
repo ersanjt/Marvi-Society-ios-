@@ -1,0 +1,15 @@
+What's New in 1.1 (paste into App Store Connect → Version 1.1 → What's New):
+
+EN:
+• Sign in with Apple and Google — faster onboarding for creators and venues.
+• Improved Turkish and English localization across My Events, Studio, and Admin.
+• Clearer error messages when email confirmation is required after sign-up.
+• UI polish: better button contrast and profile engagement insights.
+
+TR:
+• Apple ve Google ile giriş — creator ve mekanlar için daha hızlı kayıt.
+• Etkinliklerim, Studio ve Admin ekranlarında geliştirilmiş TR/EN çeviriler.
+• Kayıt sonrası e-posta onayı için daha net mesajlar.
+• Arayüz iyileştirmeleri: daha iyi buton kontrastı ve profil etkileşim görünümü.
+
+EOF
