@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-06-29T20:17:03Z
+-- Generated: 2026-06-29T21:04:39Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
