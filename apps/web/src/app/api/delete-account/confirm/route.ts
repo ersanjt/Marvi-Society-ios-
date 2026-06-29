@@ -1,9 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isProduction, isSupabaseConfigured } from "@/config/env";
+import { checkRateLimit } from "@/lib/security/rateLimit";
 
 /** Step 2: verify OTP, purge app data, delete auth user. */
 export async function POST(request: Request) {
+  const rate = checkRateLimit(request, "delete-account-confirm", { limit: 6, windowMs: 60 * 60 * 1000 });
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: "Too many verification attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfter) } }
+    );
+  }
+
   const { email, code } = await request.json();
   const normalizedEmail = String(email ?? "").trim().toLowerCase();
   const token = String(code ?? "").trim();
@@ -15,7 +25,13 @@ export async function POST(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey || url.includes("YOUR_PROJECT")) {
+  if (!isSupabaseConfigured() || !url || !anonKey || url.includes("YOUR_PROJECT")) {
+    if (isProduction()) {
+      return NextResponse.json(
+        { error: "Account deletion is temporarily unavailable. Email support@marvisociety.com." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "Server not configured" }, { status: 503 });
   }
 

@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 private enum ProfileInsightTab: String, CaseIterable {
@@ -28,6 +29,8 @@ struct ProfileView: View {
     @State private var nichesText = ""
     @State private var languagesText = ""
     @State private var selectedInsightTab: ProfileInsightTab = .engagement
+    @State private var avatarPickerItem: PhotosPickerItem?
+    @State private var coverPickerItem: PhotosPickerItem?
 
     private var managementTitle: String {
         switch appState.selectedRole {
@@ -192,6 +195,30 @@ struct ProfileView: View {
                                     text: $languagesText,
                                     autocapitalization: .words
                                 )
+
+                                HStack(spacing: 10) {
+                                    PhotosPicker(selection: $avatarPickerItem, matching: .images) {
+                                        Label(appState.t(.changeAvatar), systemImage: "person.crop.circle")
+                                            .font(.caption.weight(.bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(MarviColor.rose)
+                                    .background(MarviColor.rose.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                                    PhotosPicker(selection: $coverPickerItem, matching: .images) {
+                                        Label(appState.t(.changeCover), systemImage: "photo")
+                                            .font(.caption.weight(.bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(MarviColor.rose)
+                                    .background(MarviColor.rose.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                }
 
                                 if let instagramURL = socialURL(platform: "instagram", handle: appState.profile.handle) {
                                     Link(destination: instagramURL) {
@@ -483,6 +510,22 @@ struct ProfileView: View {
                 nichesText = appState.profile.niches.joined(separator: ", ")
                 languagesText = appState.profile.languages.joined(separator: ", ")
             }
+            .onChange(of: avatarPickerItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self) {
+                        _ = await appState.uploadProfilePhoto(data: data, kind: .avatar)
+                    }
+                }
+            }
+            .onChange(of: coverPickerItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self) {
+                        _ = await appState.uploadProfilePhoto(data: data, kind: .cover)
+                    }
+                }
+            }
             .alert(appState.t(.pauseConfirmTitle), isPresented: $isShowingPauseConfirmation) {
                 Button(appState.t(.cancel), role: .cancel) {}
                 Button(appState.t(.closeAccountBtn), role: .destructive) {
@@ -573,10 +616,24 @@ private struct PremiumProfileHeader: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .bottom) {
-                MarviGradient.brandVertical
-                    .frame(height: 120)
+                Group {
+                    if let coverURL = URL(string: profile.coverURL), !profile.coverURL.isEmpty {
+                        AsyncImage(url: coverURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            default:
+                                MarviGradient.brandVertical
+                            }
+                        }
+                    } else {
+                        MarviGradient.brandVertical
+                    }
+                }
+                .frame(height: 120)
+                .clipped()
 
-                SSAvatarRing(initials: initials, size: 96)
+                profileAvatar
                     .offset(y: 48)
             }
 
@@ -629,6 +686,27 @@ private struct PremiumProfileHeader: View {
         case .approved: "checkmark.seal"
         case .underReview: "hourglass"
         case .paused: "pause.circle"
+        }
+    }
+
+    @ViewBuilder
+    private var profileAvatar: some View {
+        if let avatarURL = URL(string: profile.avatarURL), !profile.avatarURL.isEmpty {
+            AsyncImage(url: avatarURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 96, height: 96)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(MarviColor.panel, lineWidth: 3))
+                default:
+                    SSAvatarRing(initials: initials, size: 96)
+                }
+            }
+        } else {
+            SSAvatarRing(initials: initials, size: 96)
         }
     }
 }

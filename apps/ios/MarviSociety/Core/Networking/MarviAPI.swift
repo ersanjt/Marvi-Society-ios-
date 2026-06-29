@@ -1,5 +1,10 @@
 import Foundation
 
+enum ProfileImageKind: String, Sendable {
+    case avatar
+    case cover
+}
+
 /// Contract-first API surface for Supabase production.
 protocol MarviAPI: Sendable {
     var usesRemoteBackend: Bool { get }
@@ -53,6 +58,8 @@ protocol MarviAPI: Sendable {
     func redeemReferralCode(_ code: String) async throws
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem]
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws
+    func submitCreatorReview(bookingID: UUID, hospitality: Int, experience: Int, comment: String) async throws
+    func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws
     func validateReferralCode(_ code: String) async throws -> Bool
     func fetchStrikes() async throws -> [Strike]
@@ -143,6 +150,8 @@ extension MarviAPI {
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem] { [] }
 
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws {}
+    func submitCreatorReview(bookingID: UUID, hospitality: Int, experience: Int, comment: String) async throws {}
+    func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String { "" }
 
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws {}
 

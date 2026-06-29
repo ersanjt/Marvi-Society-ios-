@@ -86,6 +86,7 @@ enum MarviL10n {
         case openTasks, liveOffers, creatorSignals, creatorSignalsSub
         case scoreLabel, deliveryLabel, strikeHistory, strikeHistorySub
         case socialAccounts, socialAccountsSub, displayName, bio, cityField, tiktokHandleField
+        case changeAvatar, changeCover
         case nichesComma, languagesComma, openInstagram, openTiktok
         case profileSavedSuccess, saving, checklistProgress
         case nicheSelected, audienceReviewed, agreementSigned
@@ -138,6 +139,7 @@ enum MarviL10n {
         case toReviewVenueSub, noReviewsTab, noReviewsTabSub
         case creatorMatching, shortlistComplete, noCreatorsMatch, noCreatorsMatchSub, allReviewedSub
         case visitLabel, shareThoughts, shareThoughtsSub, punctuality, presentation, optionalNote
+        case hospitality, experience
         case reviewAlreadySubmitted, submitReview, creatorReviewNav
         case newCampaign, newCampaignSub, campaignTitlePh, venueNamePh, areaPh, eventDateLabel
         case valuePh, deliverablesPh, sendToAdminReview, createNav
@@ -318,6 +320,7 @@ enum MarviL10n {
         .scoreLabel: "Score", .deliveryLabel: "Delivery",
         .strikeHistory: "Strike history", .strikeHistorySub: "Policy violations affect matching priority.",
         .socialAccounts: "Social accounts", .socialAccountsSub: "Linked profiles for verification and proof tracking.",
+        .changeAvatar: "Profile photo", .changeCover: "Cover image",
         .displayName: "Display name", .bio: "Bio", .cityField: "City", .tiktokHandleField: "TikTok handle",
         .nichesComma: "Niches (comma separated)", .languagesComma: "Languages (comma separated)",
         .openInstagram: "Open Instagram profile", .openTiktok: "Open TikTok profile",
@@ -425,6 +428,7 @@ enum MarviL10n {
         .visitLabel: "Visit", .shareThoughts: "Share your thoughts",
         .shareThoughtsSub: "Rate punctuality and presentation.",
         .punctuality: "Punctuality", .presentation: "Presentation", .optionalNote: "Optional note",
+        .hospitality: "Hospitality", .experience: "Experience",
         .reviewAlreadySubmitted: "Review already submitted — saving again will update it.",
         .submitReview: "Submit review", .creatorReviewNav: "Creator review",
         .newCampaign: "New campaign", .newCampaignSub: "Submitted for admin review before going live.",
@@ -623,6 +627,7 @@ enum MarviL10n {
         .scoreLabel: "Puan", .deliveryLabel: "Teslimat",
         .strikeHistory: "Uyarı geçmişi", .strikeHistorySub: "Politika ihlalleri eşleşme önceliğini etkiler.",
         .socialAccounts: "Sosyal hesaplar", .socialAccountsSub: "Doğrulama ve kanıt takibi için bağlı profiller.",
+        .changeAvatar: "Profil fotoğrafı", .changeCover: "Kapak görseli",
         .displayName: "Görünen ad", .bio: "Biyografi", .cityField: "Şehir", .tiktokHandleField: "TikTok kullanıcı adı",
         .nichesComma: "Nişler (virgülle ayır)", .languagesComma: "Diller (virgülle ayır)",
         .openInstagram: "Instagram profilini aç", .openTiktok: "TikTok profilini aç",
@@ -730,6 +735,7 @@ enum MarviL10n {
         .visitLabel: "Ziyaret", .shareThoughts: "Düşüncelerini paylaş",
         .shareThoughtsSub: "Dakiklik ve sunumu puanla.",
         .punctuality: "Dakiklik", .presentation: "Sunum", .optionalNote: "İsteğe bağlı not",
+        .hospitality: "Misafirperverlik", .experience: "Deneyim",
         .reviewAlreadySubmitted: "İnceleme zaten gönderildi — tekrar kaydetmek günceller.",
         .submitReview: "İncelemeyi gönder", .creatorReviewNav: "Creator incelemesi",
         .newCampaign: "Yeni kampanya", .newCampaignSub: "Canlı olmadan önce admin incelemesine gönderilir.",

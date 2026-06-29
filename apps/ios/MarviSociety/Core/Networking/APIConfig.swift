@@ -161,6 +161,12 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws {
         throw notConfigured()
     }
+    func submitCreatorReview(bookingID: UUID, hospitality: Int, experience: Int, comment: String) async throws {
+        throw notConfigured()
+    }
+    func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String {
+        throw notConfigured()
+    }
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws {
         throw notConfigured()
     }

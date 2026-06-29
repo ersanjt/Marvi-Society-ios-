@@ -198,7 +198,9 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 "full_name": profile.name,
                 "bio": profile.bio,
                 "niches": profile.niches,
-                "languages": profile.languages
+                "languages": profile.languages,
+                "avatar_url": profile.avatarURL,
+                "cover_url": profile.coverURL
             ]
         )
 
@@ -414,10 +416,15 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 throw error
             }
 
+            guard let userID = await client.currentUserID() else {
+                throw MarviAPIError.notAuthenticated
+            }
+
             struct VenueIDRow: Decodable { let id: UUID }
             let row: VenueIDRow = try await client.insertReturning(
                 table: "venue_profiles",
                 body: [
+                    "owner_user_id": userID,
                     "venue_name": input.venueName,
                     "area": input.area,
                     "category": input.category.apiValue,
@@ -614,6 +621,43 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 "p_comment": comment
             ]
         )
+    }
+
+    func submitCreatorReview(
+        bookingID: UUID,
+        hospitality: Int,
+        experience: Int,
+        comment: String
+    ) async throws {
+        try await client.rpcVoid(
+            function: "submit_creator_review",
+            body: [
+                "p_booking_id": bookingID.uuidString,
+                "p_hospitality": hospitality,
+                "p_experience": experience,
+                "p_comment": comment
+            ]
+        )
+    }
+
+    func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String {
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
+        let path = "\(userID)/\(kind.rawValue)/\(fileName)"
+        _ = try await client.uploadObject(
+            bucket: "profile-media",
+            path: path,
+            data: data,
+            contentType: "image/jpeg"
+        )
+        guard let base = APIConfig.supabaseURL else {
+            return path
+        }
+        return base
+            .appending(path: "storage/v1/object/public/profile-media")
+            .appending(path: path)
+            .absoluteString
     }
 
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws {

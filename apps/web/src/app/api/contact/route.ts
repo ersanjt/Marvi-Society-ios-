@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/config/env";
 import { queueSupportEmail } from "@/lib/email/notifySupport";
+import { checkRateLimit } from "@/lib/security/rateLimit";
 
 export async function POST(request: Request) {
+  const rate = checkRateLimit(request, "contact", { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: "Too many messages. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfter) } }
+    );
+  }
+
   const body = await request.json();
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim().toLowerCase();

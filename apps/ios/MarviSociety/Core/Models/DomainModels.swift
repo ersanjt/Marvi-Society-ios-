@@ -352,6 +352,8 @@ struct CreatorProfile: Codable {
     var bio: String
     var languages: [String]
     var completedApplicationSteps: Int
+    var avatarURL: String
+    var coverURL: String
 
     static let empty = CreatorProfile(
         name: "",
@@ -365,7 +367,9 @@ struct CreatorProfile: Codable {
         proofRate: "—",
         bio: "",
         languages: [],
-        completedApplicationSteps: 0
+        completedApplicationSteps: 0,
+        avatarURL: "",
+        coverURL: ""
     )
 
     var displayName: String {

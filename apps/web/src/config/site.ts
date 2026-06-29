@@ -9,7 +9,7 @@ export const SITE = {
   url: getPublicSiteUrl() || MARVI_URLS.site,
   email: "hello@marvisociety.com",
   supportEmail: "support@marvisociety.com",
-  appStoreUrl: "#",
+  appStoreUrl: "https://apps.apple.com/app/id6783450762",
   playStoreUrl: "#",
 } as const;
 

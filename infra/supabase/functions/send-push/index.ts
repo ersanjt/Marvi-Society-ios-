@@ -15,6 +15,18 @@ const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID") ?? "";
 const APNS_KEY_P8 = Deno.env.get("APNS_KEY_P8") ?? "";
 const APNS_BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID") ?? "com.marvisociety.app";
 const APNS_PRODUCTION = (Deno.env.get("APNS_PRODUCTION") ?? "false") === "true";
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const EDGE_SECRET = Deno.env.get("MARVI_EDGE_SECRET") ?? "";
+
+/** Only the service role (server / DB dispatch) may trigger push delivery. */
+function isAuthorized(req: Request): boolean {
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  if (SERVICE_ROLE_KEY && token === SERVICE_ROLE_KEY) return true;
+  if (EDGE_SECRET && token === EDGE_SECRET) return true;
+  return false;
+}
 
 let cachedJwt: { token: string; expiresAt: number } | null = null;
 
@@ -78,6 +90,10 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  if (!isAuthorized(req)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -86,36 +102,33 @@ Deno.serve(async (req) => {
   const body = await req.json();
   const outboxId = body.outbox_id as string | undefined;
 
-  let userId = body.user_id as string | undefined;
-  let title = body.title as string | undefined;
-  let messageBody = body.body as string | undefined;
-  let payload = (body.data ?? body.payload ?? {}) as Record<string, string>;
-  let outboxRow: PushOutboxRow | null = null;
-
-  if (outboxId) {
-    const { data, error } = await supabase
-      .from("push_outbox")
-      .select("id, user_id, title, body, payload, status")
-      .eq("id", outboxId)
-      .single();
-
-    if (error || !data) {
-      return Response.json({ error: error?.message ?? "Outbox row not found" }, { status: 404 });
-    }
-
-    outboxRow = data as PushOutboxRow;
-    if (outboxRow.status === "sent") {
-      return Response.json({ ok: true, skipped: true });
-    }
-
-    userId = outboxRow.user_id;
-    title = outboxRow.title;
-    messageBody = outboxRow.body;
-    payload = (outboxRow.payload ?? {}) as Record<string, string>;
+  // Only trusted outbox rows may be delivered — no arbitrary user_id/title/body path.
+  if (!outboxId) {
+    return Response.json({ error: "outbox_id required" }, { status: 400 });
   }
 
+  const { data, error } = await supabase
+    .from("push_outbox")
+    .select("id, user_id, title, body, payload, status")
+    .eq("id", outboxId)
+    .single();
+
+  if (error || !data) {
+    return Response.json({ error: error?.message ?? "Outbox row not found" }, { status: 404 });
+  }
+
+  const outboxRow = data as PushOutboxRow;
+  if (outboxRow.status === "sent") {
+    return Response.json({ ok: true, skipped: true });
+  }
+
+  const userId = outboxRow.user_id;
+  const title = outboxRow.title;
+  const messageBody = outboxRow.body;
+  const payload = (outboxRow.payload ?? {}) as Record<string, string>;
+
   if (!userId || !title || !messageBody) {
-    return Response.json({ error: "outbox_id or user_id/title/body required" }, { status: 400 });
+    return Response.json({ error: "Outbox row missing required fields" }, { status: 400 });
   }
 
   const { data: tokens, error: tokenError } = await supabase

@@ -3,11 +3,12 @@ import SwiftUI
 // MARK: - Steps
 
 private enum OnboardingStep: Int, CaseIterable {
-    case welcome
-    case signIn
-    case invite
-    case profile
-    case agreement
+    case welcome = 0
+    case signIn = 1
+    case invite = 2
+    case profile = 3
+    case venueSetup = 4
+    case agreement = 5
 
     var title: String {
         switch self {
@@ -15,6 +16,7 @@ private enum OnboardingStep: Int, CaseIterable {
         case .signIn: "Sign in"
         case .invite: "Invite"
         case .profile: "Profile"
+        case .venueSetup: "Venue"
         case .agreement: "Agreement"
         }
     }
@@ -25,6 +27,7 @@ private enum OnboardingStep: Int, CaseIterable {
         case .signIn: "Continue"
         case .invite: "Continue"
         case .profile: "Continue"
+        case .venueSetup: "Continue"
         case .agreement: "Join Marvi Society"
         }
     }
@@ -86,7 +89,11 @@ struct OnboardingView: View {
     @State private var appleSignInError: String?
     @State private var inviteValidated = false
     @State private var showPasswordResetConfirmation = false
+    @State private var showEmailConfirmation = false
     @State private var pendingSignupOnboarding = false
+    @State private var venueName = ""
+    @State private var venueArea = ""
+    @State private var venueCategory: OfferCategory = .dining
 
     private var lang: AppLanguage { appState.preferredLanguage }
 
@@ -106,6 +113,7 @@ struct OnboardingView: View {
                     case .signIn: signInStep
                     case .invite: inviteStep
                     case .profile: profileStep
+                    case .venueSetup: venueSetupStep
                     case .agreement: agreementStep
                     }
                 }
@@ -140,6 +148,14 @@ struct OnboardingView: View {
         } message: {
             Text(appState.passwordResetMessage ?? appState.t(.passwordResetDefault))
             + Text("\n\n") + Text(appState.t(.passwordResetInstructions))
+        }
+        .alert(appState.t(.checkEmailTitle), isPresented: $showEmailConfirmation) {
+            Button(appState.t(.ok)) {
+                withAnimation { isCreatingAccount = false }
+                appState.dismissSyncError()
+            }
+        } message: {
+            Text(appState.t(.errConfirmEmail))
         }
     }
 
@@ -516,6 +532,53 @@ struct OnboardingView: View {
         }
     }
 
+    private var venueSetupStep: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                OnboardingStepHeader(
+                    eyebrow: signupIntent == .business ? appState.t(.step3of4) : appState.t(.step3of4),
+                    title: appState.t(.addLocation),
+                    subtitle: appState.t(.addLocationSub)
+                )
+
+                MarviCard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        MarviTextField(placeholder: appState.t(.venueNamePh), text: $venueName)
+                        MarviTextField(placeholder: appState.t(.areaPh), text: $venueArea)
+
+                        Text(appState.t(.locationTypeLabel))
+                            .font(.caption.weight(.bold))
+                            .textCase(.uppercase)
+                            .foregroundStyle(MarviColor.muted)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(OfferCategory.allCases) { item in
+                                    Button { venueCategory = item } label: {
+                                        Label(item.label(for: appState.preferredLanguage), systemImage: item.icon)
+                                            .font(.caption.weight(.bold))
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .foregroundStyle(venueCategory == item ? .white : MarviColor.ink)
+                                            .background(
+                                                venueCategory == item
+                                                    ? AnyShapeStyle(MarviGradient.brand)
+                                                    : AnyShapeStyle(MarviColor.panelElevated)
+                                            )
+                                            .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+    }
+
     private var agreementStep: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
@@ -577,7 +640,7 @@ struct OnboardingView: View {
         switch step {
         case .welcome: return appState.t(.getStarted)
         case .signIn: return appState.t(.continueAction)
-        case .invite, .profile: return appState.t(.continueAction)
+        case .invite, .profile, .venueSetup: return appState.t(.continueAction)
         case .agreement: return appState.t(.joinMarvi)
         }
     }
@@ -597,6 +660,10 @@ struct OnboardingView: View {
             return !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
         case .profile:
             return isProfileValid && !isBusy
+        case .venueSetup:
+            return !venueName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !venueArea.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !isBusy
         case .agreement:
             return confirmedAge18 && acceptedTerms && !isBusy
         }
@@ -672,7 +739,11 @@ struct OnboardingView: View {
             }
             guard await validateInviteCode() else { return }
             inviteValidated = true
-            advance(to: .profile)
+            if signupIntent == .business {
+                advance(to: .venueSetup)
+            } else {
+                advance(to: .profile)
+            }
         case .profile:
             appState.profile.handle = instagramHandle
             appState.profile.city = city
@@ -680,6 +751,8 @@ struct OnboardingView: View {
             if appState.profile.languages.isEmpty {
                 appState.profile.languages = ["English"]
             }
+            advance(to: .agreement)
+        case .venueSetup:
             advance(to: .agreement)
         case .agreement:
             await finishOnboarding()
@@ -748,6 +821,10 @@ struct OnboardingView: View {
 
         if appState.lastSyncError != nil {
             pendingSignupOnboarding = false
+            if let message = appState.lastSyncError,
+               message.contains("confirmation link") || message.contains("onay bağlantısı") {
+                showEmailConfirmation = true
+            }
         }
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
@@ -833,15 +910,29 @@ struct OnboardingView: View {
     }
 
     private func finishOnboarding() async {
-        appState.profile.handle = instagramHandle
-        appState.profile.city = city
-        appState.profile.niches = Array(selectedNiches).sorted()
-        if appState.profile.languages.isEmpty {
-            appState.profile.languages = ["English"]
-        }
+        if signupIntent == .business {
+            let trimmedName = venueName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedArea = venueArea.trimmingCharacters(in: .whitespacesAndNewlines)
+            let registered = await appState.registerVenue(
+                name: trimmedName,
+                area: trimmedArea,
+                category: venueCategory,
+                contactName: fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? appState.profile.name
+                    : fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            guard registered else { return }
+        } else {
+            appState.profile.handle = instagramHandle
+            appState.profile.city = city
+            appState.profile.niches = Array(selectedNiches).sorted()
+            if appState.profile.languages.isEmpty {
+                appState.profile.languages = ["English"]
+            }
 
-        if appState.isAuthenticated {
-            _ = await appState.saveProfileToServer()
+            if appState.isAuthenticated {
+                _ = await appState.saveProfileToServer()
+            }
         }
 
         appState.completeOnboarding(role: signupIntent == .business ? .venue : .creator)

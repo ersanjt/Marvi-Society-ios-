@@ -896,6 +896,46 @@ final class AppState: ObservableObject {
         }
     }
 
+    func submitCreatorReview(
+        bookingID: UUID,
+        hospitality: Int,
+        experience: Int,
+        comment: String
+    ) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            try await api.submitCreatorReview(
+                bookingID: bookingID,
+                hospitality: hospitality,
+                experience: experience,
+                comment: comment
+            )
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func uploadProfilePhoto(data: Data, kind: ProfileImageKind) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            let url = try await api.uploadProfileImage(
+                data: data,
+                fileName: "\(kind.rawValue).jpg",
+                kind: kind
+            )
+            switch kind {
+            case .avatar: profile.avatarURL = url
+            case .cover: profile.coverURL = url
+            }
+            return await saveProfileToServer()
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
     func issueStrikeForProofTask(_ task: AdminTask, reason: String) {
         guard let bookingID = task.subjectID else {
             lastSyncError = t(.errNoLinkedBooking)

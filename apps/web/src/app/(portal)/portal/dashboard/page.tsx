@@ -134,7 +134,7 @@ export default async function PortalDashboardPage() {
         ];
 
   const displayOffers =
-    mode === "live" && offers.length > 0
+    mode === "live"
       ? offers
       : ([
           { id: "p1", title: "Rooftop opening night", status: "live", capacity: 20, remaining_slots: 5, venue_profiles: { venue_name: "Demo Venue" } },
@@ -142,7 +142,7 @@ export default async function PortalDashboardPage() {
         ] as OfferRow[]);
 
   const displayBookings =
-    mode === "live" && bookings.length > 0
+    mode === "live"
       ? bookings
       : ([
           { id: "b1", stage: "confirmed", proof_status: "pending", offers: { title: "Rooftop opening night", venue_profiles: { venue_name: "Demo Venue" } } },
@@ -202,24 +202,32 @@ export default async function PortalDashboardPage() {
               </Link>
             </div>
             <div className="mt-4 space-y-2">
-              {displayOffers.map((offer) => {
-                const filled = offer.capacity - offer.remaining_slots;
-                return (
-                  <ListRow
-                    key={offer.id}
-                    title={offer.title}
-                    subtitle={`${venueName(offer.venue_profiles, c.venue)} · ${tReplace(d.slotsFilled, { filled, capacity: offer.capacity })}`}
-                    badge={<StatusPill label={formatStatusLabel(offer.status, locale)} tone={offerStatusTone(offer.status)} />}
-                    trailing={
-                      offer.status === "live" ? (
-                        <Link href={`/portal/creators?offerId=${offer.id}`} className="text-xs font-bold text-rose">
-                          {d.match}
-                        </Link>
-                      ) : null
-                    }
-                  />
-                );
-              })}
+              {displayOffers.length === 0 ? (
+                <EmptyState
+                  icon={<IconSparkles size={24} />}
+                  title={d.noCampaignsTitle}
+                  body={d.noCampaignsBody}
+                />
+              ) : (
+                displayOffers.map((offer) => {
+                  const filled = offer.capacity - offer.remaining_slots;
+                  return (
+                    <ListRow
+                      key={offer.id}
+                      title={offer.title}
+                      subtitle={`${venueName(offer.venue_profiles, c.venue)} · ${tReplace(d.slotsFilled, { filled, capacity: offer.capacity })}`}
+                      badge={<StatusPill label={formatStatusLabel(offer.status, locale)} tone={offerStatusTone(offer.status)} />}
+                      trailing={
+                        offer.status === "live" ? (
+                          <Link href={`/portal/creators?offerId=${offer.id}`} className="text-xs font-bold text-rose">
+                            {d.match}
+                          </Link>
+                        ) : null
+                      }
+                    />
+                  );
+                })
+              )}
             </div>
           </section>
 

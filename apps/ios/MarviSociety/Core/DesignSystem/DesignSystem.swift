@@ -636,10 +636,17 @@ struct StatusBadgeGrid: View {
 }
 
 struct StatusBadge: Identifiable {
-    let id = UUID()
+    let id: UUID
     let title: String
     let count: Int
     let tint: Color
+
+    init(id: UUID = UUID(), title: String, count: Int, tint: Color) {
+        self.id = id
+        self.title = title
+        self.count = count
+        self.tint = tint
+    }
 }
 
 struct GradientCTA: View {

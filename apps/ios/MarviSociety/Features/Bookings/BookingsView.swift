@@ -4,7 +4,14 @@ import SwiftUI
 private enum EventBucket: CaseIterable, Identifiable {
     case requests, toConfirm, toReview, toVisit
 
-    var id: Self { self }
+    var id: UUID {
+        switch self {
+        case .requests: UUID(uuidString: "10000000-0000-0000-0000-000000000001")!
+        case .toConfirm: UUID(uuidString: "10000000-0000-0000-0000-000000000002")!
+        case .toReview: UUID(uuidString: "10000000-0000-0000-0000-000000000003")!
+        case .toVisit: UUID(uuidString: "10000000-0000-0000-0000-000000000004")!
+        }
+    }
 
     func title(for language: AppLanguage) -> String {
         switch self {
@@ -20,6 +27,7 @@ struct BookingsView: View {
     @EnvironmentObject private var appState: AppState
     @State private var proofBooking: Booking?
     @State private var checkInBooking: Booking?
+    @State private var rateVenueBooking: Booking?
     @State private var selectedOffer: Offer?
     @State private var isShowingInbox = false
     @State private var isInterestMode = false
@@ -29,21 +37,25 @@ struct BookingsView: View {
     private var statusBadges: [StatusBadge] {
         [
             StatusBadge(
+                id: EventBucket.requests.id,
                 title: EventBucket.requests.title(for: appState.preferredLanguage),
                 count: appState.pendingInviteBookings.count + appState.interestOffers.count,
                 tint: MarviColor.rose
             ),
             StatusBadge(
+                id: EventBucket.toConfirm.id,
                 title: EventBucket.toConfirm.title(for: appState.preferredLanguage),
                 count: appState.bookings.filter { $0.stage == .confirmed }.count,
                 tint: MarviColor.aubergine
             ),
             StatusBadge(
+                id: EventBucket.toReview.id,
                 title: EventBucket.toReview.title(for: appState.preferredLanguage),
                 count: appState.bookings.filter { $0.stage == .proofDue || $0.proofStatus == .pending }.count,
                 tint: MarviColor.gold
             ),
             StatusBadge(
+                id: EventBucket.toVisit.id,
                 title: EventBucket.toVisit.title(for: appState.preferredLanguage),
                 count: appState.bookings.filter { $0.stage == .checkedIn }.count,
                 tint: MarviColor.blue
@@ -86,78 +98,83 @@ struct BookingsView: View {
     var body: some View {
         NavigationStack {
             MarviScreen {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(appState.t(.myEventsTitle))
-                                    .font(.system(size: 34, weight: .bold, design: .serif))
-                                    .foregroundStyle(MarviColor.ink)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(appState.t(.myEventsTitle))
+                                        .font(.system(size: 34, weight: .bold, design: .serif))
+                                        .foregroundStyle(MarviColor.ink)
 
-                                Text(appState.t(.myEventsSub))
-                                    .font(.subheadline)
-                                    .foregroundStyle(MarviColor.muted)
+                                    Text(appState.t(.myEventsSub))
+                                        .font(.subheadline)
+                                        .foregroundStyle(MarviColor.muted)
+                                }
+
+                                Spacer()
+
+                                Button { isShowingInbox = true } label: {
+                                    Image(systemName: "bell")
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(MarviColor.ink)
+                                        .frame(width: 40, height: 40)
+                                        .background(MarviColor.panel)
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
                             }
+                            .padding(.top, 4)
 
-                            Spacer()
+                            SSSelectableStatusGrid(badges: statusBadges, selectedID: $selectedBucketID)
 
-                            Button { isShowingInbox = true } label: {
-                                Image(systemName: "bell")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(MarviColor.ink)
-                                    .frame(width: 40, height: 40)
-                                    .background(MarviColor.panel)
-                                    .clipShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.top, 4)
-
-                        SSSelectableStatusGrid(badges: statusBadges, selectedID: $selectedBucketID)
-
-                        SSToggleTabs(
-                            leftTitle: appState.t(.pendingInvites),
-                            rightTitle: appState.t(.interestShown),
-                            isRightSelected: $isInterestMode
-                        )
-
-                        SSFilterToolbar(
-                            language: appState.preferredLanguage,
-                            onFilters: { selectedCategory = nil },
-                            onSort: nil,
-                            onLocation: nil,
-                            onDate: nil
-                        )
-
-                        if selectedCategory != nil || activeBucket != nil {
-                            FilterPillRow(
-                                items: OfferCategory.allCases.map(\.rawValue),
-                                selected: Binding(
-                                    get: { selectedCategory?.rawValue },
-                                    set: { newValue in
-                                        selectedCategory = OfferCategory.allCases.first { $0.rawValue == newValue }
-                                    }
-                                )
+                            SSToggleTabs(
+                                leftTitle: appState.t(.pendingInvites),
+                                rightTitle: appState.t(.interestShown),
+                                isRightSelected: $isInterestMode
                             )
-                        } else {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    SSFilterChip(title: appState.t(.categoryLabel), icon: "tag") {
-                                        selectedCategory = .dining
+
+                            SSFilterToolbar(
+                                language: appState.preferredLanguage,
+                                onFilters: { selectedCategory = nil },
+                                onSort: nil,
+                                onLocation: nil,
+                                onDate: nil
+                            )
+
+                            if selectedCategory != nil || activeBucket != nil {
+                                FilterPillRow(
+                                    items: OfferCategory.allCases.map(\.rawValue),
+                                    selected: Binding(
+                                        get: { selectedCategory?.rawValue },
+                                        set: { newValue in
+                                            selectedCategory = OfferCategory.allCases.first { $0.rawValue == newValue }
+                                        }
+                                    )
+                                )
+                            } else {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 10) {
+                                        SSFilterChip(title: appState.t(.categoryLabel), icon: "tag") {
+                                            selectedCategory = .dining
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if isInterestMode {
-                            interestContent
-                        } else {
-                            bookingsContent
+                            if isInterestMode {
+                                interestContent
+                            } else {
+                                bookingsContent
+                            }
                         }
+                        .padding(16)
                     }
-                    .padding(16)
+                    .refreshable { await appState.refreshFromServer() }
+                    .onAppear { handleHighlightedBooking(proxy: proxy) }
+                    .onChange(of: appState.highlightedBookingID) { _, _ in handleHighlightedBooking(proxy: proxy) }
+                    .onChange(of: appState.bookings) { _, _ in handleHighlightedBooking(proxy: proxy) }
                 }
-                .refreshable { await appState.refreshFromServer() }
             }
             .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $proofBooking) { booking in
@@ -166,6 +183,10 @@ struct BookingsView: View {
             }
             .sheet(item: $checkInBooking) { booking in
                 CheckInSheet(booking: booking)
+                    .environmentObject(appState)
+            }
+            .sheet(item: $rateVenueBooking) { booking in
+                CreatorVenueReviewSheet(booking: booking)
                     .environmentObject(appState)
             }
             .sheet(isPresented: $isShowingInbox) {
@@ -187,6 +208,27 @@ struct BookingsView: View {
                 }
             }
         }
+    }
+
+    private func handleHighlightedBooking(proxy: ScrollViewProxy) {
+        guard let highlightedID = appState.highlightedBookingID,
+              let booking = appState.bookings.first(where: { $0.id == highlightedID }) else { return }
+        isInterestMode = false
+        selectedCategory = nil
+        selectedBucketID = bucket(for: booking).id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                proxy.scrollTo(highlightedID, anchor: .center)
+            }
+            appState.highlightedBookingID = nil
+        }
+    }
+
+    private func bucket(for booking: Booking) -> EventBucket {
+        if booking.stage == .invited { return .requests }
+        if booking.stage == .confirmed { return .toConfirm }
+        if booking.stage == .checkedIn { return .toVisit }
+        return .toReview
     }
 
     @ViewBuilder
@@ -251,7 +293,10 @@ struct BookingsView: View {
                     } else {
                         checkInBooking = booking
                     }
+                } rateVenue: {
+                    rateVenueBooking = booking
                 }
+                .id(booking.id)
             }
         }
     }
@@ -325,6 +370,7 @@ private struct BookingCard: View {
     let submitProof: () -> Void
     let decline: () -> Void
     let accept: () -> Void
+    let rateVenue: () -> Void
 
     var body: some View {
         MarviCard {
@@ -398,6 +444,19 @@ private struct BookingCard: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(.white)
                         .background(MarviGradient.brand)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    if booking.stage == .checkedIn || booking.stage == .proofDue || booking.stage == .completed {
+                        Button(action: rateVenue) {
+                            Label(appState.t(.shareThoughts), systemImage: "star.leadinghalf.filled")
+                                .font(.subheadline.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(MarviColor.ink)
+                        .background(MarviColor.panelElevated)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
@@ -615,6 +674,82 @@ struct ProofSubmissionSheet: View {
                 }
             }
             .navigationTitle(appState.t(.proofNav))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(appState.t(.close)) { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+private struct CreatorVenueReviewSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+    let booking: Booking
+
+    @State private var hospitality = 5
+    @State private var experience = 5
+    @State private var comment = ""
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    SectionTitle(
+                        title: appState.t(.shareThoughts),
+                        subtitle: "\(booking.offer.venue) · \(booking.offer.title)"
+                    )
+
+                    MarviCard {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Stepper(value: $hospitality, in: 1...5) {
+                                Text("\(appState.t(.hospitality)): \(hospitality)")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            Stepper(value: $experience, in: 1...5) {
+                                Text("\(appState.t(.experience)): \(experience)")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            MarviTextField(placeholder: appState.t(.optionalNote), text: $comment)
+                        }
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(MarviColor.tomato)
+                    }
+
+                    PrimaryActionButton(
+                        title: isSubmitting ? appState.t(.submitting) : appState.t(.submitReview),
+                        systemImage: "star.fill",
+                        isDisabled: isSubmitting
+                    ) {
+                        Task {
+                            isSubmitting = true
+                            let ok = await appState.submitCreatorReview(
+                                bookingID: booking.id,
+                                hospitality: hospitality,
+                                experience: experience,
+                                comment: comment
+                            )
+                            isSubmitting = false
+                            if ok {
+                                dismiss()
+                            } else {
+                                errorMessage = appState.lastSyncError
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .background(MarviColor.surface.ignoresSafeArea())
+            .navigationTitle(appState.t(.shareThoughts))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

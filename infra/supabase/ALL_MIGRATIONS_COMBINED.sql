@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-06-29T17:55:26Z
+-- Generated: 2026-06-29T19:15:44Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
@@ -3786,5 +3786,305 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.retry_pending_emails(INTEGER) TO service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260630000001_security_hardening.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Security hardening: block self-service privilege escalation + lock down internal RPCs.
+-- Addresses audit findings: profiles/creator/venue/offers/bookings RLS escalation,
+-- and over-granted queue_*/seed_istanbul_demo helpers.
+--
+-- Strategy: keep the existing broad UPDATE policies (so users can edit safe fields),
+-- but add BEFORE-UPDATE triggers that reject changes to privileged columns unless the
+-- caller is an admin (is_admin()) or the service role. Legitimate privileged changes
+-- already flow through admin-only SECURITY DEFINER RPCs performed by admins.
+
+-- ---------------------------------------------------------------------------
+-- 1. profiles: only admin/service may change role or status
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.guard_profiles_privileged()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF auth.role() = 'service_role' OR public.is_admin() THEN
+        RETURN NEW;
+    END IF;
+    IF NEW.role IS DISTINCT FROM OLD.role THEN
+        RAISE EXCEPTION 'Not authorized to change role';
+    END IF;
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+        RAISE EXCEPTION 'Not authorized to change membership status';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS guard_profiles_privileged ON public.profiles;
+CREATE TRIGGER guard_profiles_privileged
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION public.guard_profiles_privileged();
+
+-- ---------------------------------------------------------------------------
+-- 2. creator_profiles: only admin/service may change status
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.guard_creator_profiles_privileged()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF auth.role() = 'service_role' OR public.is_admin() THEN
+        RETURN NEW;
+    END IF;
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+        RAISE EXCEPTION 'Not authorized to change creator status';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS guard_creator_profiles_privileged ON public.creator_profiles;
+CREATE TRIGGER guard_creator_profiles_privileged
+    BEFORE UPDATE ON public.creator_profiles
+    FOR EACH ROW EXECUTE FUNCTION public.guard_creator_profiles_privileged();
+
+-- ---------------------------------------------------------------------------
+-- 3. venue_profiles: only admin/service may change status
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.guard_venue_profiles_privileged()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF auth.role() = 'service_role' OR public.is_admin() THEN
+        RETURN NEW;
+    END IF;
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+        RAISE EXCEPTION 'Not authorized to change venue status';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS guard_venue_profiles_privileged ON public.venue_profiles;
+CREATE TRIGGER guard_venue_profiles_privileged
+    BEFORE UPDATE ON public.venue_profiles
+    FOR EACH ROW EXECUTE FUNCTION public.guard_venue_profiles_privileged();
+
+-- ---------------------------------------------------------------------------
+-- 4. offers: venues may draft/submit, but only admin/service may publish (live)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.guard_offer_publish()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF auth.role() = 'service_role' OR public.is_admin() THEN
+        RETURN NEW;
+    END IF;
+    -- Non-admins cannot create or move an offer into a publicly visible state.
+    IF NEW.status = 'live' AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'live') THEN
+        RAISE EXCEPTION 'Offers must be approved by an operator before going live';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS guard_offer_publish ON public.offers;
+CREATE TRIGGER guard_offer_publish
+    BEFORE INSERT OR UPDATE ON public.offers
+    FOR EACH ROW EXECUTE FUNCTION public.guard_offer_publish();
+
+-- ---------------------------------------------------------------------------
+-- 5. bookings: only admin/service may approve proof
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.guard_booking_proof_approval()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF auth.role() = 'service_role' OR public.is_admin() THEN
+        RETURN NEW;
+    END IF;
+    IF NEW.proof_status IS DISTINCT FROM OLD.proof_status AND NEW.proof_status = 'approved' THEN
+        RAISE EXCEPTION 'Only operators can approve proof';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS guard_booking_proof_approval ON public.bookings;
+CREATE TRIGGER guard_booking_proof_approval
+    BEFORE UPDATE ON public.bookings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_booking_proof_approval();
+
+-- ---------------------------------------------------------------------------
+-- 6. Lock down internal helper RPCs: server/service role only
+-- ---------------------------------------------------------------------------
+REVOKE EXECUTE ON FUNCTION public.queue_transactional_email(UUID, TEXT, TEXT, TEXT, JSONB) FROM authenticated, anon;
+REVOKE EXECUTE ON FUNCTION public.queue_push_notification(UUID, TEXT, TEXT, JSONB) FROM authenticated, anon;
+REVOKE EXECUTE ON FUNCTION public.seed_istanbul_demo(UUID) FROM authenticated, anon;
+
+GRANT EXECUTE ON FUNCTION public.queue_transactional_email(UUID, TEXT, TEXT, TEXT, JSONB) TO service_role;
+GRANT EXECUTE ON FUNCTION public.queue_push_notification(UUID, TEXT, TEXT, JSONB) TO service_role;
+GRANT EXECUTE ON FUNCTION public.seed_istanbul_demo(UUID) TO service_role;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260630000002_feature_completeness.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Feature completeness: creator→venue ratings, profile avatar/cover, profile media storage.
+
+-- ---------------------------------------------------------------------------
+-- 1. Creator reviews (influencer rates venue after visit)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.creator_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_id UUID NOT NULL UNIQUE REFERENCES public.bookings (id) ON DELETE CASCADE,
+    venue_id UUID NOT NULL REFERENCES public.venue_profiles (id) ON DELETE CASCADE,
+    creator_id UUID NOT NULL REFERENCES public.creator_profiles (id) ON DELETE CASCADE,
+    hospitality SMALLINT NOT NULL CHECK (hospitality BETWEEN 1 AND 5),
+    experience SMALLINT NOT NULL CHECK (experience BETWEEN 1 AND 5),
+    comment TEXT NOT NULL DEFAULT '',
+    created_by UUID NOT NULL REFERENCES public.profiles (id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.creator_reviews ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY creator_reviews_select ON public.creator_reviews
+    FOR SELECT USING (
+        created_by = auth.uid()
+        OR public.is_admin()
+        OR EXISTS (
+            SELECT 1 FROM public.venue_profiles v
+            WHERE v.id = creator_reviews.venue_id AND v.owner_user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY creator_reviews_insert ON public.creator_reviews
+    FOR INSERT WITH CHECK (
+        created_by = auth.uid()
+        AND creator_id = public.current_creator_id()
+    );
+
+CREATE OR REPLACE FUNCTION public.submit_creator_review(
+    p_booking_id UUID,
+    p_hospitality INT,
+    p_experience INT,
+    p_comment TEXT DEFAULT ''
+)
+RETURNS public.creator_reviews
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_uid UUID := auth.uid();
+    v_creator_id UUID;
+    v_row public.creator_reviews;
+    v_booking public.bookings;
+    v_venue_id UUID;
+BEGIN
+    IF v_uid IS NULL THEN
+        RAISE EXCEPTION 'Not authenticated';
+    END IF;
+
+    v_creator_id := public.current_creator_id();
+    IF v_creator_id IS NULL THEN
+        RAISE EXCEPTION 'Creator profile not found';
+    END IF;
+
+    IF p_hospitality < 1 OR p_hospitality > 5 OR p_experience < 1 OR p_experience > 5 THEN
+        RAISE EXCEPTION 'Ratings must be between 1 and 5';
+    END IF;
+
+    SELECT b.* INTO v_booking FROM public.bookings b WHERE b.id = p_booking_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Booking not found';
+    END IF;
+
+    IF v_booking.creator_id IS DISTINCT FROM v_creator_id THEN
+        RAISE EXCEPTION 'Not authorized to review this booking';
+    END IF;
+
+    IF v_booking.stage NOT IN ('checked_in', 'proof_due', 'completed') THEN
+        RAISE EXCEPTION 'Visit must be checked in before rating the venue';
+    END IF;
+
+    SELECT o.venue_id INTO v_venue_id
+    FROM public.offers o
+    WHERE o.id = v_booking.offer_id;
+
+    INSERT INTO public.creator_reviews (
+        booking_id, venue_id, creator_id, hospitality, experience, comment, created_by
+    )
+    VALUES (
+        p_booking_id,
+        v_venue_id,
+        v_creator_id,
+        p_hospitality,
+        p_experience,
+        COALESCE(p_comment, ''),
+        v_uid
+    )
+    ON CONFLICT (booking_id) DO UPDATE SET
+        hospitality = EXCLUDED.hospitality,
+        experience = EXCLUDED.experience,
+        comment = EXCLUDED.comment,
+        created_at = now()
+    RETURNING * INTO v_row;
+
+    RETURN v_row;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.submit_creator_review(UUID, INT, INT, TEXT) TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 2. Profile avatar + cover on creator_profiles
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.creator_profiles
+    ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS cover_url TEXT NOT NULL DEFAULT '';
+
+-- ---------------------------------------------------------------------------
+-- 3. Profile media storage (user-scoped uploads, public read)
+-- ---------------------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public, file_size_limit)
+VALUES ('profile-media', 'profile-media', true, 5242880)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY profile_media_public_read ON storage.objects
+    FOR SELECT USING (bucket_id = 'profile-media');
+
+CREATE POLICY profile_media_upload_own ON storage.objects
+    FOR INSERT WITH CHECK (
+        bucket_id = 'profile-media'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY profile_media_update_own ON storage.objects
+    FOR UPDATE USING (
+        bucket_id = 'profile-media'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY profile_media_delete_own ON storage.objects
+    FOR DELETE USING (
+        bucket_id = 'profile-media'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    );
 
 

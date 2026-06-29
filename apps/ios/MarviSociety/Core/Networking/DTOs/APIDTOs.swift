@@ -83,6 +83,8 @@ struct CreatorProfileRow: Decodable {
     let proof_rate: Double?
     let bio: String?
     let languages: [String]?
+    let avatar_url: String?
+    let cover_url: String?
 
     func toProfile() -> CreatorProfile {
         let audience = audience_count ?? 0
@@ -105,7 +107,9 @@ struct CreatorProfileRow: Decodable {
             proofRate: proof_rate.map { String(format: "%.0f%%", $0) } ?? "—",
             bio: bio ?? "",
             languages: languages ?? [],
-            completedApplicationSteps: 0
+            completedApplicationSteps: 0,
+            avatarURL: avatar_url ?? "",
+            coverURL: cover_url ?? ""
         )
     }
 }

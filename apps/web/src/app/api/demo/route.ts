@@ -2,8 +2,17 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { isProduction, isSupabaseConfigured } from "@/config/env";
 import { queueSupportEmail } from "@/lib/email/notifySupport";
+import { checkRateLimit } from "@/lib/security/rateLimit";
 
 export async function POST(request: Request) {
+  const rate = checkRateLimit(request, "demo", { limit: 4, windowMs: 60 * 60 * 1000 });
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: "Too many demo requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rate.retryAfter) } }
+    );
+  }
+
   const body = await request.json();
   const { firstName, lastName, company, email, website, message } = body;
 

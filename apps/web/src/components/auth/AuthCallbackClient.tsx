@@ -6,6 +6,14 @@ import { BrandLockup } from "@/components/brand/BrandMark";
 import { MarviScreen, SyncBanner } from "@/components/design/MarviUI";
 import { createClient } from "@/lib/supabase/client";
 
+/** Only allow internal absolute paths to prevent open-redirect phishing. */
+function safeNextPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/portal/dashboard";
+  }
+  return value;
+}
+
 export function AuthCallbackClient() {
   const [status, setStatus] = useState<"loading" | "error" | "ios-bounce">("loading");
   const [message, setMessage] = useState("");
@@ -45,7 +53,7 @@ export function AuthCallbackClient() {
 
     async function run() {
       const code = params.get("code");
-      const next = params.get("next") ?? "/portal/dashboard";
+      const next = safeNextPath(params.get("next"));
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);

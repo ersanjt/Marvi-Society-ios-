@@ -39,8 +39,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: json.error ?? "Provision failed" }, { status: response.status });
   }
 
-  return NextResponse.json({
-    message: `User created${json.temporary_password ? `. Temp password: ${json.temporary_password}` : ""}`,
+    return NextResponse.json({
+    message: "User created successfully. Credentials were delivered via the configured channel.",
     user_id: json.user_id,
   });
 }

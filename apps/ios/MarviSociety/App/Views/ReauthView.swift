@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReauthView: View {
     @EnvironmentObject private var appState: AppState
+    @StateObject private var appleSignIn = AppleSignInService()
     @StateObject private var googleSignIn = GoogleSignInService()
     @State private var email = ""
     @State private var password = ""
@@ -49,7 +50,7 @@ struct ReauthView: View {
                                 Task { await signInWithEmail() }
                             }
 
-                            if APIConfig.googleSignInEnabled {
+                            if APIConfig.appleSignInEnabled || APIConfig.googleSignInEnabled {
                                 HStack(spacing: 12) {
                                     Rectangle().fill(MarviColor.border).frame(height: 1)
                                     Text(appState.t(.orContinueWith))
@@ -58,28 +59,54 @@ struct ReauthView: View {
                                     Rectangle().fill(MarviColor.border).frame(height: 1)
                                 }
 
-                                Button {
-                                    Task { await signInWithGoogle() }
-                                } label: {
-                                    HStack(spacing: 10) {
-                                        Image(systemName: "g.circle.fill")
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(.red)
-                                        Text(googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle))
-                                            .font(.headline.weight(.bold))
+                                if APIConfig.appleSignInEnabled {
+                                    Button {
+                                        Task { await signInWithApple() }
+                                    } label: {
+                                        HStack(spacing: 10) {
+                                            Image(systemName: "apple.logo")
+                                                .font(.title3.weight(.semibold))
+                                            Text(appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple))
+                                                .font(.headline.weight(.bold))
+                                        }
+                                        .foregroundStyle(.black)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 15)
+                                        .background(.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(MarviColor.border, lineWidth: 1)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     }
-                                    .foregroundStyle(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 15)
-                                    .background(.white)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .stroke(MarviColor.border, lineWidth: 1)
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .buttonStyle(.plain)
+                                    .disabled(isBusy)
                                 }
-                                .buttonStyle(.plain)
-                                .disabled(isBusy)
+
+                                if APIConfig.googleSignInEnabled {
+                                    Button {
+                                        Task { await signInWithGoogle() }
+                                    } label: {
+                                        HStack(spacing: 10) {
+                                            Image(systemName: "g.circle.fill")
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.red)
+                                            Text(googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle))
+                                                .font(.headline.weight(.bold))
+                                        }
+                                        .foregroundStyle(.black)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 15)
+                                        .background(.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(MarviColor.border, lineWidth: 1)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(isBusy)
+                                }
                             }
 
                             Button {
@@ -124,7 +151,7 @@ struct ReauthView: View {
     }
 
     private var isBusy: Bool {
-        isSigningIn || googleSignIn.isSigningIn || appState.isSyncing
+        isSigningIn || appleSignIn.isSigningIn || googleSignIn.isSigningIn || appState.isSyncing
     }
 
     private func signInWithEmail() async {
@@ -145,6 +172,15 @@ struct ReauthView: View {
     private func signInWithGoogle() async {
         appState.dismissSyncError()
         await appState.signInWithGoogle(using: googleSignIn, metadata: [:])
+        if appState.isAuthenticated {
+            appState.needsReauthentication = false
+            appState.dismissSyncError()
+        }
+    }
+
+    private func signInWithApple() async {
+        appState.dismissSyncError()
+        await appState.signInWithApple(using: appleSignIn, metadata: [:])
         if appState.isAuthenticated {
             appState.needsReauthentication = false
             appState.dismissSyncError()

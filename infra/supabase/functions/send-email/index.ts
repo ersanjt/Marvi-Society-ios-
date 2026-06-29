@@ -21,14 +21,36 @@ type OutboxRow = {
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM_EMAIL = Deno.env.get("MARVI_FROM_EMAIL") ?? "Marvi Society <hello@marvisociety.com>";
 const REPLY_TO = Deno.env.get("MARVI_REPLY_TO") ?? "support@marvisociety.com";
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const EDGE_SECRET = Deno.env.get("MARVI_EDGE_SECRET") ?? "";
 
 function localeOf(raw: string): Locale {
   return raw?.toLowerCase().startsWith("tr") ? "tr" : "en";
 }
 
+/** Escape user-supplied values before interpolating into HTML emails. */
+function esc(value: string | undefined | null): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Only the service role (DB webhook / pg_net dispatch / server) may invoke sends. */
+function isAuthorized(req: Request): boolean {
+  const auth = req.headers.get("Authorization") ?? "";
+  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  if (SERVICE_ROLE_KEY && token === SERVICE_ROLE_KEY) return true;
+  if (EDGE_SECRET && token === EDGE_SECRET) return true;
+  return false;
+}
+
 function buildEmail(template: Template, locale: Locale, vars: Record<string, string>) {
-  const name = vars.name ?? "Creator";
-  const site = vars.site_url ?? "https://marvisociety.com";
+  const name = esc(vars.name ?? "Creator");
+  const site = esc(vars.site_url ?? "https://marvisociety.com");
 
   const wrap = (title: string, body: string) => `
 <!DOCTYPE html>
@@ -58,7 +80,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
         html: wrap(
           `Merhaba ${name},`,
           `<p>Başvurunuz bize ulaştı. Ekibimiz profilinizi inceleyecek ve onaylandığında size e-posta göndereceğiz.</p>
-           <p>Şehir: <strong>${vars.city ?? "İstanbul"}</strong></p>
+           <p>Şehir: <strong>${esc(vars.city ?? "İstanbul")}</strong></p>
            <p>Bu arada <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a> üzerinden topluluğumuzu keşfedebilirsiniz.</p>`
         ),
       };
@@ -68,7 +90,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
       html: wrap(
         `Hi ${name},`,
         `<p>We received your creator application. Our team will review your profile and email you once you are approved.</p>
-         <p>City: <strong>${vars.city ?? "Istanbul"}</strong></p>
+         <p>City: <strong>${esc(vars.city ?? "Istanbul")}</strong></p>
          <p>In the meantime, explore our community at <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a>.</p>`
       ),
     };
@@ -99,8 +121,8 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
 
   if (template === "admin_message") {
     const subject = vars.subject ?? "Marvi Society";
-    const body = (vars.body ?? "").replace(/\n/g, "<br/>");
-    const recipient = vars.name ?? "Member";
+    const body = esc(vars.body ?? "").replace(/\n/g, "<br/>");
+    const recipient = esc(vars.name ?? "Member");
     if (locale === "tr") {
       return { subject, html: wrap(`Merhaba ${recipient},`, `<p>${body}</p>`) };
     }
@@ -108,7 +130,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
   }
 
   if (template === "invite_code") {
-    const code = vars.invite_code ?? "MARVI-IST";
+    const code = esc(vars.invite_code ?? "MARVI-IST");
     if (locale === "tr") {
       return {
         subject: "Marvi Society — davet kodunuz",
@@ -132,31 +154,31 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
   }
 
   if (template === "contact_form") {
-    const fromName = vars.name ?? "Visitor";
-    const fromEmail = vars.email ?? REPLY_TO;
+    const fromName = esc(vars.name ?? "Visitor");
+    const fromEmail = esc(vars.email ?? REPLY_TO);
     const subjectLine = vars.subject ?? "Support request";
-    const body = (vars.message ?? "").replace(/\n/g, "<br/>");
+    const body = esc(vars.message ?? "").replace(/\n/g, "<br/>");
     return {
       subject: `[Contact] ${subjectLine}`,
       html: wrap(
         "New contact form message",
         `<p><strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
-         <p><strong>Subject:</strong> ${subjectLine}</p>
+         <p><strong>Subject:</strong> ${esc(subjectLine)}</p>
          <p>${body}</p>`
       ),
     };
   }
 
   if (template === "demo_request") {
-    const body = (vars.message ?? "—").replace(/\n/g, "<br/>");
+    const body = esc(vars.message ?? "—").replace(/\n/g, "<br/>");
     return {
       subject: `[Demo] ${vars.company ?? "New lead"} — ${vars.name ?? "Unknown"}`,
       html: wrap(
         "New demo request",
-        `<p><strong>Name:</strong> ${vars.name ?? "—"}</p>
-         <p><strong>Company:</strong> ${vars.company ?? "—"}</p>
-         <p><strong>Email:</strong> ${vars.email ?? "—"}</p>
-         <p><strong>Website:</strong> ${vars.website ?? "—"}</p>
+        `<p><strong>Name:</strong> ${esc(vars.name ?? "—")}</p>
+         <p><strong>Company:</strong> ${esc(vars.company ?? "—")}</p>
+         <p><strong>Email:</strong> ${esc(vars.email ?? "—")}</p>
+         <p><strong>Website:</strong> ${esc(vars.website ?? "—")}</p>
          <p><strong>Message:</strong><br/>${body}</p>`
       ),
     };
@@ -195,17 +217,15 @@ async function sendWithResend(to: string, subject: string, html: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "GET") {
-    return Response.json({
-      ok: true,
-      service: "send-email",
-      resendConfigured: Boolean(RESEND_API_KEY),
-      from: FROM_EMAIL,
-      replyTo: REPLY_TO,
-    });
+    return Response.json({ ok: true, service: "send-email" });
   }
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  if (!isAuthorized(req)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = createClient(
