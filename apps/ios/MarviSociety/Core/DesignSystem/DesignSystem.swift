@@ -47,6 +47,17 @@ struct MarviScreen<Content: View>: View {
 
             content
         }
+        .overlay(alignment: .top) {
+            LinearGradient(
+                colors: [MarviColor.surface, MarviColor.surface.opacity(0)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 58)
+            .frame(maxWidth: .infinity)
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
+        }
     }
 }
 

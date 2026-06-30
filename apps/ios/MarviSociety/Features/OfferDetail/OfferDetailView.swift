@@ -265,59 +265,62 @@ private struct HeaderBlock: View {
     let toggleSaved: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .top, spacing: 14) {
-                OfferImageView(offer: offer, height: 96, cornerRadius: 14)
-                    .frame(width: 86, height: 96)
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                OfferImageView(offer: offer, height: 190)
 
-                VStack(alignment: .leading, spacing: 9) {
-                    HStack(spacing: 6) {
-                        StatusPill(text: offer.category.label(for: appState.preferredLanguage), tint: offer.category.tint, systemImage: offer.category.icon)
-                        StatusPill(text: offer.collaborationModel.label(for: appState.preferredLanguage), tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
-                        if isAccepted {
-                            StatusPill(text: appState.t(.confirmedStatus), tint: MarviColor.emerald, systemImage: "checkmark")
-                        }
-                    }
+                MarviGradient.heroOverlay
+                    .frame(height: 190)
 
-                    Text(offer.title)
-                        .font(.system(size: 28, weight: .bold, design: .serif))
-                        .foregroundStyle(MarviColor.ink)
-                        .lineLimit(3)
-                        .minimumScaleFactor(0.82)
-
-                    Label("\(offer.venue) · \(offer.area)", systemImage: "mappin.and.ellipse")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(MarviColor.muted)
-                        .lineLimit(1)
-
-                    if let distanceLabel {
-                        Label(distanceLabel, systemImage: "location")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(MarviColor.rose)
+                HStack(spacing: 6) {
+                    StatusPill(text: offer.category.label(for: appState.preferredLanguage), tint: offer.category.tint, systemImage: offer.category.icon)
+                    StatusPill(text: offer.collaborationModel.label(for: appState.preferredLanguage), tint: MarviColor.gold, systemImage: offer.collaborationModel.icon)
+                    if isAccepted {
+                        StatusPill(text: appState.t(.confirmedStatus), tint: MarviColor.emerald, systemImage: "checkmark")
                     }
                 }
-
-                Spacer()
+                .padding(14)
             }
 
-            HStack(spacing: 10) {
-                if matchScore > 0 {
-                    StatusPill(text: appState.tf(.matchPercent, matchScore), tint: MarviColor.gold, systemImage: "star.fill")
+            VStack(alignment: .leading, spacing: 12) {
+                Text(offer.title)
+                    .font(.system(size: 26, weight: .bold, design: .serif))
+                    .foregroundStyle(MarviColor.ink)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Label("\(offer.venue) · \(offer.area)", systemImage: "mappin.and.ellipse")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(MarviColor.muted)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let distanceLabel {
+                    Label(distanceLabel, systemImage: "location")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.rose)
                 }
-                StatusPill(text: appState.tf(.slotsLeft, offer.remaining), tint: offer.category.tint, systemImage: "person.2")
-                Spacer()
-                Button(action: toggleSaved) {
-                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(isSaved ? MarviColor.rose : MarviColor.muted)
-                        .frame(width: 42, height: 42)
-                        .background(MarviColor.panelElevated)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                HStack(spacing: 10) {
+                    if matchScore > 0 {
+                        StatusPill(text: appState.tf(.matchPercent, matchScore), tint: MarviColor.gold, systemImage: "star.fill")
+                    }
+                    StatusPill(text: appState.tf(.slotsLeft, offer.remaining), tint: offer.category.tint, systemImage: "person.2")
+                    Spacer()
+                    Button(action: toggleSaved) {
+                        Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(isSaved ? MarviColor.rose : MarviColor.muted)
+                            .frame(width: 42, height: 42)
+                            .background(MarviColor.panelElevated)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(16)
         }
-        .padding(18)
         .background(MarviColor.panel)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
