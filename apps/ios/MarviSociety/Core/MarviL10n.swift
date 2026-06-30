@@ -86,6 +86,7 @@ enum MarviL10n {
         case openTasks, liveOffers, creatorSignals, creatorSignalsSub
         case scoreLabel, deliveryLabel, strikeHistory, strikeHistorySub
         case socialAccounts, socialAccountsSub, displayName, bio, cityField, tiktokHandleField
+        case handleEmpty
         case changeAvatar, changeCover
         case nichesComma, languagesComma, openInstagram, openTiktok
         case profileSavedSuccess, saving, checklistProgress
@@ -325,6 +326,7 @@ enum MarviL10n {
         .socialAccounts: "Social accounts", .socialAccountsSub: "Linked profiles for verification and proof tracking.",
         .changeAvatar: "Profile photo", .changeCover: "Cover image",
         .displayName: "Display name", .bio: "Bio", .cityField: "City", .tiktokHandleField: "TikTok handle",
+        .handleEmpty: "@add your handle",
         .nichesComma: "Niches (comma separated)", .languagesComma: "Languages (comma separated)",
         .openInstagram: "Open Instagram profile", .openTiktok: "Open TikTok profile",
         .profileSavedSuccess: "Profile saved to your account.", .saving: "Saving…",
@@ -642,6 +644,7 @@ enum MarviL10n {
         .socialAccounts: "Sosyal hesaplar", .socialAccountsSub: "Doğrulama ve kanıt takibi için bağlı profiller.",
         .changeAvatar: "Profil fotoğrafı", .changeCover: "Kapak görseli",
         .displayName: "Görünen ad", .bio: "Biyografi", .cityField: "Şehir", .tiktokHandleField: "TikTok kullanıcı adı",
+        .handleEmpty: "@kullanıcı adı ekle",
         .nichesComma: "Nişler (virgülle ayır)", .languagesComma: "Diller (virgülle ayır)",
         .openInstagram: "Instagram profilini aç", .openTiktok: "TikTok profilini aç",
         .profileSavedSuccess: "Profil hesabına kaydedildi.", .saving: "Kaydediliyor…",

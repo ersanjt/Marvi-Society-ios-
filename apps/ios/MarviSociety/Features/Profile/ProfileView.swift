@@ -558,6 +558,7 @@ struct ProfileView: View {
                         }
                     }
                     .padding(16)
+                    .padding(.bottom, 24)
                 }
                 }
             }
@@ -705,9 +706,9 @@ private struct PremiumProfileHeader: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(MarviColor.rose)
 
-                Text(profile.handle.isEmpty ? "@" : profile.handle)
+                Text(profile.handle.isEmpty ? appState.t(.handleEmpty) : "@\(profile.handle.replacingOccurrences(of: "@", with: ""))")
                     .font(.caption)
-                    .foregroundStyle(MarviColor.muted)
+                    .foregroundStyle(profile.handle.isEmpty ? MarviColor.muted.opacity(0.6) : MarviColor.muted)
 
                 StatusPill(
                     text: profile.status.label(for: appState.preferredLanguage),

@@ -112,11 +112,12 @@ struct OfferDetailView: View {
                     }
                 }
                 .padding(16)
-                .padding(.bottom, 96)
+                .padding(.bottom, 24)
             }
         }
         .navigationTitle(offer.venue)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 PrimaryActionButton(

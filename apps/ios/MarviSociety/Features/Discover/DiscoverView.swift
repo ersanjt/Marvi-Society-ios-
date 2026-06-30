@@ -141,8 +141,14 @@ struct DiscoverView: View {
         return label.contains(day.label) || label.contains(day.weekday.lowercased())
     }
 
-    private var featuredOffer: Offer? {
-        filteredOffers.first ?? appState.offers.first
+    private var carouselOffers: [Offer] {
+        Array(filteredOffers.prefix(5))
+    }
+
+    /// Offers not already shown in the featured carousel — avoids duplicate cards in the feed.
+    private var listOffers: [Offer] {
+        let featuredIDs = Set(carouselOffers.map(\.id))
+        return filteredOffers.filter { !featuredIDs.contains($0.id) }
     }
 
     private var firstName: String {
@@ -226,25 +232,15 @@ struct DiscoverView: View {
                             selection: $discoverMode
                         )
 
-                        if !filteredOffers.isEmpty {
+                        if !carouselOffers.isEmpty {
                             SSFeaturedEventsCarousel(title: appState.t(.featuredEvents)) {
-                                ForEach(filteredOffers.prefix(5)) { offer in
+                                ForEach(carouselOffers) { offer in
                                     FeaturedEventCompact(
                                         offer: offer,
                                         open: { selectedOffer = offer }
                                     )
                                 }
                             }
-                        }
-
-                        if let featuredOffer {
-                            FeaturedEventHero(
-                                offer: featuredOffer,
-                                matchScore: appState.profile.score,
-                                isSaved: appState.isSaved(featuredOffer),
-                                open: { selectedOffer = featuredOffer },
-                                toggleSaved: { appState.toggleSaved(featuredOffer) }
-                            )
                         }
 
                         EventCalendarStrip(selectedDay: $selectedCalendarDay, days: calendarDays)
@@ -293,7 +289,7 @@ struct DiscoverView: View {
                             }
                         } else {
                             LazyVStack(spacing: 14) {
-                                ForEach(filteredOffers) { offer in
+                                ForEach(listOffers) { offer in
                                     EventListCard(
                                         offer: offer,
                                         isSaved: appState.isSaved(offer),
@@ -306,6 +302,7 @@ struct DiscoverView: View {
                         }
                     }
                     .padding(16)
+                    .padding(.bottom, 24)
                 }
                 .refreshable {
                     await appState.refreshFromServer()
@@ -448,50 +445,50 @@ private struct EventListCard: View {
     let toggleSaved: () -> Void
 
     var body: some View {
-        Button(action: open) {
-            HStack(spacing: 14) {
-                OfferImageView(offer: offer, height: 80, cornerRadius: 14)
-                    .frame(width: 72, height: 80)
+        HStack(spacing: 14) {
+            OfferImageView(offer: offer, height: 80, cornerRadius: 14)
+                .frame(width: 72, height: 80)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(offer.venue.uppercased())
-                        .font(.caption2.weight(.bold))
-                        .tracking(1)
-                        .foregroundStyle(MarviColor.rose)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(offer.venue.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(MarviColor.rose)
 
-                    Text(offer.title)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(MarviColor.ink)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+                Text(offer.title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
 
-                    HStack(spacing: 8) {
-                        Label(offer.dateLabel, systemImage: "calendar")
-                        if isAccepted {
-                            StatusPill(text: appState.t(.confirmedStatus), tint: MarviColor.emerald, systemImage: "checkmark")
-                        }
+                HStack(spacing: 8) {
+                    Label(offer.dateLabel, systemImage: "calendar")
+                    if isAccepted {
+                        StatusPill(text: appState.t(.confirmedStatus), tint: MarviColor.emerald, systemImage: "checkmark")
                     }
-                    .font(.caption)
-                    .foregroundStyle(MarviColor.muted)
                 }
-
-                Spacer(minLength: 0)
-
-                Button(action: toggleSaved) {
-                    Image(systemName: isSaved ? "heart.fill" : "heart")
-                        .foregroundStyle(isSaved ? MarviColor.rose : MarviColor.muted)
-                }
-                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundStyle(MarviColor.muted)
             }
-            .padding(14)
-            .background(MarviColor.panel)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(MarviColor.border, lineWidth: 1)
-            )
+
+            Spacer(minLength: 0)
+
+            Button(action: toggleSaved) {
+                Image(systemName: isSaved ? "heart.fill" : "heart")
+                    .foregroundStyle(isSaved ? MarviColor.rose : MarviColor.muted)
+                    .frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .padding(14)
+        .background(MarviColor.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(MarviColor.border, lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture(perform: open)
     }
 }
 

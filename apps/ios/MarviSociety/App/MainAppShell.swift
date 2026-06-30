@@ -49,13 +49,13 @@ struct MainAppShell: View {
 
                 BookingsView()
                     .tabItem { Label(MarviL10n.t(.myEvents, language: lang), systemImage: "calendar.badge.clock") }
+                    .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
                     .tag(1)
 
                 ProfileView()
                     .tabItem {
                         Label(MarviL10n.t(.profile, language: lang), systemImage: "person.crop.circle.fill")
                     }
-                    .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
                     .tag(2)
 
             case .venue:

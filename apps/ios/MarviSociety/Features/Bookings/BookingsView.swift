@@ -144,11 +144,13 @@ struct BookingsView: View {
 
                             if selectedCategory != nil || activeBucket != nil {
                                 FilterPillRow(
-                                    items: OfferCategory.allCases.map(\.rawValue),
+                                    items: OfferCategory.allCases.map { $0.label(for: appState.preferredLanguage) },
                                     selected: Binding(
-                                        get: { selectedCategory?.rawValue },
+                                        get: { selectedCategory?.label(for: appState.preferredLanguage) },
                                         set: { newValue in
-                                            selectedCategory = OfferCategory.allCases.first { $0.rawValue == newValue }
+                                            selectedCategory = OfferCategory.allCases.first {
+                                                $0.label(for: appState.preferredLanguage) == newValue
+                                            }
                                         }
                                     )
                                 )
@@ -169,6 +171,7 @@ struct BookingsView: View {
                             }
                         }
                         .padding(16)
+                        .padding(.bottom, 24)
                     }
                     .refreshable { await appState.refreshFromServer() }
                     .onAppear { handleHighlightedBooking(proxy: proxy) }
