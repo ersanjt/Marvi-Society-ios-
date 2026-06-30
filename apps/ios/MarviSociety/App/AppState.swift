@@ -1614,6 +1614,15 @@ final class AppState: ObservableObject {
             || lower.contains("file size") {
             return t(.errPhotoTooLarge)
         }
+        if lower.contains("could not choose the best candidate function") {
+            return t(.errServerSetupOfferAccept)
+        }
+        if lower.contains("update is not allowed in a non-volatile function") {
+            return t(.errServerSetupVenueCampaign)
+        }
+        if lower == "cancelled" || lower.contains("urlsession task was cancelled") {
+            return nil
+        }
         if lower.contains("no venue profile") || lower.contains("venue not found") {
             return t(.errProfileNotReady)
         }

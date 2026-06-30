@@ -485,7 +485,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     // MARK: - Write
 
     func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions = AcceptOfferOptions()) async throws -> Booking {
-        var body: [String: Any] = ["p_offer_id": offerID.uuidString]
+        var body: [String: Any] = [
+            "p_offer_id": offerID.uuidString,
+            "p_shipping_address": NSNull(),
+            "p_rsvp_guests": NSNull()
+        ]
         if let shippingAddress = options.shippingAddress?.trimmingCharacters(in: .whitespacesAndNewlines),
            !shippingAddress.isEmpty {
             body["p_shipping_address"] = shippingAddress

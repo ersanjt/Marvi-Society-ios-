@@ -164,7 +164,7 @@ enum MarviL10n {
         case myLocations, myLocationsSub, addLocation, addLocationSub, selectLocation
         case locationPendingReview, locationTypeLabel, addressOptional, contactPhoneOptional
         // AppState errors
-        case errServerSetupReferral, errServerSetupMultiVenue, errAppleSignInUnavailable, errServerConfig
+        case errServerSetupReferral, errServerSetupMultiVenue, errServerSetupOfferAccept, errServerSetupVenueCampaign, errAppleSignInUnavailable, errServerConfig
         case errAdminAccessDisabled, errNoLinkedBooking, errSignInCheckIn
         case errEnterCheckInCode, errEnterInviteCode, errSignInRedeemInvite
         case errSignInSubmitProof, errUploadScreenshot, errAddProofLink
@@ -506,6 +506,8 @@ enum MarviL10n {
         .locationTypeLabel: "Type", .addressOptional: "Address (optional)", .contactPhoneOptional: "Contact phone (optional)",
         .errServerSetupReferral: "Server setup incomplete. Run apply-referral-fix.sql in Supabase.",
         .errServerSetupMultiVenue: "Server setup incomplete. Run apply-multi-venue.sql in Supabase.",
+        .errServerSetupOfferAccept: "Server update needed for accepting offers. Run npm run db:push.",
+        .errServerSetupVenueCampaign: "Server update needed for campaigns. Run npm run db:push.",
         .errAppleSignInUnavailable: "Sign in with Apple is not available on this build. Use email sign-in.",
         .errServerConfig: "Server configuration error. Check Supabase anon key in Secrets.xcconfig.",
         .errAdminAccessDisabled: "Admin access is not enabled. Sign in, run grant-admin SQL in Supabase, then tap Sync from server.",
@@ -858,6 +860,8 @@ enum MarviL10n {
         .locationTypeLabel: "Tür", .addressOptional: "Adres (isteğe bağlı)", .contactPhoneOptional: "İletişim telefonu (isteğe bağlı)",
         .errServerSetupReferral: "Sunucu kurulumu eksik. Supabase'de apply-referral-fix.sql çalıştır.",
         .errServerSetupMultiVenue: "Sunucu kurulumu eksik. Supabase'de apply-multi-venue.sql çalıştır.",
+        .errServerSetupOfferAccept: "Teklif kabulü için sunucu güncellemesi gerekli. npm run db:push çalıştır.",
+        .errServerSetupVenueCampaign: "Kampanya oluşturmak için sunucu güncellemesi gerekli. npm run db:push çalıştır.",
         .errAppleSignInUnavailable: "Bu sürümde Apple ile giriş kullanılamıyor. E-posta ile giriş yap.",
         .errServerConfig: "Sunucu yapılandırma hatası. Secrets.xcconfig içindeki Supabase anon key'i kontrol et.",
         .errAdminAccessDisabled: "Yönetici erişimi etkin değil. Giriş yap, Supabase'de grant-admin SQL çalıştır, sonra Sunucudan senkronize et'e dokun.",
