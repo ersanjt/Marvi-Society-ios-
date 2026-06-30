@@ -1292,7 +1292,12 @@ private struct ShowcaseEditorCard: View {
             errorMessage = appState.t(.photoUploadFailed)
             return
         }
-        let success = await appState.addShowcasePhoto(data: data, caption: captionText)
+        let prepared = ImageUploadPreprocessor.prepare(data, profile: .showcase)
+        guard let prepared else {
+            errorMessage = appState.t(.errPhotoTooLarge)
+            return
+        }
+        let success = await appState.addShowcasePhoto(data: prepared, caption: captionText)
         if success {
             captionText = ""
         } else {

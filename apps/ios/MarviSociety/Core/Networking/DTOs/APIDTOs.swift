@@ -1,6 +1,15 @@
 import Foundation
 
 enum APIDTOs {
+    static func parseISO(_ raw: String?) -> Date? {
+        guard let raw, !raw.isEmpty else { return nil }
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = iso.date(from: raw) { return date }
+        iso.formatOptions = [.withInternetDateTime]
+        return iso.date(from: raw)
+    }
+
     static func formatDate(_ date: Date?) -> String {
         guard let date else { return "" }
         let formatter = DateFormatter()

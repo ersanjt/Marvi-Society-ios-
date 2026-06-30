@@ -86,6 +86,14 @@ protocol MarviAPI: Sendable {
     func unfollowUser(_ userID: UUID) async throws
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int
     func adminCreateUser(email: String, password: String?, fullName: String, city: String, autoApprove: Bool) async throws -> AdminProvisionResult
+    func fetchConversations() async throws -> [ChatConversation]
+    func fetchMessages(conversationID: UUID) async throws -> [ChatMessage]
+    func sendMessage(conversationID: UUID, body: String) async throws -> ChatMessage
+    func venueConfirmBooking(_ bookingID: UUID) async throws -> Booking
+    func creatorAcceptCollaboration(_ requestID: UUID) async throws -> Booking
+    func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest]
+    func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem]
+    func resolveCurrentUserID() async -> UUID?
 }
 
 extension MarviAPI {
@@ -270,6 +278,26 @@ extension MarviAPI {
         _ = autoApprove
         throw MarviAPIError.server(message: "Admin create user requires Supabase mode")
     }
+
+    func fetchConversations() async throws -> [ChatConversation] { [] }
+    func fetchMessages(conversationID: UUID) async throws -> [ChatMessage] { _ = conversationID; return [] }
+    func sendMessage(conversationID: UUID, body: String) async throws -> ChatMessage {
+        _ = conversationID; _ = body
+        throw MarviAPIError.server(message: "Chat requires Supabase mode")
+    }
+    func venueConfirmBooking(_ bookingID: UUID) async throws -> Booking {
+        _ = bookingID
+        throw MarviAPIError.server(message: "Venue confirm requires Supabase mode")
+    }
+    func creatorAcceptCollaboration(_ requestID: UUID) async throws -> Booking {
+        _ = requestID
+        throw MarviAPIError.server(message: "Collaboration accept requires Supabase mode")
+    }
+
+    func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest] { [] }
+
+    func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem] { _ = limit; return [] }
+    func resolveCurrentUserID() async -> UUID? { nil }
 }
 
 extension MarviAPI {

@@ -60,6 +60,9 @@ final class AppState: ObservableObject {
     @Published var collaborationHistory: [CollaborationEntry] = []
     @Published var followCounts: FollowCounts = .zero
     @Published var showcaseItems: [ShowcaseItem] = []
+    @Published var conversations: [ChatConversation] = []
+    @Published var adminActivity: [ActivityEventItem] = []
+    @Published var pendingCollaborationRequests: [PendingCollaborationRequest] = []
     @Published private(set) var languageManuallySet = false {
         didSet { saveSnapshot() }
     }
@@ -432,6 +435,10 @@ final class AppState: ObservableObject {
         if let history = try? await api.fetchMyCollaborationHistory() { collaborationHistory = history }
         if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
         if let items = try? await api.fetchMyShowcase() { showcaseItems = items }
+        if let chats = try? await api.fetchConversations() { conversations = chats }
+        if let pending = try? await api.fetchPendingCollaborationRequests() {
+            pendingCollaborationRequests = pending
+        }
 
         await syncAllowedRoles()
 
@@ -960,9 +967,14 @@ final class AppState: ObservableObject {
 
     func uploadProfilePhoto(data: Data, kind: ProfileImageKind) async -> Bool {
         guard isAuthenticated else { return false }
+        let uploadProfile: ImageUploadProfile = kind == .avatar ? .avatar : .cover
+        guard let prepared = ImageUploadPreprocessor.prepare(data, profile: uploadProfile) else {
+            lastSyncError = t(.errPhotoTooLarge)
+            return false
+        }
         do {
             let url = try await api.uploadProfileImage(
-                data: data,
+                data: prepared,
                 fileName: "\(kind.rawValue).jpg",
                 kind: kind
             )
@@ -1068,10 +1080,14 @@ final class AppState: ObservableObject {
     }
 
     func uploadProofScreenshot(for booking: Booking, imageData: Data, fileName: String) async -> String? {
+        guard let prepared = ImageUploadPreprocessor.prepare(imageData, profile: .proof) else {
+            lastSyncError = t(.errPhotoTooLarge)
+            return nil
+        }
         do {
             return try await api.uploadProofImage(
                 bookingID: booking.id,
-                imageData: imageData,
+                imageData: prepared,
                 fileName: fileName
             )
         } catch {
@@ -1377,6 +1393,78 @@ final class AppState: ObservableObject {
         showcaseItems = []
     }
 
+    // MARK: - Chat & mutual collaboration
+
+    func loadConversations() async {
+        guard isAuthenticated else { return }
+        if let chats = try? await api.fetchConversations() { conversations = chats }
+    }
+
+    func venueConfirmBooking(_ booking: Booking) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            let updated = try await api.venueConfirmBooking(booking.id)
+            updateBooking(updated.id) { $0 = updated }
+            await loadConversations()
+            await refreshFromServer()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func creatorAcceptCollaboration(requestID: UUID) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            let booking = try await api.creatorAcceptCollaboration(requestID)
+            bookings.insert(booking, at: 0)
+            pendingCollaborationRequests.removeAll { $0.id == requestID }
+            await loadConversations()
+            await refreshFromServer()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func sendChatMessage(conversationID: UUID, body: String) async -> Bool {
+        guard isAuthenticated else { return false }
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        do {
+            _ = try await api.sendMessage(conversationID: conversationID, body: trimmed)
+            await loadConversations()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    var venuePendingConfirmations: [Booking] {
+        guard selectedRole == .venue, activeVenue != nil else { return [] }
+        return bookings.filter { booking in
+            booking.stage == .invited && booking.offer.venue == activeVenue?.venueName
+        }
+    }
+
+    func loadAdminActivity() async {
+        guard isAuthenticated, allowedRoles.contains(.admin) else { return }
+        if let events = try? await api.fetchAdminActivity(limit: 100) {
+            adminActivity = events
+        }
+    }
+
+    func fetchChatMessages(conversationID: UUID) async -> [ChatMessage] {
+        (try? await api.fetchMessages(conversationID: conversationID)) ?? []
+    }
+
+    func resolvedUserID() async -> UUID? {
+        await api.resolveCurrentUserID()
+    }
+
     // MARK: - Creator showcase
 
     func loadShowcase() async {
@@ -1519,6 +1607,12 @@ final class AppState: ObservableObject {
         }
         if lower.contains("unauthorized") || lower.contains("jwt") {
             return t(.errSessionExpired)
+        }
+        if lower.contains("maximum allowed size")
+            || lower.contains("payload too large")
+            || lower.contains("entity too large")
+            || lower.contains("file size") {
+            return t(.errPhotoTooLarge)
         }
         if lower.contains("no venue profile") || lower.contains("venue not found") {
             return t(.errProfileNotReady)

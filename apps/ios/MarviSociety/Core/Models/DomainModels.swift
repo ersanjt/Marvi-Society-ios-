@@ -405,6 +405,47 @@ struct ShowcaseItem: Identifiable, Equatable, Sendable {
     }
 }
 
+struct ChatConversation: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let bookingID: UUID
+    let offerTitle: String
+    let venueName: String
+    let lastMessage: String?
+    let lastMessageAt: Date?
+
+    var preview: String {
+        let trimmed = lastMessage?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? offerTitle : trimmed
+    }
+}
+
+struct ChatMessage: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let conversationID: UUID
+    let senderUserID: UUID
+    let body: String
+    let createdAt: Date
+}
+
+struct ActivityEventItem: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let action: String
+    let subjectType: String
+    let createdAt: Date
+    let actorLabel: String
+}
+
+struct PendingCollaborationRequest: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let offerID: UUID
+    let offerTitle: String
+    let venueName: String
+    let status: String
+    let createdAt: Date
+
+    var isPendingCreator: Bool { status == "pending_creator" }
+}
+
 struct FollowCounts: Equatable {
     var followers: Int
     var following: Int

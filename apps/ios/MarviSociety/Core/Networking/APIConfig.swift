@@ -202,4 +202,12 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func adminCreateUser(email: String, password: String?, fullName: String, city: String, autoApprove: Bool) async throws -> AdminProvisionResult {
         throw notConfigured()
     }
+    func fetchConversations() async throws -> [ChatConversation] { [] }
+    func fetchMessages(conversationID: UUID) async throws -> [ChatMessage] { [] }
+    func sendMessage(conversationID: UUID, body: String) async throws -> ChatMessage { throw notConfigured() }
+    func venueConfirmBooking(_ bookingID: UUID) async throws -> Booking { throw notConfigured() }
+    func creatorAcceptCollaboration(_ requestID: UUID) async throws -> Booking { throw notConfigured() }
+    func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest] { [] }
+    func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem] { [] }
+    func resolveCurrentUserID() async -> UUID? { nil }
 }

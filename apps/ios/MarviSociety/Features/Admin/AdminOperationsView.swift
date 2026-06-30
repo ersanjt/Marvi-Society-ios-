@@ -6,6 +6,7 @@ enum AdminConsoleTab: String, CaseIterable, Identifiable {
     case users
     case map
     case broadcast
+    case activity
 
     var id: String { rawValue }
 
@@ -15,6 +16,7 @@ enum AdminConsoleTab: String, CaseIterable, Identifiable {
         case .users: MarviL10n.t(.adminTabUsers, language: language)
         case .map: MarviL10n.t(.adminTabMap, language: language)
         case .broadcast: MarviL10n.t(.adminTabBroadcast, language: language)
+        case .activity: MarviL10n.t(.adminTabActivity, language: language)
         }
     }
 
@@ -24,6 +26,7 @@ enum AdminConsoleTab: String, CaseIterable, Identifiable {
         case .users: "person.3"
         case .map: "map"
         case .broadcast: "megaphone"
+        case .activity: "waveform.path.ecg"
         }
     }
 }
@@ -577,5 +580,51 @@ struct AdminBroadcastTab: View {
         ) {
             feedback = message
         }
+    }
+}
+
+struct AdminActivityTab: View {
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle(
+                    title: appState.t(.adminTabActivity),
+                    subtitle: appState.t(.adminActivitySub)
+                )
+
+                if appState.adminActivity.isEmpty {
+                    MarviCard {
+                        EmptyStateView(
+                            title: appState.t(.adminActivityEmpty),
+                            subtitle: appState.t(.adminActivityEmptySub),
+                            icon: "waveform.path.ecg",
+                            actionTitle: appState.t(.refresh),
+                            action: { Task { await appState.loadAdminActivity() } }
+                        )
+                    }
+                } else {
+                    ForEach(appState.adminActivity) { event in
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(event.action.replacingOccurrences(of: "_", with: " ").capitalized)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(MarviColor.ink)
+                                Text("\(event.subjectType) · \(event.actorLabel)")
+                                    .font(.caption)
+                                    .foregroundStyle(MarviColor.muted)
+                                Text(event.createdAt, style: .relative)
+                                    .font(.caption2)
+                                    .foregroundStyle(MarviColor.graphite)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .refreshable { await appState.loadAdminActivity() }
+        .task { await appState.loadAdminActivity() }
     }
 }

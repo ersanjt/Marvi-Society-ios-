@@ -977,6 +977,79 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func fetchConversations() async throws -> [ChatConversation] {
+        let rows: [ConversationRow] = try await client.rpc(function: "get_my_conversations", body: [:])
+        return rows.map { $0.toConversation() }
+    }
+
+    func fetchMessages(conversationID: UUID) async throws -> [ChatMessage] {
+        let rows: [MessageRow] = try await client.rpc(
+            function: "get_conversation_messages",
+            body: ["p_conversation_id": conversationID.uuidString]
+        )
+        return rows.map { $0.toMessage() }
+    }
+
+    func sendMessage(conversationID: UUID, body: String) async throws -> ChatMessage {
+        let row: MessageRow = try await client.rpc(
+            function: "send_message",
+            body: [
+                "p_conversation_id": conversationID.uuidString,
+                "p_body": body
+            ]
+        )
+        return row.toMessage()
+    }
+
+    func venueConfirmBooking(_ bookingID: UUID) async throws -> Booking {
+        let row: BookingRPCRow = try await client.rpc(
+            function: "venue_confirm_booking",
+            body: ["p_booking_id": bookingID.uuidString]
+        )
+        return try await hydrateBooking(row)
+    }
+
+    func creatorAcceptCollaboration(_ requestID: UUID) async throws -> Booking {
+        let row: BookingRPCRow = try await client.rpc(
+            function: "creator_accept_collaboration",
+            body: ["p_request_id": requestID.uuidString]
+        )
+        return try await hydrateBooking(row)
+    }
+
+    func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest] {
+        let rows: [PendingCollaborationRequestRow] = try await client.rpc(
+            function: "get_my_pending_collaboration_requests",
+            body: [:]
+        )
+        return rows.map { $0.toRequest() }
+    }
+
+    func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem] {
+        let rows: [ActivityEventRow] = try await client.rpc(
+            function: "admin_list_activity",
+            body: ["p_limit": limit]
+        )
+        return rows.map { $0.toItem() }
+    }
+
+    func resolveCurrentUserID() async -> UUID? {
+        guard let raw = await client.currentUserID() else { return nil }
+        return UUID(uuidString: raw)
+    }
+
+    private func hydrateBooking(_ row: BookingRPCRow) async throws -> Booking {
+        let bookings = try await fetchBookings()
+        if let booking = bookings.first(where: { $0.id == row.id }) {
+            return booking
+        }
+        let offers = try await fetchOffers(city: "istanbul")
+        guard let offer = offers.first(where: { $0.id == row.offer_id }) else {
+            throw MarviAPIError.server(message: "Offer not found for booking")
+        }
+        return row.toBooking(offer: offer)
+    }
+
     private static let adminDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -1124,6 +1197,83 @@ private struct BookingRPCRow: Decodable {
 
 private struct BookingIDRow: Decodable {
     let id: UUID
+}
+
+private struct ConversationRow: Decodable {
+    let id: UUID
+    let booking_id: UUID
+    let offer_title: String?
+    let venue_name: String?
+    let last_message: String?
+    let last_message_at: String?
+    let created_at: String?
+
+    func toConversation() -> ChatConversation {
+        ChatConversation(
+            id: id,
+            bookingID: booking_id,
+            offerTitle: offer_title ?? "",
+            venueName: venue_name ?? "",
+            lastMessage: last_message,
+            lastMessageAt: APIDTOs.parseISO(last_message_at ?? created_at)
+        )
+    }
+}
+
+private struct MessageRow: Decodable {
+    let id: UUID
+    let conversation_id: UUID
+    let sender_user_id: UUID
+    let body: String
+    let created_at: String?
+
+    func toMessage() -> ChatMessage {
+        ChatMessage(
+            id: id,
+            conversationID: conversation_id,
+            senderUserID: sender_user_id,
+            body: body,
+            createdAt: APIDTOs.parseISO(created_at) ?? Date()
+        )
+    }
+}
+
+private struct PendingCollaborationRequestRow: Decodable {
+    let id: UUID
+    let offer_id: UUID
+    let offer_title: String?
+    let venue_name: String?
+    let status: String
+    let created_at: String?
+
+    func toRequest() -> PendingCollaborationRequest {
+        PendingCollaborationRequest(
+            id: id,
+            offerID: offer_id,
+            offerTitle: offer_title ?? "",
+            venueName: venue_name ?? "",
+            status: status,
+            createdAt: APIDTOs.parseISO(created_at) ?? Date()
+        )
+    }
+}
+
+private struct ActivityEventRow: Decodable {
+    let id: UUID
+    let action: String
+    let subject_type: String?
+    let actor_user_id: UUID?
+    let created_at: String?
+
+    func toItem() -> ActivityEventItem {
+        ActivityEventItem(
+            id: id,
+            action: action,
+            subjectType: subject_type ?? "",
+            createdAt: APIDTOs.parseISO(created_at) ?? Date(),
+            actorLabel: actor_user_id?.uuidString.prefix(8).description ?? "system"
+        )
+    }
 }
 
 private struct BookingJoinRow: Decodable {

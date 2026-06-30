@@ -12,11 +12,21 @@
       "version": "0.2.0"
     },
     "database": {
-      "migrationHead": "20260630000006_creator_showcase",
-      "migrationCount": 25
+      "migrationHead": "20260630000007_chat_activity_mutual_match",
+      "migrationCount": 26
     }
   },
   "syncLog": [
+    {
+      "at": "2026-06-30T20:02:44Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000007_chat_activity_mutual_match)"
+    },
+    {
+      "at": "2026-06-30T17:29:42Z",
+      "status": "ok",
+      "message": "pushed 0b59adc to origin/main"
+    },
     {
       "at": "2026-06-30T17:29:37Z",
       "status": "ok",

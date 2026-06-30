@@ -74,7 +74,7 @@ enum MarviL10n {
         case modelInvitation, modelEvent, modelGift, modelInstant
         // Errors (user-facing)
         case errSessionExpired, errSignInRequired, errWrongPassword, errAccountExists
-        case errInviteInvalid, errInviteFull, errCheckInInvalid, errProfileNotReady
+        case errInviteInvalid, errInviteFull, errCheckInInvalid, errProfileNotReady, errPhotoTooLarge
         case errReactivateSupport, errEnterEmail, errTypeDelete, errSomeDataRefresh
         case errInvitationFull, errAlreadyAccepted, errNotAuthenticated, errConfirmEmail
         // Misc
@@ -134,7 +134,11 @@ enum MarviL10n {
         case confirm, issueStrike, reasonLabel, issueStrikeTitle, strikeDefaultReason
         case operationsCommand, adminControl, adminControlSub
         case usersLabel, bookingsLabel, strikesLabel, reviewQueue, reviewQueueSub
-        case adminTabQueue, adminTabUsers, adminTabMap, adminTabBroadcast
+        case adminTabQueue, adminTabUsers, adminTabMap, adminTabBroadcast, adminTabActivity
+        case messagesTitle, noMessagesYet, noMessagesYetSub, messagePlaceholder
+        case pendingVenueConfirm, pendingVenueConfirmSub, confirmCollaboration
+        case venueInviteTitle, venueInviteSub, acceptVenueInvite
+        case adminActivitySub, adminActivityEmpty, adminActivityEmptySub
         case studioUnderReview, studioUpcoming, studioOpenSwipe, studioHappening, studioPast, studioCreate
         case profileEngagement
         case geoBroadcast, geoBroadcastSub, sendToArea, locationUnavailable
@@ -305,6 +309,7 @@ enum MarviL10n {
         .errInvitationFull: "This invitation is full. Try another event.",
         .errCheckInInvalid: "Invalid check-in code. Ask the venue host for the correct code.",
         .errProfileNotReady: "Your creator profile is not set up yet. Contact support.",
+        .errPhotoTooLarge: "This photo is too large. Choose any image — we compress it automatically before upload.",
         .errReactivateSupport: "This account was paused by our team. Email support@marvisociety.com to restore access.",
         .errEnterEmail: "Enter your email address first.",
         .errTypeDelete: "Type DELETE to confirm permanent deletion.",
@@ -441,6 +446,16 @@ enum MarviL10n {
         .usersLabel: "Users", .bookingsLabel: "Bookings", .strikesLabel: "Strikes",
         .reviewQueue: "Review queue", .reviewQueueSub: "Approve or reject items before they go live.",
         .adminTabQueue: "Queue", .adminTabUsers: "Users", .adminTabMap: "Map", .adminTabBroadcast: "Broadcast",
+        .adminTabActivity: "Activity",
+        .messagesTitle: "Messages", .noMessagesYet: "No messages yet", .noMessagesYetSub: "When a collaboration is confirmed, you can chat here.",
+        .messagePlaceholder: "Write a message…",
+        .pendingVenueConfirm: "Pending confirmations", .pendingVenueConfirmSub: "Creators accepted your offer — confirm to open chat.",
+        .confirmCollaboration: "Confirm & open chat",
+        .venueInviteTitle: "Venue invitation",
+        .venueInviteSub: "Accept to confirm the collaboration and start chatting.",
+        .acceptVenueInvite: "Accept invitation",
+        .adminActivitySub: "Everything members do in the app — acceptances, messages, shortlists.",
+        .adminActivityEmpty: "No activity yet", .adminActivityEmptySub: "Actions will appear here as users interact with the platform.",
         .studioUnderReview: "Under\nReview", .studioUpcoming: "Upcoming\nEvents", .studioOpenSwipe: "Open for\nswipe",
         .studioHappening: "Happening", .studioPast: "Past", .studioCreate: "Create",
         .profileEngagement: "Engagement",
@@ -646,6 +661,7 @@ enum MarviL10n {
         .errInvitationFull: "Bu davet dolu. Başka bir etkinlik dene.",
         .errCheckInInvalid: "Check-in kodu geçersiz. Mekân hostundan doğru kodu iste.",
         .errProfileNotReady: "Creator profilin henüz hazır değil. Destekle iletişime geç.",
+        .errPhotoTooLarge: "Fotoğraf çok büyük. Her görseli seçebilirsin — yüklemeden önce otomatik sıkıştırıyoruz.",
         .errReactivateSupport: "Bu hesap ekibimiz tarafından duraklatıldı. Erişim için support@marvisociety.com adresine yaz.",
         .errEnterEmail: "Önce e-posta adresini gir.",
         .errTypeDelete: "Kalıcı silmeyi onaylamak için SİL yaz.",
@@ -782,6 +798,16 @@ enum MarviL10n {
         .usersLabel: "Kullanıcılar", .bookingsLabel: "Rezervasyonlar", .strikesLabel: "Uyarılar",
         .reviewQueue: "İnceleme kuyruğu", .reviewQueueSub: "Yayınlanmadan önce öğeleri onayla veya reddet.",
         .adminTabQueue: "Kuyruk", .adminTabUsers: "Kullanıcılar", .adminTabMap: "Harita", .adminTabBroadcast: "Yayın",
+        .adminTabActivity: "Aktivite",
+        .messagesTitle: "Mesajlar", .noMessagesYet: "Henüz mesaj yok", .noMessagesYetSub: "İş birliği onaylandığında buradan sohbet edebilirsiniz.",
+        .messagePlaceholder: "Mesaj yaz…",
+        .pendingVenueConfirm: "Onay bekleyenler", .pendingVenueConfirmSub: "Creator teklifinizi kabul etti — sohbet için onaylayın.",
+        .confirmCollaboration: "Onayla ve sohbet et",
+        .venueInviteTitle: "Mekân daveti",
+        .venueInviteSub: "Kabul edince iş birliği onaylanır ve sohbet başlar.",
+        .acceptVenueInvite: "Daveti kabul et",
+        .adminActivitySub: "Üyelerin uygulamada yaptığı her şey — kabul, mesaj, shortlist.",
+        .adminActivityEmpty: "Henüz aktivite yok", .adminActivityEmptySub: "Kullanıcılar etkileşim kurdukça burada görünür.",
         .studioUnderReview: "İncelemede", .studioUpcoming: "Yaklaşan\nEtkinlikler", .studioOpenSwipe: "Swipe\naçık",
         .studioHappening: "Devam eden", .studioPast: "Geçmiş", .studioCreate: "Oluştur",
         .profileEngagement: "Etkileşim",

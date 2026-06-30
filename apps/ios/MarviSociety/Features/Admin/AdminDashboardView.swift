@@ -31,6 +31,8 @@ struct AdminDashboardView: View {
                         AdminMapTab()
                     case .broadcast:
                         AdminBroadcastTab()
+                    case .activity:
+                        AdminActivityTab()
                     }
                 }
             }

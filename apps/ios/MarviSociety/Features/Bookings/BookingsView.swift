@@ -30,6 +30,7 @@ struct BookingsView: View {
     @State private var rateVenueBooking: Booking?
     @State private var selectedOffer: Offer?
     @State private var isShowingInbox = false
+    @State private var isShowingMessages = false
     @State private var isInterestMode = false
     @State private var selectedBucketID: UUID?
     @State private var selectedCategory: OfferCategory?
@@ -39,7 +40,9 @@ struct BookingsView: View {
             StatusBadge(
                 id: EventBucket.requests.id,
                 title: EventBucket.requests.title(for: appState.preferredLanguage),
-                count: appState.pendingInviteBookings.count + appState.interestOffers.count,
+                count: appState.pendingInviteBookings.count
+                    + appState.pendingCollaborationRequests.count
+                    + appState.interestOffers.count,
                 tint: MarviColor.rose
             ),
             StatusBadge(
@@ -113,6 +116,16 @@ struct BookingsView: View {
                                 }
 
                                 Spacer()
+
+                                Button { isShowingMessages = true } label: {
+                                    Image(systemName: "bubble.left.and.bubble.right")
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(MarviColor.ink)
+                                        .frame(width: 40, height: 40)
+                                        .background(MarviColor.panel)
+                                        .clipShape(Circle())
+                                }
+                                .buttonStyle(.plain)
 
                                 Button { isShowingInbox = true } label: {
                                     Image(systemName: "bell")
@@ -202,6 +215,10 @@ struct BookingsView: View {
                         }
                 }
             }
+            .sheet(isPresented: $isShowingMessages) {
+                CollaborationChatView()
+                    .environmentObject(appState)
+            }
             .navigationDestination(item: $selectedOffer) { offer in
                 OfferDetailView(offer: offer)
             }
@@ -259,9 +276,14 @@ struct BookingsView: View {
         }
     }
 
+    private var visibleCollaborationRequests: [PendingCollaborationRequest] {
+        guard !isInterestMode, activeBucket == .requests || activeBucket == nil else { return [] }
+        return appState.pendingCollaborationRequests.filter(\.isPendingCreator)
+    }
+
     @ViewBuilder
     private var bookingsContent: some View {
-        if appState.isSyncing && displayedBookings.isEmpty {
+        if appState.isSyncing && displayedBookings.isEmpty && visibleCollaborationRequests.isEmpty {
             MarviCard {
                 HStack {
                     Spacer()
@@ -270,7 +292,7 @@ struct BookingsView: View {
                 }
                 .padding(.vertical, 32)
             }
-        } else if displayedBookings.isEmpty {
+        } else if displayedBookings.isEmpty && visibleCollaborationRequests.isEmpty {
             MarviCard {
                 EmptyStateView(
                     title: emptyTitle,
@@ -281,6 +303,10 @@ struct BookingsView: View {
                 )
             }
         } else {
+            ForEach(visibleCollaborationRequests) { request in
+                PendingCollaborationRequestCard(request: request)
+                    .environmentObject(appState)
+            }
             ForEach(displayedBookings) { booking in
                 BookingCard(booking: booking) {
                     selectedOffer = booking.offer
@@ -758,6 +784,49 @@ private struct CreatorVenueReviewSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(appState.t(.close)) { dismiss() }
                 }
+            }
+        }
+    }
+}
+
+private struct PendingCollaborationRequestCard: View {
+    @EnvironmentObject private var appState: AppState
+    let request: PendingCollaborationRequest
+    @State private var isAccepting = false
+
+    var body: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionTitle(
+                    title: appState.t(.venueInviteTitle),
+                    subtitle: appState.t(.venueInviteSub)
+                )
+                Text(request.offerTitle)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
+                Text(request.venueName)
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.muted)
+                Button {
+                    Task {
+                        isAccepting = true
+                        _ = await appState.creatorAcceptCollaboration(requestID: request.id)
+                        isAccepting = false
+                    }
+                } label: {
+                    Label(
+                        isAccepting ? appState.t(.saving) : appState.t(.acceptVenueInvite),
+                        systemImage: "checkmark.circle.fill"
+                    )
+                    .font(.caption.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(MarviColor.emerald)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .disabled(isAccepting)
             }
         }
     }

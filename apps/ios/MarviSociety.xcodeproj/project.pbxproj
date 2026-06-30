@@ -50,6 +50,8 @@
 		1A2B3C4D5E6F700000000177 /* SecretSocietyComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000167 /* SecretSocietyComponents.swift */; };
 		1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000168 /* MarviAppDelegate.swift */; };
 		1A2B3C4D5E6F700000000190 /* MarviL10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000191 /* MarviL10n.swift */; };
+		1A2B3C4D5E6F7000000001B1 /* ImageUploadPreprocessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */; };
+		1A2B3C4D5E6F7000000001B3 /* CollaborationChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001B2 /* CollaborationChatView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -89,6 +91,8 @@
 		1A2B3C4D5E6F700000000152 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000153 /* AppLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLinks.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000191 /* MarviL10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarviL10n.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageUploadPreprocessor.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7000000001B2 /* CollaborationChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationChatView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000154 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000156 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000158 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
@@ -189,6 +193,7 @@
 			children = (
 				1A2B3C4D5E6F700000000153 /* AppLinks.swift */,
 				1A2B3C4D5E6F700000000191 /* MarviL10n.swift */,
+				1A2B3C4D5E6F7000000001B4 /* Media */,
 				1A2B3C4D5E6F700000000410 /* DesignSystem */,
 				1A2B3C4D5E6F700000000411 /* Models */,
 				1A2B3C4D5E6F700000000412 /* Persistence */,
@@ -196,6 +201,14 @@
 				1A2B3C4D5E6F700000000430 /* Services */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F7000000001B4 /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */,
+			);
+			path = Media;
 			sourceTree = "<group>";
 		};
 		1A2B3C4D5E6F700000000408 /* Features */ = {
@@ -284,6 +297,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000008 /* BookingsView.swift */,
+				1A2B3C4D5E6F7000000001B2 /* CollaborationChatView.swift */,
 			);
 			path = Bookings;
 			sourceTree = "<group>";
@@ -515,6 +529,8 @@
 				1A2B3C4D5E6F700000000176 /* ReauthView.swift in Sources */,
 				1A2B3C4D5E6F700000000177 /* SecretSocietyComponents.swift in Sources */,
 				1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */,
+				1A2B3C4D5E6F7000000001B1 /* ImageUploadPreprocessor.swift in Sources */,
+				1A2B3C4D5E6F7000000001B3 /* CollaborationChatView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -652,7 +668,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "MarviSociety/MarviSociety-Device.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 28;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -690,7 +706,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MarviSociety/MarviSociety.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 28;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;

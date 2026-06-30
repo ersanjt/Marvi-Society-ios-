@@ -79,6 +79,10 @@ struct VenueStudioView: View {
                         )
                         .padding(.top, 4)
 
+                        if !appState.venuePendingConfirmations.isEmpty {
+                            VenuePendingConfirmationsCard(bookings: appState.venuePendingConfirmations)
+                        }
+
                         VenueLocationsCard(
                             venues: appState.myVenues,
                             onSelect: { venue in
@@ -1311,5 +1315,52 @@ private struct AddVenueSheet: View {
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !area.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+private struct VenuePendingConfirmationsCard: View {
+    @EnvironmentObject private var appState: AppState
+    let bookings: [Booking]
+    @State private var confirmingID: UUID?
+
+    var body: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle(
+                    title: appState.t(.pendingVenueConfirm),
+                    subtitle: appState.t(.pendingVenueConfirmSub)
+                )
+                ForEach(bookings) { booking in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(booking.offer.title)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                        Text(booking.guestName.isEmpty ? booking.offer.venue : booking.guestName)
+                            .font(.caption)
+                            .foregroundStyle(MarviColor.muted)
+                        Button {
+                            Task {
+                                confirmingID = booking.id
+                                _ = await appState.venueConfirmBooking(booking)
+                                confirmingID = nil
+                            }
+                        } label: {
+                            Label(
+                                confirmingID == booking.id ? appState.t(.saving) : appState.t(.confirmCollaboration),
+                                systemImage: "checkmark.circle.fill"
+                            )
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.white)
+                        .background(MarviColor.emerald)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .disabled(confirmingID != nil)
+                    }
+                }
+            }
+        }
     }
 }
