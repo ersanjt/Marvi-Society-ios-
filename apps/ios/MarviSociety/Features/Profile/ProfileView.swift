@@ -63,6 +63,9 @@ struct ProfileView: View {
                         PremiumProfileHeader(
                             profile: appState.profile,
                             managementTitle: managementTitle,
+                            avatarPickerItem: $avatarPickerItem,
+                            coverPickerItem: $coverPickerItem,
+                            isUploadingPhoto: isUploadingPhoto,
                             onManagement: {
                                 withAnimation {
                                     proxy.scrollTo("workspace-section", anchor: .center)
@@ -739,7 +742,13 @@ private struct PremiumProfileHeader: View {
     @EnvironmentObject private var appState: AppState
     let profile: CreatorProfile
     let managementTitle: String
+    @Binding var avatarPickerItem: PhotosPickerItem?
+    @Binding var coverPickerItem: PhotosPickerItem?
+    var isUploadingPhoto: Bool
     let onManagement: () -> Void
+
+    private let avatarSize: CGFloat = 88
+    private let coverHeight: CGFloat = 140
 
     private var initials: String {
         let fromName = profile.name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()
@@ -750,7 +759,63 @@ private struct PremiumProfileHeader: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .bottom) {
+            ZStack(alignment: .topLeading) {
+                coverPicker
+
+                HStack(alignment: .center, spacing: 14) {
+                    avatarPicker
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(profile.name.isEmpty ? appState.t(.member) : profile.name)
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                            .lineLimit(2)
+
+                        Text(profile.niches.first ?? appState.t(.creator))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(MarviColor.rose)
+
+                        Text(profile.handle.isEmpty ? appState.t(.handleEmpty) : "@\(profile.handle.replacingOccurrences(of: "@", with: ""))")
+                            .font(.caption)
+                            .foregroundStyle(profile.handle.isEmpty ? MarviColor.muted.opacity(0.6) : MarviColor.muted)
+
+                        StatusPill(
+                            text: profile.status.label(for: appState.preferredLanguage),
+                            tint: statusTint(for: profile.status),
+                            systemImage: statusIcon(for: profile.status)
+                        )
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, coverHeight - avatarSize / 2)
+            }
+
+            SSManagementButton(title: managementTitle, action: onManagement)
+                .padding(.horizontal, 16)
+                .padding(.top, avatarSize / 2 + 14)
+                .padding(.bottom, 16)
+        }
+        .background(MarviColor.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(MarviColor.border, lineWidth: 1)
+        )
+        .overlay {
+            if isUploadingPhoto {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.black.opacity(0.35))
+                ProgressView()
+                    .tint(.white)
+            }
+        }
+    }
+
+    private var coverPicker: some View {
+        PhotosPicker(selection: $coverPickerItem, matching: .images) {
+            ZStack(alignment: .bottomTrailing) {
                 Group {
                     if let coverURL = URL(string: profile.coverURL), !profile.coverURL.isEmpty {
                         AsyncImage(url: coverURL) { phase in
@@ -765,47 +830,61 @@ private struct PremiumProfileHeader: View {
                         MarviGradient.brandVertical
                     }
                 }
-                .frame(height: 120)
+                .frame(height: coverHeight)
+                .frame(maxWidth: .infinity)
                 .clipped()
 
-                profileAvatar
-                    .offset(y: 48)
+                photoBadge(icon: "camera.fill")
+                    .padding(12)
             }
-
-            VStack(spacing: 10) {
-                Text(profile.name.isEmpty ? appState.t(.member) : profile.name)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(MarviColor.ink)
-                    .padding(.top, 56)
-
-                Text(profile.niches.first ?? appState.t(.creator))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(MarviColor.rose)
-
-                Text(profile.handle.isEmpty ? appState.t(.handleEmpty) : "@\(profile.handle.replacingOccurrences(of: "@", with: ""))")
-                    .font(.caption)
-                    .foregroundStyle(profile.handle.isEmpty ? MarviColor.muted.opacity(0.6) : MarviColor.muted)
-
-                StatusPill(
-                    text: profile.status.label(for: appState.preferredLanguage),
-                    tint: statusTint(for: profile.status),
-                    systemImage: statusIcon(for: profile.status)
-                )
-
-                SSManagementButton(title: managementTitle, action: onManagement)
-                    .padding(.horizontal, 4)
-                    .padding(.top, 4)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
-            .background(MarviColor.panel)
+            .contentShape(Rectangle())
         }
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(MarviColor.border, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
+        .disabled(isUploadingPhoto)
+        .accessibilityLabel(appState.t(.changeCover))
+    }
+
+    private var avatarPicker: some View {
+        PhotosPicker(selection: $avatarPickerItem, matching: .images) {
+            ZStack(alignment: .bottomTrailing) {
+                profileAvatarImage
+                photoBadge(icon: "camera.fill", compact: true)
+                    .offset(x: 4, y: 4)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isUploadingPhoto)
+        .accessibilityLabel(appState.t(.changeAvatar))
+    }
+
+    @ViewBuilder
+    private var profileAvatarImage: some View {
+        if let avatarURL = URL(string: profile.avatarURL), !profile.avatarURL.isEmpty {
+            AsyncImage(url: avatarURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: avatarSize, height: avatarSize)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(MarviColor.panel, lineWidth: 3))
+                default:
+                    SSAvatarRing(initials: initials, size: avatarSize)
+                }
+            }
+        } else {
+            SSAvatarRing(initials: initials, size: avatarSize)
+        }
+    }
+
+    private func photoBadge(icon: String, compact: Bool = false) -> some View {
+        Image(systemName: icon)
+            .font(compact ? .caption2.weight(.bold) : .caption.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(compact ? 5 : 7)
+            .background(.black.opacity(0.45))
+            .clipShape(Circle())
     }
 
     private func statusTint(for status: MembershipStatus) -> Color {
@@ -821,27 +900,6 @@ private struct PremiumProfileHeader: View {
         case .approved: "checkmark.seal"
         case .underReview: "hourglass"
         case .paused: "pause.circle"
-        }
-    }
-
-    @ViewBuilder
-    private var profileAvatar: some View {
-        if let avatarURL = URL(string: profile.avatarURL), !profile.avatarURL.isEmpty {
-            AsyncImage(url: avatarURL) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 96, height: 96)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(MarviColor.panel, lineWidth: 3))
-                default:
-                    SSAvatarRing(initials: initials, size: 96)
-                }
-            }
-        } else {
-            SSAvatarRing(initials: initials, size: 96)
         }
     }
 }
