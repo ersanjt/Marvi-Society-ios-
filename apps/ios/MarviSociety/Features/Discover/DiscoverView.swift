@@ -448,12 +448,15 @@ private struct EventListCard: View {
         HStack(spacing: 14) {
             OfferImageView(offer: offer, height: 80, cornerRadius: 14)
                 .frame(width: 72, height: 80)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(offer.venue.uppercased())
                     .font(.caption2.weight(.bold))
                     .tracking(1)
                     .foregroundStyle(MarviColor.rose)
+                    .lineLimit(1)
 
                 Text(offer.title)
                     .font(.subheadline.weight(.bold))

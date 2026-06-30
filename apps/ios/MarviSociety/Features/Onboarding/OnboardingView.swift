@@ -31,6 +31,21 @@ private enum OnboardingStep: Int, CaseIterable {
         case .agreement: "Join Marvi Society"
         }
     }
+
+    /// Number of progress steps shown to the user (welcome is an intro, not counted).
+    static let displayTotal = 4
+
+    /// 1-based position used by the progress bar and the "Step x/4" eyebrow.
+    /// `profile` and `venueSetup` are mutually exclusive paths, so both map to step 3.
+    var displayIndex: Int {
+        switch self {
+        case .welcome: 0
+        case .signIn: 1
+        case .invite: 2
+        case .profile, .venueSetup: 3
+        case .agreement: 4
+        }
+    }
 }
 
 private enum SignupIntent: String, CaseIterable {
@@ -168,32 +183,29 @@ struct OnboardingView: View {
     // MARK: - Steps
 
     private var welcomeStep: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                Spacer(minLength: 12)
+        VStack(alignment: .leading, spacing: 0) {
+            BrandMark(size: 56)
+                .padding(.bottom, 16)
 
-            BrandMark(size: 72)
-                .padding(.bottom, 28)
-
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(appState.t(.heroLine1))
-                    .font(.system(size: 42, weight: .bold, design: .serif))
+                    .font(.system(size: 34, weight: .bold, design: .serif))
                     .foregroundStyle(MarviColor.ink)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(0.8)
                     .lineLimit(2)
 
                 Text(appState.t(.heroLine2))
-                    .font(.system(size: 28, weight: .bold, design: .serif))
+                    .font(.system(size: 24, weight: .bold, design: .serif))
                     .foregroundStyle(MarviGradient.brand)
 
                 Text(appState.t(.heroSubtitle))
                     .font(.subheadline)
                     .foregroundStyle(MarviColor.muted)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 4)
+                    .padding(.top, 2)
             }
 
-            Spacer(minLength: 28)
+            Spacer(minLength: 14)
 
             HStack(spacing: 10) {
                 OnboardingPill(icon: "calendar", title: appState.t(.when))
@@ -201,7 +213,7 @@ struct OnboardingView: View {
                 OnboardingPill(icon: "sparkles", title: appState.t(.eventTypeAxis))
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 OnboardingFeatureRow(
                     icon: "checkmark.seal.fill",
                     title: appState.t(.featApprovedTitle),
@@ -218,11 +230,11 @@ struct OnboardingView: View {
                     subtitle: appState.t(.featProofSub)
                 )
             }
-            .padding(.top, 22)
+            .padding(.top, 14)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 14)
 
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 SignupIntentCard(
                     intent: .creator,
                     language: appState.preferredLanguage,
@@ -243,7 +255,7 @@ struct OnboardingView: View {
                     advance(to: .signIn)
                 }
             }
-            .padding(.bottom, 14)
+            .padding(.bottom, 8)
 
             Button {
                 isCreatingAccount = false
@@ -255,10 +267,10 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
     }
 
     private var signInStep: some View {
@@ -687,7 +699,20 @@ struct OnboardingView: View {
     }
 
     private func goBack() {
-        guard let previous = OnboardingStep(rawValue: step.rawValue - 1) else { return }
+        let previous: OnboardingStep?
+        switch step {
+        case .welcome:
+            previous = nil
+        case .signIn:
+            previous = .welcome
+        case .invite:
+            previous = .signIn
+        case .profile, .venueSetup:
+            previous = .invite
+        case .agreement:
+            previous = signupIntent == .business ? .venueSetup : .profile
+        }
+        guard let previous else { return }
         referralError = ""
         appleSignInError = nil
         appState.dismissSyncError()
@@ -1057,16 +1082,16 @@ private struct OnboardingProgressBar: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(OnboardingStep.allCases, id: \.rawValue) { item in
+            ForEach(1...OnboardingStep.displayTotal, id: \.self) { index in
                 Capsule()
                     .fill(
-                        item.rawValue <= current.rawValue
+                        index <= current.displayIndex
                             ? AnyShapeStyle(MarviGradient.brand)
                             : AnyShapeStyle(MarviColor.panelElevated)
                     )
                     .frame(height: 4)
                     .overlay(
-                        Capsule().stroke(MarviColor.border.opacity(0.5), lineWidth: item.rawValue > current.rawValue ? 1 : 0)
+                        Capsule().stroke(MarviColor.border.opacity(0.5), lineWidth: index > current.displayIndex ? 1 : 0)
                     )
             }
         }
