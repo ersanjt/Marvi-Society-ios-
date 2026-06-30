@@ -74,6 +74,7 @@ struct VenueStudioView: View {
                         HomeHeader(
                             greeting: firstName,
                             subtitle: appState.t(.venuePartnerWorkspace),
+                            onProfile: { appState.navigate(to: .profile) },
                             onNotifications: { isShowingInbox = true }
                         )
                         .padding(.top, 4)

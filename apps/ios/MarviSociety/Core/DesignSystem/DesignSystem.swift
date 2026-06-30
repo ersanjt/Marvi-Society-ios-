@@ -495,19 +495,33 @@ struct HomeHeader: View {
     @EnvironmentObject private var appState: AppState
     let greeting: String
     let subtitle: String
+    var onProfile: (() -> Void)?
     var onSearch: (() -> Void)?
     var onNotifications: (() -> Void)?
 
+    private var initials: String {
+        String(greeting.prefix(1)).uppercased()
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            ZStack {
-                MarviGradient.brand
-                Text(String(greeting.prefix(1)))
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
+            profileLeading
+
+            Spacer()
+
+            if let onSearch {
+                HeaderIconButton(icon: "magnifyingglass", action: onSearch)
             }
-            .frame(width: 44, height: 44)
-            .clipShape(Circle())
+            if let onNotifications {
+                HeaderIconButton(icon: "bell", action: onNotifications)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var profileLeading: some View {
+        let content = HStack(alignment: .center, spacing: 12) {
+            profileAvatar
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(MarviL10n.t(.hiGreeting, language: appState.preferredLanguage)), \(greeting)")
@@ -518,15 +532,44 @@ struct HomeHeader: View {
                     .font(.caption)
                     .foregroundStyle(MarviColor.muted)
             }
+        }
 
-            Spacer()
+        if let onProfile {
+            Button(action: onProfile) {
+                content
+            }
+            .buttonStyle(.plain)
+        } else {
+            content
+        }
+    }
 
-            if let onSearch {
-                HeaderIconButton(icon: "magnifyingglass", action: onSearch)
+    @ViewBuilder
+    private var profileAvatar: some View {
+        Group {
+            if let avatarURL = URL(string: appState.profile.avatarURL), !appState.profile.avatarURL.isEmpty {
+                AsyncImage(url: avatarURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        avatarPlaceholder
+                    }
+                }
+            } else {
+                avatarPlaceholder
             }
-            if let onNotifications {
-                HeaderIconButton(icon: "bell", action: onNotifications)
-            }
+        }
+        .frame(width: 44, height: 44)
+        .clipShape(Circle())
+    }
+
+    private var avatarPlaceholder: some View {
+        ZStack {
+            MarviGradient.brand
+            Text(initials)
+                .font(.headline.weight(.bold))
+                .foregroundStyle(.white)
         }
     }
 }

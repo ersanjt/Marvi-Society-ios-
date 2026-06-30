@@ -171,6 +171,7 @@ struct DiscoverView: View {
                         HomeHeader(
                             greeting: firstName,
                             subtitle: "\(cityLabel) · \(appState.t(.privateAccess))",
+                            onProfile: { appState.navigate(to: .profile) },
                             onNotifications: { isShowingInbox = true }
                         )
                         .padding(.top, 4)

@@ -696,7 +696,8 @@ final class AppState: ObservableObject {
 
         do {
             try await api.updateProfile(profile)
-            await refreshFromServer()
+            profile = try await api.fetchProfile()
+            lastSyncError = nil
             return true
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription

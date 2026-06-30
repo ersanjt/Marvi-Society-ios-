@@ -96,7 +96,7 @@ enum MarviL10n {
         case showcaseTitle, showcaseSubtitle, showcaseEmpty
         case showcaseLinkPlaceholder, showcaseCaptionPlaceholder, showcaseAddLink, showcaseUploadPhoto
         case nichesComma, languagesComma, openInstagram, openTiktok
-        case profileSavedSuccess, saving, checklistProgress
+        case profileSavedSuccess, profileSaveFailed, saving, checklistProgress
         case nicheSelected, audienceReviewed, agreementSigned
         case tiktokConnected, inviteFriends, inviteFriendsSub, inviteEmailPlaceholder
         case sendInviteBtn, inviteSentSuccess, socialSetupTitle, socialSetupSub, socialSetupContinue
@@ -357,7 +357,7 @@ enum MarviL10n {
         .viewPublicProfile: "View profile",
         .nichesComma: "Niches (comma separated)", .languagesComma: "Languages (comma separated)",
         .openInstagram: "Open Instagram profile", .openTiktok: "Open TikTok profile",
-        .profileSavedSuccess: "Profile saved to your account.", .saving: "Saving…",
+        .profileSavedSuccess: "Profile saved to your account.", .profileSaveFailed: "Couldn't save profile. Please try again.", .saving: "Saving…",
         .checklistProgress: "of 7 steps complete",
         .nicheSelected: "Niche selected", .audienceReviewed: "Audience reviewed", .agreementSigned: "Agreement signed",
         .tiktokConnected: "TikTok connected",
@@ -696,7 +696,7 @@ enum MarviL10n {
         .viewPublicProfile: "Profili gör",
         .nichesComma: "Nişler (virgülle ayır)", .languagesComma: "Diller (virgülle ayır)",
         .openInstagram: "Instagram profilini aç", .openTiktok: "TikTok profilini aç",
-        .profileSavedSuccess: "Profil hesabına kaydedildi.", .saving: "Kaydediliyor…",
+        .profileSavedSuccess: "Profil hesabına kaydedildi.", .profileSaveFailed: "Profil kaydedilemedi. Lütfen tekrar deneyin.", .saving: "Kaydediliyor…",
         .checklistProgress: "/ 7 adım tamamlandı",
         .nicheSelected: "Niş seçildi", .audienceReviewed: "Kitle incelendi", .agreementSigned: "Sözleşme imzalandı",
         .tiktokConnected: "TikTok bağlandı",

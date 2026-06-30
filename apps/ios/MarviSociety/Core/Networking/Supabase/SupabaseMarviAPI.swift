@@ -188,6 +188,12 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             throw MarviAPIError.notAuthenticated
         }
 
+        // Ensure a row exists — PATCH on zero rows succeeds silently in PostgREST.
+        let _: CreatorProfileHealRow = try await client.rpc(
+            function: "ensure_creator_profile",
+            body: [:]
+        )
+
         try await client.patch(
             table: "creator_profiles",
             query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],

@@ -26,6 +26,7 @@ struct ProfileView: View {
     @State private var isSavingProfile = false
     @State private var isSigningOut = false
     @State private var saveSuccessMessage: String?
+    @State private var saveFailed = false
     @State private var nichesText = ""
     @State private var languagesText = ""
     @State private var selectedInsightTab: ProfileInsightTab = .engagement
@@ -289,9 +290,12 @@ struct ProfileView: View {
                                 }
 
                                 if let saveSuccessMessage {
-                                    Label(saveSuccessMessage, systemImage: "checkmark.circle.fill")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(MarviColor.emerald)
+                                    Label(
+                                        saveSuccessMessage,
+                                        systemImage: saveFailed ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"
+                                    )
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(saveFailed ? MarviColor.tomato : MarviColor.emerald)
                                 }
 
                                 if appState.isAuthenticated {
@@ -299,6 +303,7 @@ struct ProfileView: View {
                                         Task {
                                             isSavingProfile = true
                                             saveSuccessMessage = nil
+                                            saveFailed = false
                                             appState.profile.niches = nichesText
                                                 .split(separator: ",")
                                                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -307,11 +312,12 @@ struct ProfileView: View {
                                                 .split(separator: ",")
                                                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                                                 .filter { !$0.isEmpty }
-                                            await appState.saveProfileToServer()
+                                            let saved = await appState.saveProfileToServer()
                                             isSavingProfile = false
-                                            if appState.lastSyncError == nil {
-                                                saveSuccessMessage = appState.t(.profileSavedSuccess)
-                                            }
+                                            saveFailed = !saved
+                                            saveSuccessMessage = saved
+                                                ? appState.t(.profileSavedSuccess)
+                                                : (appState.lastSyncError ?? appState.t(.profileSaveFailed))
                                         }
                                     } label: {
                                         Label(
