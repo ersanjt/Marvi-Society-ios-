@@ -131,14 +131,15 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
 
   if (template === "invite_code") {
     const code = esc(vars.invite_code ?? "MARVI-IST");
+    const deepLink = esc(vars.deep_link ?? `marvisociety://invite?code=${vars.invite_code ?? "MARVI-IST"}`);
     if (locale === "tr") {
       return {
         subject: "Marvi Society — davet kodunuz",
         html: wrap(
           "Creator davetiniz",
-          `<p>Marvi Society'ye katılmak için uygulamayı indirin ve kayıt sırasında bu kodu girin:</p>
+          `<p>Marvi Society'ye katılmak için uygulamayı indirin, <strong>davet edilen e-posta adresinizle</strong> kayıt olun ve bu kodu girin:</p>
            <p style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#ff2f77;">${code}</p>
-           <p><a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
+           <p><a href="${deepLink}" style="color:#ff2f77;">Uygulamada daveti aç</a> · <a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
         ),
       };
     }
@@ -146,9 +147,9 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
       subject: "Marvi Society — your invite code",
       html: wrap(
         "Your creator invite",
-        `<p>Download the app and enter this code during signup:</p>
+        `<p>Download the app, sign up with <strong>this email address</strong>, and enter this code:</p>
          <p style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#ff2f77;">${code}</p>
-         <p><a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
+         <p><a href="${deepLink}" style="color:#ff2f77;">Open invite in app</a> · <a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
       ),
     };
   }

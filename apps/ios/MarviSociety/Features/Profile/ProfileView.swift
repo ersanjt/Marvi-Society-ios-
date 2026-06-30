@@ -31,6 +31,9 @@ struct ProfileView: View {
     @State private var selectedInsightTab: ProfileInsightTab = .engagement
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var coverPickerItem: PhotosPickerItem?
+    @State private var inviteEmail = ""
+    @State private var isSendingInvite = false
+    @State private var inviteSuccessMessage: String?
 
     private var managementTitle: String {
         switch appState.selectedRole {
@@ -284,11 +287,65 @@ struct ProfileView: View {
                                     subtitle: "\(completedChecklistSteps) \(appState.t(.checklistProgress))"
                                 )
                                 ChecklistRow(title: appState.t(.instagramConnected), isDone: !appState.profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                ChecklistRow(title: appState.t(.tiktokConnected), isDone: !appState.profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: appState.t(.cityVerified), isDone: !appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: appState.t(.nicheSelected), isDone: !appState.profile.niches.isEmpty)
                                 ChecklistRow(title: appState.t(.audienceReviewed), isDone: appState.profile.score > 0)
                                 ChecklistRow(title: appState.t(.creatorReferences), isDone: !appState.profile.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: appState.t(.agreementSigned), isDone: appState.profile.status == .approved)
+                            }
+                        }
+
+                        if appState.isAuthenticated, appState.selectedRole == .creator {
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    SectionTitle(
+                                        title: appState.t(.inviteFriends),
+                                        subtitle: appState.t(.inviteFriendsSub)
+                                    )
+
+                                    MarviTextField(
+                                        placeholder: appState.t(.inviteEmailPlaceholder),
+                                        text: $inviteEmail,
+                                        autocapitalization: .never
+                                    )
+
+                                    if let inviteSuccessMessage {
+                                        Label(inviteSuccessMessage, systemImage: "checkmark.circle.fill")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(MarviColor.emerald)
+                                    }
+
+                                    Button {
+                                        Task {
+                                            isSendingInvite = true
+                                            inviteSuccessMessage = nil
+                                            if let error = await appState.sendCreatorInvite(email: inviteEmail) {
+                                                _ = error
+                                            } else {
+                                                inviteSuccessMessage = appState.t(.inviteSentSuccess)
+                                                inviteEmail = ""
+                                            }
+                                            isSendingInvite = false
+                                        }
+                                    } label: {
+                                        Label(
+                                            isSendingInvite ? appState.t(.saving) : appState.t(.sendInviteBtn),
+                                            systemImage: "envelope.fill"
+                                        )
+                                        .font(.subheadline.weight(.bold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(MarviColor.rose)
+                                    .background(MarviColor.rose.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .disabled(
+                                        isSendingInvite
+                                            || inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    )
+                                }
                             }
                         }
 
@@ -584,6 +641,7 @@ struct ProfileView: View {
     private var completedChecklistSteps: Int {
         var count = 0
         if !appState.profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
+        if !appState.profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         if !appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         if !appState.profile.niches.isEmpty { count += 1 }
         if appState.profile.score > 0 { count += 1 }

@@ -819,6 +819,15 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func sendCreatorInvite(email: String) async throws -> AdminInviteResult {
+        try await client.rpc(
+            function: "send_creator_invite",
+            body: ["p_email": email.trimmingCharacters(in: .whitespacesAndNewlines)],
+            type: AdminInviteResult.self,
+            decoder: Self.adminDecoder
+        )
+    }
+
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
         try await client.rpc(
             function: "admin_notify_users_in_radius",

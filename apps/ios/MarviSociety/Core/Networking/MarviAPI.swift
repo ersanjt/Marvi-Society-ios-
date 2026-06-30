@@ -73,6 +73,7 @@ protocol MarviAPI: Sendable {
     func adminSendNotification(userID: UUID, title: String, body: String) async throws
     func adminSendEmail(userID: UUID, subject: String, body: String) async throws
     func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult
+    func sendCreatorInvite(email: String) async throws -> AdminInviteResult
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int
     func adminCreateUser(email: String, password: String?, fullName: String, city: String, autoApprove: Bool) async throws -> AdminProvisionResult
 }
@@ -215,6 +216,11 @@ extension MarviAPI {
         _ = email
         _ = inviteCode
         throw MarviAPIError.server(message: "Admin invite requires Supabase mode")
+    }
+
+    func sendCreatorInvite(email: String) async throws -> AdminInviteResult {
+        _ = email
+        throw MarviAPIError.server(message: "Creator invite requires Supabase mode")
     }
 
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {

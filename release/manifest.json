@@ -12,8 +12,8 @@
       "version": "0.2.0"
     },
     "database": {
-      "migrationHead": "20260630000002_feature_completeness",
-      "migrationCount": 21
+      "migrationHead": "20260630000003_invite_social_completeness",
+      "migrationCount": 22
     }
   },
   "syncLog": [

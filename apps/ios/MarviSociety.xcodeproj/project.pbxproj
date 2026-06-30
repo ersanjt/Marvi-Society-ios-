@@ -20,6 +20,7 @@
 		1A2B3C4D5E6F700000000112 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000011 /* AppState.swift */; };
 		1A2B3C4D5E6F700000000113 /* MainAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000012 /* MainAppShell.swift */; };
 		1A2B3C4D5E6F700000000114 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000013 /* OnboardingView.swift */; };
+		1A2B3C4D5E6F7000000001A1 /* AccountSetupGates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001A0 /* AccountSetupGates.swift */; };
 		1A2B3C4D5E6F700000000115 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000014 /* InboxView.swift */; };
 		1A2B3C4D5E6F700000000116 /* AppPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000015 /* AppPersistence.swift */; };
 		1A2B3C4D5E6F700000000117 /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */; };
@@ -64,6 +65,7 @@
 		1A2B3C4D5E6F700000000011 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000012 /* MainAppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppShell.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000013 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7000000001A0 /* AccountSetupGates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSetupGates.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000014 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000015 /* AppPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPersistence.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
@@ -315,6 +317,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000013 /* OnboardingView.swift */,
+				1A2B3C4D5E6F7000000001A0 /* AccountSetupGates.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -484,6 +487,7 @@
 				1A2B3C4D5E6F700000000112 /* AppState.swift in Sources */,
 				1A2B3C4D5E6F700000000113 /* MainAppShell.swift in Sources */,
 				1A2B3C4D5E6F700000000114 /* OnboardingView.swift in Sources */,
+				1A2B3C4D5E6F7000000001A1 /* AccountSetupGates.swift in Sources */,
 				1A2B3C4D5E6F700000000115 /* InboxView.swift in Sources */,
 				1A2B3C4D5E6F700000000116 /* AppPersistence.swift in Sources */,
 				1A2B3C4D5E6F700000000117 /* AdminDashboardView.swift in Sources */,
@@ -648,7 +652,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "MarviSociety/MarviSociety-Device.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -669,7 +673,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marvisociety.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -686,7 +690,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MarviSociety/MarviSociety.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -707,7 +711,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marvisociety.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

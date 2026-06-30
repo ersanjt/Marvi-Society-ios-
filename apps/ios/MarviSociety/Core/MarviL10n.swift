@@ -90,6 +90,9 @@ enum MarviL10n {
         case nichesComma, languagesComma, openInstagram, openTiktok
         case profileSavedSuccess, saving, checklistProgress
         case nicheSelected, audienceReviewed, agreementSigned
+        case tiktokConnected, inviteFriends, inviteFriendsSub, inviteEmailPlaceholder
+        case sendInviteBtn, inviteSentSuccess, socialSetupTitle, socialSetupSub, socialSetupContinue
+        case errInviteEmailMismatch
         case signedIn, notSignedIn, developer, debugBuildsOnly, reactivating
         case closeAccountBtn, deleteForeverBtn, unreadSuffix, settingsSub
         case privacyPolicy, termsOfService, communityGuidelines, legalSectionSub
@@ -325,8 +328,18 @@ enum MarviL10n {
         .nichesComma: "Niches (comma separated)", .languagesComma: "Languages (comma separated)",
         .openInstagram: "Open Instagram profile", .openTiktok: "Open TikTok profile",
         .profileSavedSuccess: "Profile saved to your account.", .saving: "Saving…",
-        .checklistProgress: "of 6 steps complete",
+        .checklistProgress: "of 7 steps complete",
         .nicheSelected: "Niche selected", .audienceReviewed: "Audience reviewed", .agreementSigned: "Agreement signed",
+        .tiktokConnected: "TikTok connected",
+        .inviteFriends: "Invite a creator",
+        .inviteFriendsSub: "Send a single-use invite to their email. They must sign up with that address.",
+        .inviteEmailPlaceholder: "Friend's email",
+        .sendInviteBtn: "Send invite email",
+        .inviteSentSuccess: "Invite sent — they'll receive an email with their code.",
+        .socialSetupTitle: "Link your social accounts",
+        .socialSetupSub: "Instagram and TikTok are required for verification and invite matching.",
+        .socialSetupContinue: "Save and continue",
+        .errInviteEmailMismatch: "This invite was sent to a different email. Sign in with the invited address.",
         .signedIn: "Signed in", .notSignedIn: "Not signed in",
         .developer: "Developer", .debugBuildsOnly: "Debug builds only.",
         .reactivating: "Reactivating…", .closeAccountBtn: "Close account", .deleteForeverBtn: "Delete forever",
@@ -632,8 +645,18 @@ enum MarviL10n {
         .nichesComma: "Nişler (virgülle ayır)", .languagesComma: "Diller (virgülle ayır)",
         .openInstagram: "Instagram profilini aç", .openTiktok: "TikTok profilini aç",
         .profileSavedSuccess: "Profil hesabına kaydedildi.", .saving: "Kaydediliyor…",
-        .checklistProgress: "/ 6 adım tamamlandı",
+        .checklistProgress: "/ 7 adım tamamlandı",
         .nicheSelected: "Niş seçildi", .audienceReviewed: "Kitle incelendi", .agreementSigned: "Sözleşme imzalandı",
+        .tiktokConnected: "TikTok bağlandı",
+        .inviteFriends: "Creator davet et",
+        .inviteFriendsSub: "Tek kullanımlık davet e-postası gönder. Kayıt aynı e-posta adresiyle yapılmalı.",
+        .inviteEmailPlaceholder: "Arkadaşının e-postası",
+        .sendInviteBtn: "Davet e-postası gönder",
+        .inviteSentSuccess: "Davet gönderildi — kod e-postayla iletilecek.",
+        .socialSetupTitle: "Sosyal hesaplarını bağla",
+        .socialSetupSub: "Doğrulama ve davet eşleşmesi için Instagram ve TikTok zorunludur.",
+        .socialSetupContinue: "Kaydet ve devam et",
+        .errInviteEmailMismatch: "Bu davet farklı bir e-postaya gönderildi. Davet edilen adresle giriş yap.",
         .signedIn: "Giriş yapıldı", .notSignedIn: "Giriş yapılmadı",
         .developer: "Geliştirici", .debugBuildsOnly: "Yalnızca debug sürümlerinde.",
         .reactivating: "Yeniden açılıyor…", .closeAccountBtn: "Hesabı kapat", .deleteForeverBtn: "Kalıcı sil",

@@ -185,6 +185,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func adminSendNotification(userID: UUID, title: String, body: String) async throws { throw notConfigured() }
     func adminSendEmail(userID: UUID, subject: String, body: String) async throws { throw notConfigured() }
     func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult { throw notConfigured() }
+    func sendCreatorInvite(email: String) async throws -> AdminInviteResult { throw notConfigured() }
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
         throw notConfigured()
     }

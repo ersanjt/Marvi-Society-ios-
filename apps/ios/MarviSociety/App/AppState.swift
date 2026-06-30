@@ -55,6 +55,8 @@ final class AppState: ObservableObject {
     @Published var pendingDeepLink: MarviDeepLink?
     @Published var highlightedBookingID: UUID?
     @Published var pendingOfferNavigation: Offer?
+    @Published var pendingInviteCode: String?
+    @Published private(set) var accountReferralCode: String?
     @Published private(set) var languageManuallySet = false {
         didSet { saveSnapshot() }
     }
@@ -130,6 +132,23 @@ final class AppState: ObservableObject {
 
     var openAdminTasks: [AdminTask] {
         adminTasks.filter { $0.status == .open }
+    }
+
+    /// Signed-in user must redeem an invite before using the app (creators and venues).
+    var needsInviteRedemption: Bool {
+        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
+        if accountRole == .admin { return false }
+        return accountReferralCode == nil
+    }
+
+    /// Creators must link Instagram and TikTok before using the app.
+    var needsSocialProfileCompletion: Bool {
+        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding, !needsInviteRedemption else { return false }
+        if accountRole == .admin { return false }
+        if allowedRoles.contains(.venue), selectedRole == .venue { return false }
+        let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return handle.isEmpty || tiktok.isEmpty
     }
 
     static func inferredSystemLanguage() -> AppLanguage {
@@ -303,6 +322,18 @@ final class AppState: ObservableObject {
             Task { await openAdminConsole() }
         case "profile":
             navigate(to: .profile)
+        case "invite":
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+               let code = components.queryItems?.first(where: { $0.name == "code" })?.value,
+               !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                pendingInviteCode = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                if isAuthenticated, hasCompletedOnboarding, needsInviteRedemption {
+                    return
+                }
+                if !hasCompletedOnboarding {
+                    return
+                }
+            }
         default:
             navigate(to: .inbox)
         }
@@ -441,6 +472,7 @@ final class AppState: ObservableObject {
             if let membership = context.membershipStatus {
                 profile.status = membership
             }
+            accountReferralCode = context.referralCode
             accountPausedBySelf = context.pausedBySelf
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
@@ -464,16 +496,17 @@ final class AppState: ObservableObject {
         guard isRemoteMode, isAuthenticated else { return false }
 
         if let context = try? await api.fetchAccountContext() {
-            if context.referralCode != nil { return true }
-            if context.hasVenueProfile { return true }
+            accountReferralCode = context.referralCode
             if context.role == .admin { return true }
-            if context.membershipStatus == .approved { return true }
-        }
+            if context.hasVenueProfile { return true }
+            if context.referralCode == nil { return false }
 
-        let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let city = profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !handle.isEmpty, !city.isEmpty { return true }
-        if !bookings.isEmpty { return true }
+            let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let city = profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !handle.isEmpty, !tiktok.isEmpty, !city.isEmpty { return true }
+            return false
+        }
 
         return false
     }
@@ -999,9 +1032,30 @@ final class AppState: ObservableObject {
         guard isAuthenticated else { return t(.errSignInRedeemInvite) }
         do {
             try await api.redeemReferralCode(normalized)
+            accountReferralCode = normalized
+            await syncAllowedRoles()
             return nil
         } catch {
             return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func sendCreatorInvite(email: String) async -> String? {
+        guard isRemoteMode, isAuthenticated else { return t(.errSignInRequired) }
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return t(.errEnterEmail) }
+
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+
+        do {
+            _ = try await api.sendCreatorInvite(email: trimmed)
+            return nil
+        } catch {
+            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            lastSyncError = message
+            return message
         }
     }
 
@@ -1308,6 +1362,8 @@ final class AppState: ObservableObject {
         strikes = []
         savedOfferIDs = []
         profile = .empty
+        accountReferralCode = nil
+        pendingInviteCode = nil
     }
 
     private func friendlyErrorMessage(_ error: Error) -> String? {

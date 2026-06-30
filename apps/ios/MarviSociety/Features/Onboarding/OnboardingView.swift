@@ -73,6 +73,7 @@ struct OnboardingView: View {
 
     @State private var step: OnboardingStep = .welcome
     @State private var instagramHandle = ""
+    @State private var tiktokHandle = ""
     @State private var city = "Istanbul"
     @State private var selectedNiches: Set<String> = []
     @State private var inviteCode = ""
@@ -136,7 +137,12 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity)
         }
         .preferredColorScheme(.dark)
-        .onAppear { applyResumeState() }
+        .onAppear {
+            if let pending = appState.pendingInviteCode, inviteCode.isEmpty {
+                inviteCode = pending
+            }
+            applyResumeState()
+        }
         .onChange(of: appState.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated { applyResumeState() }
         }
@@ -464,6 +470,12 @@ struct OnboardingView: View {
                     autocapitalization: .never
                 )
 
+                MarviTextField(
+                    placeholder: appState.t(.tiktokHandleField),
+                    text: $tiktokHandle,
+                    autocapitalization: .never
+                )
+
                 MarviTextField(placeholder: appState.t(.cityPlaceholder), text: $city)
 
                 Text(appState.t(.yourNiches))
@@ -681,6 +693,7 @@ struct OnboardingView: View {
 
     private var isProfileValid: Bool {
         !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
@@ -689,6 +702,7 @@ struct OnboardingView: View {
     private func applyResumeState() {
         guard appState.isAuthenticated else { return }
         instagramHandle = appState.profile.handle
+        tiktokHandle = appState.profile.tiktokHandle
         if !appState.profile.city.isEmpty {
             city = appState.profile.city
         }
@@ -746,6 +760,7 @@ struct OnboardingView: View {
             }
         case .profile:
             appState.profile.handle = instagramHandle
+            appState.profile.tiktokHandle = tiktokHandle
             appState.profile.city = city
             appState.profile.niches = Array(selectedNiches).sorted()
             if appState.profile.languages.isEmpty {
@@ -773,6 +788,7 @@ struct OnboardingView: View {
             "locale": inferredSignupLocale(),
             "city": city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             "instagram_handle": instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines),
+            "tiktok_handle": tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines),
             "full_name": fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? appState.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 : fullName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -829,6 +845,7 @@ struct OnboardingView: View {
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
             instagramHandle = appState.profile.handle
+        tiktokHandle = appState.profile.tiktokHandle
             await handlePostAuthentication()
         }
     }
@@ -865,6 +882,7 @@ struct OnboardingView: View {
 
     private func handlePostAuthentication() async {
         instagramHandle = appState.profile.handle
+        tiktokHandle = appState.profile.tiktokHandle
         if !appState.profile.city.isEmpty { city = appState.profile.city }
         selectedNiches = Set(appState.profile.niches)
 
@@ -898,7 +916,9 @@ struct OnboardingView: View {
         if let redeemError = await appState.redeemReferralCode(inviteCode) {
             let lower = redeemError.lowercased()
             if lower.contains("invalid invite") || lower.contains("invite code required") {
-                referralError = "Invite code not recognized. Ask your curator for a valid code."
+                referralError = appState.t(.errInviteInvalid)
+            } else if lower.contains("different email") {
+                referralError = appState.t(.errInviteEmailMismatch)
             } else if lower.contains("could not find the function") {
                 referralError = "Server setup incomplete. Run apply-referral-fix.sql in Supabase."
             } else {
@@ -924,6 +944,7 @@ struct OnboardingView: View {
             guard registered else { return }
         } else {
             appState.profile.handle = instagramHandle
+            appState.profile.tiktokHandle = tiktokHandle
             appState.profile.city = city
             appState.profile.niches = Array(selectedNiches).sorted()
             if appState.profile.languages.isEmpty {
