@@ -380,6 +380,26 @@ struct CreatorProfile: Codable {
     }
 }
 
+struct FollowCounts: Equatable {
+    var followers: Int
+    var following: Int
+
+    static let zero = FollowCounts(followers: 0, following: 0)
+}
+
+struct CollaborationEntry: Identifiable, Hashable {
+    let id: UUID
+    let venueName: String
+    let area: String
+    let title: String
+    let dateLabel: String
+    /// Rating the venue gave the creator (punctuality + presentation averaged, 0 when not rated).
+    let venueRating: Double?
+    let venueComment: String
+    /// Whether the creator left a thank-you review for the venue.
+    let creatorThanked: Bool
+}
+
 struct VenueReviewItem: Identifiable, Hashable {
     let id: UUID
     let creatorName: String

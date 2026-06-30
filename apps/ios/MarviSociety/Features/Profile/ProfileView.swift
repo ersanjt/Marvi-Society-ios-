@@ -74,7 +74,12 @@ struct ProfileView: View {
                                 )
 
                                 if selectedInsightTab == .engagement {
-                                    ProfileEngagementPanel(profile: appState.profile, followersLabel: appState.t(.followers))
+                                    ProfileEngagementPanel(
+                                        profile: appState.profile,
+                                        followCounts: appState.followCounts,
+                                        followersLabel: appState.t(.followers),
+                                        followingLabel: appState.t(.followingLabel)
+                                    )
                                 } else {
                                     ProfileHealthPanel(profile: appState.profile, healthLabel: appState.t(.profileHealth))
                                 }
@@ -153,6 +158,31 @@ struct ProfileView: View {
                                 HStack(spacing: 10) {
                                     ScoreTile(value: "\(appState.profile.score)", label: appState.t(.scoreLabel), icon: "star.fill", tint: MarviColor.gold)
                                     ScoreTile(value: appState.profile.proofRate, label: appState.t(.deliveryLabel), icon: "checkmark.seal.fill", tint: MarviColor.emerald)
+                                }
+                            }
+                        }
+
+                        if appState.selectedRole == .creator {
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    SectionTitle(
+                                        title: appState.t(.collaborationHistory),
+                                        subtitle: appState.t(.collaborationHistorySub)
+                                    )
+
+                                    if appState.collaborationHistory.isEmpty {
+                                        EmptyStateView(
+                                            title: appState.t(.noCollaborationsYet),
+                                            subtitle: appState.t(.noCollaborationsSub),
+                                            icon: "building.2",
+                                            actionTitle: nil,
+                                            action: nil
+                                        )
+                                    } else {
+                                        ForEach(appState.collaborationHistory) { entry in
+                                            CollaborationRowView(entry: entry)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -822,19 +852,74 @@ private struct ProfileInsightPicker: View {
     }
 }
 
+private struct CollaborationRowView: View {
+    @EnvironmentObject private var appState: AppState
+    let entry: CollaborationEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.venueName)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                    Text([entry.area, entry.dateLabel].filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(MarviColor.muted)
+                }
+                Spacer()
+                if let rating = entry.venueRating {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.caption2)
+                            .foregroundStyle(MarviColor.gold)
+                        Text(String(format: "%.1f", rating))
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(MarviColor.panelElevated)
+                    .clipShape(Capsule())
+                } else {
+                    Text(appState.t(.awaitingVenueRating))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(MarviColor.muted)
+                }
+            }
+
+            if !entry.venueComment.isEmpty {
+                Text("“\(entry.venueComment)”")
+                    .font(.caption)
+                    .italic()
+                    .foregroundStyle(MarviColor.graphite)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if entry.creatorThanked {
+                Label(appState.t(.youThanked), systemImage: "checkmark.seal.fill")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(MarviColor.emerald)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(MarviColor.panel)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
 private struct ProfileEngagementPanel: View {
     let profile: CreatorProfile
+    let followCounts: FollowCounts
     let followersLabel: String
-
-    private var cleanAudience: String {
-        profile.audienceLabel.replacingOccurrences(of: " audience", with: "")
-    }
+    let followingLabel: String
 
     var body: some View {
         VStack(spacing: 14) {
             HStack(spacing: 12) {
-                ProfileBigMetric(value: cleanAudience, label: followersLabel, icon: "person.2.fill", tint: MarviColor.rose)
-                ProfileBigMetric(value: "\(profile.niches.count)", label: "Niches", icon: "tag.fill", tint: MarviColor.aubergine)
+                ProfileBigMetric(value: "\(followCounts.followers)", label: followersLabel, icon: "person.2.fill", tint: MarviColor.rose)
+                ProfileBigMetric(value: "\(followCounts.following)", label: followingLabel, icon: "person.badge.plus", tint: MarviColor.aubergine)
             }
 
             VStack(spacing: 10) {

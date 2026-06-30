@@ -57,6 +57,8 @@ final class AppState: ObservableObject {
     @Published var pendingOfferNavigation: Offer?
     @Published var pendingInviteCode: String?
     @Published private(set) var accountReferralCode: String?
+    @Published var collaborationHistory: [CollaborationEntry] = []
+    @Published var followCounts: FollowCounts = .zero
     @Published private(set) var languageManuallySet = false {
         didSet { saveSnapshot() }
     }
@@ -425,6 +427,9 @@ final class AppState: ObservableObject {
         }
 
         if let loadedStrikes = try? await api.fetchStrikes() { strikes = loadedStrikes }
+
+        if let history = try? await api.fetchMyCollaborationHistory() { collaborationHistory = history }
+        if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
 
         await syncAllowedRoles()
 
@@ -1364,6 +1369,28 @@ final class AppState: ObservableObject {
         profile = .empty
         accountReferralCode = nil
         pendingInviteCode = nil
+        collaborationHistory = []
+        followCounts = .zero
+    }
+
+    func followUser(_ userID: UUID) async {
+        guard isRemoteMode, isAuthenticated else { return }
+        do {
+            try await api.followUser(userID)
+            if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func unfollowUser(_ userID: UUID) async {
+        guard isRemoteMode, isAuthenticated else { return }
+        do {
+            try await api.unfollowUser(userID)
+            if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
     }
 
     private func friendlyErrorMessage(_ error: Error) -> String? {

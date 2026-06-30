@@ -363,3 +363,53 @@ extension AdminTaskStatus {
         }
     }
 }
+
+struct FollowCountsRow: Decodable {
+    let followers: Int
+    let following: Int
+}
+
+struct CollaborationRow: Decodable {
+    struct Rating: Decodable {
+        let punctuality: Int?
+        let presentation: Int?
+        let comment: String?
+    }
+
+    let booking_id: UUID
+    let venue_name: String?
+    let area: String?
+    let title: String?
+    let date: Date?
+    let venue_rating: Rating?
+    let my_rating: Rating?
+
+    func toEntry() -> CollaborationEntry {
+        let venueRating: Double?
+        if let rating = venue_rating, let p = rating.punctuality, let pr = rating.presentation {
+            venueRating = (Double(p) + Double(pr)) / 2.0
+        } else {
+            venueRating = nil
+        }
+
+        let dateLabel: String
+        if let date {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            dateLabel = formatter.string(from: date)
+        } else {
+            dateLabel = ""
+        }
+
+        return CollaborationEntry(
+            id: booking_id,
+            venueName: venue_name ?? "",
+            area: area ?? "",
+            title: title ?? "",
+            dateLabel: dateLabel,
+            venueRating: venueRating,
+            venueComment: venue_rating?.comment ?? "",
+            creatorThanked: my_rating != nil
+        )
+    }
+}

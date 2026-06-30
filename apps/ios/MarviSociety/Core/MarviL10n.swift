@@ -87,6 +87,8 @@ enum MarviL10n {
         case scoreLabel, deliveryLabel, strikeHistory, strikeHistorySub
         case socialAccounts, socialAccountsSub, displayName, bio, cityField, tiktokHandleField
         case handleEmpty
+        case followingLabel, collaborationHistory, collaborationHistorySub
+        case venueRatedYou, awaitingVenueRating, youThanked, noCollaborationsYet, noCollaborationsSub
         case changeAvatar, changeCover
         case nichesComma, languagesComma, openInstagram, openTiktok
         case profileSavedSuccess, saving, checklistProgress
@@ -327,6 +329,14 @@ enum MarviL10n {
         .changeAvatar: "Profile photo", .changeCover: "Cover image",
         .displayName: "Display name", .bio: "Bio", .cityField: "City", .tiktokHandleField: "TikTok handle",
         .handleEmpty: "@add your handle",
+        .followingLabel: "Following",
+        .collaborationHistory: "Collaboration history",
+        .collaborationHistorySub: "Venues you've visited and how they rated you.",
+        .venueRatedYou: "Venue rating",
+        .awaitingVenueRating: "Awaiting venue rating",
+        .youThanked: "You left a review",
+        .noCollaborationsYet: "No collaborations yet",
+        .noCollaborationsSub: "Once you check in at a venue, it appears here with their rating.",
         .nichesComma: "Niches (comma separated)", .languagesComma: "Languages (comma separated)",
         .openInstagram: "Open Instagram profile", .openTiktok: "Open TikTok profile",
         .profileSavedSuccess: "Profile saved to your account.", .saving: "Saving…",
@@ -645,6 +655,14 @@ enum MarviL10n {
         .changeAvatar: "Profil fotoğrafı", .changeCover: "Kapak görseli",
         .displayName: "Görünen ad", .bio: "Biyografi", .cityField: "Şehir", .tiktokHandleField: "TikTok kullanıcı adı",
         .handleEmpty: "@kullanıcı adı ekle",
+        .followingLabel: "Takip edilen",
+        .collaborationHistory: "İş birliği geçmişi",
+        .collaborationHistorySub: "Ziyaret ettiğin mekânlar ve sana verdikleri puan.",
+        .venueRatedYou: "Mekân puanı",
+        .awaitingVenueRating: "Mekân puanı bekleniyor",
+        .youThanked: "Değerlendirme bıraktın",
+        .noCollaborationsYet: "Henüz iş birliği yok",
+        .noCollaborationsSub: "Bir mekâna check-in yaptığında, puanıyla birlikte burada görünür.",
         .nichesComma: "Nişler (virgülle ayır)", .languagesComma: "Diller (virgülle ayır)",
         .openInstagram: "Instagram profilini aç", .openTiktok: "TikTok profilini aç",
         .profileSavedSuccess: "Profil hesabına kaydedildi.", .saving: "Kaydediliyor…",

@@ -828,6 +828,34 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func fetchMyCollaborationHistory() async throws -> [CollaborationEntry] {
+        let rows: [CollaborationRow] = try await client.rpc(
+            function: "get_my_collaboration_history",
+            body: [:],
+            type: [CollaborationRow].self,
+            decoder: Self.adminDecoder
+        )
+        return rows.map { $0.toEntry() }
+    }
+
+    func fetchMyFollowCounts() async throws -> FollowCounts {
+        let row: FollowCountsRow = try await client.rpc(
+            function: "get_my_follow_counts",
+            body: [:],
+            type: FollowCountsRow.self,
+            decoder: Self.adminDecoder
+        )
+        return FollowCounts(followers: row.followers, following: row.following)
+    }
+
+    func followUser(_ userID: UUID) async throws {
+        try await client.rpcVoid(function: "follow_user", body: ["p_target": userID.uuidString])
+    }
+
+    func unfollowUser(_ userID: UUID) async throws {
+        try await client.rpcVoid(function: "unfollow_user", body: ["p_target": userID.uuidString])
+    }
+
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
         try await client.rpc(
             function: "admin_notify_users_in_radius",
