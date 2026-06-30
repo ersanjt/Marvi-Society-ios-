@@ -138,6 +138,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchSavedOfferIDs() async throws -> Set<UUID> { throw notConfigured() }
     func fetchAdminTasks() async throws -> [AdminTask] { throw notConfigured() }
     func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? { throw notConfigured() }
+    func fetchCreatorPublicProfile(creatorID: UUID) async throws -> PublicCreatorProfile? { throw notConfigured() }
     func fetchVenueProfile(id: UUID) async throws -> VenueSummary? { throw notConfigured() }
     func fetchMyVenues() async throws -> [VenueSummary] { throw notConfigured() }
     func setActiveVenue(_ venueID: UUID) async throws { throw notConfigured() }

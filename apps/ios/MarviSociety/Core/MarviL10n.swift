@@ -89,6 +89,8 @@ enum MarviL10n {
         case handleEmpty
         case followingLabel, collaborationHistory, collaborationHistorySub
         case venueRatedYou, awaitingVenueRating, youThanked, noCollaborationsYet, noCollaborationsSub
+        case publicCreatorProfile, followCreator, unfollowCreator, collaborationsLabel
+        case reviewsFromVenues, noPublicReviews, viewPublicProfile
         case changeAvatar, changeCover
         case nichesComma, languagesComma, openInstagram, openTiktok
         case profileSavedSuccess, saving, checklistProgress
@@ -337,6 +339,13 @@ enum MarviL10n {
         .youThanked: "You left a review",
         .noCollaborationsYet: "No collaborations yet",
         .noCollaborationsSub: "Once you check in at a venue, it appears here with their rating.",
+        .publicCreatorProfile: "Creator profile",
+        .followCreator: "Follow creator",
+        .unfollowCreator: "Following",
+        .collaborationsLabel: "Collaborations",
+        .reviewsFromVenues: "Reviews from venues",
+        .noPublicReviews: "No venue reviews yet",
+        .viewPublicProfile: "View profile",
         .nichesComma: "Niches (comma separated)", .languagesComma: "Languages (comma separated)",
         .openInstagram: "Open Instagram profile", .openTiktok: "Open TikTok profile",
         .profileSavedSuccess: "Profile saved to your account.", .saving: "Saving…",
@@ -663,6 +672,13 @@ enum MarviL10n {
         .youThanked: "Değerlendirme bıraktın",
         .noCollaborationsYet: "Henüz iş birliği yok",
         .noCollaborationsSub: "Bir mekâna check-in yaptığında, puanıyla birlikte burada görünür.",
+        .publicCreatorProfile: "Creator profili",
+        .followCreator: "Creator'ı takip et",
+        .unfollowCreator: "Takip ediliyor",
+        .collaborationsLabel: "İş birlikleri",
+        .reviewsFromVenues: "Mekân yorumları",
+        .noPublicReviews: "Henüz mekân yorumu yok",
+        .viewPublicProfile: "Profili gör",
         .nichesComma: "Nişler (virgülle ayır)", .languagesComma: "Diller (virgülle ayır)",
         .openInstagram: "Instagram profilini aç", .openTiktok: "TikTok profilini aç",
         .profileSavedSuccess: "Profil hesabına kaydedildi.", .saving: "Kaydediliyor…",

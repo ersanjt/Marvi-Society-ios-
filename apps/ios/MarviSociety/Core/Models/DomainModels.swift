@@ -400,6 +400,32 @@ struct CollaborationEntry: Identifiable, Hashable {
     let creatorThanked: Bool
 }
 
+struct PublicCreatorReview: Identifiable, Hashable {
+    let id = UUID()
+    let venueName: String
+    let averageRating: Double
+    let comment: String
+    let dateLabel: String
+}
+
+struct PublicCreatorCollaboration: Identifiable, Hashable {
+    let id = UUID()
+    let venueName: String
+    let area: String
+    let category: OfferCategory
+}
+
+struct PublicCreatorProfile: Identifiable {
+    let id: UUID
+    let userID: UUID
+    let profile: CreatorProfile
+    let followers: Int
+    let following: Int
+    var isFollowing: Bool
+    let reviewsReceived: [PublicCreatorReview]
+    let collaborations: [PublicCreatorCollaboration]
+}
+
 struct VenueReviewItem: Identifiable, Hashable {
     let id: UUID
     let creatorName: String

@@ -1,6 +1,13 @@
 import Foundation
 
 enum APIDTOs {
+    static func formatDate(_ date: Date?) -> String {
+        guard let date else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
+    }
+
     static func formatRelative(_ raw: String?) -> String {
         guard let raw, !raw.isEmpty else { return "Now" }
 
@@ -410,6 +417,86 @@ struct CollaborationRow: Decodable {
             venueRating: venueRating,
             venueComment: venue_rating?.comment ?? "",
             creatorThanked: my_rating != nil
+        )
+    }
+}
+
+struct PublicCreatorProfileRow: Decodable {
+    struct ReceivedReview: Decodable {
+        let venue_name: String?
+        let punctuality: Int?
+        let presentation: Int?
+        let comment: String?
+        let date: Date?
+
+        func toReview() -> PublicCreatorReview {
+            let rating = (Double(punctuality ?? 0) + Double(presentation ?? 0)) / 2.0
+            return PublicCreatorReview(
+                venueName: venue_name ?? "",
+                averageRating: rating,
+                comment: comment ?? "",
+                dateLabel: APIDTOs.formatDate(date)
+            )
+        }
+    }
+
+    struct Collaboration: Decodable {
+        let venue_name: String?
+        let area: String?
+        let category: String?
+
+        func toCollaboration() -> PublicCreatorCollaboration {
+            PublicCreatorCollaboration(
+                venueName: venue_name ?? "",
+                area: area ?? "",
+                category: OfferCategory.fromAPI(category)
+            )
+        }
+    }
+
+    let creator_id: UUID?
+    let user_id: UUID
+    let full_name: String?
+    let instagram_handle: String?
+    let tiktok_handle: String?
+    let city: String?
+    let bio: String?
+    let niches: [String]?
+    let score: Double?
+    let proof_rate: Double?
+    let followers: Int?
+    let following: Int?
+    let is_following: Bool?
+    let reviews_received: [ReceivedReview]?
+    let collaborations: [Collaboration]?
+
+    func toPublicProfile(fallbackCreatorID: UUID) -> PublicCreatorProfile {
+        let profile = CreatorProfile(
+            name: full_name ?? "",
+            handle: instagram_handle ?? "",
+            tiktokHandle: tiktok_handle ?? "",
+            city: (city ?? "istanbul").capitalized,
+            status: .approved,
+            score: Int(score ?? 0),
+            audienceLabel: "\(followers ?? 0)",
+            niches: niches ?? [],
+            proofRate: proof_rate.map { String(format: "%.0f%%", $0) } ?? "—",
+            bio: bio ?? "",
+            languages: [],
+            completedApplicationSteps: 0,
+            avatarURL: "",
+            coverURL: ""
+        )
+
+        return PublicCreatorProfile(
+            id: creator_id ?? fallbackCreatorID,
+            userID: user_id,
+            profile: profile,
+            followers: followers ?? 0,
+            following: following ?? 0,
+            isFollowing: is_following ?? false,
+            reviewsReceived: reviews_received?.map { $0.toReview() } ?? [],
+            collaborations: collaborations?.map { $0.toCollaboration() } ?? []
         )
     }
 }

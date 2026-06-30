@@ -279,6 +279,16 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         return rows.first?.toProfile()
     }
 
+    func fetchCreatorPublicProfile(creatorID: UUID) async throws -> PublicCreatorProfile? {
+        let row: PublicCreatorProfileRow? = try await client.rpc(
+            function: "get_creator_public_profile_by_creator_id",
+            body: ["p_creator_id": creatorID.uuidString],
+            type: PublicCreatorProfileRow?.self,
+            decoder: Self.adminDecoder
+        )
+        return row?.toPublicProfile(fallbackCreatorID: creatorID)
+    }
+
     func fetchVenueProfile(id: UUID) async throws -> VenueSummary? {
         let rows: [VenueProfileRow] = try await client.select(
             table: "venue_profiles",

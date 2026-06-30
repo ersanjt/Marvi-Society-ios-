@@ -1373,6 +1373,29 @@ final class AppState: ObservableObject {
         followCounts = .zero
     }
 
+    func loadCreatorPublicProfile(creatorID: UUID) async -> PublicCreatorProfile? {
+        guard isRemoteMode, isAuthenticated else { return nil }
+        do {
+            return try await api.fetchCreatorPublicProfile(creatorID: creatorID)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    func toggleFollow(profile: PublicCreatorProfile) async -> PublicCreatorProfile {
+        if profile.isFollowing {
+            await unfollowUser(profile.userID)
+        } else {
+            await followUser(profile.userID)
+        }
+        return await loadCreatorPublicProfile(creatorID: profile.id) ?? {
+            var fallback = profile
+            fallback.isFollowing.toggle()
+            return fallback
+        }()
+    }
+
     func followUser(_ userID: UUID) async {
         guard isRemoteMode, isAuthenticated else { return }
         do {

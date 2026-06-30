@@ -238,6 +238,7 @@ struct InfluencerSwipeView: View {
     @State private var candidates: [InfluencerCandidate] = []
     @State private var dragOffset: CGSize = .zero
     @State private var isLoading = true
+    @State private var selectedProfileCandidate: InfluencerCandidate?
 
     private var liveOfferID: UUID? {
         guard let active = appState.activeVenue else {
@@ -288,21 +289,36 @@ struct InfluencerSwipeView: View {
                         .foregroundStyle(MarviColor.muted)
                     Spacer()
                 } else if let current = candidates.first {
-                    SwipeCard(candidate: current, offset: dragOffset)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { dragOffset = $0.translation }
-                                .onEnded { value in
-                                    if value.translation.width > 120 {
-                                        swipeAway(direction: .right)
-                                    } else if value.translation.width < -120 {
-                                        swipeAway(direction: .left)
-                                    } else {
-                                        withAnimation(.spring()) { dragOffset = .zero }
+                    VStack(spacing: 12) {
+                        SwipeCard(candidate: current, offset: dragOffset)
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { dragOffset = $0.translation }
+                                    .onEnded { value in
+                                        if value.translation.width > 120 {
+                                            swipeAway(direction: .right)
+                                        } else if value.translation.width < -120 {
+                                            swipeAway(direction: .left)
+                                        } else {
+                                            withAnimation(.spring()) { dragOffset = .zero }
+                                        }
                                     }
-                                }
-                        )
-                        .padding(.horizontal, 20)
+                            )
+
+                        Button {
+                            selectedProfileCandidate = current
+                        } label: {
+                            Label(appState.t(.viewPublicProfile), systemImage: "person.crop.circle.badge.checkmark")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(MarviColor.rose)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(MarviColor.panel)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
                 } else {
                     VStack(spacing: 16) {
                         Image(systemName: candidates.isEmpty ? "person.2.slash" : "checkmark.seal.fill")
@@ -344,6 +360,10 @@ struct InfluencerSwipeView: View {
             isLoading = true
             candidates = await appState.loadSwipeCandidates(offerID: liveOfferID)
             isLoading = false
+        }
+        .sheet(item: $selectedProfileCandidate) { candidate in
+            CreatorPublicProfileView(creatorID: candidate.id, fallbackName: candidate.name)
+                .environmentObject(appState)
         }
     }
 
@@ -513,6 +533,310 @@ private struct VenueReviewDetailSheet: View {
             Slider(value: value, in: 1...5, step: 1)
                 .tint(MarviColor.rose)
         }
+    }
+}
+
+private struct CreatorPublicProfileView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+    let creatorID: UUID
+    let fallbackName: String
+
+    @State private var publicProfile: PublicCreatorProfile?
+    @State private var isLoading = true
+    @State private var isTogglingFollow = false
+
+    var body: some View {
+        NavigationStack {
+            MarviScreen {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if isLoading {
+                            VStack(spacing: 14) {
+                                ProgressView().tint(MarviColor.rose)
+                                Text(appState.t(.loadingProfile))
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(MarviColor.muted)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 60)
+                        } else if let publicProfile {
+                            PublicCreatorHero(
+                                publicProfile: publicProfile,
+                                fallbackName: fallbackName,
+                                isTogglingFollow: isTogglingFollow,
+                                onToggleFollow: toggleFollow
+                            )
+
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    SectionTitle(
+                                        title: appState.t(.collaborationsLabel),
+                                        subtitle: appState.t(.collaborationHistorySub)
+                                    )
+
+                                    if publicProfile.collaborations.isEmpty {
+                                        Text(appState.t(.noCollaborationsYet))
+                                            .font(.subheadline)
+                                            .foregroundStyle(MarviColor.muted)
+                                    } else {
+                                        ForEach(publicProfile.collaborations) { item in
+                                            HStack(spacing: 10) {
+                                                Image(systemName: item.category.icon)
+                                                    .foregroundStyle(item.category.tint)
+                                                    .frame(width: 32, height: 32)
+                                                    .background(item.category.tint.opacity(0.14))
+                                                    .clipShape(Circle())
+
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(item.venueName)
+                                                        .font(.subheadline.weight(.bold))
+                                                        .foregroundStyle(MarviColor.ink)
+                                                    Text([item.area, item.category.rawValue].filter { !$0.isEmpty }.joined(separator: " · "))
+                                                        .font(.caption)
+                                                        .foregroundStyle(MarviColor.muted)
+                                                }
+                                                Spacer()
+                                            }
+                                            .padding(10)
+                                            .background(MarviColor.panelElevated)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        }
+                                    }
+                                }
+                            }
+
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    SectionTitle(
+                                        title: appState.t(.reviewsFromVenues),
+                                        subtitle: appState.t(.venueRatedYou)
+                                    )
+
+                                    if publicProfile.reviewsReceived.isEmpty {
+                                        Text(appState.t(.noPublicReviews))
+                                            .font(.subheadline)
+                                            .foregroundStyle(MarviColor.muted)
+                                    } else {
+                                        ForEach(publicProfile.reviewsReceived) { review in
+                                            PublicCreatorReviewRow(review: review)
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            EmptyStateView(
+                                title: appState.t(.errProfileNotReady),
+                                subtitle: fallbackName,
+                                icon: "person.crop.circle.badge.exclamationmark"
+                            )
+                        }
+                    }
+                    .padding(16)
+                    .padding(.bottom, 24)
+                }
+            }
+            .navigationTitle(appState.t(.publicCreatorProfile))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(appState.t(.done)) { dismiss() }
+                        .foregroundStyle(MarviColor.rose)
+                }
+            }
+        }
+        .presentationDetents([.large])
+        .task { await loadProfile() }
+    }
+
+    private func loadProfile() async {
+        isLoading = true
+        publicProfile = await appState.loadCreatorPublicProfile(creatorID: creatorID)
+        isLoading = false
+    }
+
+    private func toggleFollow() {
+        guard let publicProfile, !isTogglingFollow else { return }
+        Task {
+            isTogglingFollow = true
+            self.publicProfile = await appState.toggleFollow(profile: publicProfile)
+            isTogglingFollow = false
+        }
+    }
+}
+
+private struct PublicCreatorHero: View {
+    @EnvironmentObject private var appState: AppState
+    let publicProfile: PublicCreatorProfile
+    let fallbackName: String
+    let isTogglingFollow: Bool
+    let onToggleFollow: () -> Void
+
+    private var displayName: String {
+        publicProfile.profile.name.isEmpty ? fallbackName : publicProfile.profile.name
+    }
+
+    private var cleanHandle: String {
+        publicProfile.profile.handle.replacingOccurrences(of: "@", with: "")
+    }
+
+    var body: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    ZStack {
+                        MarviGradient.brandVertical
+                        Text(String(displayName.prefix(1)).uppercased())
+                            .font(.title.weight(.bold))
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: 64, height: 64)
+                    .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(displayName)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                        if !cleanHandle.isEmpty {
+                            Text("@\(cleanHandle)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(MarviColor.rose)
+                        }
+                        Text(publicProfile.profile.city)
+                            .font(.caption)
+                            .foregroundStyle(MarviColor.muted)
+                    }
+
+                    Spacer()
+
+                    StatusPill(text: "\(publicProfile.profile.score)", tint: MarviColor.gold, systemImage: "star.fill")
+                }
+
+                if !publicProfile.profile.bio.isEmpty {
+                    Text(publicProfile.profile.bio)
+                        .font(.subheadline)
+                        .foregroundStyle(MarviColor.graphite)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: 10) {
+                    PublicCreatorMetric(value: "\(publicProfile.followers)", label: appState.t(.followers), icon: "person.2.fill", tint: MarviColor.rose)
+                    PublicCreatorMetric(value: "\(publicProfile.following)", label: appState.t(.followingLabel), icon: "person.badge.plus", tint: MarviColor.aubergine)
+                }
+
+                if !publicProfile.profile.niches.isEmpty {
+                    FlowTagRow(tags: publicProfile.profile.niches)
+                }
+
+                Button(action: onToggleFollow) {
+                    HStack {
+                        if isTogglingFollow {
+                            ProgressView().tint(.white)
+                        }
+                        Text(publicProfile.isFollowing ? appState.t(.unfollowCreator) : appState.t(.followCreator))
+                            .font(.headline.weight(.bold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background {
+                        if publicProfile.isFollowing {
+                            MarviColor.aubergine
+                        } else {
+                            MarviGradient.brand
+                        }
+                    }
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(isTogglingFollow)
+            }
+        }
+    }
+}
+
+private struct PublicCreatorMetric: View {
+    let value: String
+    let label: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(MarviColor.ink)
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MarviColor.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(MarviColor.panelElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+private struct FlowTagRow: View {
+    let tags: [String]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(tags, id: \.self) { tag in
+                    Text(tag)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.rose)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(MarviColor.rose.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+    }
+}
+
+private struct PublicCreatorReviewRow: View {
+    let review: PublicCreatorReview
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(review.venueName)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.caption2)
+                        .foregroundStyle(MarviColor.gold)
+                    Text(String(format: "%.1f", review.averageRating))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                }
+            }
+
+            if !review.comment.isEmpty {
+                Text("“\(review.comment)”")
+                    .font(.caption)
+                    .italic()
+                    .foregroundStyle(MarviColor.graphite)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if !review.dateLabel.isEmpty {
+                Text(review.dateLabel)
+                    .font(.caption2)
+                    .foregroundStyle(MarviColor.muted)
+            }
+        }
+        .padding(12)
+        .background(MarviColor.panelElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

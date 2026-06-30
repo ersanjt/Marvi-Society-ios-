@@ -36,6 +36,7 @@ protocol MarviAPI: Sendable {
     func fetchSavedOfferIDs() async throws -> Set<UUID>
     func fetchAdminTasks() async throws -> [AdminTask]
     func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile?
+    func fetchCreatorPublicProfile(creatorID: UUID) async throws -> PublicCreatorProfile?
     func fetchVenueProfile(id: UUID) async throws -> VenueSummary?
     func fetchMyVenues() async throws -> [VenueSummary]
     func setActiveVenue(_ venueID: UUID) async throws
@@ -184,6 +185,11 @@ extension MarviAPI {
     func hasVenueProfile() async throws -> Bool { false }
 
     func fetchCreatorProfile(userID: UUID) async throws -> CreatorProfile? { nil }
+
+    func fetchCreatorPublicProfile(creatorID: UUID) async throws -> PublicCreatorProfile? {
+        _ = creatorID
+        return nil
+    }
 
     func fetchVenueProfile(id: UUID) async throws -> VenueSummary? { nil }
 

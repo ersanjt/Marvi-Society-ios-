@@ -12,11 +12,16 @@
       "version": "0.2.0"
     },
     "database": {
-      "migrationHead": "20260630000003_invite_social_completeness",
-      "migrationCount": 22
+      "migrationHead": "20260630000005_creator_public_profile_by_id",
+      "migrationCount": 24
     }
   },
   "syncLog": [
+    {
+      "at": "2026-06-30T12:24:11Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000005_creator_public_profile_by_id)"
+    },
     {
       "at": "2026-06-29T20:17:16Z",
       "status": "ok",
