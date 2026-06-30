@@ -139,6 +139,7 @@ enum MarviL10n {
         case profileEngagement
         case geoBroadcast, geoBroadcastSub, sendToArea, locationUnavailable
         case inviteEmailQueued, noUsersLoaded, noUsersLoadedSub, searchUsersPrompt
+        case noBookingsAdminSub, noStrikesAdminSub
         case approve, block, approvedMsg, accountBlocked
         case sendInAppNotification, sendEmailBtn, notificationSent, emailQueued
         case loadingProfile, roleLabel, referralLabel, instagramLabel, lastLocationLabel, notSharedYet
@@ -448,6 +449,8 @@ enum MarviL10n {
         .sendToArea: "Send to area", .locationUnavailable: "Location unavailable.",
         .inviteEmailQueued: "Invite email queued.", .noUsersLoaded: "No users loaded",
         .noUsersLoadedSub: "Run apply-admin-operations.sql in Supabase, then pull to refresh.",
+        .noBookingsAdminSub: "No bookings loaded yet. Pull to refresh from the server.",
+        .noStrikesAdminSub: "No strikes on record. Pull to refresh from the server.",
         .searchUsersPrompt: "Email, name, city, handle",
         .approve: "Approve", .block: "Block", .approvedMsg: "Approved.", .accountBlocked: "Account blocked.",
         .sendInAppNotification: "Send in-app notification", .sendEmailBtn: "Send email",
@@ -787,6 +790,8 @@ enum MarviL10n {
         .sendToArea: "Bölgeye gönder", .locationUnavailable: "Konum kullanılamıyor.",
         .inviteEmailQueued: "Davet e-postası kuyruğa alındı.", .noUsersLoaded: "Kullanıcı yüklenmedi",
         .noUsersLoadedSub: "Supabase'de apply-admin-operations.sql çalıştır, sonra yenile.",
+        .noBookingsAdminSub: "Henüz rezervasyon yüklenmedi. Sunucudan yenilemek için çekin.",
+        .noStrikesAdminSub: "Kayıtlı uyarı yok. Sunucudan yenilemek için çekin.",
         .searchUsersPrompt: "E-posta, ad, şehir, kullanıcı adı",
         .approve: "Onayla", .block: "Engelle", .approvedMsg: "Onaylandı.", .accountBlocked: "Hesap engellendi.",
         .sendInAppNotification: "Uygulama içi bildirim gönder", .sendEmailBtn: "E-posta gönder",

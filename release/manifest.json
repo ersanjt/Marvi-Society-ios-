@@ -18,6 +18,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-06-30T17:29:37Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000006_creator_showcase)"
+    },
+    {
+      "at": "2026-06-30T17:10:15Z",
+      "status": "ok",
+      "message": "pushed 2711bdb to origin/main"
+    },
+    {
       "at": "2026-06-30T17:10:11Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000006_creator_showcase)"

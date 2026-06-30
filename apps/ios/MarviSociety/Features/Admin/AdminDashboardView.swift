@@ -6,6 +6,8 @@ struct AdminDashboardView: View {
     @State private var selectedTask: AdminTask?
     @State private var pendingAction: AdminTaskAction?
     @State private var strikeReason = "Proof not delivered per campaign terms"
+    @State private var showingBookingsSheet = false
+    @State private var showingStrikesSheet = false
 
     var body: some View {
         NavigationStack {
@@ -33,6 +35,14 @@ struct AdminDashboardView: View {
                 }
             }
             .navigationTitle(appState.t(.admin))
+            .sheet(isPresented: $showingBookingsSheet) {
+                AdminBookingsSheet()
+                    .environmentObject(appState)
+            }
+            .sheet(isPresented: $showingStrikesSheet) {
+                AdminStrikesSheet()
+                    .environmentObject(appState)
+            }
             .sheet(item: $selectedTask) { task in
                 AdminTaskDetailSheet(task: task) { action in
                     selectedTask = nil
@@ -100,23 +110,57 @@ struct AdminDashboardView: View {
 
     private var adminQueueContent: some View {
         MarviScreen {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    BrandLockup(subtitle: appState.t(.operationsCommand))
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        BrandLockup(subtitle: appState.t(.operationsCommand))
 
-                    SectionTitle(
-                        title: appState.t(.adminControl),
-                        subtitle: appState.t(.adminControlSub)
-                    )
+                        SectionTitle(
+                            title: appState.t(.adminControl),
+                            subtitle: appState.t(.adminControlSub)
+                        )
 
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        AdminMetric(value: "\(appState.openAdminTasks.count)", label: appState.t(.openTasks), icon: "tray", tint: MarviColor.tomato)
-                        AdminMetric(value: "\(appState.adminUsers.count)", label: appState.t(.usersLabel), icon: "person.3", tint: MarviColor.blue)
-                        AdminMetric(value: "\(appState.activeBookings.count)", label: appState.t(.bookingsLabel), icon: "calendar", tint: MarviColor.emerald)
-                        AdminMetric(value: "\(appState.strikes.count)", label: appState.t(.strikesLabel), icon: "exclamationmark.triangle", tint: MarviColor.tomato)
-                    }
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                            AdminMetric(
+                                value: "\(appState.openAdminTasks.count)",
+                                label: appState.t(.openTasks),
+                                icon: "tray",
+                                tint: MarviColor.tomato
+                            ) {
+                                withAnimation {
+                                    tab = .queue
+                                    proxy.scrollTo("review-queue", anchor: .top)
+                                }
+                            }
+                            AdminMetric(
+                                value: "\(appState.adminUsers.count)",
+                                label: appState.t(.usersLabel),
+                                icon: "person.3",
+                                tint: MarviColor.blue
+                            ) {
+                                tab = .users
+                                Task { await appState.loadAdminUsers() }
+                            }
+                            AdminMetric(
+                                value: "\(appState.activeBookings.count)",
+                                label: appState.t(.bookingsLabel),
+                                icon: "calendar",
+                                tint: MarviColor.emerald
+                            ) {
+                                showingBookingsSheet = true
+                            }
+                            AdminMetric(
+                                value: "\(appState.strikes.count)",
+                                label: appState.t(.strikesLabel),
+                                icon: "exclamationmark.triangle",
+                                tint: MarviColor.tomato
+                            ) {
+                                showingStrikesSheet = true
+                            }
+                        }
 
-                    SectionTitle(title: appState.t(.reviewQueue), subtitle: appState.t(.reviewQueueSub))
+                        SectionTitle(title: appState.t(.reviewQueue), subtitle: appState.t(.reviewQueueSub))
+                            .id("review-queue")
 
                     if appState.openAdminTasks.isEmpty {
                         MarviCard {
@@ -150,6 +194,7 @@ struct AdminDashboardView: View {
                 .padding(16)
             }
             .refreshable { await appState.refreshFromServer() }
+            }
         }
     }
 }
@@ -212,26 +257,157 @@ private struct AdminMetric: View {
     let label: String
     let icon: String
     let tint: Color
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: icon)
-                .font(.headline)
-                .foregroundStyle(tint)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.headline)
+                        .foregroundStyle(tint)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(MarviColor.muted)
+                }
 
-            Text(value)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(MarviColor.ink)
+                Text(value)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
 
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(MarviColor.muted)
-                .lineLimit(1)
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(MarviColor.muted)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(MarviColor.panel)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(MarviColor.border, lineWidth: 1)
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(MarviColor.panel)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .buttonStyle(.plain)
+    }
+}
+
+private struct AdminBookingsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        NavigationStack {
+            MarviScreen {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if appState.bookings.isEmpty {
+                            EmptyStateView(
+                                title: appState.t(.bookingsLabel),
+                                subtitle: appState.t(.noBookingsAdminSub),
+                                icon: "calendar",
+                                actionTitle: appState.t(.refresh),
+                                action: { Task { await appState.refreshFromServer() } }
+                            )
+                            .padding(16)
+                        } else {
+                            ForEach(appState.bookings) { booking in
+                                MarviCard {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(booking.offer.title)
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(MarviColor.ink)
+                                        Text(booking.offer.venue)
+                                            .font(.subheadline)
+                                            .foregroundStyle(MarviColor.muted)
+                                        HStack {
+                                            StatusPill(
+                                                text: booking.stage.rawValue.capitalized,
+                                                tint: MarviColor.rose,
+                                                systemImage: "circle.fill"
+                                            )
+                                            if !booking.guestName.isEmpty {
+                                                Text(booking.guestName)
+                                                    .font(.caption)
+                                                    .foregroundStyle(MarviColor.graphite)
+                                            }
+                                        }
+                                        Text(booking.offer.dateLabel)
+                                            .font(.caption)
+                                            .foregroundStyle(MarviColor.muted)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 16)
+                        }
+                    }
+                }
+            }
+            .navigationTitle(appState.t(.bookingsLabel))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(appState.t(.close)) { dismiss() }
+                }
+            }
+            .task { await appState.refreshFromServer() }
+        }
+    }
+}
+
+private struct AdminStrikesSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        NavigationStack {
+            MarviScreen {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if appState.strikes.isEmpty {
+                            EmptyStateView(
+                                title: appState.t(.strikesLabel),
+                                subtitle: appState.t(.noStrikesAdminSub),
+                                icon: "exclamationmark.triangle",
+                                actionTitle: appState.t(.refresh),
+                                action: { Task { await appState.refreshFromServer() } }
+                            )
+                            .padding(16)
+                        } else {
+                            ForEach(appState.strikes) { strike in
+                                MarviCard {
+                                    HStack(alignment: .top, spacing: 10) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .foregroundStyle(MarviColor.tomato)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(strike.reason)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundStyle(MarviColor.ink)
+                                            Text("\(strike.severity.capitalized) · \(strike.createdAtLabel)")
+                                                .font(.caption)
+                                                .foregroundStyle(MarviColor.muted)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 16)
+                        }
+                    }
+                }
+            }
+            .navigationTitle(appState.t(.strikesLabel))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(appState.t(.close)) { dismiss() }
+                }
+            }
+            .task { await appState.refreshFromServer() }
+        }
     }
 }
 
