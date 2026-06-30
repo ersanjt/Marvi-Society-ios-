@@ -31,6 +31,9 @@ struct ProfileView: View {
     @State private var selectedInsightTab: ProfileInsightTab = .engagement
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var coverPickerItem: PhotosPickerItem?
+    @State private var isUploadingPhoto = false
+    @State private var photoUploadMessage: String?
+    @State private var photoUploadFailed = false
     @State private var inviteEmail = ""
     @State private var isSendingInvite = false
     @State private var inviteSuccessMessage: String?
@@ -240,6 +243,7 @@ struct ProfileView: View {
                                     .foregroundStyle(MarviColor.rose)
                                     .background(MarviColor.rose.opacity(0.1))
                                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .disabled(isUploadingPhoto)
 
                                     PhotosPicker(selection: $coverPickerItem, matching: .images) {
                                         Label(appState.t(.changeCover), systemImage: "photo")
@@ -251,6 +255,23 @@ struct ProfileView: View {
                                     .foregroundStyle(MarviColor.rose)
                                     .background(MarviColor.rose.opacity(0.1))
                                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .disabled(isUploadingPhoto)
+                                }
+
+                                if isUploadingPhoto {
+                                    HStack(spacing: 8) {
+                                        ProgressView().controlSize(.small)
+                                        Text(appState.t(.uploadingPhoto))
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(MarviColor.muted)
+                                    }
+                                } else if let photoUploadMessage {
+                                    Label(
+                                        photoUploadMessage,
+                                        systemImage: photoUploadFailed ? "exclamationmark.triangle.fill" : "checkmark.circle.fill"
+                                    )
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(photoUploadFailed ? MarviColor.tomato : MarviColor.emerald)
                                 }
 
                                 if let instagramURL = socialURL(platform: "instagram", handle: appState.profile.handle) {
@@ -308,6 +329,10 @@ struct ProfileView: View {
                                     .disabled(isSavingProfile || appState.isSyncing)
                                 }
                             }
+                        }
+
+                        if appState.isAuthenticated, appState.selectedRole == .creator {
+                            ShowcaseEditorCard()
                         }
 
                         MarviCard {
@@ -597,22 +622,15 @@ struct ProfileView: View {
                 await appState.syncAllowedRoles()
                 nichesText = appState.profile.niches.joined(separator: ", ")
                 languagesText = appState.profile.languages.joined(separator: ", ")
+                await appState.loadShowcase()
             }
             .onChange(of: avatarPickerItem) { _, item in
                 guard let item else { return }
-                Task {
-                    if let data = try? await item.loadTransferable(type: Data.self) {
-                        _ = await appState.uploadProfilePhoto(data: data, kind: .avatar)
-                    }
-                }
+                Task { await handlePhotoUpload(item: item, kind: .avatar) }
             }
             .onChange(of: coverPickerItem) { _, item in
                 guard let item else { return }
-                Task {
-                    if let data = try? await item.loadTransferable(type: Data.self) {
-                        _ = await appState.uploadProfilePhoto(data: data, kind: .cover)
-                    }
-                }
+                Task { await handlePhotoUpload(item: item, kind: .cover) }
             }
             .alert(appState.t(.pauseConfirmTitle), isPresented: $isShowingPauseConfirmation) {
                 Button(appState.t(.cancel), role: .cancel) {}
@@ -686,6 +704,28 @@ struct ProfileView: View {
             .replacingOccurrences(of: "@", with: "")
         guard !sanitized.isEmpty else { return nil }
         return URL(string: "https://\(platform).com/\(sanitized)")
+    }
+
+    @MainActor
+    private func handlePhotoUpload(item: PhotosPickerItem, kind: ProfileImageKind) async {
+        isUploadingPhoto = true
+        photoUploadMessage = nil
+        photoUploadFailed = false
+        defer { isUploadingPhoto = false }
+
+        guard let data = try? await item.loadTransferable(type: Data.self), !data.isEmpty else {
+            photoUploadFailed = true
+            photoUploadMessage = appState.t(.photoUploadFailed)
+            return
+        }
+
+        let success = await appState.uploadProfilePhoto(data: data, kind: kind)
+        photoUploadFailed = !success
+        photoUploadMessage = success
+            ? appState.t(.photoUploadSuccess)
+            : (appState.lastSyncError ?? appState.t(.photoUploadFailed))
+
+        if kind == .avatar { avatarPickerItem = nil } else { coverPickerItem = nil }
     }
 }
 
@@ -1070,6 +1110,205 @@ private struct ChecklistRow: View {
                 .foregroundStyle(MarviColor.graphite)
 
             Spacer()
+        }
+    }
+}
+
+private struct ShowcaseEditorCard: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var linkText = ""
+    @State private var captionText = ""
+    @State private var photoItem: PhotosPickerItem?
+    @State private var isBusy = false
+    @State private var errorMessage: String?
+
+    private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+
+    var body: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 14) {
+                SectionTitle(title: appState.t(.showcaseTitle), subtitle: appState.t(.showcaseSubtitle))
+
+                if appState.showcaseItems.isEmpty {
+                    Text(appState.t(.showcaseEmpty))
+                        .font(.caption)
+                        .foregroundStyle(MarviColor.muted)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 10) {
+                        ForEach(appState.showcaseItems) { item in
+                            ShowcaseTile(item: item) {
+                                Task { await appState.deleteShowcaseItem(item) }
+                            }
+                        }
+                    }
+                }
+
+                Divider().overlay(MarviColor.border)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    MarviTextField(
+                        placeholder: appState.t(.showcaseLinkPlaceholder),
+                        text: $linkText,
+                        autocapitalization: .never
+                    )
+                    MarviTextField(
+                        placeholder: appState.t(.showcaseCaptionPlaceholder),
+                        text: $captionText
+                    )
+
+                    HStack(spacing: 10) {
+                        Button {
+                            Task { await addLink() }
+                        } label: {
+                            Label(appState.t(.showcaseAddLink), systemImage: "link")
+                                .font(.caption.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(MarviColor.rose)
+                        .background(MarviColor.rose.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .disabled(isBusy || linkText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            Label(appState.t(.showcaseUploadPhoto), systemImage: "photo.on.rectangle")
+                                .font(.caption.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(MarviColor.rose)
+                        .background(MarviColor.rose.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .disabled(isBusy)
+                    }
+
+                    if isBusy {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small)
+                            Text(appState.t(.uploadingPhoto))
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.muted)
+                        }
+                    } else if let errorMessage {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.tomato)
+                    }
+                }
+            }
+        }
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task { await addPhoto(item: item) }
+        }
+    }
+
+    @MainActor
+    private func addLink() async {
+        isBusy = true
+        errorMessage = nil
+        defer { isBusy = false }
+        let success = await appState.addShowcaseLink(url: linkText, caption: captionText)
+        if success {
+            linkText = ""
+            captionText = ""
+        } else {
+            errorMessage = appState.lastSyncError ?? appState.t(.photoUploadFailed)
+        }
+    }
+
+    @MainActor
+    private func addPhoto(item: PhotosPickerItem) async {
+        isBusy = true
+        errorMessage = nil
+        defer { isBusy = false; photoItem = nil }
+        guard let data = try? await item.loadTransferable(type: Data.self), !data.isEmpty else {
+            errorMessage = appState.t(.photoUploadFailed)
+            return
+        }
+        let success = await appState.addShowcasePhoto(data: data, caption: captionText)
+        if success {
+            captionText = ""
+        } else {
+            errorMessage = appState.lastSyncError ?? appState.t(.photoUploadFailed)
+        }
+    }
+}
+
+private struct ShowcaseTile: View {
+    let item: ShowcaseItem
+    let onDelete: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if let thumb = item.thumbnailURL {
+                    AsyncImage(url: thumb) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            placeholder(icon: "photo")
+                        default:
+                            ZStack { MarviColor.aubergine.opacity(0.12); ProgressView().controlSize(.small) }
+                        }
+                    }
+                } else {
+                    placeholder(icon: item.mediaType == .video ? "play.rectangle.fill" : "link")
+                }
+            }
+            .frame(height: 110)
+            .frame(maxWidth: .infinity)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(alignment: .bottomLeading) {
+                if !item.caption.isEmpty {
+                    Text(item.caption)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            LinearGradient(
+                                colors: [.black.opacity(0.0), .black.opacity(0.65)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if item.externalURL.isEmpty == false {
+                    Image(systemName: "arrow.up.right.square.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .padding(8)
+                }
+            }
+
+            Button(action: onDelete) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.white, MarviColor.tomato)
+                    .padding(6)
+            }
+            .buttonStyle(.plain)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture {
+            if let url = item.openURL { UIApplication.shared.open(url) }
+        }
+    }
+
+    private func placeholder(icon: String) -> some View {
+        ZStack {
+            MarviColor.aubergine.opacity(0.18)
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(MarviColor.rose)
         }
     }
 }

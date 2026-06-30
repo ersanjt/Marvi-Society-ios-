@@ -59,6 +59,7 @@ final class AppState: ObservableObject {
     @Published private(set) var accountReferralCode: String?
     @Published var collaborationHistory: [CollaborationEntry] = []
     @Published var followCounts: FollowCounts = .zero
+    @Published var showcaseItems: [ShowcaseItem] = []
     @Published private(set) var languageManuallySet = false {
         didSet { saveSnapshot() }
     }
@@ -430,6 +431,7 @@ final class AppState: ObservableObject {
 
         if let history = try? await api.fetchMyCollaborationHistory() { collaborationHistory = history }
         if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
+        if let items = try? await api.fetchMyShowcase() { showcaseItems = items }
 
         await syncAllowedRoles()
 
@@ -1371,6 +1373,68 @@ final class AppState: ObservableObject {
         pendingInviteCode = nil
         collaborationHistory = []
         followCounts = .zero
+        showcaseItems = []
+    }
+
+    // MARK: - Creator showcase
+
+    func loadShowcase() async {
+        guard isAuthenticated else { return }
+        if let items = try? await api.fetchMyShowcase() { showcaseItems = items }
+    }
+
+    @discardableResult
+    func addShowcaseLink(url: String, caption: String) async -> Bool {
+        guard isAuthenticated else { return false }
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        let normalized = trimmed.lowercased().hasPrefix("http") ? trimmed : "https://\(trimmed)"
+        do {
+            let item = try await api.addShowcaseItem(
+                mediaType: .link,
+                mediaURL: "",
+                externalURL: normalized,
+                caption: caption.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            showcaseItems.insert(item, at: 0)
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func addShowcasePhoto(data: Data, caption: String) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            let mediaURL = try await api.uploadShowcaseMedia(
+                data: data,
+                fileName: "showcase.jpg",
+                contentType: "image/jpeg"
+            )
+            let item = try await api.addShowcaseItem(
+                mediaType: .image,
+                mediaURL: mediaURL,
+                externalURL: "",
+                caption: caption.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            showcaseItems.insert(item, at: 0)
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func deleteShowcaseItem(_ item: ShowcaseItem) async {
+        guard isAuthenticated else { return }
+        do {
+            try await api.deleteShowcaseItem(item.id)
+            showcaseItems.removeAll { $0.id == item.id }
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
     }
 
     func loadCreatorPublicProfile(creatorID: UUID) async -> PublicCreatorProfile? {

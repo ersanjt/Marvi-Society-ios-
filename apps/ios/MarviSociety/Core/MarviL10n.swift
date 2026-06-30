@@ -92,6 +92,9 @@ enum MarviL10n {
         case publicCreatorProfile, followCreator, unfollowCreator, collaborationsLabel
         case reviewsFromVenues, noPublicReviews, viewPublicProfile
         case changeAvatar, changeCover
+        case uploadingPhoto, photoUploadSuccess, photoUploadFailed
+        case showcaseTitle, showcaseSubtitle, showcaseEmpty
+        case showcaseLinkPlaceholder, showcaseCaptionPlaceholder, showcaseAddLink, showcaseUploadPhoto
         case nichesComma, languagesComma, openInstagram, openTiktok
         case profileSavedSuccess, saving, checklistProgress
         case nicheSelected, audienceReviewed, agreementSigned
@@ -329,6 +332,12 @@ enum MarviL10n {
         .strikeHistory: "Strike history", .strikeHistorySub: "Policy violations affect matching priority.",
         .socialAccounts: "Social accounts", .socialAccountsSub: "Linked profiles for verification and proof tracking.",
         .changeAvatar: "Profile photo", .changeCover: "Cover image",
+        .uploadingPhoto: "Uploading photo…", .photoUploadSuccess: "Photo updated.", .photoUploadFailed: "Couldn't upload photo. Please try again.",
+        .showcaseTitle: "Showcase", .showcaseSubtitle: "Add your best Instagram & TikTok content.",
+        .showcaseEmpty: "No content yet. Upload a photo or paste a link to a post.",
+        .showcaseLinkPlaceholder: "Paste Instagram / TikTok link",
+        .showcaseCaptionPlaceholder: "Caption (optional)",
+        .showcaseAddLink: "Add link", .showcaseUploadPhoto: "Upload photo",
         .displayName: "Display name", .bio: "Bio", .cityField: "City", .tiktokHandleField: "TikTok handle",
         .handleEmpty: "@add your handle",
         .followingLabel: "Following",
@@ -662,6 +671,12 @@ enum MarviL10n {
         .strikeHistory: "Uyarı geçmişi", .strikeHistorySub: "Politika ihlalleri eşleşme önceliğini etkiler.",
         .socialAccounts: "Sosyal hesaplar", .socialAccountsSub: "Doğrulama ve kanıt takibi için bağlı profiller.",
         .changeAvatar: "Profil fotoğrafı", .changeCover: "Kapak görseli",
+        .uploadingPhoto: "Fotoğraf yükleniyor…", .photoUploadSuccess: "Fotoğraf güncellendi.", .photoUploadFailed: "Fotoğraf yüklenemedi. Lütfen tekrar deneyin.",
+        .showcaseTitle: "Vitrin", .showcaseSubtitle: "En iyi Instagram & TikTok içeriğini ekle.",
+        .showcaseEmpty: "Henüz içerik yok. Bir fotoğraf yükle veya gönderi bağlantısı yapıştır.",
+        .showcaseLinkPlaceholder: "Instagram / TikTok bağlantısı yapıştır",
+        .showcaseCaptionPlaceholder: "Açıklama (isteğe bağlı)",
+        .showcaseAddLink: "Bağlantı ekle", .showcaseUploadPhoto: "Fotoğraf yükle",
         .displayName: "Görünen ad", .bio: "Biyografi", .cityField: "Şehir", .tiktokHandleField: "TikTok kullanıcı adı",
         .handleEmpty: "@kullanıcı adı ekle",
         .followingLabel: "Takip edilen",

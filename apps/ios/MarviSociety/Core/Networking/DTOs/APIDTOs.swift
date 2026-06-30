@@ -376,6 +376,24 @@ struct FollowCountsRow: Decodable {
     let following: Int
 }
 
+struct ShowcaseRow: Decodable {
+    let id: UUID
+    let media_type: String
+    let media_url: String?
+    let external_url: String?
+    let caption: String?
+
+    func toItem() -> ShowcaseItem {
+        ShowcaseItem(
+            id: id,
+            mediaType: ShowcaseMediaType(rawValue: media_type) ?? .link,
+            mediaURL: media_url ?? "",
+            externalURL: external_url ?? "",
+            caption: caption ?? ""
+        )
+    }
+}
+
 struct CollaborationRow: Decodable {
     struct Rating: Decodable {
         let punctuality: Int?

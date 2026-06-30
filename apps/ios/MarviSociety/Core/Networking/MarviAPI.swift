@@ -61,6 +61,11 @@ protocol MarviAPI: Sendable {
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws
     func submitCreatorReview(bookingID: UUID, hospitality: Int, experience: Int, comment: String) async throws
     func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String
+    func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String
+    func fetchMyShowcase() async throws -> [ShowcaseItem]
+    func fetchShowcase(userID: UUID) async throws -> [ShowcaseItem]
+    func addShowcaseItem(mediaType: ShowcaseMediaType, mediaURL: String, externalURL: String, caption: String) async throws -> ShowcaseItem
+    func deleteShowcaseItem(_ id: UUID) async throws
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws
     func validateReferralCode(_ code: String) async throws -> Bool
     func fetchStrikes() async throws -> [Strike]
@@ -158,6 +163,13 @@ extension MarviAPI {
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws {}
     func submitCreatorReview(bookingID: UUID, hospitality: Int, experience: Int, comment: String) async throws {}
     func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String { "" }
+    func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String { "" }
+    func fetchMyShowcase() async throws -> [ShowcaseItem] { [] }
+    func fetchShowcase(userID: UUID) async throws -> [ShowcaseItem] { [] }
+    func addShowcaseItem(mediaType: ShowcaseMediaType, mediaURL: String, externalURL: String, caption: String) async throws -> ShowcaseItem {
+        ShowcaseItem(id: UUID(), mediaType: mediaType, mediaURL: mediaURL, externalURL: externalURL, caption: caption)
+    }
+    func deleteShowcaseItem(_ id: UUID) async throws {}
 
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws {}
 

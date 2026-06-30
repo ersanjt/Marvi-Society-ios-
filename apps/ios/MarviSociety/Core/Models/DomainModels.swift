@@ -380,6 +380,31 @@ struct CreatorProfile: Codable {
     }
 }
 
+enum ShowcaseMediaType: String, Codable, Sendable {
+    case image
+    case video
+    case link
+}
+
+struct ShowcaseItem: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let mediaType: ShowcaseMediaType
+    let mediaURL: String
+    let externalURL: String
+    let caption: String
+
+    /// The URL to open when tapped (external link takes priority over hosted media).
+    var openURL: URL? {
+        let target = externalURL.isEmpty ? mediaURL : externalURL
+        return URL(string: target)
+    }
+
+    /// The image to render as the tile thumbnail, when available.
+    var thumbnailURL: URL? {
+        mediaURL.isEmpty ? nil : URL(string: mediaURL)
+    }
+}
+
 struct FollowCounts: Equatable {
     var followers: Int
     var following: Int

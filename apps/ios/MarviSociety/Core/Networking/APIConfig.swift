@@ -168,6 +168,11 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String {
         throw notConfigured()
     }
+    func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String { throw notConfigured() }
+    func fetchMyShowcase() async throws -> [ShowcaseItem] { [] }
+    func fetchShowcase(userID: UUID) async throws -> [ShowcaseItem] { [] }
+    func addShowcaseItem(mediaType: ShowcaseMediaType, mediaURL: String, externalURL: String, caption: String) async throws -> ShowcaseItem { throw notConfigured() }
+    func deleteShowcaseItem(_ id: UUID) async throws { throw notConfigured() }
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws {
         throw notConfigured()
     }

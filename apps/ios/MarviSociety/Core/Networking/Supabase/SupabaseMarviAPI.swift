@@ -664,10 +664,72 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         guard let base = APIConfig.supabaseURL else {
             return path
         }
+        var components = URLComponents(
+            url: base
+                .appending(path: "storage/v1/object/public/profile-media")
+                .appending(path: path),
+            resolvingAgainstBaseURL: false
+        )
+        // Cache-busting token so AsyncImage reloads after re-uploading to the same path.
+        components?.queryItems = [URLQueryItem(name: "v", value: String(Int(Date().timeIntervalSince1970)))]
+        return components?.url?.absoluteString ?? base
+            .appending(path: "storage/v1/object/public/profile-media")
+            .appending(path: path)
+            .absoluteString
+    }
+
+    func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String {
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
+        let path = "\(userID)/showcase/\(UUID().uuidString)-\(fileName)"
+        _ = try await client.uploadObject(
+            bucket: "profile-media",
+            path: path,
+            data: data,
+            contentType: contentType
+        )
+        guard let base = APIConfig.supabaseURL else { return path }
         return base
             .appending(path: "storage/v1/object/public/profile-media")
             .appending(path: path)
             .absoluteString
+    }
+
+    func fetchMyShowcase() async throws -> [ShowcaseItem] {
+        let rows: [ShowcaseRow] = try await client.rpc(
+            function: "get_my_showcase",
+            body: [:]
+        )
+        return rows.map { $0.toItem() }
+    }
+
+    func fetchShowcase(userID: UUID) async throws -> [ShowcaseItem] {
+        let rows: [ShowcaseRow] = try await client.rpc(
+            function: "get_user_showcase",
+            body: ["p_user_id": userID.uuidString]
+        )
+        return rows.map { $0.toItem() }
+    }
+
+    func addShowcaseItem(mediaType: ShowcaseMediaType, mediaURL: String, externalURL: String, caption: String) async throws -> ShowcaseItem {
+        let row: ShowcaseRow = try await client.insertReturning(
+            table: "creator_showcase",
+            body: [
+                "media_type": mediaType.rawValue,
+                "media_url": mediaURL,
+                "external_url": externalURL,
+                "caption": caption
+            ]
+        )
+        return row.toItem()
+    }
+
+    func deleteShowcaseItem(_ id: UUID) async throws {
+        try await client.rpcVoid(
+            function: "delete_showcase_item",
+            body: ["p_id": id.uuidString]
+        )
     }
 
     func issueStrikeForBooking(bookingID: UUID, reason: String) async throws {
