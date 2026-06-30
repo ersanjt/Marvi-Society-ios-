@@ -347,55 +347,26 @@ struct OnboardingView: View {
                 }
 
                 if APIConfig.googleSignInEnabled || APIConfig.appleSignInEnabled {
-                    HStack(spacing: 12) {
-                        Rectangle().fill(MarviColor.border).frame(height: 1)
-                        Text(appState.t(.orContinueWith))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(MarviColor.muted)
-                        Rectangle().fill(MarviColor.border).frame(height: 1)
+                    SocialDivider(label: appState.t(.orContinueWith))
+
+                    if APIConfig.appleSignInEnabled {
+                        AppleSignInButton(
+                            title: appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple),
+                            isLoading: appleSignIn.isSigningIn,
+                            isDisabled: appleSignIn.isSigningIn || isBusy
+                        ) {
+                            Task { await signInWithAppleFlow() }
+                        }
                     }
 
                     if APIConfig.googleSignInEnabled {
-                        Button {
+                        GoogleSignInButton(
+                            title: googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle),
+                            isLoading: googleSignIn.isSigningIn,
+                            isDisabled: googleSignIn.isSigningIn || isBusy
+                        ) {
                             Task { await signInWithGoogleFlow() }
-                        } label: {
-                            HStack(spacing: 10) {
-                                GoogleMark()
-                                Text(googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle))
-                                    .font(.headline.weight(.bold))
-                            }
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .background(.white)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(MarviColor.border, lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
-                        .buttonStyle(.plain)
-                        .disabled(googleSignIn.isSigningIn || isBusy)
-                    }
-
-                    if APIConfig.appleSignInEnabled {
-                        Button {
-                            Task { await signInWithAppleFlow() }
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "apple.logo")
-                                    .font(.title3.weight(.semibold))
-                                Text(appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple))
-                                    .font(.headline.weight(.bold))
-                            }
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .background(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(appleSignIn.isSigningIn || isBusy)
                     }
                 } else {
                     Text(appState.t(.emailSignInRecommended))
@@ -1243,26 +1214,6 @@ private struct SignupIntentCard: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct GoogleMark: View {
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.white)
-                .frame(width: 22, height: 22)
-                .overlay(Circle().stroke(Color(hex: "#DADCE0"), lineWidth: 1))
-            Text("G")
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color(hex: "#4285F4"), Color(hex: "#34A853"), Color(hex: "#FBBC05"), Color(hex: "#EA4335")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        }
     }
 }
 

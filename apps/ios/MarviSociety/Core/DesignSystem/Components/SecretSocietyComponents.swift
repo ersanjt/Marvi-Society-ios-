@@ -362,3 +362,171 @@ struct SSDeclineAcceptRow: View {
         }
     }
 }
+
+// MARK: - Social sign-in
+
+/// Subtle scale + dim while pressed, used for the social auth buttons.
+struct SocialButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+/// Faithful four-colour Google "G" rendered as arcs inside a white tile.
+struct GoogleGLogo: View {
+    var diameter: CGFloat = 20
+
+    var body: some View {
+        Canvas { context, size in
+            let lineWidth = size.width * 0.26
+            let radius = (size.width - lineWidth) / 2
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+
+            func arc(from start: Double, to end: Double, color: Color) {
+                var path = Path()
+                path.addArc(
+                    center: center,
+                    radius: radius,
+                    startAngle: .degrees(start),
+                    endAngle: .degrees(end),
+                    clockwise: false
+                )
+                context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+            }
+
+            let blue = Color(hex: "#4285F4")
+            let green = Color(hex: "#34A853")
+            let yellow = Color(hex: "#FBBC05")
+            let red = Color(hex: "#EA4335")
+
+            // 0° is at 3 o'clock; angles increase clockwise on screen.
+            arc(from: -8, to: 56, color: blue)     // upper-right
+            arc(from: 56, to: 138, color: green)   // bottom
+            arc(from: 138, to: 213, color: yellow) // left
+            arc(from: 213, to: 305, color: red)    // top
+            arc(from: 305, to: 352, color: blue)   // right (closes toward the bar)
+
+            // Horizontal blue bar of the G.
+            let barHeight = lineWidth
+            let bar = CGRect(
+                x: center.x,
+                y: center.y - barHeight / 2,
+                width: radius + lineWidth / 2,
+                height: barHeight
+            )
+            context.fill(Path(bar), with: .color(blue))
+        }
+        .frame(width: diameter, height: diameter)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct SocialAuthButtonLabel: View {
+    enum Kind { case apple, google }
+
+    let kind: Kind
+    let title: String
+    let isLoading: Bool
+
+    var body: some View {
+        ZStack {
+            HStack(spacing: 10) {
+                leadingMark
+                Text(title)
+                    .font(.headline.weight(.semibold))
+            }
+            .opacity(isLoading ? 0 : 1)
+
+            if isLoading {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(kind == .apple ? .white : MarviColor.ink)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 52)
+        .foregroundStyle(kind == .apple ? Color.white : MarviColor.ink)
+        .background(background)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(borderColor, lineWidth: kind == .apple ? 0 : 1)
+        )
+        .shadow(color: Color.black.opacity(kind == .apple ? 0.18 : 0.06), radius: 8, x: 0, y: 3)
+    }
+
+    @ViewBuilder private var leadingMark: some View {
+        switch kind {
+        case .apple:
+            Image(systemName: "apple.logo")
+                .font(.system(size: 19, weight: .medium))
+        case .google:
+            GoogleGLogo(diameter: 20)
+        }
+    }
+
+    private var background: Color {
+        kind == .apple ? Color.black : Color.white
+    }
+
+    private var borderColor: Color {
+        kind == .apple ? .clear : Color(hex: "#DADCE0")
+    }
+}
+
+/// Official-styled "Continue with Apple" button with an inline loading state.
+struct AppleSignInButton: View {
+    let title: String
+    let isLoading: Bool
+    let isDisabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            SocialAuthButtonLabel(kind: .apple, title: title, isLoading: isLoading)
+        }
+        .buttonStyle(SocialButtonStyle())
+        .disabled(isDisabled)
+        .opacity(isDisabled && !isLoading ? 0.55 : 1)
+        .accessibilityLabel(title)
+    }
+}
+
+/// Official-styled "Continue with Google" button with an inline loading state.
+struct GoogleSignInButton: View {
+    let title: String
+    let isLoading: Bool
+    let isDisabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            SocialAuthButtonLabel(kind: .google, title: title, isLoading: isLoading)
+        }
+        .buttonStyle(SocialButtonStyle())
+        .disabled(isDisabled)
+        .opacity(isDisabled && !isLoading ? 0.55 : 1)
+        .accessibilityLabel(title)
+    }
+}
+
+/// Styled divider used above the social sign-in buttons, e.g. "or continue with".
+struct SocialDivider: View {
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Rectangle().fill(MarviColor.border).frame(height: 1)
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
+                .tracking(0.5)
+                .foregroundStyle(MarviColor.muted)
+                .fixedSize()
+            Rectangle().fill(MarviColor.border).frame(height: 1)
+        }
+    }
+}

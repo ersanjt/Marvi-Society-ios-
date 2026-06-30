@@ -51,61 +51,26 @@ struct ReauthView: View {
                             }
 
                             if APIConfig.appleSignInEnabled || APIConfig.googleSignInEnabled {
-                                HStack(spacing: 12) {
-                                    Rectangle().fill(MarviColor.border).frame(height: 1)
-                                    Text(appState.t(.orContinueWith))
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(MarviColor.muted)
-                                    Rectangle().fill(MarviColor.border).frame(height: 1)
-                                }
+                                SocialDivider(label: appState.t(.orContinueWith))
 
                                 if APIConfig.appleSignInEnabled {
-                                    Button {
+                                    AppleSignInButton(
+                                        title: appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple),
+                                        isLoading: appleSignIn.isSigningIn,
+                                        isDisabled: isBusy
+                                    ) {
                                         Task { await signInWithApple() }
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            Image(systemName: "apple.logo")
-                                                .font(.title3.weight(.semibold))
-                                            Text(appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple))
-                                                .font(.headline.weight(.bold))
-                                        }
-                                        .foregroundStyle(.black)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 15)
-                                        .background(.white)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .stroke(MarviColor.border, lineWidth: 1)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     }
-                                    .buttonStyle(.plain)
-                                    .disabled(isBusy)
                                 }
 
                                 if APIConfig.googleSignInEnabled {
-                                    Button {
+                                    GoogleSignInButton(
+                                        title: googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle),
+                                        isLoading: googleSignIn.isSigningIn,
+                                        isDisabled: isBusy
+                                    ) {
                                         Task { await signInWithGoogle() }
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            Image(systemName: "g.circle.fill")
-                                                .font(.title3.weight(.semibold))
-                                                .foregroundStyle(.red)
-                                            Text(googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle))
-                                                .font(.headline.weight(.bold))
-                                        }
-                                        .foregroundStyle(.black)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 15)
-                                        .background(.white)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .stroke(MarviColor.border, lineWidth: 1)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     }
-                                    .buttonStyle(.plain)
-                                    .disabled(isBusy)
                                 }
                             }
 
