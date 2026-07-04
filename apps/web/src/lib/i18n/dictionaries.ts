@@ -39,11 +39,12 @@ export const dictionaries = {
     creators: {
       eyebrow: "Creators",
       title: "Exclusive experiences. Structured workflow. No agency emails.",
-      subtitle: "Download the iOS app, apply for membership, and collaborate with Istanbul's curated venue network.",
+      subtitle: "Download the iOS or Android app, apply for membership, and collaborate with Istanbul's curated venue network.",
       joinTitle: "Join the creator community",
       joinBody:
         "Requirements: independent creator account, original content, typically 5,000+ followers. Applications reviewed by Marvi Society operators.",
       appStore: "Download on App Store",
+      playStore: "Get it on Google Play",
       faq: "Application FAQ",
     },
     brands: {
@@ -190,11 +191,12 @@ export const dictionaries = {
     creators: {
       eyebrow: "İçerik üreticileri",
       title: "Özel deneyimler. Yapılandırılmış akış. Ajans e-postası yok.",
-      subtitle: "iOS uygulamasını indirin, üyelik başvurusu yapın ve İstanbul'un seçkin mekan ağıyla iş birliği yapın.",
+      subtitle: "iOS veya Android uygulamasını indirin, üyelik başvurusu yapın ve İstanbul'un seçkin mekan ağıyla iş birliği yapın.",
       joinTitle: "Üretici topluluğuna katılın",
       joinBody:
         "Gereksinimler: bağımsız üretici hesabı, özgün içerik, genelde 5.000+ takipçi. Başvurular Marvi Society operatörleri tarafından incelenir.",
       appStore: "App Store'dan indir",
+      playStore: "Google Play'den indir",
       faq: "Başvuru SSS",
     },
     brands: {

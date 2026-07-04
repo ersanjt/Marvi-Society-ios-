@@ -757,26 +757,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard !normalized.isEmpty else { return false }
 
-        let filterValue = postgrestEqualsFilter(normalized)
-        let rows: [ReferralRow] = try await client.select(
-            table: "referral_codes",
-            query: [
-                URLQueryItem(name: "select", value: "code,uses_count,max_uses"),
-                URLQueryItem(name: "code", value: filterValue),
-                URLQueryItem(name: "limit", value: "1")
-            ]
+        return try await client.rpc(
+            function: "validate_referral_code",
+            body: ["p_code": normalized],
+            type: Bool.self
         )
-        guard let row = rows.first else { return false }
-        if let maxUses = row.max_uses, row.uses_count >= maxUses { return false }
-        return true
-    }
-
-    private func postgrestEqualsFilter(_ value: String) -> String {
-        let needsQuotes = value.contains { !$0.isLetter && !$0.isNumber }
-        if needsQuotes {
-            return "eq.\"\(value)\""
-        }
-        return "eq.\(value)"
     }
 
     func redeemReferralCode(_ code: String) async throws {
@@ -885,10 +870,10 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
-    func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult {
+    func adminSendInvite(email: String, inviteCode: String?, maxUses: Int) async throws -> AdminInviteResult {
         var body: [String: Any] = [
             "p_email": email.trimmingCharacters(in: .whitespacesAndNewlines),
-            "p_max_uses": 1
+            "p_max_uses": max(1, maxUses)
         ]
         if let inviteCode, !inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             body["p_invite_code"] = inviteCode.uppercased()
@@ -897,6 +882,65 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             function: "admin_send_invite",
             body: body,
             type: AdminInviteResult.self,
+            decoder: Self.adminDecoder
+        )
+    }
+
+    func fetchAdminInviteCodes() async throws -> [AdminInviteCodeItem] {
+        let rows: [AdminInviteCodeRow] = try await client.rpc(
+            function: "admin_list_invite_codes",
+            body: [:],
+            type: [AdminInviteCodeRow].self,
+            decoder: Self.adminDecoder
+        )
+        return rows.map { $0.toItem() }
+    }
+
+    func adminCreateInviteCode(
+        code: String?,
+        ownerType: String,
+        maxUses: Int,
+        inviteEmail: String?
+    ) async throws -> AdminInviteCodeItem {
+        var body: [String: Any] = [
+            "p_owner_type": ownerType.lowercased(),
+            "p_max_uses": max(1, maxUses)
+        ]
+        if let code, !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_code"] = code.uppercased()
+        }
+        if let inviteEmail, !inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_invite_email"] = inviteEmail.lowercased()
+        }
+        let created: AdminInviteCreateRow = try await client.rpc(
+            function: "admin_create_invite_code",
+            body: body,
+            type: AdminInviteCreateRow.self,
+            decoder: Self.adminDecoder
+        )
+        let items = try await fetchAdminInviteCodes()
+        if let match = items.first(where: { $0.code == created.code }) {
+            return match
+        }
+        return AdminInviteCodeItem(
+            id: UUID(),
+            code: created.code,
+            ownerType: created.owner_type,
+            usesCount: created.uses_count,
+            maxUses: created.max_uses,
+            inviteEmail: inviteEmail,
+            createdAt: Date()
+        )
+    }
+
+    func adminUpdateInviteCodeQuota(code: String, maxUses: Int) async throws {
+        _ = try await client.rpc(
+            function: "admin_update_invite_code",
+            body: [
+                "p_code": code.uppercased(),
+                "p_max_uses": max(1, maxUses)
+            ],
+            type: AdminInviteUpdateRow.self,
             decoder: Self.adminDecoder
         )
     }
@@ -936,6 +980,105 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
 
     func unfollowUser(_ userID: UUID) async throws {
         try await client.rpcVoid(function: "unfollow_user", body: ["p_target": userID.uuidString])
+    }
+
+    func searchMembers(query: String?) async throws -> [MemberSearchResult] {
+        var body: [String: Any] = ["p_limit": 30]
+        if let query, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_query"] = query
+        }
+        let rows: [MemberSearchRow] = try await client.rpc(
+            function: "search_members",
+            body: body,
+            type: [MemberSearchRow].self,
+            decoder: Self.adminDecoder
+        )
+        return rows.map { $0.toResult() }
+    }
+
+    func fetchFollowingActivity(limit: Int) async throws -> [MemberActivityItem] {
+        let rows: [MemberActivityRow] = try await client.rpc(
+            function: "get_following_activity",
+            body: ["p_limit": max(1, limit)],
+            type: [MemberActivityRow].self,
+            decoder: Self.adminDecoder
+        )
+        return rows.map { $0.toItem() }
+    }
+
+    func fetchDirectThreads() async throws -> [DirectThread] {
+        let rows: [DirectThreadRow] = try await client.rpc(
+            function: "get_my_direct_threads",
+            body: [:],
+            type: [DirectThreadRow].self,
+            decoder: Self.adminDecoder
+        )
+        return rows.map { $0.toThread() }
+    }
+
+    func ensureDirectThread(peerUserID: UUID) async throws -> UUID {
+        try await client.rpc(
+            function: "ensure_direct_thread",
+            body: ["p_target": peerUserID.uuidString],
+            type: UUID.self,
+            decoder: Self.adminDecoder
+        )
+    }
+
+    func fetchDirectMessages(threadID: UUID) async throws -> [ChatMessage] {
+        let rows: [DirectMessageRow] = try await client.rpc(
+            function: "get_direct_messages",
+            body: ["p_thread_id": threadID.uuidString],
+            type: [DirectMessageRow].self,
+            decoder: Self.adminDecoder
+        )
+        return rows.map { $0.toMessage() }
+    }
+
+    func sendDirectMessage(threadID: UUID, body: String) async throws -> ChatMessage {
+        let row: DirectMessageRow = try await client.rpc(
+            function: "send_direct_message",
+            body: [
+                "p_thread_id": threadID.uuidString,
+                "p_body": body
+            ],
+            type: DirectMessageRow.self,
+            decoder: Self.adminDecoder
+        )
+        return row.toMessage()
+    }
+
+    func fetchProfileComments(targetUserID: UUID) async throws -> [ProfileComment] {
+        let rows: [ProfileCommentRow] = try await client.rpc(
+            function: "list_profile_comments",
+            body: [
+                "p_target_user_id": targetUserID.uuidString,
+                "p_limit": 30
+            ],
+            type: [ProfileCommentRow].self,
+            decoder: Self.adminDecoder
+        )
+        return rows.map { $0.toComment() }
+    }
+
+    func addProfileComment(targetUserID: UUID, body: String) async throws {
+        _ = try await client.rpcVoid(
+            function: "add_profile_comment",
+            body: [
+                "p_target_user_id": targetUserID.uuidString,
+                "p_body": body
+            ]
+        )
+    }
+
+    func fetchVenuePublicProfile(venueID: UUID) async throws -> PublicVenueProfile? {
+        let row: PublicVenueProfileRow? = try await client.rpc(
+            function: "get_venue_public_profile",
+            body: ["p_venue_id": venueID.uuidString],
+            type: PublicVenueProfileRow?.self,
+            decoder: Self.adminDecoder
+        )
+        return row?.toProfile(fallbackVenueID: venueID)
     }
 
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
@@ -1042,6 +1185,33 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         return UUID(uuidString: raw)
     }
 
+    func ensureSocialVerificationCode() async throws -> SocialVerificationStatus {
+        let row: SocialVerificationRow = try await client.rpc(
+            function: "ensure_social_verification_code",
+            body: [:],
+            type: SocialVerificationRow.self,
+            decoder: Self.adminDecoder
+        )
+        return row.toStatus()
+    }
+
+    func submitSocialVerificationDM() async throws -> SocialVerificationStatus {
+        let row: SocialVerificationRow = try await client.rpc(
+            function: "submit_social_verification_dm",
+            body: [:],
+            type: SocialVerificationRow.self,
+            decoder: Self.adminDecoder
+        )
+        return row.toStatus()
+    }
+
+    func adminVerifySocialDM(userID: UUID) async throws {
+        try await client.rpcVoid(
+            function: "admin_verify_social_dm",
+            body: ["p_user_id": userID.uuidString]
+        )
+    }
+
     private func hydrateBooking(_ row: BookingRPCRow) async throws -> Booking {
         let bookings = try await fetchBookings()
         if let booking = bookings.first(where: { $0.id == row.id }) {
@@ -1141,10 +1311,195 @@ private struct CreatorProfileHealRow: Decodable {
     let user_id: UUID
 }
 
-private struct ReferralRow: Decodable {
+private struct MemberSearchRow: Decodable {
+    let profile_ref_id: UUID
+    let user_id: UUID
+    let member_type: String
+    let full_name: String?
+    let instagram_handle: String?
+    let tiktok_handle: String?
+    let city: String?
+    let score: Double?
+    let followers: Int?
+    let is_following: Bool?
+
+    func toResult() -> MemberSearchResult {
+        MemberSearchResult(
+            id: profile_ref_id,
+            userID: user_id,
+            memberType: member_type == "venue" ? .venue : .creator,
+            fullName: full_name ?? "",
+            instagramHandle: instagram_handle ?? "",
+            tiktokHandle: tiktok_handle ?? "",
+            city: (city ?? "istanbul").capitalized,
+            score: Int(score ?? 0),
+            followers: followers ?? 0,
+            isFollowing: is_following ?? false
+        )
+    }
+}
+
+private struct MemberActivityRow: Decodable {
+    let activity_id: UUID
+    let actor_user_id: UUID
+    let actor_creator_id: UUID?
+    let actor_venue_id: UUID?
+    let actor_name: String?
+    let action_type: String?
+    let title: String?
+    let subtitle: String?
+    let created_at: Date
+
+    func toItem() -> MemberActivityItem {
+        MemberActivityItem(
+            id: activity_id,
+            actorUserID: actor_user_id,
+            actorCreatorID: actor_creator_id,
+            actorVenueID: actor_venue_id,
+            actorName: actor_name ?? "Member",
+            actionType: action_type ?? "activity",
+            title: title ?? "",
+            subtitle: subtitle ?? "",
+            createdAt: created_at
+        )
+    }
+}
+
+private struct DirectThreadRow: Decodable {
+    let id: UUID
+    let peer_user_id: UUID
+    let peer_name: String?
+    let peer_handle: String?
+    let last_message: String?
+    let last_message_at: Date?
+    let created_at: Date?
+
+    func toThread() -> DirectThread {
+        DirectThread(
+            id: id,
+            peerUserID: peer_user_id,
+            peerName: peer_name ?? "Member",
+            peerHandle: peer_handle ?? "",
+            lastMessage: last_message,
+            lastMessageAt: last_message_at ?? created_at
+        )
+    }
+}
+
+private struct DirectMessageRow: Decodable {
+    let id: UUID
+    let thread_id: UUID
+    let sender_user_id: UUID
+    let body: String
+    let created_at: Date?
+
+    func toMessage() -> ChatMessage {
+        ChatMessage(
+            id: id,
+            conversationID: thread_id,
+            senderUserID: sender_user_id,
+            body: body,
+            createdAt: created_at ?? Date()
+        )
+    }
+}
+
+private struct ProfileCommentRow: Decodable {
+    let id: UUID
+    let author_user_id: UUID
+    let author_name: String?
+    let body: String
+    let created_at: Date
+
+    func toComment() -> ProfileComment {
+        ProfileComment(
+            id: id,
+            authorUserID: author_user_id,
+            authorName: author_name ?? "Member",
+            body: body,
+            createdAt: created_at
+        )
+    }
+}
+
+private struct PublicVenueProfileRow: Decodable {
+    struct OfferRow: Decodable {
+        let id: UUID?
+        let title: String?
+        let area: String?
+        let category: String?
+        let remaining_slots: Int?
+    }
+
+    let venue_id: UUID?
+    let owner_user_id: UUID
+    let venue_name: String?
+    let area: String?
+    let category: String?
+    let address: String?
+    let followers: Int?
+    let following: Int?
+    let is_following: Bool?
+    let live_offers: [OfferRow]?
+
+    func toProfile(fallbackVenueID: UUID) -> PublicVenueProfile {
+        PublicVenueProfile(
+            id: venue_id ?? fallbackVenueID,
+            ownerUserID: owner_user_id,
+            venueName: venue_name ?? "",
+            area: area ?? "",
+            category: OfferCategory.fromAPI(category),
+            address: address ?? "",
+            followers: followers ?? 0,
+            following: following ?? 0,
+            isFollowing: is_following ?? false,
+            liveOffers: live_offers?.compactMap { offer in
+                guard let title = offer.title, !title.isEmpty else { return nil }
+                return PublicVenueOffer(
+                    id: offer.id ?? UUID(),
+                    title: title,
+                    area: offer.area ?? "",
+                    category: OfferCategory.fromAPI(offer.category),
+                    remainingSlots: offer.remaining_slots ?? 0
+                )
+            } ?? []
+        )
+    }
+}
+
+private struct AdminInviteCodeRow: Decodable {
+    let id: UUID
     let code: String
+    let owner_type: String
     let uses_count: Int
     let max_uses: Int?
+    let invite_email: String?
+    let created_at: Date
+
+    func toItem() -> AdminInviteCodeItem {
+        AdminInviteCodeItem(
+            id: id,
+            code: code,
+            ownerType: owner_type,
+            usesCount: uses_count,
+            maxUses: max_uses,
+            inviteEmail: invite_email,
+            createdAt: created_at
+        )
+    }
+}
+
+private struct AdminInviteCreateRow: Decodable {
+    let code: String
+    let owner_type: String
+    let max_uses: Int
+    let uses_count: Int
+}
+
+private struct AdminInviteUpdateRow: Decodable {
+    let code: String
+    let max_uses: Int
+    let uses_count: Int
 }
 
 private struct StrikeRow: Decodable {
@@ -1405,6 +1760,29 @@ private struct VenueReviewRow: Decodable {
             stageLabel: stage.replacingOccurrences(of: "_", with: " ").capitalized,
             checkedInLabel: checked_in_label,
             hasReview: has_review ?? false
+        )
+    }
+}
+
+private struct SocialVerificationRow: Decodable {
+    let status: String
+    let code: String?
+    let instagram_handle: String?
+    let tiktok_handle: String?
+    let marvi_instagram: String?
+    let issued_at: String?
+    let submitted_at: String?
+    let verified_at: String?
+
+    func toStatus() -> SocialVerificationStatus {
+        SocialVerificationStatus(
+            state: SocialVerificationState(rawValue: status) ?? .pending,
+            code: code,
+            instagramHandle: instagram_handle ?? "",
+            tiktokHandle: tiktok_handle ?? "",
+            marviInstagramHandle: marvi_instagram ?? "marvisociety",
+            submittedAt: APIDTOs.parseISO(submitted_at),
+            verifiedAt: APIDTOs.parseISO(verified_at)
         )
     }
 }

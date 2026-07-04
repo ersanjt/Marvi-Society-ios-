@@ -384,7 +384,8 @@ private struct InterestOfferCard: View {
                     declineTitle: appState.t(.decline),
                     acceptTitle: appState.t(.accept),
                     onDecline: decline,
-                    onAccept: accept
+                    onAccept: accept,
+                    acceptDisabled: !appState.canAcceptOffers
                 )
             }
         }
@@ -435,7 +436,8 @@ private struct BookingCard: View {
                         declineTitle: appState.t(.decline),
                         acceptTitle: appState.t(.accept),
                         onDecline: decline,
-                        onAccept: accept
+                        onAccept: accept,
+                        acceptDisabled: !appState.canAcceptOffers
                     )
                 } else if booking.stage != .completed && booking.stage != .cancelled {
                     HStack(spacing: 10) {

@@ -48,7 +48,7 @@ export function AdminUserDirectory({
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteCode, setInviteCode] = useState("MARVI-IST");
+  const [inviteCode, setInviteCode] = useState("");
   const [createEmail, setCreateEmail] = useState("");
   const [createName, setCreateName] = useState("");
   const [createCity, setCreateCity] = useState("istanbul");

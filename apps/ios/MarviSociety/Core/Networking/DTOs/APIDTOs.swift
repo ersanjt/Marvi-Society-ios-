@@ -365,6 +365,7 @@ extension AdminTaskType {
         case "venue_application": .venueApplication
         case "campaign_review": .campaignReview
         case "proof_review": .proofReview
+        case "social_verification": .socialVerification
         default: .creatorApplication
         }
     }

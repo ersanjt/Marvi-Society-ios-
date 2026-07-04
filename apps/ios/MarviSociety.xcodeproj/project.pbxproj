@@ -21,6 +21,7 @@
 		1A2B3C4D5E6F700000000113 /* MainAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000012 /* MainAppShell.swift */; };
 		1A2B3C4D5E6F700000000114 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000013 /* OnboardingView.swift */; };
 		1A2B3C4D5E6F7000000001A1 /* AccountSetupGates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001A0 /* AccountSetupGates.swift */; };
+		1A2B3C4D5E6F7000000001D1 /* SocialVerificationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001D0 /* SocialVerificationCard.swift */; };
 		1A2B3C4D5E6F700000000115 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000014 /* InboxView.swift */; };
 		1A2B3C4D5E6F700000000116 /* AppPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000015 /* AppPersistence.swift */; };
 		1A2B3C4D5E6F700000000117 /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */; };
@@ -52,6 +53,7 @@
 		1A2B3C4D5E6F700000000190 /* MarviL10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000191 /* MarviL10n.swift */; };
 		1A2B3C4D5E6F7000000001B1 /* ImageUploadPreprocessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */; };
 		1A2B3C4D5E6F7000000001B3 /* CollaborationChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001B2 /* CollaborationChatView.swift */; };
+		1A2B3C4D5E6F7000000001C1 /* CommunityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001C0 /* CommunityView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +70,7 @@
 		1A2B3C4D5E6F700000000012 /* MainAppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppShell.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000013 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7000000001A0 /* AccountSetupGates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSetupGates.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7000000001D0 /* SocialVerificationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialVerificationCard.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000014 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000015 /* AppPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPersistence.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000016 /* AdminDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
@@ -93,6 +96,7 @@
 		1A2B3C4D5E6F700000000191 /* MarviL10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarviL10n.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageUploadPreprocessor.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7000000001B2 /* CollaborationChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationChatView.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7000000001C0 /* CommunityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000154 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000156 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000158 /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
@@ -217,6 +221,7 @@
 				1A2B3C4D5E6F700000000413 /* Admin */,
 				1A2B3C4D5E6F700000000414 /* Bookings */,
 				1A2B3C4D5E6F700000000415 /* Discover */,
+				1A2B3C4D5E6F70000000041A /* Community */,
 				1A2B3C4D5E6F700000000416 /* Inbox */,
 				1A2B3C4D5E6F700000000417 /* OfferDetail */,
 				1A2B3C4D5E6F700000000418 /* Onboarding */,
@@ -311,6 +316,14 @@
 			path = Discover;
 			sourceTree = "<group>";
 		};
+		1A2B3C4D5E6F70000000041A /* Community */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F7000000001C0 /* CommunityView.swift */,
+			);
+			path = Community;
+			sourceTree = "<group>";
+		};
 		1A2B3C4D5E6F700000000416 /* Inbox */ = {
 			isa = PBXGroup;
 			children = (
@@ -340,6 +353,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000009 /* ProfileView.swift */,
+				1A2B3C4D5E6F7000000001D0 /* SocialVerificationCard.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -497,6 +511,7 @@
 				1A2B3C4D5E6F700000000107 /* OfferDetailView.swift in Sources */,
 				1A2B3C4D5E6F700000000108 /* BookingsView.swift in Sources */,
 				1A2B3C4D5E6F700000000109 /* ProfileView.swift in Sources */,
+				1A2B3C4D5E6F7000000001D1 /* SocialVerificationCard.swift in Sources */,
 				1A2B3C4D5E6F700000000110 /* VenueStudioView.swift in Sources */,
 				1A2B3C4D5E6F700000000112 /* AppState.swift in Sources */,
 				1A2B3C4D5E6F700000000113 /* MainAppShell.swift in Sources */,
@@ -531,6 +546,7 @@
 				1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */,
 				1A2B3C4D5E6F7000000001B1 /* ImageUploadPreprocessor.swift in Sources */,
 				1A2B3C4D5E6F7000000001B3 /* CollaborationChatView.swift in Sources */,
+				1A2B3C4D5E6F7000000001C1 /* CommunityView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -668,7 +684,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "MarviSociety/MarviSociety-Device.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -706,7 +722,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MarviSociety/MarviSociety.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;

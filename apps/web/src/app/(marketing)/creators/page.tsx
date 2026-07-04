@@ -55,8 +55,11 @@ export default async function CreatorsPage() {
               subtitle={dict.creators.subtitle}
             />
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href={SITE.appStoreUrl} className="marvi-btn-primary">
+              <a href={SITE.appStoreUrl} className="marvi-btn-primary" target="_blank" rel="noopener noreferrer">
                 {dict.creators.appStore}
+              </a>
+              <a href={SITE.playStoreUrl} className="marvi-btn-secondary" target="_blank" rel="noopener noreferrer">
+                {dict.creators.playStore}
               </a>
               <Link href="/faq" className="marvi-btn-secondary">
                 {dict.creators.faq}

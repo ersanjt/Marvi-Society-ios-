@@ -11,7 +11,8 @@ export const OFFER_CATEGORIES = [
   "retail",
 ] as const;
 export const REFERRAL_CODES = {
-  creatorDefault: "MARVI-IST",
-  turkishDefault: "TURGUT",
-  venueDefault: "MARVI2026",
+  /** Invite codes are admin-managed; no public defaults. */
+  creatorDefault: "",
+  turkishDefault: "",
+  venueDefault: "",
 } as const;

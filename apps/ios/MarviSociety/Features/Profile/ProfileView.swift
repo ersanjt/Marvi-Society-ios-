@@ -38,6 +38,17 @@ struct ProfileView: View {
     @State private var inviteEmail = ""
     @State private var isSendingInvite = false
     @State private var inviteSuccessMessage: String?
+    @State private var profileInviteCode = ""
+    @State private var profileInviteError = ""
+    @State private var isRedeemingInvite = false
+    @State private var profileInviteAccepted = false
+
+    private var showsProfileCompletion: Bool {
+        appState.isAuthenticated && appState.selectedRole == .creator
+            && (appState.needsInviteRedemption
+                || appState.needsSocialProfileCompletion
+                || appState.profile.status != .approved)
+    }
 
     private var managementTitle: String {
         switch appState.selectedRole {
@@ -72,6 +83,38 @@ struct ProfileView: View {
                                 }
                             }
                         )
+
+                        if showsProfileCompletion {
+                            ProfileCompletionCard(
+                                inviteCode: $profileInviteCode,
+                                inviteError: $profileInviteError,
+                                inviteAccepted: $profileInviteAccepted,
+                                isRedeeming: $isRedeemingInvite,
+                                needsInvite: appState.needsInviteRedemption,
+                                needsSocial: appState.needsSocialProfileCompletion,
+                                membershipStatus: appState.profile.status,
+                                language: appState.preferredLanguage,
+                                onRedeemInvite: {
+                                    Task {
+                                        profileInviteError = ""
+                                        isRedeemingInvite = true
+                                        defer { isRedeemingInvite = false }
+                                        if let error = await appState.redeemReferralCode(profileInviteCode) {
+                                            profileInviteError = error
+                                        } else {
+                                            profileInviteAccepted = true
+                                            appState.pendingInviteCode = nil
+                                            await appState.syncAllowedRoles()
+                                        }
+                                    }
+                                }
+                            )
+                            .onAppear {
+                                if profileInviteCode.isEmpty, let pending = appState.pendingInviteCode {
+                                    profileInviteCode = pending
+                                }
+                            }
+                        }
 
                         MarviCard {
                             VStack(alignment: .leading, spacing: 14) {
@@ -340,6 +383,8 @@ struct ProfileView: View {
                             }
                         }
 
+                        SocialVerificationCard()
+
                         if appState.isAuthenticated, appState.selectedRole == .creator {
                             ShowcaseEditorCard()
                         }
@@ -352,6 +397,7 @@ struct ProfileView: View {
                                 )
                                 ChecklistRow(title: appState.t(.instagramConnected), isDone: !appState.profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: appState.t(.tiktokConnected), isDone: !appState.profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                ChecklistRow(title: appState.t(.socialVerifyVerified), isDone: appState.socialVerification?.isVerified == true)
                                 ChecklistRow(title: appState.t(.cityVerified), isDone: !appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: appState.t(.nicheSelected), isDone: !appState.profile.niches.isEmpty)
                                 ChecklistRow(title: appState.t(.audienceReviewed), isDone: appState.profile.score > 0)
@@ -700,10 +746,11 @@ struct ProfileView: View {
         var count = 0
         if !appState.profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         if !appState.profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
+        if appState.socialVerification?.isVerified == true { count += 1 }
         if !appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         if !appState.profile.niches.isEmpty { count += 1 }
         if appState.profile.score > 0 { count += 1 }
-        if appState.profile.completedApplicationSteps >= 5 { count += 1 }
+        if !appState.profile.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
         if appState.profile.status == .approved { count += 1 }
         return count
     }
@@ -1378,6 +1425,82 @@ private struct ShowcaseTile: View {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(MarviColor.rose)
+        }
+    }
+}
+
+private struct ProfileCompletionCard: View {
+    @Binding var inviteCode: String
+    @Binding var inviteError: String
+    @Binding var inviteAccepted: Bool
+    @Binding var isRedeeming: Bool
+    let needsInvite: Bool
+    let needsSocial: Bool
+    let membershipStatus: MembershipStatus
+    let language: AppLanguage
+    let onRedeemInvite: () -> Void
+
+    var body: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 14) {
+                SectionTitle(
+                    title: MarviL10n.t(.profileCompletionTitle, language: language),
+                    subtitle: MarviL10n.t(.profileCompletionSub, language: language)
+                )
+
+                if membershipStatus != .approved {
+                    MembershipStatusBanner(
+                        status: membershipStatus,
+                        language: language,
+                        pausedBySelf: false,
+                        onReactivate: nil
+                    )
+                }
+
+                if needsInvite {
+                    MarviTextField(
+                        placeholder: MarviL10n.t(.invitePlaceholder, language: language),
+                        text: $inviteCode,
+                        autocapitalization: .characters
+                    )
+
+                    if inviteAccepted {
+                        Label(MarviL10n.t(.inviteAccepted, language: language), systemImage: "checkmark.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(MarviColor.emerald)
+                    }
+
+                    if !inviteError.isEmpty {
+                        Label(inviteError, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.tomato)
+                    }
+
+                    Button(action: onRedeemInvite) {
+                        Text(isRedeeming ? MarviL10n.t(.validatingInvite, language: language) : MarviL10n.t(.continueAction, language: language))
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
+                    .background(MarviGradient.brand)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .disabled(inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isRedeeming)
+                }
+
+                if needsSocial {
+                    Label(MarviL10n.t(.socialSetupSub, language: language), systemImage: "person.crop.circle.badge.plus")
+                        .font(.subheadline)
+                        .foregroundStyle(MarviColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Text(MarviL10n.t(.completeProfileToAccept, language: language))
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.graphite)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

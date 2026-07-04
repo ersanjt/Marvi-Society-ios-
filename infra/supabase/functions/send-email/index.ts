@@ -130,8 +130,15 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
   }
 
   if (template === "invite_code") {
-    const code = esc(vars.invite_code ?? "MARVI-IST");
-    const deepLink = esc(vars.deep_link ?? `marvisociety://invite?code=${vars.invite_code ?? "MARVI-IST"}`);
+    const rawCode = vars.invite_code?.trim();
+    if (!rawCode) {
+      return {
+        subject: "Marvi Society",
+        html: wrap("Invite", "<p>Missing invite code.</p>"),
+      };
+    }
+    const code = esc(rawCode);
+    const deepLink = esc(vars.deep_link ?? `marvisociety://invite?code=${rawCode}`);
     if (locale === "tr") {
       return {
         subject: "Marvi Society — davet kodunuz",

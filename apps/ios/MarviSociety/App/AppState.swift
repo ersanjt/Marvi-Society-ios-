@@ -18,6 +18,7 @@ final class AppState: ObservableObject {
     @Published var campaigns: [Campaign] = []
     @Published var adminTasks: [AdminTask] = []
     @Published var adminUsers: [AdminUserSummary] = []
+    @Published var adminInviteCodes: [AdminInviteCodeItem] = []
     @Published var inboxMessages: [InboxMessage] = []
     @Published var profile = CreatorProfile.empty
     @Published var strikes: [Strike] = []
@@ -60,9 +61,13 @@ final class AppState: ObservableObject {
     @Published var collaborationHistory: [CollaborationEntry] = []
     @Published var followCounts: FollowCounts = .zero
     @Published var showcaseItems: [ShowcaseItem] = []
+    @Published var memberSearchResults: [MemberSearchResult] = []
+    @Published var followingActivity: [MemberActivityItem] = []
+    @Published var directThreads: [DirectThread] = []
     @Published var conversations: [ChatConversation] = []
     @Published var adminActivity: [ActivityEventItem] = []
     @Published var pendingCollaborationRequests: [PendingCollaborationRequest] = []
+    @Published var socialVerification: SocialVerificationStatus?
     @Published private(set) var languageManuallySet = false {
         didSet { saveSnapshot() }
     }
@@ -147,14 +152,24 @@ final class AppState: ObservableObject {
         return accountReferralCode == nil
     }
 
-    /// Creators must link Instagram and TikTok before using the app.
+    /// Creators must verify Instagram/TikTok ownership via DM code.
     var needsSocialProfileCompletion: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding, !needsInviteRedemption else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
         let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
         let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        return handle.isEmpty || tiktok.isEmpty
+        if handle.isEmpty || tiktok.isEmpty { return true }
+        return socialVerification?.isVerified != true
+    }
+
+    /// Whether the signed-in creator may accept live offers (client-side gate; server also enforces).
+    var canAcceptOffers: Bool {
+        guard isAuthenticated, hasCompletedOnboarding else { return false }
+        if accountRole == .admin { return true }
+        return !needsInviteRedemption
+            && !needsSocialProfileCompletion
+            && profile.status == .approved
     }
 
     static func inferredSystemLanguage() -> AppLanguage {
@@ -224,7 +239,10 @@ final class AppState: ObservableObject {
     func navigate(to link: MarviDeepLink) {
         switch link {
         case .inbox:
-            workspaceTabIndex = selectedRole == .creator ? profileTabIndex : 1
+            switch selectedRole {
+            case .creator, .venue: workspaceTabIndex = 2
+            case .admin: workspaceTabIndex = 1
+            }
         case .profile:
             selectedRole = allowedRoles.contains(.creator) ? .creator : (allowedRoles.first ?? .creator)
             workspaceTabIndex = profileTabIndex
@@ -245,7 +263,7 @@ final class AppState: ObservableObject {
             }
         case .booking(let bookingID):
             selectedRole = .creator
-            workspaceTabIndex = 1
+            workspaceTabIndex = 2
             highlightedBookingID = bookingID
         }
         pendingDeepLink = nil
@@ -273,7 +291,12 @@ final class AppState: ObservableObject {
         }
     }
 
-    var profileTabIndex: Int { 2 }
+    var profileTabIndex: Int {
+        switch selectedRole {
+        case .creator, .venue: 3
+        case .admin: 2
+        }
+    }
 
     var unreadInboxCount: Int {
         inboxMessages.filter { !$0.isRead }.count
@@ -435,6 +458,11 @@ final class AppState: ObservableObject {
         if let history = try? await api.fetchMyCollaborationHistory() { collaborationHistory = history }
         if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
         if let items = try? await api.fetchMyShowcase() { showcaseItems = items }
+        if isAuthenticated, accountRole != .admin {
+            if let verification = try? await api.ensureSocialVerificationCode() {
+                socialVerification = verification
+            }
+        }
         if let chats = try? await api.fetchConversations() { conversations = chats }
         if let pending = try? await api.fetchPendingCollaborationRequests() {
             pendingCollaborationRequests = pending
@@ -704,11 +732,56 @@ final class AppState: ObservableObject {
         do {
             try await api.updateProfile(profile)
             profile = try await api.fetchProfile()
+            socialVerification = try await api.ensureSocialVerificationCode()
             lastSyncError = nil
             return true
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             return false
+        }
+    }
+
+    func loadSocialVerification() async {
+        guard isRemoteMode, isAuthenticated else { return }
+        do {
+            socialVerification = try await api.ensureSocialVerificationCode()
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func submitSocialVerificationSent() async -> String? {
+        guard isRemoteMode, isAuthenticated else { return t(.errSignInRequired) }
+
+        isSyncing = true
+        defer { isSyncing = false }
+
+        do {
+            socialVerification = try await api.submitSocialVerificationDM()
+            return nil
+        } catch {
+            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            lastSyncError = message
+            return message
+        }
+    }
+
+    func adminVerifySocialDM(userID: UUID) async -> String? {
+        guard isRemoteMode, isAuthenticated else { return t(.errSignInRequired) }
+
+        isSyncing = true
+        defer { isSyncing = false }
+
+        do {
+            try await api.adminVerifySocialDM(userID: userID)
+            if allowedRoles.contains(.admin) {
+                adminTasks = try await api.fetchAdminTasks()
+            }
+            return nil
+        } catch {
+            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            lastSyncError = message
+            return message
         }
     }
 
@@ -870,6 +943,10 @@ final class AppState: ObservableObject {
 
     func accept(_ offer: Offer, options: AcceptOfferOptions = AcceptOfferOptions()) {
         guard isAuthenticated, !isAccepted(offer), offer.remaining > 0 else { return }
+        if needsInviteRedemption || needsSocialProfileCompletion || profile.status != .approved {
+            lastSyncError = t(.completeProfileToAccept)
+            return
+        }
         pendingOfferIDs.insert(offer.id)
         Task {
             defer { pendingOfferIDs.remove(offer.id) }
@@ -1240,12 +1317,63 @@ final class AppState: ObservableObject {
         }
     }
 
-    func adminSendInviteEmail(email: String, inviteCode: String?) async -> String? {
+    func loadAdminInviteCodes() async {
+        guard isRemoteMode, isAuthenticated, allowedRoles.contains(.admin) else { return }
+        do {
+            adminInviteCodes = try await api.fetchAdminInviteCodes()
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func adminCreateInviteCode(
+        code: String?,
+        ownerType: String,
+        maxUses: Int,
+        inviteEmail: String? = nil
+    ) async -> String? {
         guard isRemoteMode, allowedRoles.contains(.admin) else {
             return t(.errAdminRequired)
         }
         do {
-            _ = try await api.adminSendInvite(email: email, inviteCode: inviteCode)
+            let item = try await api.adminCreateInviteCode(
+                code: code,
+                ownerType: ownerType,
+                maxUses: maxUses,
+                inviteEmail: inviteEmail
+            )
+            if let index = adminInviteCodes.firstIndex(where: { $0.id == item.id }) {
+                adminInviteCodes[index] = item
+            } else {
+                adminInviteCodes.insert(item, at: 0)
+            }
+            await loadAdminInviteCodes()
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func adminUpdateInviteCodeQuota(code: String, maxUses: Int) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminUpdateInviteCodeQuota(code: code, maxUses: maxUses)
+            await loadAdminInviteCodes()
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func adminSendInviteEmail(email: String, inviteCode: String?, maxUses: Int = 1) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            _ = try await api.adminSendInvite(email: email, inviteCode: inviteCode, maxUses: maxUses)
+            await loadAdminInviteCodes()
             return nil
         } catch {
             return friendlyErrorMessage(error) ?? error.localizedDescription
@@ -1354,6 +1482,26 @@ final class AppState: ObservableObject {
                 )
             case .campaignReview, .proofReview:
                 return nil
+            case .socialVerification:
+                async let profileTask = api.fetchCreatorProfile(userID: subjectID)
+                async let detailTask = api.fetchAdminUserDetail(userID: subjectID)
+                guard let profile = try await profileTask else { return nil }
+                let detail = try await detailTask
+                return AdminSubjectDetail(
+                    name: profile.name,
+                    handle: detail.creatorHandle ?? (profile.handle.isEmpty ? nil : profile.handle),
+                    city: profile.city.isEmpty ? nil : profile.city,
+                    area: nil,
+                    category: nil,
+                    niches: profile.niches,
+                    languages: profile.languages,
+                    score: profile.score,
+                    audienceLabel: profile.audienceLabel,
+                    status: profile.status.rawValue,
+                    tiktokHandle: profile.tiktokHandle.isEmpty ? nil : profile.tiktokHandle,
+                    socialVerificationCode: detail.socialVerificationCode,
+                    socialVerificationSubmittedAt: detail.socialVerificationSubmittedAt
+                )
             }
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
@@ -1380,6 +1528,8 @@ final class AppState: ObservableObject {
         campaigns = []
         adminTasks = []
         adminUsers = []
+        adminInviteCodes = []
+        adminActivity = []
         venueReviewQueue = []
         myVenues = []
         inboxMessages = []
@@ -1391,6 +1541,10 @@ final class AppState: ObservableObject {
         collaborationHistory = []
         followCounts = .zero
         showcaseItems = []
+        memberSearchResults = []
+        followingActivity = []
+        directThreads = []
+        socialVerification = nil
     }
 
     // MARK: - Chat & mutual collaboration
@@ -1536,6 +1690,15 @@ final class AppState: ObservableObject {
         }
     }
 
+    func loadUserShowcase(userID: UUID) async -> [ShowcaseItem] {
+        guard isRemoteMode, isAuthenticated else { return [] }
+        do {
+            return try await api.fetchShowcase(userID: userID)
+        } catch {
+            return []
+        }
+    }
+
     func toggleFollow(profile: PublicCreatorProfile) async -> PublicCreatorProfile {
         if profile.isFollowing {
             await unfollowUser(profile.userID)
@@ -1554,6 +1717,7 @@ final class AppState: ObservableObject {
         do {
             try await api.followUser(userID)
             if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
+            await loadFollowingActivity()
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
         }
@@ -1564,9 +1728,146 @@ final class AppState: ObservableObject {
         do {
             try await api.unfollowUser(userID)
             if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
+            memberSearchResults = memberSearchResults.map { member in
+                guard member.userID == userID else { return member }
+                var updated = member
+                updated.isFollowing = false
+                return updated
+            }
+            await loadFollowingActivity()
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
         }
+    }
+
+    func searchMembers(query: String = "") async {
+        guard isRemoteMode, isAuthenticated else { return }
+        do {
+            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            memberSearchResults = try await api.searchMembers(query: trimmed.isEmpty ? nil : trimmed)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func loadFollowingActivity() async {
+        guard isRemoteMode, isAuthenticated else { return }
+        do {
+            followingActivity = try await api.fetchFollowingActivity(limit: 40)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func toggleFollowMember(_ member: MemberSearchResult) async -> MemberSearchResult {
+        if member.isFollowing {
+            await unfollowUser(member.userID)
+        } else {
+            await followUser(member.userID)
+            memberSearchResults = memberSearchResults.map { item in
+                guard item.id == member.id else { return item }
+                var updated = item
+                updated.isFollowing = true
+                return updated
+            }
+        }
+        return memberSearchResults.first(where: { $0.id == member.id }) ?? member
+    }
+
+    func loadDirectThreads() async {
+        guard isRemoteMode, isAuthenticated else { return }
+        do {
+            directThreads = try await api.fetchDirectThreads()
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func openDirectThread(with peerUserID: UUID) async -> DirectThread? {
+        guard isRemoteMode, isAuthenticated else { return nil }
+        do {
+            let threadID = try await api.ensureDirectThread(peerUserID: peerUserID)
+            await loadDirectThreads()
+            if let existing = directThreads.first(where: { $0.id == threadID }) {
+                return existing
+            }
+            if let existing = directThreads.first(where: { $0.peerUserID == peerUserID }) {
+                return existing
+            }
+            await loadDirectThreads()
+            return directThreads.first(where: { $0.peerUserID == peerUserID })
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    func fetchDirectChatMessages(threadID: UUID) async -> [ChatMessage] {
+        guard isRemoteMode, isAuthenticated else { return [] }
+        do {
+            return try await api.fetchDirectMessages(threadID: threadID)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return []
+        }
+    }
+
+    func sendDirectChatMessage(threadID: UUID, body: String) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        do {
+            _ = try await api.sendDirectMessage(threadID: threadID, body: trimmed)
+            await loadDirectThreads()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func loadProfileComments(targetUserID: UUID) async -> [ProfileComment] {
+        guard isRemoteMode, isAuthenticated else { return [] }
+        do {
+            return try await api.fetchProfileComments(targetUserID: targetUserID)
+        } catch {
+            return []
+        }
+    }
+
+    func postProfileComment(targetUserID: UUID, body: String) async -> String? {
+        guard isRemoteMode, isAuthenticated else { return t(.errSignInRequired) }
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return t(.commentRequired) }
+        do {
+            try await api.addProfileComment(targetUserID: targetUserID, body: trimmed)
+            return nil
+        } catch {
+            return friendlyErrorMessage(error) ?? error.localizedDescription
+        }
+    }
+
+    func loadVenuePublicProfile(venueID: UUID) async -> PublicVenueProfile? {
+        guard isRemoteMode, isAuthenticated else { return nil }
+        do {
+            return try await api.fetchVenuePublicProfile(venueID: venueID)
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    func toggleFollowVenue(_ profile: PublicVenueProfile) async -> PublicVenueProfile {
+        if profile.isFollowing {
+            await unfollowUser(profile.ownerUserID)
+        } else {
+            await followUser(profile.ownerUserID)
+        }
+        return await loadVenuePublicProfile(venueID: profile.id) ?? {
+            var fallback = profile
+            fallback.isFollowing.toggle()
+            return fallback
+        }()
     }
 
     private func friendlyErrorMessage(_ error: Error) -> String? {

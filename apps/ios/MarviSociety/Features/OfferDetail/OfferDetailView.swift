@@ -20,6 +20,7 @@ struct OfferDetailView: View {
     private var isUnderReview: Bool { appState.profile.status == .underReview }
     private var canAccept: Bool {
         !isPending && !isFull && !isPaused && !isUnderReview && appState.isAuthenticated
+            && !appState.needsInviteRedemption && !appState.needsSocialProfileCompletion
     }
 
     var body: some View {

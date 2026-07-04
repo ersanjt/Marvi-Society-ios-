@@ -245,6 +245,8 @@ private struct AdminTaskAction {
                 language == .turkish ? "Kampanya Keşfet'te canlı yayınlanır." : "This publishes the campaign live on Explore."
             case .proofReview:
                 language == .turkish ? "Kanıt teslim edildi olarak işaretlenir." : "This marks proof as delivered."
+            case .socialVerification:
+                language == .turkish ? "Instagram DM kodu doğrulanır ve sosyal hesaplar onaylanır." : "This confirms the Instagram DM verification code and social ownership."
             }
         case .reject:
             language == .turkish ? "Başvuran yeniden gönderene kadar duraklatılmış kalır." : "The applicant or submitter will remain paused until they resubmit."
@@ -527,6 +529,7 @@ private struct AdminTaskCard: View {
         case .venueApplication: "building.2"
         case .campaignReview: "megaphone"
         case .proofReview: "doc.text"
+        case .socialVerification: "paperplane.fill"
         }
     }
 
@@ -536,6 +539,7 @@ private struct AdminTaskCard: View {
         case .venueApplication: MarviColor.aubergine
         case .campaignReview: MarviColor.gold
         case .proofReview: MarviColor.emerald
+        case .socialVerification: MarviColor.rose
         }
     }
 
@@ -557,6 +561,8 @@ private struct AdminTaskCard: View {
             "Approve publishes this campaign live on Explore."
         case .proofReview:
             "Approve marks proof as delivered; reject flags for follow-up."
+        case .socialVerification:
+            "Approve confirms Instagram DM ownership for the listed handles."
         }
     }
 }
@@ -627,6 +633,35 @@ private struct AdminTaskDetailSheet: View {
                                     if !subjectDetail.languages.isEmpty {
                                         detailRow("Languages", subjectDetail.languages.joined(separator: ", "))
                                     }
+                                    if task.type == .socialVerification {
+                                        if let tiktok = subjectDetail.tiktokHandle {
+                                            detailRow("TikTok", tiktok)
+                                        }
+                                        if let code = subjectDetail.socialVerificationCode {
+                                            detailRow(appState.t(.socialVerifyCodeLabel), code)
+                                        }
+                                        if let submitted = subjectDetail.socialVerificationSubmittedAt {
+                                            detailRow(
+                                                appState.t(.socialVerifySubmitted),
+                                                submitted.formatted(date: .abbreviated, time: .shortened)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if task.type == .socialVerification, !task.subtitle.isEmpty {
+                            MarviCard {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(appState.t(.reviewContext))
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(MarviColor.ink)
+                                    Text(task.subtitle)
+                                        .font(.subheadline)
+                                        .foregroundStyle(MarviColor.graphite)
+                                        .textSelection(.enabled)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }
@@ -789,6 +824,8 @@ private struct AdminTaskDetailSheet: View {
             "Check deliverables, slot count, and brand safety before publishing live."
         case .proofReview:
             "Open proof links and confirm deliverables match campaign terms."
+        case .socialVerification:
+            "Confirm the DM code matches this user and their Instagram/TikTok handles."
         }
     }
 

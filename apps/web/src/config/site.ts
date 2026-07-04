@@ -10,7 +10,7 @@ export const SITE = {
   email: "hello@marvisociety.com",
   supportEmail: "support@marvisociety.com",
   appStoreUrl: "https://apps.apple.com/app/id6783450762",
-  playStoreUrl: "#",
+  playStoreUrl: process.env.NEXT_PUBLIC_PLAY_STORE_URL || "https://play.google.com/store/apps/details?id=com.marvisociety.app",
 } as const;
 
 export const NAV_LINKS = [

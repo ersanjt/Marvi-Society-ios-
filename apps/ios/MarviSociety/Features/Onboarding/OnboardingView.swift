@@ -689,13 +689,7 @@ struct OnboardingView: View {
         if !appState.profile.city.isEmpty {
             city = appState.profile.city
         }
-        Task {
-            if await appState.isExistingMemberOnServer() {
-                appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
-            } else {
-                withAnimation { step = .invite }
-            }
-        }
+        appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
     }
 
     private func goBack() {
@@ -732,11 +726,7 @@ struct OnboardingView: View {
             advance(to: .signIn)
         case .signIn:
             if appState.isAuthenticated {
-                if await appState.isExistingMemberOnServer() {
-                    appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
-                } else {
-                    advance(to: .invite)
-                }
+                appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
             } else if isCreatingAccount {
                 await signUpWithEmailFlow()
             } else {
@@ -881,18 +871,8 @@ struct OnboardingView: View {
         tiktokHandle = appState.profile.tiktokHandle
         if !appState.profile.city.isEmpty { city = appState.profile.city }
         selectedNiches = Set(appState.profile.niches)
-
-        if pendingSignupOnboarding {
-            pendingSignupOnboarding = false
-            advance(to: .invite)
-            return
-        }
-
-        if await appState.isExistingMemberOnServer() {
-            appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
-        } else {
-            advance(to: .invite)
-        }
+        pendingSignupOnboarding = false
+        appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
     }
 
     private func requestPasswordReset() async {

@@ -13,10 +13,6 @@ struct ContentView: View {
                 ReauthView()
             } else if appState.isBootstrapping {
                 BootstrapSplashView()
-            } else if appState.needsInviteRedemption {
-                InviteRequiredView()
-            } else if appState.needsSocialProfileCompletion {
-                SocialProfileSetupView()
             } else {
                 MainAppShell()
             }

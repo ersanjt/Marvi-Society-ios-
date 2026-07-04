@@ -1,0 +1,8 @@
+# Copy to local.properties (gitignored) and fill in Supabase credentials.
+# Same values as apps/ios/Config/Secrets.xcconfig
+
+MARVI_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+MARVI_SUPABASE_ANON_KEY=your-anon-public-key
+MARVI_API_MODE=supabase
+
+sdk.dir=/path/to/Android/sdk

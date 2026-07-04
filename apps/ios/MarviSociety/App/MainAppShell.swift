@@ -47,30 +47,38 @@ struct MainAppShell: View {
                     .tabItem { Label(MarviL10n.t(.explore, language: lang), systemImage: "sparkles") }
                     .tag(0)
 
+                CommunityView()
+                    .tabItem { Label(MarviL10n.t(.communityTab, language: lang), systemImage: "person.2.fill") }
+                    .tag(1)
+
                 BookingsView()
                     .tabItem { Label(MarviL10n.t(.myEvents, language: lang), systemImage: "calendar.badge.clock") }
                     .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
-                    .tag(1)
+                    .tag(2)
 
                 ProfileView()
                     .tabItem {
                         Label(MarviL10n.t(.profile, language: lang), systemImage: "person.crop.circle.fill")
                     }
-                    .tag(2)
+                    .tag(3)
 
             case .venue:
                 VenueStudioView()
                     .tabItem { Label(MarviL10n.t(.studio, language: lang), systemImage: "building.2") }
                     .tag(0)
 
+                CommunityView()
+                    .tabItem { Label(MarviL10n.t(.communityTab, language: lang), systemImage: "person.2.fill") }
+                    .tag(1)
+
                 InboxView()
                     .tabItem { Label(MarviL10n.t(.inbox, language: lang), systemImage: "bell") }
                     .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
-                    .tag(1)
+                    .tag(2)
 
                 ProfileView()
                     .tabItem { Label(MarviL10n.t(.account, language: lang), systemImage: "person.crop.circle") }
-                    .tag(2)
+                    .tag(3)
 
             case .admin:
                 AdminDashboardView()

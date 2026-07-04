@@ -1,27 +1,31 @@
 package com.marvisociety.app.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val Emerald = Color(0xFF1F7A5C)
-private val Ink = Color(0xFF1A1A1F)
-private val Surface = Color(0xFFF7F5F0)
-private val Gold = Color(0xFFC9A227)
-
-private val LightColors = lightColorScheme(
-    primary = Emerald,
+private val MarviDark = darkColorScheme(
+    primary = MarviColor.Rose,
     onPrimary = Color.White,
-    secondary = Gold,
-    background = Surface,
-    onBackground = Ink,
-    surface = Color.White,
-    onSurface = Ink
+    secondary = MarviColor.Gold,
+    onSecondary = MarviColor.InkOnLight,
+    tertiary = MarviColor.Emerald,
+    background = MarviColor.Surface,
+    onBackground = MarviColor.Ink,
+    surface = MarviColor.Panel,
+    onSurface = MarviColor.Ink,
+    surfaceVariant = MarviColor.PanelElevated,
+    onSurfaceVariant = MarviColor.Graphite,
+    error = MarviColor.Tomato,
+    outline = MarviColor.Border
 )
 
 @Composable
 fun MarviTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = LightColors, content = content)
+    MaterialTheme(
+        colorScheme = MarviDark,
+        content = content
+    )
 }

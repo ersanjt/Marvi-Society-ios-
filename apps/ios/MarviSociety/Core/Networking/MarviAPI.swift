@@ -78,12 +78,24 @@ protocol MarviAPI: Sendable {
     func adminSetMembershipStatus(userID: UUID, status: String) async throws
     func adminSendNotification(userID: UUID, title: String, body: String) async throws
     func adminSendEmail(userID: UUID, subject: String, body: String) async throws
-    func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult
+    func adminSendInvite(email: String, inviteCode: String?, maxUses: Int) async throws -> AdminInviteResult
+    func fetchAdminInviteCodes() async throws -> [AdminInviteCodeItem]
+    func adminCreateInviteCode(code: String?, ownerType: String, maxUses: Int, inviteEmail: String?) async throws -> AdminInviteCodeItem
+    func adminUpdateInviteCodeQuota(code: String, maxUses: Int) async throws
     func sendCreatorInvite(email: String) async throws -> AdminInviteResult
     func fetchMyCollaborationHistory() async throws -> [CollaborationEntry]
     func fetchMyFollowCounts() async throws -> FollowCounts
     func followUser(_ userID: UUID) async throws
     func unfollowUser(_ userID: UUID) async throws
+    func searchMembers(query: String?) async throws -> [MemberSearchResult]
+    func fetchFollowingActivity(limit: Int) async throws -> [MemberActivityItem]
+    func fetchDirectThreads() async throws -> [DirectThread]
+    func ensureDirectThread(peerUserID: UUID) async throws -> UUID
+    func fetchDirectMessages(threadID: UUID) async throws -> [ChatMessage]
+    func sendDirectMessage(threadID: UUID, body: String) async throws -> ChatMessage
+    func fetchProfileComments(targetUserID: UUID) async throws -> [ProfileComment]
+    func addProfileComment(targetUserID: UUID, body: String) async throws
+    func fetchVenuePublicProfile(venueID: UUID) async throws -> PublicVenueProfile?
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int
     func adminCreateUser(email: String, password: String?, fullName: String, city: String, autoApprove: Bool) async throws -> AdminProvisionResult
     func fetchConversations() async throws -> [ChatConversation]
@@ -94,6 +106,9 @@ protocol MarviAPI: Sendable {
     func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest]
     func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem]
     func resolveCurrentUserID() async -> UUID?
+    func ensureSocialVerificationCode() async throws -> SocialVerificationStatus
+    func submitSocialVerificationDM() async throws -> SocialVerificationStatus
+    func adminVerifySocialDM(userID: UUID) async throws
 }
 
 extension MarviAPI {
@@ -242,10 +257,26 @@ extension MarviAPI {
         _ = body
     }
 
-    func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult {
+    func adminSendInvite(email: String, inviteCode: String?, maxUses: Int) async throws -> AdminInviteResult {
         _ = email
         _ = inviteCode
+        _ = maxUses
         throw MarviAPIError.server(message: "Admin invite requires Supabase mode")
+    }
+
+    func fetchAdminInviteCodes() async throws -> [AdminInviteCodeItem] { [] }
+
+    func adminCreateInviteCode(code: String?, ownerType: String, maxUses: Int, inviteEmail: String?) async throws -> AdminInviteCodeItem {
+        _ = code
+        _ = ownerType
+        _ = maxUses
+        _ = inviteEmail
+        throw MarviAPIError.server(message: "Admin invite requires Supabase mode")
+    }
+
+    func adminUpdateInviteCodeQuota(code: String, maxUses: Int) async throws {
+        _ = code
+        _ = maxUses
     }
 
     func sendCreatorInvite(email: String) async throws -> AdminInviteResult {
@@ -260,6 +291,43 @@ extension MarviAPI {
     func followUser(_ userID: UUID) async throws { _ = userID }
 
     func unfollowUser(_ userID: UUID) async throws { _ = userID }
+
+    func searchMembers(query: String?) async throws -> [MemberSearchResult] { [] }
+
+    func fetchFollowingActivity(limit: Int) async throws -> [MemberActivityItem] {
+        _ = limit
+        return []
+    }
+
+    func fetchDirectThreads() async throws -> [DirectThread] { [] }
+
+    func ensureDirectThread(peerUserID: UUID) async throws -> UUID { peerUserID }
+
+    func fetchDirectMessages(threadID: UUID) async throws -> [ChatMessage] {
+        _ = threadID
+        return []
+    }
+
+    func sendDirectMessage(threadID: UUID, body: String) async throws -> ChatMessage {
+        _ = threadID
+        _ = body
+        throw MarviAPIError.server(message: "Direct messages require Supabase mode")
+    }
+
+    func fetchProfileComments(targetUserID: UUID) async throws -> [ProfileComment] {
+        _ = targetUserID
+        return []
+    }
+
+    func addProfileComment(targetUserID: UUID, body: String) async throws {
+        _ = targetUserID
+        _ = body
+    }
+
+    func fetchVenuePublicProfile(venueID: UUID) async throws -> PublicVenueProfile? {
+        _ = venueID
+        return nil
+    }
 
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
         _ = lat
@@ -298,6 +366,26 @@ extension MarviAPI {
 
     func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem] { _ = limit; return [] }
     func resolveCurrentUserID() async -> UUID? { nil }
+
+    func ensureSocialVerificationCode() async throws -> SocialVerificationStatus {
+        SocialVerificationStatus(
+            state: .needsHandles,
+            code: nil,
+            instagramHandle: "",
+            tiktokHandle: "",
+            marviInstagramHandle: "marvisociety",
+            submittedAt: nil,
+            verifiedAt: nil
+        )
+    }
+
+    func submitSocialVerificationDM() async throws -> SocialVerificationStatus {
+        try await ensureSocialVerificationCode()
+    }
+
+    func adminVerifySocialDM(userID: UUID) async throws {
+        _ = userID
+    }
 }
 
 extension MarviAPI {

@@ -37,6 +37,11 @@ struct AdminUsersTab: View {
     @State private var selectedUser: AdminUserSummary?
     @State private var inviteEmail = ""
     @State private var inviteCode = ""
+    @State private var inviteMaxUses = "1"
+    @State private var newInviteCode = ""
+    @State private var newInviteOwnerType = "creator"
+    @State private var newInviteMaxUses = "1"
+    @State private var quotaDrafts: [String: String] = [:]
     @State private var createEmail = ""
     @State private var createName = ""
     @State private var createCity = "istanbul"
@@ -50,6 +55,8 @@ struct AdminUsersTab: View {
                     title: "User directory",
                     subtitle: "Search members, block accounts, send email or in-app notifications."
                 )
+
+                inviteCodesSection
 
                 MarviCard {
                     VStack(alignment: .leading, spacing: 12) {
@@ -106,14 +113,25 @@ struct AdminUsersTab: View {
                             .foregroundStyle(MarviColor.muted)
 
                         MarviTextField(placeholder: "Email", text: $inviteEmail, autocapitalization: .never)
-                        MarviTextField(placeholder: "Invite code (optional)", text: $inviteCode, autocapitalization: .never)
+                        MarviTextField(
+                            placeholder: appState.t(.adminInviteCodeLabel) + " (optional)",
+                            text: $inviteCode,
+                            autocapitalization: .never
+                        )
+                        MarviTextField(
+                            placeholder: appState.t(.adminInviteQuotaPh),
+                            text: $inviteMaxUses,
+                            autocapitalization: .never
+                        )
 
                         Button {
                             Task {
                                 actionMessage = ""
+                                let maxUses = Int(inviteMaxUses.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 1
                                 if let error = await appState.adminSendInviteEmail(
                                     email: inviteEmail,
-                                    inviteCode: inviteCode.isEmpty ? nil : inviteCode
+                                    inviteCode: inviteCode.isEmpty ? nil : inviteCode,
+                                    maxUses: maxUses
                                 ) {
                                     actionMessage = error
                                 } else {
@@ -170,16 +188,150 @@ struct AdminUsersTab: View {
         }
         .refreshable {
             await appState.loadAdminUsers(search: searchText)
+            await appState.loadAdminInviteCodes()
         }
         .task {
             if appState.adminUsers.isEmpty {
                 await appState.loadAdminUsers()
+            }
+            if appState.adminInviteCodes.isEmpty {
+                await appState.loadAdminInviteCodes()
             }
         }
         .sheet(item: $selectedUser) { user in
             AdminUserDetailSheet(user: user)
                 .environmentObject(appState)
         }
+    }
+
+    private var inviteCodesSection: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle(
+                    title: appState.t(.adminCreateInviteCode),
+                    subtitle: appState.t(.adminInvitesSub)
+                )
+
+                if appState.adminInviteCodes.isEmpty {
+                    EmptyStateView(
+                        title: appState.t(.adminInvitesEmpty),
+                        subtitle: appState.t(.adminInvitesEmptySub),
+                        icon: "ticket",
+                        actionTitle: appState.t(.refresh),
+                        action: { Task { await appState.loadAdminInviteCodes() } }
+                    )
+                } else {
+                    ForEach(appState.adminInviteCodes) { item in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text(item.code)
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(MarviColor.ink)
+                                Spacer()
+                                InfoBadge(icon: "person.2", text: item.quotaLabel)
+                            }
+                            HStack(spacing: 8) {
+                                InfoBadge(icon: "tag", text: item.ownerType)
+                                if let email = item.inviteEmail, !email.isEmpty {
+                                    InfoBadge(icon: "envelope", text: email)
+                                }
+                            }
+                            HStack(spacing: 8) {
+                                MarviTextField(
+                                    placeholder: appState.t(.adminInviteQuotaPh),
+                                    text: quotaBinding(for: item),
+                                    autocapitalization: .never
+                                )
+                                Button {
+                                    Task {
+                                        let draft = quotaDrafts[item.code] ?? String(item.maxUses ?? 1)
+                                        let maxUses = Int(draft.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 1
+                                        if let error = await appState.adminUpdateInviteCodeQuota(
+                                            code: item.code,
+                                            maxUses: maxUses
+                                        ) {
+                                            actionMessage = error
+                                        } else {
+                                            actionMessage = appState.t(.adminUpdateInviteQuota)
+                                        }
+                                    }
+                                } label: {
+                                    Text(appState.t(.adminUpdateInviteQuota))
+                                        .font(.caption.weight(.bold))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.white)
+                                .background(MarviColor.blue)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        if item.id != appState.adminInviteCodes.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+
+                Divider()
+
+                Text(appState.t(.adminCreateInviteCode))
+                    .font(.caption.weight(.bold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(MarviColor.muted)
+
+                MarviTextField(
+                    placeholder: appState.t(.adminInviteCodeLabel) + " (optional)",
+                    text: $newInviteCode,
+                    autocapitalization: .never
+                )
+                Picker(appState.t(.roleLabel), selection: $newInviteOwnerType) {
+                    Text("Creator").tag("creator")
+                    Text("Venue").tag("venue")
+                }
+                .pickerStyle(.segmented)
+                MarviTextField(
+                    placeholder: appState.t(.adminInviteQuotaPh),
+                    text: $newInviteMaxUses,
+                    autocapitalization: .never
+                )
+
+                Button {
+                    Task {
+                        let maxUses = Int(newInviteMaxUses.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 1
+                        if let error = await appState.adminCreateInviteCode(
+                            code: newInviteCode.isEmpty ? nil : newInviteCode,
+                            ownerType: newInviteOwnerType,
+                            maxUses: maxUses
+                        ) {
+                            actionMessage = error
+                        } else {
+                            actionMessage = appState.t(.adminCreateInviteCode)
+                            newInviteCode = ""
+                        }
+                    }
+                } label: {
+                    Label(appState.t(.adminCreateInviteCode), systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(MarviGradient.brand)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+        }
+    }
+
+    private func quotaBinding(for item: AdminInviteCodeItem) -> Binding<String> {
+        Binding(
+            get: {
+                quotaDrafts[item.code] ?? String(item.maxUses ?? 1)
+            },
+            set: { quotaDrafts[item.code] = $0 }
+        )
     }
 
     private var filteredUsers: [AdminUserSummary] {
@@ -289,9 +441,18 @@ struct AdminUserDetailSheet: View {
                 detailRow(appState.t(.email), detail.email ?? "—")
                 detailRow(appState.t(.roleLabel), detail.role ?? "—")
                 detailRow(appState.t(.statusField), detail.status ?? "—")
-                detailRow(appState.t(.referralLabel), detail.referralCode ?? "—")
+                detailRow(appState.t(.adminInviteCodeLabel), detail.referralCode ?? "—")
                 detailRow(appState.t(.cityField), detail.creatorCity ?? user.city ?? "—")
                 detailRow(appState.t(.instagramLabel), detail.creatorHandle ?? user.instagramHandle ?? "—")
+                if let code = detail.socialVerificationCode {
+                    detailRow(appState.t(.socialVerifyCodeLabel), code)
+                }
+                if let submitted = detail.socialVerificationSubmittedAt {
+                    detailRow(appState.t(.socialVerifySubmitted), submitted.formatted(date: .abbreviated, time: .shortened))
+                }
+                if let verified = detail.socialVerificationVerifiedAt {
+                    detailRow(appState.t(.socialVerifyVerified), verified.formatted(date: .abbreviated, time: .shortened))
+                }
                 if let lat = detail.locationLat, let lng = detail.locationLng {
                     detailRow(appState.t(.lastLocationLabel), String(format: "%.4f, %.4f", lat, lng))
                 } else {
@@ -326,6 +487,15 @@ struct AdminUserDetailSheet: View {
                         }
                         detail = await appState.loadAdminUserDetail(userID: user.userID)
                     }
+                }
+
+                adminActionButton(appState.t(.socialVerifyConfirmAdmin), tint: MarviColor.emerald) {
+                    if let error = await appState.adminVerifySocialDM(userID: user.userID) {
+                        feedback = error
+                    } else {
+                        feedback = appState.t(.socialVerifyVerified)
+                    }
+                    detail = await appState.loadAdminUserDetail(userID: user.userID)
                 }
 
                 MarviTextField(placeholder: appState.t(.notificationTitlePh), text: $notifyTitle)

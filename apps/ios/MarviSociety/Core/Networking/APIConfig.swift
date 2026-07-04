@@ -190,12 +190,26 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func adminSetMembershipStatus(userID: UUID, status: String) async throws { throw notConfigured() }
     func adminSendNotification(userID: UUID, title: String, body: String) async throws { throw notConfigured() }
     func adminSendEmail(userID: UUID, subject: String, body: String) async throws { throw notConfigured() }
-    func adminSendInvite(email: String, inviteCode: String?) async throws -> AdminInviteResult { throw notConfigured() }
+    func adminSendInvite(email: String, inviteCode: String?, maxUses: Int) async throws -> AdminInviteResult { throw notConfigured() }
+    func fetchAdminInviteCodes() async throws -> [AdminInviteCodeItem] { throw notConfigured() }
+    func adminCreateInviteCode(code: String?, ownerType: String, maxUses: Int, inviteEmail: String?) async throws -> AdminInviteCodeItem {
+        throw notConfigured()
+    }
+    func adminUpdateInviteCodeQuota(code: String, maxUses: Int) async throws { throw notConfigured() }
     func sendCreatorInvite(email: String) async throws -> AdminInviteResult { throw notConfigured() }
     func fetchMyCollaborationHistory() async throws -> [CollaborationEntry] { [] }
     func fetchMyFollowCounts() async throws -> FollowCounts { .zero }
     func followUser(_ userID: UUID) async throws { throw notConfigured() }
     func unfollowUser(_ userID: UUID) async throws { throw notConfigured() }
+    func searchMembers(query: String?) async throws -> [MemberSearchResult] { throw notConfigured() }
+    func fetchFollowingActivity(limit: Int) async throws -> [MemberActivityItem] { throw notConfigured() }
+    func fetchDirectThreads() async throws -> [DirectThread] { throw notConfigured() }
+    func ensureDirectThread(peerUserID: UUID) async throws -> UUID { throw notConfigured() }
+    func fetchDirectMessages(threadID: UUID) async throws -> [ChatMessage] { throw notConfigured() }
+    func sendDirectMessage(threadID: UUID, body: String) async throws -> ChatMessage { throw notConfigured() }
+    func fetchProfileComments(targetUserID: UUID) async throws -> [ProfileComment] { throw notConfigured() }
+    func addProfileComment(targetUserID: UUID, body: String) async throws { throw notConfigured() }
+    func fetchVenuePublicProfile(venueID: UUID) async throws -> PublicVenueProfile? { throw notConfigured() }
     func adminNotifyUsersInRadius(lat: Double, lng: Double, radiusKm: Double, title: String, body: String) async throws -> Int {
         throw notConfigured()
     }
@@ -210,4 +224,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest] { [] }
     func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem] { [] }
     func resolveCurrentUserID() async -> UUID? { nil }
+    func ensureSocialVerificationCode() async throws -> SocialVerificationStatus { throw notConfigured() }
+    func submitSocialVerificationDM() async throws -> SocialVerificationStatus { throw notConfigured() }
+    func adminVerifySocialDM(userID: UUID) async throws { throw notConfigured() }
 }

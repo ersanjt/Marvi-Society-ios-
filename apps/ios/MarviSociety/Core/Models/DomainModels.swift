@@ -147,6 +147,7 @@ enum AdminTaskType: String, Codable {
     case venueApplication = "Venue application"
     case campaignReview = "Campaign review"
     case proofReview = "Proof review"
+    case socialVerification = "Social verification"
 }
 
 enum AdminTaskStatus: String, Codable {
@@ -453,6 +454,103 @@ struct FollowCounts: Equatable {
     static let zero = FollowCounts(followers: 0, following: 0)
 }
 
+struct MemberSearchResult: Identifiable, Equatable, Sendable {
+    enum Kind: String, Sendable {
+        case creator
+        case venue
+    }
+
+    let id: UUID
+    let userID: UUID
+    let memberType: Kind
+    let fullName: String
+    let instagramHandle: String
+    let tiktokHandle: String
+    let city: String
+    let score: Int
+    let followers: Int
+    var isFollowing: Bool
+
+    var isCreator: Bool { memberType == .creator }
+    var isVenue: Bool { memberType == .venue }
+
+    var displayName: String {
+        let trimmed = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        let handle = instagramHandle.replacingOccurrences(of: "@", with: "")
+        return handle.isEmpty ? "Member" : handle
+    }
+
+    var handleLabel: String {
+        let handle = instagramHandle.replacingOccurrences(of: "@", with: "")
+        return handle.isEmpty ? "" : "@\(handle)"
+    }
+}
+
+struct MemberActivityItem: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let actorUserID: UUID
+    let actorCreatorID: UUID?
+    let actorVenueID: UUID?
+    let actorName: String
+    let actionType: String
+    let title: String
+    let subtitle: String
+    let createdAt: Date
+
+    var icon: String {
+        switch actionType {
+        case "checked_in": "mappin.and.ellipse"
+        case "showcase_added": "photo.on.rectangle.angled"
+        case "venue_offer": "tag.fill"
+        default: "sparkles"
+        }
+    }
+}
+
+struct DirectThread: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let peerUserID: UUID
+    let peerName: String
+    let peerHandle: String
+    let lastMessage: String?
+    let lastMessageAt: Date?
+
+    var preview: String {
+        let trimmed = lastMessage?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? peerName : trimmed
+    }
+}
+
+struct ProfileComment: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let authorUserID: UUID
+    let authorName: String
+    let body: String
+    let createdAt: Date
+}
+
+struct PublicVenueOffer: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let title: String
+    let area: String
+    let category: OfferCategory
+    let remainingSlots: Int
+}
+
+struct PublicVenueProfile: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let ownerUserID: UUID
+    let venueName: String
+    let area: String
+    let category: OfferCategory
+    let address: String
+    let followers: Int
+    let following: Int
+    var isFollowing: Bool
+    let liveOffers: [PublicVenueOffer]
+}
+
 struct CollaborationEntry: Identifiable, Hashable {
     let id: UUID
     let venueName: String
@@ -663,6 +761,9 @@ struct AdminSubjectDetail: Equatable {
     var score: Int?
     var audienceLabel: String?
     var status: String?
+    var tiktokHandle: String? = nil
+    var socialVerificationCode: String? = nil
+    var socialVerificationSubmittedAt: Date? = nil
 }
 
 struct AdminTask: Codable, Identifiable, Hashable {
@@ -796,6 +897,9 @@ struct AdminUserDetail: Codable {
     var locationLat: Double?
     var locationLng: Double?
     var locationUpdatedAt: Date?
+    var socialVerificationCode: String?
+    var socialVerificationSubmittedAt: Date?
+    var socialVerificationVerifiedAt: Date?
     var bookingSummaries: [String]
     var strikeSummaries: [String]
 
@@ -819,10 +923,16 @@ struct AdminUserDetail: Codable {
             creatorCity = creator["city"]?.stringValue
             creatorHandle = creator["instagram_handle"]?.stringValue
             creatorScore = creator["score"]?.intValue
+            socialVerificationCode = creator["social_verification_code"]?.stringValue
+            socialVerificationSubmittedAt = creator["social_verification_submitted_at"]?.dateValue
+            socialVerificationVerifiedAt = creator["social_verification_verified_at"]?.dateValue
         } else {
             creatorCity = nil
             creatorHandle = nil
             creatorScore = nil
+            socialVerificationCode = nil
+            socialVerificationSubmittedAt = nil
+            socialVerificationVerifiedAt = nil
         }
 
         if let location = try container.decodeIfPresent([String: JSONValue].self, forKey: .location) {
@@ -917,6 +1027,21 @@ struct AdminInviteResult: Codable {
     }
 }
 
+struct AdminInviteCodeItem: Identifiable, Equatable, Sendable {
+    let id: UUID
+    let code: String
+    let ownerType: String
+    let usesCount: Int
+    let maxUses: Int?
+    let inviteEmail: String?
+    let createdAt: Date
+
+    var quotaLabel: String {
+        guard let maxUses else { return "\(usesCount)" }
+        return "\(usesCount) / \(maxUses)"
+    }
+}
+
 struct AdminProvisionResult: Codable {
     let userID: UUID
     let email: String
@@ -928,5 +1053,31 @@ struct AdminProvisionResult: Codable {
         case email
         case temporaryPassword = "temporary_password"
         case autoApproved = "auto_approved"
+    }
+}
+
+enum SocialVerificationState: String, Codable, Equatable {
+    case needsHandles = "needs_handles"
+    case pending
+    case submitted
+    case verified
+}
+
+struct SocialVerificationStatus: Equatable {
+    let state: SocialVerificationState
+    let code: String?
+    let instagramHandle: String
+    let tiktokHandle: String
+    let marviInstagramHandle: String
+    let submittedAt: Date?
+    let verifiedAt: Date?
+
+    var isVerified: Bool { state == .verified }
+
+    var dmMessage: String {
+        guard let code else { return "" }
+        let ig = instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "")
+        let tt = tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "")
+        return "\(code) · Instagram @\(ig) · TikTok @\(tt)"
     }
 }
