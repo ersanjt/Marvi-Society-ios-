@@ -25,6 +25,7 @@
     "upload:ios": "bash scripts/ios/upload-testflight.sh",
     "testflight": "npm run build:ios && npm run upload:ios",
     "build:android": "bash scripts/google-play/build-release.sh",
+    "package:android": "bash scripts/google-play/package-release.sh",
     "publish:android": "bash scripts/google-play/publish-play.sh",
     "submit:review": "python3 scripts/app-store/asc_submit.py --version 1.1 --build 1 --wait",
     "submit:status": "python3 scripts/app-store/asc_submit.py --status",

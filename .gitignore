@@ -45,6 +45,7 @@ apps/android/marvi-release.jks
 apps/android/play-service-account.json
 apps/android/**/*.apk
 apps/android/**/*.aab
+release/google-play/*.aab
 apps/android/.cxx/
 
 # Node / Web (future)

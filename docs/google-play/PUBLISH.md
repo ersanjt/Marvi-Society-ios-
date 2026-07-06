@@ -1,7 +1,7 @@
 # Google Play — Marvi Society Android
 
 Package: `com.marvisociety.app`  
-Current version: **1.4** (versionCode **31**)
+Current version: **1.4.1** (versionCode **32**)
 
 ## One-time setup
 

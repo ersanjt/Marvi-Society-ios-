@@ -12,8 +12,8 @@
       "version": "0.2.0"
     },
     "android": {
-      "marketingVersion": "1.4",
-      "versionCode": 31,
+      "marketingVersion": "1.4.1",
+      "versionCode": 32,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
@@ -22,6 +22,11 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-04T10:39:43Z",
+      "status": "ok",
+      "message": "pushed be6176e to origin/main"
+    },
     {
       "at": "2026-07-04T10:26:07Z",
       "status": "ok",
