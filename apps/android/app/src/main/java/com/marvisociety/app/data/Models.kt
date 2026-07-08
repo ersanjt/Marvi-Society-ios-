@@ -203,6 +203,7 @@ data class Campaign(
 
 data class MemberSearchResult(
     val id: String,
+    val userId: String = "",
     val displayName: String,
     val handle: String,
     val city: String,

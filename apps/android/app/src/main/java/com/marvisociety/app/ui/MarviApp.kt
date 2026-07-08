@@ -148,6 +148,7 @@ private fun MainShell(viewModel: AppViewModel) {
                     val member = viewModel.memberSearchResults.find { it.id == memberId }
                         ?: com.marvisociety.app.data.MemberSearchResult(
                             id = memberId,
+                            userId = memberId,
                             displayName = "Member",
                             handle = "",
                             city = "",

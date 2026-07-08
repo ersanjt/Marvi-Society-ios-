@@ -17,8 +17,11 @@ export function Footer({ locale }: { locale: Locale }) {
           </div>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">{SITE.tagline}</p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <a href={SITE.appStoreUrl} className="marvi-btn-secondary text-xs">
+            <a href={SITE.appStoreUrl} className="marvi-btn-secondary text-xs" target="_blank" rel="noopener noreferrer">
               App Store
+            </a>
+            <a href={SITE.playStoreUrl} className="marvi-btn-secondary text-xs" target="_blank" rel="noopener noreferrer">
+              Google Play
             </a>
             <Image src="/app-icon.png" alt="" width={40} height={40} className="rounded-marvi" />
           </div>

@@ -42,6 +42,8 @@ apps/android/.idea/
 apps/android/local.properties
 apps/android/keystore.properties
 apps/android/marvi-release.jks
+apps/android/KEYSTORE_BACKUP.local.txt
+apps/android/marvi-release.jks
 apps/android/play-service-account.json
 apps/android/**/*.apk
 apps/android/**/*.aab

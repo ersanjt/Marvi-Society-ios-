@@ -66,7 +66,8 @@ fun MemberProfileScreen(
                     Button(
                         onClick = {
                             scope.launch {
-                                if (profile.isFollowing) viewModel.unfollowUser(member.id) else viewModel.followUser(member.id)
+                                val targetUserId = member.userId.ifBlank { member.id }
+                                if (profile.isFollowing) viewModel.unfollowUser(targetUserId) else viewModel.followUser(targetUserId)
                                 creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
                             }
                         },
@@ -74,7 +75,7 @@ fun MemberProfileScreen(
                     ) {
                         Text(if (profile.isFollowing) viewModel.t(MarviL10n.Key.UNFOLLOW_CREATOR) else viewModel.t(MarviL10n.Key.FOLLOW_CREATOR))
                     }
-                    Button(onClick = { onMessage(member.id) }) {
+                    Button(onClick = { onMessage(member.userId.ifBlank { member.id }) }) {
                         Text(viewModel.t(MarviL10n.Key.MESSAGE))
                     }
                 }

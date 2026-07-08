@@ -4,16 +4,16 @@
   "releasedAt": "2026-06-11T00:00:00Z",
   "components": {
     "ios": {
-      "marketingVersion": "1.0.0",
-      "buildNumber": 1,
+      "marketingVersion": "1.4.2",
+      "buildNumber": 33,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
       "version": "0.2.0"
     },
     "android": {
-      "marketingVersion": "1.4.1",
-      "versionCode": 32,
+      "marketingVersion": "1.4.3",
+      "versionCode": 34,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-08T01:19:39Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000014_accept_offer_profile_gates)"
+    },
+    {
+      "at": "2026-07-06T15:39:06Z",
+      "status": "ok",
+      "message": "pushed 04a926a to origin/main"
+    },
     {
       "at": "2026-07-06T15:16:46Z",
       "status": "ok",

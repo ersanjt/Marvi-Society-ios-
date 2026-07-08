@@ -21,7 +21,9 @@ export function hasServiceRoleKey(): boolean {
 }
 
 export function getPublicSiteUrl(): string {
-  return read("NEXT_PUBLIC_SITE_URL") ?? "http://localhost:3000";
+  const fromEnv = read("NEXT_PUBLIC_SITE_URL");
+  if (fromEnv) return fromEnv;
+  return isProduction() ? "https://marvisociety.com" : "http://localhost:3000";
 }
 
 export function getSupabasePublicConfig() {

@@ -28,12 +28,38 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     fun currentUserId(): String? = client.currentUserId()
 
     suspend fun fetchAccountContext(): AccountContext {
-        val row = client.rpcJson("get_account_context", buildJsonObject { })
-        val obj = row.asObjectOrNull() ?: return AccountContext()
+        // `fetch_account_context` RETURNS TABLE(role, status, has_venue_profile) → PostgREST array.
+        val obj = runCatching {
+            client.rpcJson("fetch_account_context", buildJsonObject { })
+                .asArrayOrEmpty().firstOrNull()?.asObjectOrNull()
+        }.getOrNull() ?: return fetchAccountContextFromProfiles()
+
+        // referral_code + paused_by_self are not returned by the RPC — read them from profiles.
+        val profile = runCatching { fetchProfileRow() }.getOrNull()
         return AccountContext(
             role = UserRole.fromApi(obj.string("role")) ?: UserRole.CREATOR,
-            membershipStatus = membershipFromApi(obj.string("membership_status")),
+            membershipStatus = membershipFromApi(obj.string("status"))
+                ?: profile?.let { membershipFromApi(it.string("status")) },
             hasVenueProfile = obj.bool("has_venue_profile") == true,
+            referralCode = profile?.string("referral_code"),
+            pausedBySelf = profile?.bool("paused_by_self") == true
+        )
+    }
+
+    private suspend fun fetchProfileRow(): JsonObject? {
+        val rows = client.select(
+            "profiles",
+            mapOf("select" to "role,status,referral_code,paused_by_self", "limit" to "1")
+        ) { it.asArrayOrEmpty() }
+        return rows.firstOrNull()?.asObjectOrNull()
+    }
+
+    private suspend fun fetchAccountContextFromProfiles(): AccountContext {
+        val obj = fetchProfileRow() ?: return AccountContext()
+        return AccountContext(
+            role = UserRole.fromApi(obj.string("role")) ?: UserRole.CREATOR,
+            membershipStatus = membershipFromApi(obj.string("status")),
+            hasVenueProfile = runCatching { fetchMyVenues().isNotEmpty() }.getOrDefault(false),
             referralCode = obj.string("referral_code"),
             pausedBySelf = obj.bool("paused_by_self") == true
         )
@@ -50,7 +76,13 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     suspend fun fetchBookings(): List<Booking> {
-        val rows = client.select("bookings_mine", mapOf("order" to "updated_at.desc")) { it.asArrayOrEmpty() }
+        val rows = client.select(
+            "bookings",
+            mapOf(
+                "select" to "*,offers(*,venue_profiles(venue_name,area))",
+                "order" to "created_at.desc"
+            )
+        ) { it.asArrayOrEmpty() }
         return rows.mapNotNull { parseBooking(it) }
     }
 
@@ -86,19 +118,13 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 title = obj.string("title") ?: "",
                 body = obj.string("body") ?: "",
                 dateLabel = formatRelative(obj.string("created_at")),
-                isRead = obj.bool("is_read") == true,
-                bookingId = obj.string("booking_id"),
-                offerId = obj.string("offer_id")
+                isRead = obj["read_at"]?.let { it !is kotlinx.serialization.json.JsonNull } == true
             )
         }
     }
 
     suspend fun markNotificationRead(id: String) {
-        client.patch(
-            table = "notifications",
-            filters = mapOf("id" to "eq.$id"),
-            body = buildJsonObject { put("is_read", true) }
-        )
+        client.rpcVoid("mark_notification_read", buildJsonObject { put("p_notification_id", id) })
     }
 
     suspend fun fetchSavedOfferIds(): Set<String> {
@@ -120,7 +146,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             "accept_offer",
             buildJsonObject { put("p_offer_id", offerId) }
         )
-        return parseBooking(row) ?: throw MarviApiException("Invalid booking response")
+        return hydrateBooking(row)
     }
 
     suspend fun checkIn(bookingId: String, code: String): Booking {
@@ -131,7 +157,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 put("p_code", code.trim())
             }
         )
-        return parseBooking(row) ?: throw MarviApiException("Invalid check-in response")
+        return hydrateBooking(row)
     }
 
     suspend fun submitProof(bookingId: String, links: List<String>): Booking {
@@ -142,7 +168,18 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 put("p_links", JsonArray(links.map { kotlinx.serialization.json.JsonPrimitive(it) }))
             }
         )
-        return parseBooking(row) ?: throw MarviApiException("Invalid proof response")
+        return hydrateBooking(row)
+    }
+
+    // RPC booking rows do not embed the offer join — re-fetch the full booking list to hydrate.
+    private suspend fun hydrateBooking(row: JsonElement): Booking {
+        val fallback = parseBooking(row)
+        val bookingId = row.asObjectOrNull()?.string("id") ?: fallback?.id
+        if (bookingId != null) {
+            val bookings = runCatching { fetchBookings() }.getOrDefault(emptyList())
+            bookings.firstOrNull { it.id == bookingId }?.let { return it }
+        }
+        return fallback ?: throw MarviApiException("Invalid booking response")
     }
 
     suspend fun validateReferralCode(code: String): Boolean {
@@ -228,19 +265,26 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     suspend fun fetchMyVenues(): List<VenueSummary> {
-        val rows = client.select("venue_profiles_mine", mapOf("order" to "created_at.asc")) { it.asArrayOrEmpty() }
+        val rows = client.rpcJson("fetch_my_venues", buildJsonObject { }).asArrayOrEmpty()
         return rows.mapNotNull { parseVenueSummary(it) }
     }
 
     suspend fun fetchCampaigns(): List<Campaign> {
-        val rows = client.select("campaigns_mine", mapOf("order" to "created_at.desc")) { it.asArrayOrEmpty() }
+        val rows = client.select(
+            "offers",
+            mapOf(
+                "select" to "*,venue_profiles(venue_name,area)",
+                "order" to "created_at.desc"
+            )
+        ) { it.asArrayOrEmpty() }
         return rows.mapNotNull { row ->
             val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val venue = obj["venue_profiles"]?.asObjectOrNull()
             Campaign(
                 id = obj.string("id") ?: return@mapNotNull null,
                 title = obj.string("title") ?: "Campaign",
                 status = obj.string("status") ?: "Draft",
-                venueName = obj.string("venue_name") ?: "",
+                venueName = venue?.string("venue_name") ?: obj.string("venue_name") ?: "",
                 dateLabel = formatRelative(obj.string("created_at"))
             )
         }
@@ -264,14 +308,14 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     suspend fun fetchDirectThreads(): List<DirectThread> {
-        val rows = client.rpcJson("list_direct_threads", buildJsonObject { }).asArrayOrEmpty()
+        val rows = client.rpcJson("get_my_direct_threads", buildJsonObject { }).asArrayOrEmpty()
         return rows.mapNotNull { parseDirectThread(it) }
     }
 
     suspend fun ensureDirectThread(peerUserId: String): String {
         val row = client.rpcJson(
             "ensure_direct_thread",
-            buildJsonObject { put("p_peer_user_id", peerUserId) }
+            buildJsonObject { put("p_target", peerUserId) }
         )
         return row.asObjectOrNull()?.string("thread_id")
             ?: row.toString().trim('"')
@@ -279,13 +323,13 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
 
     suspend fun fetchDirectMessages(threadId: String): List<ChatMessage> {
         val rows = client.rpcJson(
-            "list_direct_messages",
+            "get_direct_messages",
             buildJsonObject { put("p_thread_id", threadId) }
         ).asArrayOrEmpty()
         val myId = client.currentUserId()
         return rows.mapNotNull { row ->
             val obj = row.asObjectOrNull() ?: return@mapNotNull null
-            val senderId = obj.string("sender_id") ?: return@mapNotNull null
+            val senderId = obj.string("sender_user_id") ?: return@mapNotNull null
             ChatMessage(
                 id = obj.string("id") ?: UUID.randomUUID().toString(),
                 senderId = senderId,
@@ -305,7 +349,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             }
         )
         val obj = row.asObjectOrNull() ?: throw MarviApiException("Invalid message response")
-        val senderId = obj.string("sender_id") ?: client.currentUserId().orEmpty()
+        val senderId = obj.string("sender_user_id") ?: client.currentUserId().orEmpty()
         return ChatMessage(
             id = obj.string("id") ?: UUID.randomUUID().toString(),
             senderId = senderId,
@@ -324,7 +368,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             val obj = row.asObjectOrNull() ?: return@mapNotNull null
             ProfileComment(
                 id = obj.string("id") ?: return@mapNotNull null,
-                authorId = obj.string("author_id") ?: "",
+                authorId = obj.string("author_user_id") ?: obj.string("author_id") ?: "",
                 authorName = obj.string("author_name") ?: "",
                 authorHandle = obj.string("author_handle") ?: "",
                 body = obj.string("body") ?: "",
@@ -345,12 +389,12 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
 
     suspend fun fetchCreatorPublicProfile(creatorId: String): PublicCreatorProfile? {
         val row = client.rpcJson(
-            "get_creator_public_profile",
+            "get_creator_public_profile_by_creator_id",
             buildJsonObject { put("p_creator_id", creatorId) }
         )
         val obj = row.asObjectOrNull() ?: return null
         return PublicCreatorProfile(
-            id = obj.string("id") ?: creatorId,
+            id = obj.string("creator_id") ?: obj.string("id") ?: creatorId,
             name = obj.string("full_name") ?: obj.string("display_name") ?: "",
             handle = obj.string("instagram_handle") ?: "",
             tiktokHandle = obj.string("tiktok_handle") ?: "",
@@ -360,8 +404,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             coverUrl = obj.string("cover_url"),
             score = obj.int("score") ?: 0,
             isFollowing = obj.bool("is_following") == true,
-            followerCount = obj.int("follower_count") ?: 0,
-            followingCount = obj.int("following_count") ?: 0
+            followerCount = obj.int("followers") ?: obj.int("follower_count") ?: 0,
+            followingCount = obj.int("following") ?: obj.int("following_count") ?: 0
         )
     }
 
@@ -372,23 +416,23 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         )
         val obj = row.asObjectOrNull() ?: return null
         return PublicVenueProfile(
-            id = obj.string("id") ?: venueId,
+            id = obj.string("venue_id") ?: obj.string("id") ?: venueId,
             name = obj.string("venue_name") ?: "",
             area = obj.string("area") ?: "",
             category = OfferCategory.fromApi(obj.string("category")),
-            bio = obj.string("bio") ?: "",
+            bio = obj.string("bio") ?: obj.string("address") ?: "",
             avatarUrl = obj.string("avatar_url"),
             isFollowing = obj.bool("is_following") == true,
-            followerCount = obj.int("follower_count") ?: 0
+            followerCount = obj.int("followers") ?: obj.int("follower_count") ?: 0
         )
     }
 
     suspend fun followUser(userId: String) {
-        client.rpcVoid("follow_user", buildJsonObject { put("p_target_user_id", userId) })
+        client.rpcVoid("follow_user", buildJsonObject { put("p_target", userId) })
     }
 
     suspend fun unfollowUser(userId: String) {
-        client.rpcVoid("unfollow_user", buildJsonObject { put("p_target_user_id", userId) })
+        client.rpcVoid("unfollow_user", buildJsonObject { put("p_target", userId) })
     }
 
     suspend fun fetchMyFollowCounts(): FollowCounts {
@@ -474,19 +518,29 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
 
     private fun parseBooking(el: JsonElement): Booking? {
         val obj = el.asObjectOrNull() ?: return null
-        val offerObj = obj["offer"]?.asObjectOrNull()
+        // PostgREST embeds the joined offer under the "offers" key (relationship name).
+        val offerObj = obj["offers"]?.asObjectOrNull() ?: obj["offer"]?.asObjectOrNull()
         val offer = if (offerObj != null) {
-            parseOffer(offerObj) ?: Offer(
-                id = obj.string("offer_id") ?: "",
-                title = obj.string("offer_title") ?: "Offer",
-                venue = obj.string("venue_name") ?: "",
-                area = obj.string("area") ?: "Istanbul",
-                category = OfferCategory.DINING,
-                dateLabel = "",
-                timeLabel = "",
-                valueLabel = "",
-                capacity = 1,
-                remaining = 0
+            val venueEmbed = offerObj["venue_profiles"]?.asObjectOrNull()
+            Offer(
+                id = offerObj.string("id") ?: obj.string("offer_id") ?: "",
+                title = offerObj.string("title") ?: "Offer",
+                venue = venueEmbed?.string("venue_name") ?: offerObj.string("venue_name") ?: "Venue",
+                area = venueEmbed?.string("area") ?: offerObj.string("area") ?: "Istanbul",
+                category = OfferCategory.fromApi(offerObj.string("category")),
+                dateLabel = offerObj.string("date_label") ?: "TBD",
+                timeLabel = offerObj.string("time_label") ?: "",
+                valueLabel = offerObj.string("value_label") ?: "",
+                capacity = offerObj.int("capacity") ?: 1,
+                remaining = offerObj.int("remaining_slots") ?: 0,
+                imageName = offerObj.string("image_name") ?: "venue-placeholder",
+                description = offerObj.string("description") ?: "",
+                deliverables = offerObj.stringList("deliverables"),
+                requirements = offerObj.stringList("requirements"),
+                hostNote = offerObj.string("host_note") ?: "",
+                collaborationModel = CollaborationModel.fromApi(offerObj.string("model")),
+                latitude = offerObj.double("lat"),
+                longitude = offerObj.double("lng")
             )
         } else {
             parseOffer(obj) ?: Offer(
@@ -580,13 +634,17 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
 
     private fun parseMemberSearch(el: JsonElement): MemberSearchResult? {
         val obj = el.asObjectOrNull() ?: return null
+        val userId = obj.string("user_id")
+        // `id` = creator_id (for public-profile lookup); `userId` = auth user id (for follow/DM).
         return MemberSearchResult(
-            id = obj.string("id") ?: return null,
-            displayName = obj.string("display_name") ?: "",
-            handle = obj.string("handle") ?: obj.string("instagram_handle") ?: "",
-            city = obj.string("city") ?: "",
+            id = obj.string("creator_id") ?: obj.string("id") ?: userId ?: return null,
+            userId = userId ?: "",
+            displayName = obj.string("full_name") ?: obj.string("display_name") ?: "",
+            handle = (obj.string("instagram_handle") ?: obj.string("handle") ?: "").removePrefix("@"),
+            city = obj.string("city")?.replaceFirstChar { it.uppercase() } ?: "",
             avatarUrl = obj.string("avatar_url"),
-            isVenue = obj.bool("is_venue") == true,
+            isVenue = obj.string("member_type")?.equals("venue", ignoreCase = true) == true
+                || obj.bool("is_venue") == true,
             isFollowing = obj.bool("is_following") == true
         )
     }
@@ -594,12 +652,12 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     private fun parseActivity(el: JsonElement): MemberActivityItem? {
         val obj = el.asObjectOrNull() ?: return null
         return MemberActivityItem(
-            id = obj.string("id") ?: return null,
-            actorId = obj.string("actor_id") ?: "",
+            id = obj.string("activity_id") ?: obj.string("id") ?: return null,
+            actorId = obj.string("actor_user_id") ?: obj.string("actor_id") ?: "",
             actorName = obj.string("actor_name") ?: "",
             actorHandle = obj.string("actor_handle") ?: "",
             actorAvatarUrl = obj.string("actor_avatar_url"),
-            activityType = obj.string("activity_type") ?: "",
+            activityType = obj.string("action_type") ?: obj.string("activity_type") ?: "",
             title = obj.string("title") ?: "",
             subtitle = obj.string("subtitle") ?: "",
             venueId = obj.string("venue_id"),
