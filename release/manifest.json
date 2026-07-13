@@ -23,6 +23,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-13T17:34:24Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000020_email_auth_fallback_flush)"
+    },
+    {
+      "at": "2026-07-13T17:23:32Z",
+      "status": "ok",
+      "message": "pushed bec8fb0 to origin/main"
+    },
+    {
       "at": "2026-07-13T17:23:28Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000020_email_auth_fallback_flush)"
@@ -261,16 +271,6 @@
       "at": "2026-06-30T12:42:39Z",
       "status": "ok",
       "message": "pushed 4117926 to origin/main"
-    },
-    {
-      "at": "2026-06-30T12:42:35Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000005_creator_public_profile_by_id)"
-    },
-    {
-      "at": "2026-06-30T12:24:15Z",
-      "status": "ok",
-      "message": "pushed d41a180 to origin/main"
     }
   ],
   "releases": [

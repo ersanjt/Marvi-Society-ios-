@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "vercel deploy --prod"
+    "deploy": "npx --yes vercel deploy --prod"
   },
   "dependencies": {
     "@marvi/shared": "*",

@@ -49,6 +49,18 @@ cd infra/supabase
 supabase functions deploy send-email --project-ref gaswjuvyzliislqrljof
 ```
 
+Or one-shot (secrets + deploy + flush):
+
+```bash
+RESEND_API_KEY=re_... npm run email:enable-resend
+```
+
+Apply Auth branded templates (no Resend required):
+
+```bash
+SUPABASE_ACCESS_TOKEN=sbp_... npm run email:apply-auth-templates
+```
+
 ## Step 4 — Run database migrations
 
 SQL Editor → run (in order):

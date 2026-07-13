@@ -20,6 +20,8 @@
     "verify:all": "bash scripts/release/verify-all.sh",
     "verify:emails": "bash scripts/app-store/verify-emails.sh",
     "verify:auth": "bash scripts/app-store/verify-auth-urls.sh",
+    "email:enable-resend": "bash scripts/deploy/enable-resend-email.sh",
+    "email:apply-auth-templates": "bash scripts/deploy/apply-auth-email-templates.sh",
     "resubmit:all": "bash scripts/app-store/resubmit-all.sh",
     "build:ios": "bash scripts/app-store/build-ios-release.sh",
     "upload:ios": "bash scripts/ios/upload-testflight.sh",
