@@ -1,6 +1,8 @@
 # Email setup — Marvi Society (marvisociety.com)
 
-Transactional emails (signup + membership approved) are sent via **[Resend](https://resend.com)** from your domain.
+Transactional emails (signup + membership approved) prefer **[Resend](https://resend.com)** from your domain.
+
+**Without Resend:** `send-email` automatically falls back to the Supabase Auth mailer (invite / magic link) so invite, welcome, approval, admin, contact, and demo notices still deliver. Paste branded Auth templates from `infra/supabase/auth-email-templates/` (especially `magic-link-tr.html` and `invite-user-tr.html`) so `{{ .Data.marvi_email_* }}` shows the right copy. Add `RESEND_API_KEY` later for fully branded HTML + custom subjects.
 
 ## Which email addresses to create
 

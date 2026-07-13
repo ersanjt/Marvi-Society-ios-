@@ -5,12 +5,23 @@
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#1c1c1e;border-radius:16px;border:1px solid rgba(255,255,255,0.08);">
     <tr><td style="padding:28px 28px 8px;">
       <p style="margin:0;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#ff2d78;font-weight:700;">Marvi Society</p>
+      {{ if .Data.marvi_email_title }}
+      <h1 style="margin:12px 0 0;font-size:24px;line-height:1.3;color:#ffffff;font-family:Georgia,serif;">{{ .Data.marvi_email_title }}</h1>
+      {{ else }}
       <h1 style="margin:12px 0 0;font-size:24px;line-height:1.3;color:#ffffff;font-family:Georgia,serif;">Giriş bağlantınız</h1>
+      {{ end }}
     </td></tr>
     <tr><td style="padding:8px 28px 20px;font-size:15px;line-height:1.6;color:#c8c8cc;">
+      {{ if .Data.marvi_email_body }}
+      <p style="white-space:pre-wrap;">{{ .Data.marvi_email_body }}</p>
+      {{ else }}
       <p>Hesabınıza giriş yapmak için aşağıdaki bağlantıya dokunun:</p>
+      {{ end }}
+      {{ if .Data.invite_code }}
+      <p style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#ff2d78;">{{ .Data.invite_code }}</p>
+      {{ end }}
       <p style="margin:24px 0;">
-        <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:linear-gradient(90deg,#ff2d78,#8b5cf6);color:#fff;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:12px;">Giriş yap</a>
+        <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:linear-gradient(90deg,#ff2d78,#8b5cf6);color:#fff;text-decoration:none;font-weight:700;padding:14px 24px;border-radius:12px;">{{ if .Data.marvi_email_cta }}{{ .Data.marvi_email_cta }}{{ else }}Giriş yap{{ end }}</a>
       </p>
       <p style="font-size:13px;color:#8e8e93;">Bu bağlantı kısa süre içinde geçerliliğini yitirir.</p>
     </td></tr>

@@ -49,14 +49,23 @@ Or English:
 - **Subject (TR):** `Marvi Society — e-postanızı onaylayın`
 - **Body:** paste `confirmation-tr.html`
 
+### Magic link (Auth notice fallback)
+
+Used for welcome / approval / admin notices when Resend is not configured.
+
+- **Subject (TR):** `Marvi Society — giriş bağlantınız`
+- **Body:** paste `magic-link-tr.html`
+
+Keep `{{ .Data.marvi_email_title }}`, `{{ .Data.marvi_email_body }}`, `{{ .Data.marvi_email_cta }}`.
+
 ### Invite user (Auth invite fallback)
 
-Used when Resend is not configured — `send-email` falls back to Supabase Auth invite.
+Used when Resend is not configured — `send-email` falls back to Supabase Auth invite (also used for first-time notice recipients).
 
 - **Subject (TR):** `Marvi Society — davetlisiniz`
 - **Body:** paste `invite-user-tr.html`
 
-Make sure `{{ .Data.invite_code }}` is kept so the code appears in the email.
+Keep `{{ .Data.invite_code }}` and the `marvi_email_*` fields.
 
 
 ## iOS app

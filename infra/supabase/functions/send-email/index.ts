@@ -9,6 +9,12 @@ type Template =
   | "contact_form"
   | "demo_request";
 
+type DeliveryMethod =
+  | "resend"
+  | "auth_invite"
+  | "auth_magiclink"
+  | "auth_notice";
+
 type OutboxRow = {
   id: string;
   to_email: string;
@@ -23,6 +29,8 @@ const FROM_EMAIL = Deno.env.get("MARVI_FROM_EMAIL") ?? "Marvi Society <hello@mar
 const REPLY_TO = Deno.env.get("MARVI_REPLY_TO") ?? "support@marvisociety.com";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const EDGE_SECRET = Deno.env.get("MARVI_EDGE_SECRET") ?? "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SITE_URL = "https://marvisociety.com";
 
 function localeOf(raw: string): Locale {
   return raw?.toLowerCase().startsWith("tr") ? "tr" : "en";
@@ -50,7 +58,7 @@ function isAuthorized(req: Request): boolean {
 
 function buildEmail(template: Template, locale: Locale, vars: Record<string, string>) {
   const name = esc(vars.name ?? "Creator");
-  const site = esc(vars.site_url ?? "https://marvisociety.com");
+  const site = esc(vars.site_url ?? SITE_URL);
 
   const wrap = (title: string, body: string) => `
 <!DOCTYPE html>
@@ -81,7 +89,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
           `Merhaba ${name},`,
           `<p>Başvurunuz bize ulaştı. Ekibimiz profilinizi inceleyecek ve onaylandığında size e-posta göndereceğiz.</p>
            <p>Şehir: <strong>${esc(vars.city ?? "İstanbul")}</strong></p>
-           <p>Bu arada <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a> üzerinden topluluğumuzu keşfedebilirsiniz.</p>`
+           <p>Bu arada <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a> üzerinden topluluğumuzu keşfedebilirsiniz.</p>`,
         ),
       };
     }
@@ -91,7 +99,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
         `Hi ${name},`,
         `<p>We received your creator application. Our team will review your profile and email you once you are approved.</p>
          <p>City: <strong>${esc(vars.city ?? "Istanbul")}</strong></p>
-         <p>In the meantime, explore our community at <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a>.</p>`
+         <p>In the meantime, explore our community at <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a>.</p>`,
       ),
     };
   }
@@ -104,7 +112,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
           `Tebrikler ${name}!`,
           `<p><strong>Kaydınız onaylandı.</strong> Artık Marvi Society creator üyesisiniz.</p>
            <p>İstanbul'daki seçilmiş venue davetlerini keşfetmek için uygulamayı açın ve Explore sekmesine gidin.</p>
-           <p>İyi iş birlikleri dileriz.</p>`
+           <p>İyi iş birlikleri dileriz.</p>`,
         ),
       };
     }
@@ -114,7 +122,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
         `Congratulations ${name}!`,
         `<p><strong>Your registration has been accepted.</strong> You are now an approved Marvi Society creator.</p>
          <p>Open the app and head to Explore to discover curated venue invitations in Istanbul.</p>
-         <p>Welcome to the club.</p>`
+         <p>Welcome to the club.</p>`,
       ),
     };
   }
@@ -146,7 +154,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
           "Creator davetiniz",
           `<p>Marvi Society'ye katılmak için uygulamayı indirin, <strong>davet edilen e-posta adresinizle</strong> kayıt olun ve bu kodu girin:</p>
            <p style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#ff2f77;">${code}</p>
-           <p><a href="${deepLink}" style="color:#ff2f77;">Uygulamada daveti aç</a> · <a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
+           <p><a href="${deepLink}" style="color:#ff2f77;">Uygulamada daveti aç</a> · <a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`,
         ),
       };
     }
@@ -156,7 +164,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
         "Your creator invite",
         `<p>Download the app, sign up with <strong>this email address</strong>, and enter this code:</p>
          <p style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#ff2f77;">${code}</p>
-         <p><a href="${deepLink}" style="color:#ff2f77;">Open invite in app</a> · <a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`
+         <p><a href="${deepLink}" style="color:#ff2f77;">Open invite in app</a> · <a href="${site}" style="color:#ff2f77;">marvisociety.com</a></p>`,
       ),
     };
   }
@@ -172,7 +180,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
         "New contact form message",
         `<p><strong>From:</strong> ${fromName} &lt;${fromEmail}&gt;</p>
          <p><strong>Subject:</strong> ${esc(subjectLine)}</p>
-         <p>${body}</p>`
+         <p>${body}</p>`,
       ),
     };
   }
@@ -187,12 +195,118 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
          <p><strong>Company:</strong> ${esc(vars.company ?? "—")}</p>
          <p><strong>Email:</strong> ${esc(vars.email ?? "—")}</p>
          <p><strong>Website:</strong> ${esc(vars.website ?? "—")}</p>
-         <p><strong>Message:</strong><br/>${body}</p>`
+         <p><strong>Message:</strong><br/>${body}</p>`,
       ),
     };
   }
 
   throw new Error(`Unknown template: ${template}`);
+}
+
+/** Plain-text notice lines for Auth mailer templates ({{ .Data.marvi_* }}). */
+function authNoticeCopy(
+  template: Template,
+  locale: Locale,
+  vars: Record<string, string>,
+): { title: string; body: string; cta: string } {
+  const name = vars.name ?? (locale === "tr" ? "üye" : "member");
+  if (template === "welcome_application") {
+    return locale === "tr"
+      ? {
+        title: "Başvurunuz alındı",
+        body:
+          `Merhaba ${name}, başvurunuz bize ulaştı. Ekibimiz profilinizi inceleyecek. Şehir: ${vars.city ?? "İstanbul"}.`,
+        cta: "Marvi Society'yi aç",
+      }
+      : {
+        title: "Application received",
+        body:
+          `Hi ${name}, we received your application. Our team will review your profile. City: ${vars.city ?? "Istanbul"}.`,
+        cta: "Open Marvi Society",
+      };
+  }
+  if (template === "membership_approved") {
+    return locale === "tr"
+      ? {
+        title: "Kaydınız onaylandı",
+        body:
+          `Tebrikler ${name}! Marvi Society creator üyeliğiniz onaylandı. Uygulamada Explore sekmesine gidin.`,
+        cta: "Uygulamayı aç",
+      }
+      : {
+        title: "Registration approved",
+        body:
+          `Congratulations ${name}! Your Marvi Society creator membership is approved. Open Explore in the app.`,
+        cta: "Open the app",
+      };
+  }
+  if (template === "admin_message") {
+    return {
+      title: vars.subject ?? "Marvi Society",
+      body: String(vars.body ?? "").slice(0, 1500),
+      cta: locale === "tr" ? "Marvi Society'yi aç" : "Open Marvi Society",
+    };
+  }
+  if (template === "invite_code") {
+    const code = vars.invite_code ?? "";
+    return locale === "tr"
+      ? {
+        title: "Davet kodunuz",
+        body: `Marvi Society davet kodunuz: ${code}. Bu e-posta ile kayıt olun ve kodu girin.`,
+        cta: "Daveti kabul et",
+      }
+      : {
+        title: "Your invite code",
+        body: `Your Marvi Society invite code is ${code}. Sign up with this email and enter the code.`,
+        cta: "Accept invite",
+      };
+  }
+  if (template === "contact_form") {
+    return {
+      title: `[Contact] ${vars.subject ?? "Support"}`,
+      body:
+        `From: ${vars.name ?? "—"} <${vars.email ?? "—"}>\n${String(vars.message ?? "").slice(0, 1200)}`,
+      cta: "Open dashboard",
+    };
+  }
+  if (template === "demo_request") {
+    return {
+      title: `[Demo] ${vars.company ?? "Lead"}`,
+      body:
+        `${vars.name ?? "—"} / ${vars.email ?? "—"} / ${vars.website ?? "—"}\n${String(vars.message ?? "").slice(0, 1200)}`,
+      cta: "Open dashboard",
+    };
+  }
+  return {
+    title: "Marvi Society",
+    body: locale === "tr" ? "Yeni bir bildiriminiz var." : "You have a new notice.",
+    cta: "Open",
+  };
+}
+
+function resolveAuthRecipient(template: Template, toEmail: string, vars: Record<string, string>): string {
+  // Internal ops templates go to support inbox when Resend is unavailable.
+  if (template === "contact_form" || template === "demo_request") {
+    return REPLY_TO;
+  }
+  return toEmail;
+}
+
+function resolveRedirect(template: Template, vars: Record<string, string>): string {
+  if (template === "invite_code") {
+    const code = String(vars.invite_code ?? "").trim();
+    return `${SITE_URL}/auth/callback?invite_code=${encodeURIComponent(code)}`;
+  }
+  if (template === "contact_form" || template === "demo_request") {
+    return `${SITE_URL}/portal/dashboard`;
+  }
+  if (template === "membership_approved") {
+    return `${SITE_URL}/auth/callback?notice=approved`;
+  }
+  if (template === "welcome_application") {
+    return `${SITE_URL}/auth/callback?notice=welcome`;
+  }
+  return `${SITE_URL}/auth/callback`;
 }
 
 async function sendWithResend(to: string, subject: string, html: string) {
@@ -223,42 +337,12 @@ async function sendWithResend(to: string, subject: string, html: string) {
   return response.json();
 }
 
-async function sendInviteViaSupabaseAuth(
-  supabase: ReturnType<typeof createClient>,
-  email: string,
-  inviteCode: string,
-) {
-  const redirectTo = `https://marvisociety.com/auth/callback?invite_code=${encodeURIComponent(inviteCode)}`;
-  const meta = { invite_code: inviteCode, marvi_invite: true };
-
-  const invited = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo,
-    data: meta,
-  });
-
-  if (!invited.error) {
-    return { method: "auth_invite" as const };
-  }
-
-  const message = invited.error.message?.toLowerCase() ?? "";
-  const alreadyExists =
-    message.includes("already") ||
-    message.includes("registered") ||
-    message.includes("exists");
-
-  if (!alreadyExists) {
-    throw new Error(`Auth invite failed: ${invited.error.message}`);
-  }
-
-  // Existing account: send magic link / OTP via Supabase built-in mailer.
-  // invite_code travels in redirectTo so web/app can redeem after sign-in.
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const otpResponse = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+async function sendAuthOtp(email: string, redirectTo: string, meta: Record<string, unknown>) {
+  const otpResponse = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
     method: "POST",
     headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -273,41 +357,160 @@ async function sendInviteViaSupabaseAuth(
     const text = await otpResponse.text();
     throw new Error(`Auth magic link failed (${otpResponse.status}): ${text}`);
   }
+}
 
-  return { method: "auth_magiclink" as const };
+async function sendViaSupabaseAuth(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  redirectTo: string,
+  meta: Record<string, unknown>,
+): Promise<DeliveryMethod> {
+  // Seed metadata for Auth HTML templates ({{ .Data.marvi_* }}).
+  const invited = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+    data: meta,
+  });
+
+  if (!invited.error) {
+    return "auth_invite";
+  }
+
+  const message = invited.error.message?.toLowerCase() ?? "";
+  const alreadyExists =
+    message.includes("already") ||
+    message.includes("registered") ||
+    message.includes("exists");
+
+  if (!alreadyExists) {
+    throw new Error(`Auth invite failed: ${invited.error.message}`);
+  }
+
+  // Refresh metadata on existing user so magic-link template can branch.
+  const link = await supabase.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: {
+      redirectTo,
+      data: meta,
+    },
+  });
+  if (link.error) {
+    throw new Error(`Auth generateLink failed: ${link.error.message}`);
+  }
+
+  await sendAuthOtp(email, redirectTo, meta);
+  return "auth_magiclink";
 }
 
 async function deliverOutbox(
   supabase: ReturnType<typeof createClient>,
   outbox: OutboxRow,
-) {
+): Promise<{ method: DeliveryMethod }> {
   const locale = localeOf(outbox.locale);
   const template = outbox.template as Template;
   const vars = outbox.variables ?? {};
 
-  // Invite emails: prefer Resend branded template; fall back to Supabase Auth mailer.
+  if (RESEND_API_KEY) {
+    const to = template === "contact_form" || template === "demo_request"
+      ? outbox.to_email
+      : outbox.to_email;
+    const { subject, html } = buildEmail(template, locale, vars);
+    await sendWithResend(to, subject, html);
+    return { method: "resend" };
+  }
+
+  // No Resend: deliver via Supabase Auth mailer (built-in or project SMTP).
   if (template === "invite_code") {
     const inviteCode = String(vars.invite_code ?? "").trim();
     if (!inviteCode) {
       throw new Error("invite_code missing in outbox variables");
     }
-
-    if (RESEND_API_KEY) {
-      const { subject, html } = buildEmail(template, locale, vars);
-      await sendWithResend(outbox.to_email, subject, html);
-      return { method: "resend" as const };
-    }
-
-    return await sendInviteViaSupabaseAuth(supabase, outbox.to_email, inviteCode);
   }
 
-  if (!RESEND_API_KEY) {
-    throw new Error("waiting_for_RESEND_API_KEY");
+  const notice = authNoticeCopy(template, locale, vars);
+  const recipient = resolveAuthRecipient(template, outbox.to_email, vars);
+  const redirectTo = resolveRedirect(template, vars);
+  const meta = {
+    marvi_email_kind: template,
+    marvi_email_title: notice.title.slice(0, 120),
+    marvi_email_body: notice.body.slice(0, 1500),
+    marvi_email_cta: notice.cta.slice(0, 80),
+    marvi_locale: locale,
+    invite_code: vars.invite_code ?? "",
+    marvi_invite: template === "invite_code",
+  };
+
+  const method = await sendViaSupabaseAuth(supabase, recipient, redirectTo, meta);
+  return { method: method === "auth_invite" && template !== "invite_code" ? "auth_notice" : method };
+}
+
+async function processOutboxId(
+  supabase: ReturnType<typeof createClient>,
+  outboxId: string,
+) {
+  const { data: row, error: fetchError } = await supabase
+    .from("email_outbox")
+    .select("id, to_email, template, locale, variables, status")
+    .eq("id", outboxId)
+    .single();
+
+  if (fetchError || !row) {
+    return { ok: false as const, status: 404, error: fetchError?.message ?? "Outbox row not found" };
   }
 
-  const { subject, html } = buildEmail(template, locale, vars);
-  await sendWithResend(outbox.to_email, subject, html);
-  return { method: "resend" as const };
+  const outbox = row as OutboxRow;
+  if (outbox.status === "sent") {
+    return { ok: true as const, skipped: true, template: outbox.template };
+  }
+
+  // Claim row to reduce double-dispatch races.
+  const { data: claimed } = await supabase
+    .from("email_outbox")
+    .update({ status: "sending", error_message: null })
+    .eq("id", outboxId)
+    .in("status", ["pending", "failed", "sending"])
+    .select("id")
+    .maybeSingle();
+
+  if (!claimed) {
+    return { ok: true as const, skipped: true, template: outbox.template };
+  }
+
+  try {
+    const delivery = await deliverOutbox(supabase, outbox);
+    await supabase
+      .from("email_outbox")
+      .update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        error_message: delivery.method === "resend" ? null : `sent_via:${delivery.method}`,
+      })
+      .eq("id", outboxId);
+
+    return {
+      ok: true as const,
+      template: outbox.template,
+      to: outbox.to_email,
+      method: delivery.method,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const retryable = /429|rate_limit|over_email_send_rate_limit/i.test(message);
+    await supabase
+      .from("email_outbox")
+      .update({
+        status: retryable ? "pending" : "failed",
+        error_message: message.slice(0, 500),
+      })
+      .eq("id", outboxId);
+    return {
+      ok: false as const,
+      status: retryable ? 429 : 500,
+      error: message,
+      template: outbox.template,
+      retryable,
+    };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -318,6 +521,7 @@ Deno.serve(async (req) => {
       resendConfigured: Boolean(RESEND_API_KEY),
       fromEmailConfigured: Boolean(FROM_EMAIL),
       replyTo: REPLY_TO,
+      fallback: RESEND_API_KEY ? "resend" : "supabase_auth",
       inviteFallback: "supabase_auth",
     });
   }
@@ -330,58 +534,57 @@ Deno.serve(async (req) => {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+  const body = await req.json().catch(() => ({}));
 
-  const body = await req.json();
+  // Batch flush: { "flush": true, "limit": 40 }
+  if (body?.flush === true) {
+    const limit = Math.min(Math.max(Number(body.limit ?? 40), 1), 100);
+    const { data: rows, error } = await supabase
+      .from("email_outbox")
+      .select("id, template, status")
+      .in("status", ["pending", "failed"])
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      return Response.json({ error: error.message }, { status: 500 });
+    }
+
+    const results = [];
+    let pauseMs = RESEND_API_KEY ? 200 : 65_000;
+    for (const row of rows ?? []) {
+      // Reset failed → pending so claim works consistently.
+      if (row.status === "failed") {
+        await supabase
+          .from("email_outbox")
+          .update({ status: "pending", error_message: null })
+          .eq("id", row.id);
+      }
+      const result = await processOutboxId(supabase, row.id);
+      results.push(result);
+      if (!result.ok && "retryable" in result && result.retryable) {
+        // Built-in Auth mailer is ~1 email/minute — stop early and leave rest pending.
+        pauseMs = 65_000;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, pauseMs));
+    }
+
+    const sent = results.filter((r) => r.ok && !("skipped" in r && r.skipped)).length;
+    const failed = results.filter((r) => !r.ok).length;
+    const skipped = results.filter((r) => r.ok && "skipped" in r && r.skipped).length;
+    return Response.json({ ok: true, flush: true, sent, failed, skipped, results });
+  }
+
   const outboxId = body.outbox_id as string | undefined;
-
   if (!outboxId) {
-    return Response.json({ error: "outbox_id required" }, { status: 400 });
+    return Response.json({ error: "outbox_id or flush required" }, { status: 400 });
   }
 
-  const { data: row, error: fetchError } = await supabase
-    .from("email_outbox")
-    .select("id, to_email, template, locale, variables, status")
-    .eq("id", outboxId)
-    .single();
-
-  if (fetchError || !row) {
-    return Response.json({ error: fetchError?.message ?? "Outbox row not found" }, { status: 404 });
+  const result = await processOutboxId(supabase, outboxId);
+  if (!result.ok) {
+    return Response.json({ error: result.error }, { status: result.status ?? 500 });
   }
-
-  const outbox = row as OutboxRow;
-  if (outbox.status === "sent") {
-    return Response.json({ ok: true, skipped: true });
-  }
-
-  try {
-    const delivery = await deliverOutbox(supabase, outbox);
-
-    await supabase
-      .from("email_outbox")
-      .update({
-        status: "sent",
-        sent_at: new Date().toISOString(),
-        error_message: delivery.method === "resend" ? null : `sent_via:${delivery.method}`,
-      })
-      .eq("id", outboxId);
-
-    return Response.json({
-      ok: true,
-      template: outbox.template,
-      to: outbox.to_email,
-      method: delivery.method,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    await supabase
-      .from("email_outbox")
-      .update({ status: "failed", error_message: message })
-      .eq("id", outboxId);
-
-    return Response.json({ error: message }, { status: 500 });
-  }
+  return Response.json(result);
 });
