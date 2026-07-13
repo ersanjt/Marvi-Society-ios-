@@ -754,7 +754,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func validateReferralCode(_ code: String) async throws -> Bool {
-        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let normalized = InviteCodeNormalizer.normalize(code)
         guard !normalized.isEmpty else { return false }
 
         return try await client.rpc(
@@ -767,7 +767,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     func redeemReferralCode(_ code: String) async throws {
         try await client.rpcVoid(
             function: "redeem_referral_code",
-            body: ["p_code": code.uppercased()]
+            body: ["p_code": InviteCodeNormalizer.normalize(code)]
         )
     }
 
@@ -928,7 +928,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             ownerType: created.owner_type,
             usesCount: created.uses_count,
             maxUses: created.max_uses,
-            inviteEmail: inviteEmail,
+            inviteEmail: created.invite_email ?? inviteEmail,
             createdAt: Date()
         )
     }
@@ -1497,6 +1497,8 @@ private struct AdminInviteCreateRow: Decodable {
     let owner_type: String
     let max_uses: Int
     let uses_count: Int
+    let invite_email: String?
+    let email_queued: Bool?
 }
 
 private struct AdminInviteUpdateRow: Decodable {

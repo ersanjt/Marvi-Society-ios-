@@ -19,6 +19,7 @@ final class AppState: ObservableObject {
     @Published var adminTasks: [AdminTask] = []
     @Published var adminUsers: [AdminUserSummary] = []
     @Published var adminInviteCodes: [AdminInviteCodeItem] = []
+    @Published var lastInviteActionSummary: String?
     @Published var inboxMessages: [InboxMessage] = []
     @Published var profile = CreatorProfile.empty
     @Published var strikes: [Strike] = []
@@ -1126,7 +1127,7 @@ final class AppState: ObservableObject {
     }
 
     func validateReferralCode(_ code: String) async -> Bool {
-        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let normalized = InviteCodeNormalizer.normalize(code)
         guard !normalized.isEmpty else { return false }
         do {
             return try await api.validateReferralCode(normalized)
@@ -1137,7 +1138,7 @@ final class AppState: ObservableObject {
     }
 
     func redeemReferralCode(_ code: String) async -> String? {
-        let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let normalized = InviteCodeNormalizer.normalize(code)
         guard !normalized.isEmpty else { return t(.errEnterInviteCode) }
         guard isAuthenticated else { return t(.errSignInRedeemInvite) }
         do {
@@ -1361,6 +1362,11 @@ final class AppState: ObservableObject {
                 adminInviteCodes.insert(item, at: 0)
             }
             await loadAdminInviteCodes()
+            if let email = item.inviteEmail, !email.isEmpty {
+                lastInviteActionSummary = "\(item.code) → \(email)"
+            } else {
+                lastInviteActionSummary = item.code
+            }
             return nil
         } catch {
             return friendlyErrorMessage(error) ?? error.localizedDescription
@@ -1385,8 +1391,9 @@ final class AppState: ObservableObject {
             return t(.errAdminRequired)
         }
         do {
-            _ = try await api.adminSendInvite(email: email, inviteCode: inviteCode, maxUses: maxUses)
+            let result = try await api.adminSendInvite(email: email, inviteCode: inviteCode, maxUses: maxUses)
             await loadAdminInviteCodes()
+            lastInviteActionSummary = "\(result.inviteCode) → \(result.email)"
             return nil
         } catch {
             return friendlyErrorMessage(error) ?? error.localizedDescription

@@ -39,6 +39,7 @@ struct AdminUsersTab: View {
     @State private var inviteCode = ""
     @State private var inviteMaxUses = "1"
     @State private var newInviteCode = ""
+    @State private var newInviteEmail = ""
     @State private var newInviteOwnerType = "creator"
     @State private var newInviteMaxUses = "1"
     @State private var quotaDrafts: [String: String] = [:]
@@ -135,8 +136,13 @@ struct AdminUsersTab: View {
                                 ) {
                                     actionMessage = error
                                 } else {
-                                    actionMessage = appState.t(.inviteEmailQueued)
+                                    if let summary = appState.lastInviteActionSummary {
+                                        actionMessage = "\(appState.t(.inviteEmailQueued)): \(summary)"
+                                    } else {
+                                        actionMessage = appState.t(.inviteEmailQueued)
+                                    }
                                     inviteEmail = ""
+                                    inviteCode = ""
                                 }
                             }
                         } label: {
@@ -286,6 +292,11 @@ struct AdminUsersTab: View {
                     text: $newInviteCode,
                     autocapitalization: .never
                 )
+                MarviTextField(
+                    placeholder: appState.t(.inviteEmailPlaceholder),
+                    text: $newInviteEmail,
+                    autocapitalization: .never
+                )
                 Picker(appState.t(.roleLabel), selection: $newInviteOwnerType) {
                     Text("Creator").tag("creator")
                     Text("Venue").tag("venue")
@@ -300,15 +311,24 @@ struct AdminUsersTab: View {
                 Button {
                     Task {
                         let maxUses = Int(newInviteMaxUses.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 1
+                        let email = newInviteEmail.trimmingCharacters(in: .whitespacesAndNewlines)
                         if let error = await appState.adminCreateInviteCode(
                             code: newInviteCode.isEmpty ? nil : newInviteCode,
                             ownerType: newInviteOwnerType,
-                            maxUses: maxUses
+                            maxUses: maxUses,
+                            inviteEmail: email.isEmpty ? nil : email
                         ) {
                             actionMessage = error
                         } else {
-                            actionMessage = appState.t(.adminCreateInviteCode)
+                            if let summary = appState.lastInviteActionSummary {
+                                actionMessage = email.isEmpty
+                                    ? "\(appState.t(.adminCreateInviteCode)): \(summary)"
+                                    : "\(appState.t(.inviteEmailQueued)): \(summary)"
+                            } else {
+                                actionMessage = appState.t(.adminCreateInviteCode)
+                            }
                             newInviteCode = ""
+                            newInviteEmail = ""
                         }
                     }
                 } label: {

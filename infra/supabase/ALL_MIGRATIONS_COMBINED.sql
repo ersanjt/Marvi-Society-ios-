@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-07-13T15:43:32Z
+-- Generated: 2026-07-13T16:00:37Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
@@ -7008,6 +7008,465 @@ BEGIN
     );
 
     RETURN v_booking;
+END;
+$$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260630000015_invite_email_and_redeem_fix.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Fix invite redeem normalization + auto-queue invite email when creating a code with recipient email.
+-- Also harden validate/redeem against unicode dashes and casing.
+
+CREATE OR REPLACE FUNCTION public.normalize_invite_code(p_code TEXT)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT upper(
+        trim(
+            replace(
+                replace(
+                    replace(coalesce(p_code, ''), E'\u2013', '-'), -- en-dash
+                    E'\u2014', '-' -- em-dash
+                ),
+                E'\u2212', '-' -- minus
+            )
+        )
+    );
+$$;
+
+CREATE OR REPLACE FUNCTION public.validate_referral_code(p_code TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_code TEXT;
+    v_row public.referral_codes%ROWTYPE;
+BEGIN
+    v_code := public.normalize_invite_code(p_code);
+    IF v_code = '' THEN
+        RETURN FALSE;
+    END IF;
+
+    SELECT * INTO v_row
+    FROM public.referral_codes
+    WHERE upper(code) = v_code;
+
+    IF NOT FOUND THEN
+        RETURN FALSE;
+    END IF;
+
+    IF v_row.max_uses IS NOT NULL AND v_row.uses_count >= v_row.max_uses THEN
+        RETURN FALSE;
+    END IF;
+
+    RETURN TRUE;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.validate_referral_code(TEXT) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.redeem_referral_code(p_code TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_code TEXT;
+    v_row public.referral_codes%ROWTYPE;
+    v_user_email TEXT;
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Not authenticated';
+    END IF;
+
+    v_code := public.normalize_invite_code(p_code);
+    IF v_code = '' THEN
+        RAISE EXCEPTION 'Invite code required';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid() AND referral_code IS NOT NULL
+    ) THEN
+        RETURN;
+    END IF;
+
+    SELECT * INTO v_row
+    FROM public.referral_codes
+    WHERE upper(code) = v_code
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Invalid invite code';
+    END IF;
+
+    IF v_row.max_uses IS NOT NULL AND v_row.uses_count >= v_row.max_uses THEN
+        RAISE EXCEPTION 'Invite code has reached its limit';
+    END IF;
+
+    -- Prefer auth email; fall back to profiles.email for binding checks.
+    SELECT lower(trim(coalesce(au.email, p.email))) INTO v_user_email
+    FROM auth.users au
+    LEFT JOIN public.profiles p ON p.id = au.id
+    WHERE au.id = auth.uid();
+
+    IF v_row.invite_email IS NOT NULL AND trim(v_row.invite_email) <> '' THEN
+        IF v_user_email IS NULL OR v_user_email <> lower(trim(v_row.invite_email)) THEN
+            RAISE EXCEPTION 'This invite was sent to a different email address';
+        END IF;
+    END IF;
+
+    UPDATE public.referral_codes
+    SET uses_count = uses_count + 1
+    WHERE id = v_row.id;
+
+    UPDATE public.profiles
+    SET referral_code = v_code
+    WHERE id = auth.uid();
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.redeem_referral_code(TEXT) TO authenticated;
+
+-- Creating an invite code with a recipient email also queues the invite email.
+CREATE OR REPLACE FUNCTION public.admin_create_invite_code(
+    p_code TEXT DEFAULT NULL,
+    p_owner_type TEXT DEFAULT 'creator',
+    p_max_uses INTEGER DEFAULT 1,
+    p_invite_email TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_code TEXT;
+    v_email TEXT;
+    v_max INTEGER;
+    v_type TEXT;
+    v_uses INTEGER;
+BEGIN
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Admin only';
+    END IF;
+
+    v_code := public.normalize_invite_code(
+        coalesce(nullif(trim(p_code), ''), 'INVITE-' || substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 8))
+    );
+    v_type := lower(coalesce(nullif(trim(p_owner_type), ''), 'creator'));
+    IF v_type NOT IN ('creator', 'venue') THEN
+        RAISE EXCEPTION 'owner_type must be creator or venue';
+    END IF;
+
+    v_max := greatest(1, coalesce(p_max_uses, 1));
+    v_email := nullif(lower(trim(p_invite_email)), '');
+
+    INSERT INTO public.referral_codes (code, owner_type, max_uses, invite_email)
+    VALUES (v_code, v_type, v_max, v_email)
+    ON CONFLICT (code) DO UPDATE
+    SET max_uses = EXCLUDED.max_uses,
+        invite_email = coalesce(EXCLUDED.invite_email, public.referral_codes.invite_email),
+        owner_type = EXCLUDED.owner_type;
+
+    SELECT uses_count INTO v_uses FROM public.referral_codes WHERE code = v_code;
+
+    IF v_email IS NOT NULL THEN
+        PERFORM public.queue_transactional_email(
+            NULL,
+            v_email,
+            'invite_code',
+            'tr',
+            jsonb_build_object(
+                'email', v_email,
+                'invite_code', v_code,
+                'site_url', 'https://marvisociety.com',
+                'deep_link', 'marvisociety://invite?code=' || v_code
+            )
+        );
+    END IF;
+
+    RETURN jsonb_build_object(
+        'code', v_code,
+        'owner_type', v_type,
+        'max_uses', v_max,
+        'uses_count', coalesce(v_uses, 0),
+        'invite_email', v_email,
+        'email_queued', (v_email IS NOT NULL)
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_create_invite_code(TEXT, TEXT, INTEGER, TEXT) TO authenticated;
+
+-- Admin send invite: normalize code + Turkish email by default for Istanbul product.
+CREATE OR REPLACE FUNCTION public.admin_send_invite(
+    p_email TEXT,
+    p_invite_code TEXT DEFAULT NULL,
+    p_max_uses INTEGER DEFAULT 1
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_code TEXT;
+    v_email TEXT;
+BEGIN
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Admin only';
+    END IF;
+
+    v_email := lower(trim(p_email));
+    IF v_email = '' OR position('@' IN v_email) = 0 THEN
+        RAISE EXCEPTION 'Valid email required';
+    END IF;
+
+    v_code := public.normalize_invite_code(
+        coalesce(nullif(trim(p_invite_code), ''), 'INVITE-' || substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 8))
+    );
+
+    INSERT INTO public.referral_codes (code, owner_type, max_uses, invite_email)
+    VALUES (v_code, 'creator', greatest(1, coalesce(p_max_uses, 1)), v_email)
+    ON CONFLICT (code) DO UPDATE
+        SET max_uses = EXCLUDED.max_uses,
+            invite_email = EXCLUDED.invite_email;
+
+    PERFORM public.queue_transactional_email(
+        NULL,
+        v_email,
+        'invite_code',
+        'tr',
+        jsonb_build_object(
+            'email', v_email,
+            'invite_code', v_code,
+            'site_url', 'https://marvisociety.com',
+            'deep_link', 'marvisociety://invite?code=' || v_code
+        )
+    );
+
+    RETURN jsonb_build_object('email', v_email, 'invite_code', v_code);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_send_invite(TEXT, TEXT, INTEGER) TO authenticated;
+
+-- When dispatch settings are missing, mark pending rows so admins see the failure instead of silent queue.
+CREATE OR REPLACE FUNCTION public.dispatch_email_outbox()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_url TEXT;
+    v_key TEXT;
+BEGIN
+    IF NEW.status <> 'pending' THEN
+        RETURN NEW;
+    END IF;
+
+    BEGIN
+        v_url := current_setting('marvi.edge_function_url', true);
+        v_key := current_setting('marvi.service_role_key', true);
+    EXCEPTION WHEN OTHERS THEN
+        v_url := NULL;
+        v_key := NULL;
+    END;
+
+    IF v_url IS NULL OR v_key IS NULL OR length(v_url) < 10 OR v_key = 'YOUR_SERVICE_ROLE_KEY' THEN
+        UPDATE public.email_outbox
+        SET error_message = 'Dispatch not configured — set marvi.edge_function_url + marvi.service_role_key or Database Webhook'
+        WHERE id = NEW.id AND status = 'pending';
+        RETURN NEW;
+    END IF;
+
+    PERFORM net.http_post(
+        url := rtrim(v_url, '/') || '/send-email',
+        headers := jsonb_build_object(
+            'Content-Type', 'application/json',
+            'Authorization', 'Bearer ' || v_key
+        ),
+        body := jsonb_build_object('outbox_id', NEW.id::TEXT)
+    );
+
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    UPDATE public.email_outbox
+    SET error_message = left('Dispatch error: ' || SQLERRM, 500)
+    WHERE id = NEW.id AND status = 'pending';
+    RETURN NEW;
+END;
+$$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260630000016_email_dispatch_settings_table.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Email dispatch config that does not require ALTER DATABASE privileges.
+
+CREATE TABLE IF NOT EXISTS public.marvi_runtime_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.marvi_runtime_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS marvi_runtime_settings_admin ON public.marvi_runtime_settings;
+CREATE POLICY marvi_runtime_settings_admin ON public.marvi_runtime_settings
+    FOR ALL
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.marvi_runtime_settings TO authenticated;
+GRANT ALL ON public.marvi_runtime_settings TO service_role;
+
+CREATE OR REPLACE FUNCTION public.dispatch_email_outbox()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_url TEXT;
+    v_key TEXT;
+BEGIN
+    IF NEW.status <> 'pending' THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT value INTO v_url FROM public.marvi_runtime_settings WHERE key = 'edge_function_url';
+    SELECT value INTO v_key FROM public.marvi_runtime_settings WHERE key = 'service_role_key';
+
+    IF v_url IS NULL OR v_key IS NULL OR length(v_url) < 10 OR v_key IN ('', 'YOUR_SERVICE_ROLE_KEY') THEN
+        BEGIN
+            v_url := current_setting('marvi.edge_function_url', true);
+            v_key := current_setting('marvi.service_role_key', true);
+        EXCEPTION WHEN OTHERS THEN
+            v_url := NULL;
+            v_key := NULL;
+        END;
+    END IF;
+
+    IF v_url IS NULL OR v_key IS NULL OR length(v_url) < 10 OR v_key IN ('', 'YOUR_SERVICE_ROLE_KEY') THEN
+        UPDATE public.email_outbox
+        SET error_message = 'Dispatch not configured — set marvi_runtime_settings edge_function_url + service_role_key, or Database Webhook'
+        WHERE id = NEW.id AND status = 'pending';
+        RETURN NEW;
+    END IF;
+
+    BEGIN
+        PERFORM net.http_post(
+            url := rtrim(v_url, '/') || '/send-email',
+            headers := jsonb_build_object(
+                'Content-Type', 'application/json',
+                'Authorization', 'Bearer ' || v_key
+            ),
+            body := jsonb_build_object('outbox_id', NEW.id::TEXT)
+        );
+    EXCEPTION WHEN OTHERS THEN
+        UPDATE public.email_outbox
+        SET error_message = left('Dispatch error: ' || SQLERRM, 500)
+        WHERE id = NEW.id AND status = 'pending';
+    END;
+
+    RETURN NEW;
+END;
+$$;
+
+-- Seed URL (service role key must be set separately with real secret).
+INSERT INTO public.marvi_runtime_settings (key, value)
+VALUES ('edge_function_url', 'https://gaswjuvyzliislqrljof.supabase.co/functions/v1')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260630000017_enable_pg_net_dispatch.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Enable pg_net for outbox dispatch + lock down runtime settings (no client-readable secrets).
+
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+-- Ensure search_path can resolve net.* helpers used by pg_net.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'net') THEN
+        -- Older/newer pg_net variants may install functions under extensions only.
+        NULL;
+    END IF;
+END $$;
+
+REVOKE ALL ON public.marvi_runtime_settings FROM authenticated;
+REVOKE ALL ON public.marvi_runtime_settings FROM PUBLIC;
+DROP POLICY IF EXISTS marvi_runtime_settings_admin ON public.marvi_runtime_settings;
+-- No policies for authenticated: only service_role / SECURITY DEFINER can read.
+
+CREATE OR REPLACE FUNCTION public.dispatch_email_outbox()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions, net
+AS $$
+DECLARE
+    v_url TEXT;
+    v_key TEXT;
+    v_endpoint TEXT;
+BEGIN
+    IF NEW.status <> 'pending' THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT value INTO v_url FROM public.marvi_runtime_settings WHERE key = 'edge_function_url';
+    SELECT value INTO v_key FROM public.marvi_runtime_settings WHERE key = 'service_role_key';
+
+    IF v_url IS NULL OR v_key IS NULL OR length(coalesce(v_url, '')) < 10 OR coalesce(v_key, '') IN ('', 'YOUR_SERVICE_ROLE_KEY') THEN
+        UPDATE public.email_outbox
+        SET error_message = 'Dispatch not configured — set marvi_runtime_settings or Database Webhook to send-email'
+        WHERE id = NEW.id AND status = 'pending';
+        RETURN NEW;
+    END IF;
+
+    v_endpoint := rtrim(v_url, '/') || '/send-email';
+
+    BEGIN
+        -- Prefer net.http_post when schema exists; otherwise extensions.http_post.
+        IF to_regprocedure('net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer)') IS NOT NULL THEN
+            PERFORM net.http_post(
+                url := v_endpoint,
+                headers := jsonb_build_object(
+                    'Content-Type', 'application/json',
+                    'Authorization', 'Bearer ' || v_key
+                ),
+                body := jsonb_build_object('outbox_id', NEW.id::TEXT)
+            );
+        ELSIF to_regprocedure('extensions.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer)') IS NOT NULL THEN
+            PERFORM extensions.http_post(
+                url := v_endpoint,
+                headers := jsonb_build_object(
+                    'Content-Type', 'application/json',
+                    'Authorization', 'Bearer ' || v_key
+                ),
+                body := jsonb_build_object('outbox_id', NEW.id::TEXT)
+            );
+        ELSE
+            UPDATE public.email_outbox
+            SET error_message = 'pg_net http_post unavailable — create Database Webhook on email_outbox INSERT'
+            WHERE id = NEW.id AND status = 'pending';
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        UPDATE public.email_outbox
+        SET error_message = left('Dispatch error: ' || SQLERRM, 500)
+        WHERE id = NEW.id AND status = 'pending';
+    END;
+
+    RETURN NEW;
 END;
 $$;
 
