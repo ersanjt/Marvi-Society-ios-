@@ -1,20 +1,26 @@
 ---
-description: After completing work, sync app + database + GitHub via Marvi ops toolchain
+description: After completing work, sync GitHub and ship iOS to TestFlight
 alwaysApply: true
 ---
 
-# Marvi Society — Always sync after work
+# Marvi Society — Always sync + TestFlight after work
 
 When you finish a task that changes code, SQL migrations, config, or docs:
 
 1. Run `npm run verify` (or `MARVI_FAST_SYNC=1 npm run sync` if builds are slow/unchanged).
-2. Run `npm run sync` to combine migrations, update `release/manifest.json`, commit, and push to GitHub.
-3. If SQL migrations were added, remind the user to run `npm run db:push` or apply combined SQL in Supabase when CLI is not linked.
-4. Run `npm run status` and report: git sync state, migration head, any failures.
+2. If the change affects the **iOS app** (Swift, resources, signing, Info.plist, or user-visible iOS behavior):
+   - Bump `CURRENT_PROJECT_VERSION` in `apps/ios/MarviSociety.xcodeproj/project.pbxproj` and `release/manifest.json` → `components.ios.buildNumber` (must be unique for App Store Connect).
+   - Optionally bump `MARKETING_VERSION` / `components.ios.marketingVersion` for user-facing version changes.
+3. Run `npm run sync` to combine migrations, update `release/manifest.json`, commit, and push to GitHub.
+4. If the iOS app changed, run `npm run testflight` (build IPA + upload to App Store Connect / TestFlight). Report the version/build and that processing may take a few minutes in App Store Connect.
+5. If SQL migrations were added, remind the user to run `npm run db:push` or apply combined SQL in Supabase when CLI is not linked.
+6. Run `npm run status` and report: git sync state, TestFlight upload result, migration head, any failures.
 
-If `gh auth login` is missing, commit locally and tell the user to run `gh auth login` then `npm run sync:github`.
+If `gh auth login` is missing/invalid, commit locally and tell the user to run `gh auth refresh -h github.com` then `npm run sync:github`.
 
-Never skip GitHub sync when the user asked to keep the repo up to date.
+Never skip GitHub sync or TestFlight when the iOS app changed — the user wants every app change shipped to GitHub and TestFlight.
+
+Docs-only or web-only changes: still sync to GitHub; skip TestFlight unless the user asks.
 
 For releases, use `npm run release -- <version> "summary"` and document in CHANGELOG.md.
 

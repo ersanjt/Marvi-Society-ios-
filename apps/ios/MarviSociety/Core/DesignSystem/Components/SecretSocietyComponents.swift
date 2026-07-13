@@ -443,12 +443,12 @@ private struct SocialAuthButtonLabel: View {
             if isLoading {
                 ProgressView()
                     .progressViewStyle(.circular)
-                    .tint(kind == .apple ? .white : MarviColor.ink)
+                    .tint(kind == .apple ? .white : MarviColor.inkOnLight)
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 52)
-        .foregroundStyle(kind == .apple ? Color.white : MarviColor.ink)
+        .foregroundStyle(kind == .apple ? Color.white : MarviColor.inkOnLight)
         .background(background)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
