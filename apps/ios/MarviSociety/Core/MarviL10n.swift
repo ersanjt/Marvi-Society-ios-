@@ -18,6 +18,7 @@ enum MarviL10n {
         case explore, myEvents, profile, studio, inbox, account, admin
         // Onboarding
         case heroLine1, heroLine2, heroSubtitle, getStarted, alreadyMemberSignIn
+        case choosePathPrompt, joinAsCreator, joinAsBusiness
         case when, whereAxis, eventTypeAxis
         case featApprovedTitle, featApprovedSub, featVenuesTitle, featVenuesSub
         case featProofTitle, featProofSub
@@ -196,8 +197,10 @@ enum MarviL10n {
         .explore: "Explore", .myEvents: "My Events", .profile: "Profile",
         .studio: "Studio", .inbox: "Inbox", .account: "Account", .admin: "Admin",
         .heroLine1: "Do what you can't", .heroLine2: "with Marvi Society",
-        .heroSubtitle: "Sign in to explore. Complete your profile in the Profile tab — admins review and approve accounts.",
+        .heroSubtitle: "Curated invites. Exclusive venues. One private community.",
         .getStarted: "Get started", .alreadyMemberSignIn: "Already a member? Sign in",
+        .choosePathPrompt: "How do you want to join?",
+        .joinAsCreator: "Creator", .joinAsBusiness: "Business",
         .when: "When", .whereAxis: "Where", .eventTypeAxis: "Event type",
         .featApprovedTitle: "Approved members only",
         .featApprovedSub: "Every creator application is reviewed by our team.",
@@ -599,8 +602,10 @@ enum MarviL10n {
         .explore: "Keşfet", .myEvents: "Etkinliklerim", .profile: "Profil",
         .studio: "Stüdyo", .inbox: "Gelen Kutusu", .account: "Hesap", .admin: "Yönetim",
         .heroLine1: "Hayal ettiğini yaşa", .heroLine2: "Marvi Society ile",
-        .heroSubtitle: "Giriş yap ve keşfet. Profilini Profil sekmesinden tamamla — admin hesabını inceler ve onaylar.",
+        .heroSubtitle: "Seçkin davetler. Özel mekânlar. Tek bir topluluk.",
         .getStarted: "Başla", .alreadyMemberSignIn: "Zaten üye misin? Giriş yap",
+        .choosePathPrompt: "Nasıl katılmak istiyorsun?",
+        .joinAsCreator: "Creator", .joinAsBusiness: "Business",
         .when: "Ne zaman", .whereAxis: "Nerede", .eventTypeAxis: "Etkinlik türü",
         .featApprovedTitle: "Sadece onaylı üyeler",
         .featApprovedSub: "Her creator başvurusu ekibimiz tarafından incelenir.",

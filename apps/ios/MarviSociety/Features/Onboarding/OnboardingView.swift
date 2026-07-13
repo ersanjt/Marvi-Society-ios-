@@ -55,7 +55,21 @@ private enum SignupIntent: String, CaseIterable {
     var icon: String {
         switch self {
         case .creator: "sparkles"
-        case .business: "building.2"
+        case .business: "building.2.fill"
+        }
+    }
+
+    var accent: Color {
+        switch self {
+        case .creator: MarviColor.rose
+        case .business: MarviColor.gold
+        }
+    }
+
+    func shortTitle(for language: AppLanguage) -> String {
+        switch self {
+        case .creator: MarviL10n.t(.joinAsCreator, language: language)
+        case .business: MarviL10n.t(.joinAsBusiness, language: language)
         }
     }
 
@@ -144,6 +158,7 @@ struct OnboardingView: View {
                     ctaTitle: primaryCTATitle,
                     isBusy: isBusy,
                     isPrimaryDisabled: !canAdvancePrimary,
+                    showsPrimaryCTA: step != .welcome,
                     errorMessage: displayedError,
                     onPrimary: { Task { await handlePrimaryAction() } }
                 )
@@ -184,8 +199,8 @@ struct OnboardingView: View {
 
     private var welcomeStep: some View {
         VStack(alignment: .leading, spacing: 0) {
-            BrandMark(size: 56)
-                .padding(.bottom, 16)
+            BrandMark(size: 64)
+                .padding(.bottom, 20)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(appState.t(.heroLine1))
@@ -202,39 +217,19 @@ struct OnboardingView: View {
                     .font(.subheadline)
                     .foregroundStyle(MarviColor.muted)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
+                    .padding(.top, 4)
             }
 
-            Spacer(minLength: 14)
+            Spacer(minLength: 28)
 
-            HStack(spacing: 10) {
-                OnboardingPill(icon: "calendar", title: appState.t(.when))
-                OnboardingPill(icon: "mappin.and.ellipse", title: appState.t(.whereAxis))
-                OnboardingPill(icon: "sparkles", title: appState.t(.eventTypeAxis))
-            }
+            Text(appState.t(.choosePathPrompt))
+                .font(.caption.weight(.bold))
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(MarviColor.muted)
+                .padding(.bottom, 12)
 
-            VStack(spacing: 8) {
-                OnboardingFeatureRow(
-                    icon: "checkmark.seal.fill",
-                    title: appState.t(.featApprovedTitle),
-                    subtitle: appState.t(.featApprovedSub)
-                )
-                OnboardingFeatureRow(
-                    icon: "building.2.fill",
-                    title: appState.t(.featVenuesTitle),
-                    subtitle: appState.t(.featVenuesSub)
-                )
-                OnboardingFeatureRow(
-                    icon: "camera.fill",
-                    title: appState.t(.featProofTitle),
-                    subtitle: appState.t(.featProofSub)
-                )
-            }
-            .padding(.top, 14)
-
-            Spacer(minLength: 14)
-
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 SignupIntentCard(
                     intent: .creator,
                     language: appState.preferredLanguage,
@@ -255,7 +250,8 @@ struct OnboardingView: View {
                     advance(to: .signIn)
                 }
             }
-            .padding(.bottom, 8)
+
+            Spacer(minLength: 24)
 
             Button {
                 isCreatingAccount = false
@@ -265,12 +261,14 @@ struct OnboardingView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(MarviColor.rose)
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
             }
             .buttonStyle(.plain)
+            .padding(.bottom, 8)
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.horizontal, 24)
-        .padding(.top, 8)
+        .padding(.top, 12)
     }
 
     private var signInStep: some View {
@@ -1049,7 +1047,9 @@ private struct OnboardingTopBar: View {
                     .foregroundStyle(MarviColor.muted)
             }
 
-            OnboardingProgressBar(current: step)
+            if step != .welcome {
+                OnboardingProgressBar(current: step)
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -1082,6 +1082,7 @@ private struct OnboardingBottomBar: View {
     let ctaTitle: String
     let isBusy: Bool
     let isPrimaryDisabled: Bool
+    var showsPrimaryCTA: Bool = true
     let errorMessage: String?
     let onPrimary: () -> Void
 
@@ -1095,32 +1096,36 @@ private struct OnboardingBottomBar: View {
                     .padding(.horizontal, 24)
             }
 
-            Button(action: onPrimary) {
-                Text(ctaTitle.uppercased())
-                    .font(.subheadline.weight(.bold))
-                    .tracking(1.4)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        isPrimaryDisabled
-                            ? AnyShapeStyle(MarviColor.muted.opacity(0.35))
-                            : AnyShapeStyle(MarviGradient.brand)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            if showsPrimaryCTA {
+                Button(action: onPrimary) {
+                    Text(ctaTitle.uppercased())
+                        .font(.subheadline.weight(.bold))
+                        .tracking(1.4)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            isPrimaryDisabled
+                                ? AnyShapeStyle(MarviColor.muted.opacity(0.35))
+                                : AnyShapeStyle(MarviGradient.brand)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(isPrimaryDisabled || isBusy)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 12)
             }
-            .buttonStyle(.plain)
-            .disabled(isPrimaryDisabled || isBusy)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 12)
         }
-        .padding(.top, 8)
+        .padding(.top, showsPrimaryCTA || errorMessage != nil ? 8 : 0)
         .background(
-            LinearGradient(
-                colors: [MarviColor.surface.opacity(0), MarviColor.surface, MarviColor.surface],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            showsPrimaryCTA
+                ? AnyShapeStyle(LinearGradient(
+                    colors: [MarviColor.surface.opacity(0), MarviColor.surface, MarviColor.surface],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ))
+                : AnyShapeStyle(Color.clear)
         )
     }
 }
@@ -1182,43 +1187,51 @@ private struct SignupIntentCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 Image(systemName: intent.icon)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(isSelected ? .white : MarviColor.rose)
-                    .frame(width: 42, height: 42)
-                    .background(
-                        isSelected
-                            ? AnyShapeStyle(MarviGradient.brand)
-                            : AnyShapeStyle(MarviColor.rose.opacity(0.12))
-                    )
-                    .clipShape(Circle())
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 56, height: 56)
+                    .background(intent.accent.gradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: intent.accent.opacity(0.35), radius: 10, x: 0, y: 4)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(intent.title(for: language))
-                        .font(.subheadline.weight(.bold))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(intent.shortTitle(for: language))
+                        .font(.title3.weight(.bold))
                         .foregroundStyle(MarviColor.ink)
+
                     Text(intent.subtitle(for: language))
-                        .font(.caption)
-                        .foregroundStyle(MarviColor.muted)
+                        .font(.subheadline)
+                        .foregroundStyle(MarviColor.graphite)
                         .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
-                Image(systemName: "arrow.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(MarviColor.muted)
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(intent.accent)
+                    .frame(width: 36, height: 36)
+                    .background(intent.accent.opacity(0.14))
+                    .clipShape(Circle())
             }
-            .padding(14)
-            .background(MarviColor.panel.opacity(0.9))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(isSelected ? MarviColor.rose.opacity(0.45) : MarviColor.border, lineWidth: 1)
+            .padding(18)
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(MarviColor.panelElevated)
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(intent.accent.opacity(isSelected ? 0.85 : 0.45), lineWidth: isSelected ? 2 : 1.5)
+            )
+            .shadow(color: intent.accent.opacity(0.12), radius: 16, x: 0, y: 8)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SocialButtonStyle())
+        .accessibilityLabel(intent.title(for: language))
+        .accessibilityHint(intent.subtitle(for: language))
     }
 }
 
