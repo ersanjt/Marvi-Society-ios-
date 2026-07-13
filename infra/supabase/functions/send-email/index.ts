@@ -411,15 +411,14 @@ async function deliverOutbox(
   const vars = outbox.variables ?? {};
 
   if (RESEND_API_KEY) {
-    const to = template === "contact_form" || template === "demo_request"
-      ? outbox.to_email
-      : outbox.to_email;
     const { subject, html } = buildEmail(template, locale, vars);
-    await sendWithResend(to, subject, html);
+    await sendWithResend(outbox.to_email, subject, html);
     return { method: "resend" };
   }
 
   // No Resend: deliver via Supabase Auth mailer (built-in or project SMTP).
+  // Built-in Auth mailer is heavily rate-limited (~few/hour). Prefer it for
+  // fresh transactional mail; stale backlog should be archived or wait for Resend.
   if (template === "invite_code") {
     const inviteCode = String(vars.invite_code ?? "").trim();
     if (!inviteCode) {
