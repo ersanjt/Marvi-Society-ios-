@@ -225,7 +225,13 @@ async function sendWithResend(to: string, subject: string, html: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "GET") {
-    return Response.json({ ok: true, service: "send-email" });
+    return Response.json({
+      ok: true,
+      service: "send-email",
+      resendConfigured: Boolean(RESEND_API_KEY),
+      fromEmailConfigured: Boolean(FROM_EMAIL),
+      replyTo: REPLY_TO,
+    });
   }
 
   if (req.method !== "POST") {
