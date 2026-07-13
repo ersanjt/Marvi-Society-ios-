@@ -473,17 +473,55 @@ struct OfferListSkeleton: View {
 
 struct BootstrapSplashView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+    @State private var ring = false
 
     var body: some View {
         ZStack {
             MarviColor.surface.ignoresSafeArea()
+
+            Circle()
+                .fill(MarviColor.rose.opacity(0.18))
+                .frame(width: 220, height: 220)
+                .blur(radius: 40)
+                .scaleEffect(pulse ? 1.15 : 0.9)
+                .opacity(pulse ? 0.9 : 0.45)
+
             VStack(spacing: 20) {
-                BrandMark(size: 72)
+                ZStack {
+                    Circle()
+                        .stroke(
+                            AngularGradient(
+                                colors: [MarviColor.rose, MarviColor.aubergine, MarviColor.rose.opacity(0.15)],
+                                center: .center
+                            ),
+                            lineWidth: 2
+                        )
+                        .frame(width: 104, height: 104)
+                        .scaleEffect(ring ? 1.25 : 0.85)
+                        .opacity(ring ? 0 : 0.8)
+
+                    BrandMark(size: 72)
+                        .scaleEffect(pulse ? 1.04 : 0.98)
+                        .shadow(color: MarviColor.rose.opacity(0.35), radius: 18, x: 0, y: 6)
+                }
+
                 ProgressView()
                     .tint(MarviColor.rose)
+
                 Text(appState.t(.loadingWorkspace))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(MarviColor.muted)
+            }
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                pulse = true
+            }
+            withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) {
+                ring = true
             }
         }
     }

@@ -96,6 +96,7 @@ private enum SignupIntent: String, CaseIterable {
 
 struct OnboardingView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject private var appState: AppState
     @StateObject private var appleSignIn = AppleSignInService()
     @StateObject private var googleSignIn = GoogleSignInService()
@@ -124,18 +125,21 @@ struct OnboardingView: View {
     @State private var venueName = ""
     @State private var venueArea = ""
     @State private var venueCategory: OfferCategory = .dining
+    @State private var showLaunchIntro = true
+    @State private var welcomeReveal = WelcomeRevealPhase.hidden
 
     private var lang: AppLanguage { appState.preferredLanguage }
 
     var body: some View {
         ZStack {
-            OnboardingBackdrop()
+            OnboardingBackdrop(isAnimated: step == .welcome && !showLaunchIntro)
 
             VStack(spacing: 0) {
                 OnboardingTopBar(
                     step: step,
                     onBack: goBack
                 )
+                .opacity(showLaunchIntro ? 0 : 1)
 
                 Group {
                     switch step {
@@ -153,6 +157,7 @@ struct OnboardingView: View {
                     removal: .move(edge: .leading).combined(with: .opacity)
                 ))
                 .animation(.easeInOut(duration: 0.32), value: step)
+                .opacity(showLaunchIntro && step == .welcome ? 0 : 1)
 
                 OnboardingBottomBar(
                     ctaTitle: primaryCTATitle,
@@ -162,9 +167,18 @@ struct OnboardingView: View {
                     errorMessage: displayedError,
                     onPrimary: { Task { await handlePrimaryAction() } }
                 )
+                .opacity(showLaunchIntro ? 0 : 1)
             }
             .frame(maxWidth: horizontalSizeClass == .regular ? 520 : .infinity)
             .frame(maxWidth: .infinity)
+
+            if showLaunchIntro, step == .welcome {
+                OnboardingLaunchIntro {
+                    finishLaunchIntro()
+                }
+                .transition(.opacity)
+                .zIndex(2)
+            }
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -172,6 +186,10 @@ struct OnboardingView: View {
                 inviteCode = pending
             }
             applyResumeState()
+            if step != .welcome {
+                showLaunchIntro = false
+                welcomeReveal = .complete
+            }
         }
         .onChange(of: appState.isAuthenticated) { _, isAuthenticated in
             if isAuthenticated { applyResumeState() }
@@ -195,12 +213,42 @@ struct OnboardingView: View {
         }
     }
 
+    private func finishLaunchIntro() {
+        withAnimation(.easeOut(duration: 0.45)) {
+            showLaunchIntro = false
+        }
+        runWelcomeReveal()
+    }
+
+    private func runWelcomeReveal() {
+        if reduceMotion {
+            welcomeReveal = .complete
+            return
+        }
+        let steps: [(WelcomeRevealPhase, Double)] = [
+            (.brand, 0.02),
+            (.hero, 0.12),
+            (.path, 0.28),
+            (.cards, 0.42),
+            (.footer, 0.58),
+            (.complete, 0.72)
+        ]
+        for (phase, delay) in steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.84)) {
+                    welcomeReveal = phase
+                }
+            }
+        }
+    }
+
     // MARK: - Steps
 
     private var welcomeStep: some View {
         VStack(alignment: .leading, spacing: 0) {
             BrandMark(size: 64)
                 .padding(.bottom, 20)
+                .welcomeReveal(welcomeReveal, threshold: .brand)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(appState.t(.heroLine1))
@@ -219,6 +267,7 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }
+            .welcomeReveal(welcomeReveal, threshold: .hero)
 
             Spacer(minLength: 28)
 
@@ -228,6 +277,7 @@ struct OnboardingView: View {
                 .tracking(0.8)
                 .foregroundStyle(MarviColor.muted)
                 .padding(.bottom, 12)
+                .welcomeReveal(welcomeReveal, threshold: .path)
 
             VStack(spacing: 12) {
                 SignupIntentCard(
@@ -239,6 +289,7 @@ struct OnboardingView: View {
                     isCreatingAccount = true
                     advance(to: .signIn)
                 }
+                .welcomeReveal(welcomeReveal, threshold: .cards, offsetY: 28)
 
                 SignupIntentCard(
                     intent: .business,
@@ -249,6 +300,7 @@ struct OnboardingView: View {
                     isCreatingAccount = true
                     advance(to: .signIn)
                 }
+                .welcomeReveal(welcomeReveal, threshold: .cards, offsetY: 36, delayBoost: true)
             }
 
             Spacer(minLength: 24)
@@ -265,6 +317,7 @@ struct OnboardingView: View {
             }
             .buttonStyle(.plain)
             .padding(.bottom, 8)
+            .welcomeReveal(welcomeReveal, threshold: .footer)
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.horizontal, 24)
@@ -964,7 +1017,174 @@ struct OnboardingView: View {
 
 // MARK: - Chrome
 
+private enum WelcomeRevealPhase: Int, Comparable {
+    case hidden = 0
+    case brand = 1
+    case hero = 2
+    case path = 3
+    case cards = 4
+    case footer = 5
+    case complete = 6
+
+    static func < (lhs: WelcomeRevealPhase, rhs: WelcomeRevealPhase) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+private extension View {
+    func welcomeReveal(
+        _ phase: WelcomeRevealPhase,
+        threshold: WelcomeRevealPhase,
+        offsetY: CGFloat = 18,
+        delayBoost: Bool = false
+    ) -> some View {
+        let visible = phase >= threshold
+        return self
+            .opacity(visible ? 1 : 0)
+            .offset(y: visible ? 0 : offsetY)
+            .scaleEffect(visible ? 1 : (delayBoost ? 0.96 : 0.98), anchor: .leading)
+    }
+}
+
+private struct OnboardingLaunchIntro: View {
+    let onFinished: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var brandScale: CGFloat = 0.55
+    @State private var brandOpacity: Double = 0
+    @State private var glowScale: CGFloat = 0.4
+    @State private var glowOpacity: Double = 0
+    @State private var ringScale: CGFloat = 0.7
+    @State private var ringOpacity: Double = 0
+    @State private var titleOpacity: Double = 0
+    @State private var titleOffset: CGFloat = 16
+    @State private var orbPulse = false
+    @State private var shimmer = false
+
+    var body: some View {
+        ZStack {
+            MarviColor.surface.ignoresSafeArea()
+
+            GeometryReader { geo in
+                Circle()
+                    .fill(MarviColor.rose.opacity(0.28))
+                    .frame(width: geo.size.width * 0.9)
+                    .blur(radius: 80)
+                    .scaleEffect(orbPulse ? 1.12 : 0.88)
+                    .offset(y: -geo.size.height * 0.08)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Circle()
+                    .fill(MarviColor.aubergine.opacity(0.22))
+                    .frame(width: geo.size.width * 0.75)
+                    .blur(radius: 70)
+                    .scaleEffect(orbPulse ? 0.95 : 1.1)
+                    .offset(x: geo.size.width * 0.18, y: geo.size.height * 0.28)
+            }
+            .ignoresSafeArea()
+
+            VStack(spacing: 22) {
+                ZStack {
+                    Circle()
+                        .stroke(
+                            AngularGradient(
+                                colors: [
+                                    MarviColor.rose.opacity(0.0),
+                                    MarviColor.rose,
+                                    MarviColor.aubergine,
+                                    MarviColor.rose.opacity(0.0)
+                                ],
+                                center: .center
+                            ),
+                            lineWidth: 2
+                        )
+                        .frame(width: 128, height: 128)
+                        .scaleEffect(ringScale)
+                        .opacity(ringOpacity)
+                        .rotationEffect(.degrees(shimmer ? 180 : 0))
+
+                    Circle()
+                        .fill(MarviColor.rose.opacity(0.22))
+                        .frame(width: 110, height: 110)
+                        .blur(radius: 24)
+                        .scaleEffect(glowScale)
+                        .opacity(glowOpacity)
+
+                    BrandMark(size: 88)
+                        .scaleEffect(brandScale)
+                        .opacity(brandOpacity)
+                        .shadow(color: MarviColor.rose.opacity(0.45), radius: 24, x: 0, y: 8)
+                }
+
+                VStack(spacing: 8) {
+                    Text("MARVI SOCIETY")
+                        .font(.caption.weight(.bold))
+                        .tracking(3.2)
+                        .foregroundStyle(MarviColor.ink)
+
+                    Capsule()
+                        .fill(MarviGradient.brand)
+                        .frame(width: shimmer ? 52 : 24, height: 3)
+                        .opacity(titleOpacity)
+                }
+                .opacity(titleOpacity)
+                .offset(y: titleOffset)
+            }
+        }
+        .onAppear(perform: play)
+    }
+
+    private func play() {
+        if reduceMotion {
+            brandScale = 1
+            brandOpacity = 1
+            titleOpacity = 1
+            titleOffset = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                onFinished()
+            }
+            return
+        }
+
+        withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: true)) {
+            orbPulse = true
+        }
+        withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: false)) {
+            shimmer = true
+        }
+
+        withAnimation(.spring(response: 0.72, dampingFraction: 0.72)) {
+            brandScale = 1
+            brandOpacity = 1
+            glowScale = 1.15
+            glowOpacity = 1
+        }
+
+        withAnimation(.easeOut(duration: 0.7).delay(0.18)) {
+            ringScale = 1.08
+            ringOpacity = 0.9
+        }
+
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.86).delay(0.32)) {
+            titleOpacity = 1
+            titleOffset = 0
+        }
+
+        withAnimation(.easeInOut(duration: 0.55).delay(0.95)) {
+            ringOpacity = 0
+            glowOpacity = 0.35
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.55) {
+            onFinished()
+        }
+    }
+}
+
 private struct OnboardingBackdrop: View {
+    var isAnimated: Bool = false
+    @State private var pulse = false
+
     var body: some View {
         ZStack {
             MarviColor.surface.ignoresSafeArea()
@@ -974,20 +1194,35 @@ private struct OnboardingBackdrop: View {
                     .fill(MarviGradient.brandVertical)
                     .frame(width: geo.size.width * 1.2, height: geo.size.height * 0.45)
                     .blur(radius: 90)
-                    .opacity(0.42)
+                    .opacity(isAnimated ? (pulse ? 0.5 : 0.34) : 0.42)
+                    .scaleEffect(isAnimated ? (pulse ? 1.06 : 0.96) : 1)
                     .offset(y: -geo.size.height * 0.12)
 
                 Ellipse()
                     .fill(MarviColor.aubergine.opacity(0.25))
                     .frame(width: geo.size.width * 0.9, height: geo.size.height * 0.35)
                     .blur(radius: 70)
+                    .opacity(isAnimated ? (pulse ? 0.32 : 0.2) : 0.25)
                     .offset(x: geo.size.width * 0.2, y: geo.size.height * 0.55)
             }
             .ignoresSafeArea()
+            .animation(
+                isAnimated
+                    ? .easeInOut(duration: 3.2).repeatForever(autoreverses: true)
+                    : .default,
+                value: pulse
+            )
 
             OnboardingPatternOverlay()
                 .opacity(0.06)
                 .ignoresSafeArea()
+        }
+        .onAppear {
+            guard isAnimated else { return }
+            pulse = true
+        }
+        .onChange(of: isAnimated) { _, animated in
+            pulse = animated
         }
     }
 }
