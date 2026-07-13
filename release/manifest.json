@@ -23,6 +23,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-13T16:25:33Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000019_fix_email_dispatch_http)"
+    },
+    {
+      "at": "2026-07-13T16:21:35Z",
+      "status": "ok",
+      "message": "pushed 8a98c42 to origin/main"
+    },
+    {
       "at": "2026-07-13T16:21:31Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000019_fix_email_dispatch_http)"
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-06-29T17:55:24Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-06-29T11:55:15Z",
-      "status": "ok",
-      "message": "pushed d22a4ee to origin/main"
-    },
-    {
-      "at": "2026-06-29T11:55:11Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
     }

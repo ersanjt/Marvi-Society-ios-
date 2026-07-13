@@ -197,7 +197,7 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
 
 async function sendWithResend(to: string, subject: string, html: string) {
   if (!RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not configured on the Edge Function");
+    throw new Error("waiting_for_RESEND_API_KEY");
   }
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -302,7 +302,7 @@ async function deliverOutbox(
   }
 
   if (!RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not configured on the Edge Function");
+    throw new Error("waiting_for_RESEND_API_KEY");
   }
 
   const { subject, html } = buildEmail(template, locale, vars);
