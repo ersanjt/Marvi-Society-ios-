@@ -78,7 +78,7 @@ enum MarviL10n {
         // Collaboration models
         case modelInvitation, modelEvent, modelGift, modelInstant
         // Errors (user-facing)
-        case errSessionExpired, errSignInRequired, errWrongPassword, errAccountExists
+        case errSessionExpired, errSignInRequired, errWrongPassword, errAccountExists, errSignInUnavailable
         case errInviteInvalid, errInviteFull, errCheckInInvalid, errProfileNotReady, errPhotoTooLarge
         case errReactivateSupport, errEnterEmail, errTypeDelete, errSomeDataRefresh
         case errInvitationFull, errAlreadyAccepted, errNotAuthenticated, errConfirmEmail
@@ -334,6 +334,7 @@ enum MarviL10n {
         .modelInvitation: "Invitation", .modelEvent: "Event", .modelGift: "Gift", .modelInstant: "Instant",
         .errSessionExpired: "Your session expired. Please sign in again.",
         .errSignInRequired: "Please sign in to continue.",
+        .errSignInUnavailable: "Sign-in is unavailable. Check your connection and try again.",
         .errWrongPassword: "Incorrect email or password. Try again or reset your password.",
         .errAccountExists: "An account with this email already exists. Sign in instead, or reset your password if you forgot it.",
         .errInviteInvalid: "Invite code not recognized. Use the code from your invite email.",
@@ -740,6 +741,7 @@ enum MarviL10n {
         .modelInvitation: "Davet", .modelEvent: "Etkinlik", .modelGift: "Hediye", .modelInstant: "Anlık",
         .errSessionExpired: "Oturumun sona erdi. Lütfen tekrar giriş yap.",
         .errSignInRequired: "Devam etmek için giriş yap.",
+        .errSignInUnavailable: "Giriş şu an kullanılamıyor. Bağlantını kontrol edip tekrar dene.",
         .errWrongPassword: "E-posta veya şifre hatalı. Tekrar dene veya şifreni sıfırla.",
         .errAccountExists: "Bu e-postayla zaten bir hesap var. Giriş yap veya şifreni sıfırla.",
         .errInviteInvalid: "Davet kodu tanınmadı. E-postanızdaki davet kodunu kullanın.",

@@ -1238,13 +1238,16 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         var creatorBody: [String: Any] = [:]
         var profileBody: [String: Any] = [:]
 
-        if let handle = metadata["instagram_handle"] {
+        if let handle = metadata["instagram_handle"]?.trimmingCharacters(in: .whitespacesAndNewlines), !handle.isEmpty {
             creatorBody["instagram_handle"] = handle
         }
-        if let city = metadata["city"] {
+        if let tiktok = metadata["tiktok_handle"]?.trimmingCharacters(in: .whitespacesAndNewlines), !tiktok.isEmpty {
+            creatorBody["tiktok_handle"] = tiktok
+        }
+        if let city = metadata["city"]?.trimmingCharacters(in: .whitespacesAndNewlines), !city.isEmpty {
             creatorBody["city"] = city.lowercased()
         }
-        if let name = metadata["full_name"], !name.isEmpty {
+        if let name = metadata["full_name"]?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
             creatorBody["full_name"] = name
         }
         if let locale = metadata["locale"], !locale.isEmpty {

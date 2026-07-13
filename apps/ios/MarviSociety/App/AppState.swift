@@ -163,6 +163,16 @@ final class AppState: ObservableObject {
         return socialVerification?.isVerified != true
     }
 
+    /// Hard gate: creator must enter Instagram + TikTok before using the main app.
+    var needsSocialHandlesEntry: Bool {
+        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding, !needsInviteRedemption else { return false }
+        if accountRole == .admin { return false }
+        if allowedRoles.contains(.venue), selectedRole == .venue { return false }
+        let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return handle.isEmpty || tiktok.isEmpty
+    }
+
     /// Whether the signed-in creator may accept live offers (client-side gate; server also enforces).
     var canAcceptOffers: Bool {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
@@ -848,7 +858,10 @@ final class AppState: ObservableObject {
 
     func signInWithGoogle(using service: GoogleSignInService, metadata: [String: String]) async {
         guard isRemoteMode else { return }
-        guard let supabaseURL = APIConfig.supabaseURL, let anonKey = APIConfig.supabaseAnonKey else { return }
+        guard let supabaseURL = APIConfig.supabaseURL, let anonKey = APIConfig.supabaseAnonKey else {
+            lastSyncError = t(.errSignInUnavailable)
+            return
+        }
 
         isSyncing = true
         lastSyncError = nil

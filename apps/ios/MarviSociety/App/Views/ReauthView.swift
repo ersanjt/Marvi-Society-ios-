@@ -93,7 +93,7 @@ struct ReauthView: View {
                     }
                     .padding(.horizontal, 16)
 
-                    if let error = appState.lastSyncError ?? googleSignIn.lastError {
+                    if let error = appState.lastSyncError ?? googleSignIn.lastError ?? appleSignIn.lastError {
                         Text(error)
                             .font(.caption)
                             .foregroundStyle(MarviColor.tomato)

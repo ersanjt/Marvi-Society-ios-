@@ -341,7 +341,7 @@ struct OnboardingView: View {
                                     signupIntent = intent
                                 }
                             } label: {
-                                Label(intent == .creator ? appState.t(.creator) : "Business", systemImage: intent.icon)
+                                Label(intent == .creator ? appState.t(.creator) : appState.t(.joinAsBusiness), systemImage: intent.icon)
                                     .font(.caption.weight(.bold))
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 11)
@@ -740,7 +740,11 @@ struct OnboardingView: View {
         if !appState.profile.city.isEmpty {
             city = appState.profile.city
         }
-        appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
+        selectedNiches = Set(appState.profile.niches)
+
+        Task {
+            await routeAfterAuthentication(source: .resume)
+        }
     }
 
     private func goBack() {
@@ -777,7 +781,7 @@ struct OnboardingView: View {
             advance(to: .signIn)
         case .signIn:
             if appState.isAuthenticated {
-                appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
+                await routeAfterAuthentication(source: .manual)
             } else if isCreatingAccount {
                 await signUpWithEmailFlow()
             } else {
@@ -832,6 +836,42 @@ struct OnboardingView: View {
         ]
     }
 
+    /// Auth metadata for create-account only — never overwrite an existing profile on sign-in.
+    private func authMetadataForCurrentMode() -> [String: String] {
+        isCreatingAccount ? signupMetadata() : [:]
+    }
+
+    private enum AuthRouteSource {
+        case resume
+        case manual
+    }
+
+    private func routeAfterAuthentication(source: AuthRouteSource) async {
+        instagramHandle = appState.profile.handle
+        tiktokHandle = appState.profile.tiktokHandle
+        if !appState.profile.city.isEmpty { city = appState.profile.city }
+        selectedNiches = Set(appState.profile.niches)
+        pendingSignupOnboarding = false
+
+        if await appState.isExistingMemberOnServer() {
+            let role: UserRole
+            if signupIntent == .business, appState.allowedRoles.contains(.venue) {
+                role = .venue
+            } else {
+                role = appState.allowedRoles.first ?? .creator
+            }
+            appState.completeOnboarding(role: role)
+            return
+        }
+
+        // Don't yank users backward if they are already past sign-in (e.g. invite/profile).
+        if source == .resume, step != .welcome, step != .signIn {
+            return
+        }
+
+        advance(to: .invite)
+    }
+
     private func signInWithEmailFlow() async {
         appleSignInError = nil
         appState.dismissSyncError()
@@ -842,11 +882,11 @@ struct OnboardingView: View {
         await appState.signInWithEmail(
             email.trimmingCharacters(in: .whitespacesAndNewlines),
             password: password,
-            metadata: signupMetadata()
+            metadata: [:]
         )
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
-            await handlePostAuthentication()
+            await routeAfterAuthentication(source: .manual)
         }
     }
 
@@ -882,8 +922,8 @@ struct OnboardingView: View {
 
         if appState.lastSyncError == nil, appState.isAuthenticated {
             instagramHandle = appState.profile.handle
-        tiktokHandle = appState.profile.tiktokHandle
-            await handlePostAuthentication()
+            tiktokHandle = appState.profile.tiktokHandle
+            await routeAfterAuthentication(source: .manual)
         }
     }
 
@@ -891,10 +931,10 @@ struct OnboardingView: View {
         appleSignInError = nil
         appState.dismissSyncError()
 
-        await appState.signInWithGoogle(using: googleSignIn, metadata: signupMetadata())
+        await appState.signInWithGoogle(using: googleSignIn, metadata: authMetadataForCurrentMode())
 
         if appState.isAuthenticated {
-            await handlePostAuthentication()
+            await routeAfterAuthentication(source: .manual)
         } else if let error = appState.lastSyncError {
             appleSignInError = error
         } else if let error = googleSignIn.lastError {
@@ -906,10 +946,10 @@ struct OnboardingView: View {
         appleSignInError = nil
         appState.dismissSyncError()
 
-        await appState.signInWithApple(using: appleSignIn, metadata: signupMetadata())
+        await appState.signInWithApple(using: appleSignIn, metadata: authMetadataForCurrentMode())
 
         if appState.isAuthenticated {
-            await handlePostAuthentication()
+            await routeAfterAuthentication(source: .manual)
         } else if let error = appState.lastSyncError {
             appleSignInError = error
         } else if let error = appleSignIn.lastError {
@@ -918,12 +958,7 @@ struct OnboardingView: View {
     }
 
     private func handlePostAuthentication() async {
-        instagramHandle = appState.profile.handle
-        tiktokHandle = appState.profile.tiktokHandle
-        if !appState.profile.city.isEmpty { city = appState.profile.city }
-        selectedNiches = Set(appState.profile.niches)
-        pendingSignupOnboarding = false
-        appState.completeOnboarding(role: appState.allowedRoles.first ?? .creator)
+        await routeAfterAuthentication(source: .manual)
     }
 
     private func requestPasswordReset() async {
@@ -1043,6 +1078,7 @@ private extension View {
             .opacity(visible ? 1 : 0)
             .offset(y: visible ? 0 : offsetY)
             .scaleEffect(visible ? 1 : (delayBoost ? 0.96 : 0.98), anchor: .leading)
+            .allowsHitTesting(visible)
     }
 }
 

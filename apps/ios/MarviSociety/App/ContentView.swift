@@ -11,6 +11,10 @@ struct ContentView: View {
                 OnboardingView()
             } else if appState.needsReauthentication {
                 ReauthView()
+            } else if appState.needsInviteRedemption {
+                InviteRequiredView()
+            } else if appState.needsSocialHandlesEntry {
+                SocialProfileSetupView()
             } else if appState.isBootstrapping {
                 BootstrapSplashView()
             } else {
