@@ -49,10 +49,15 @@ Or English:
 - **Subject (TR):** `Marvi Society — e-postanızı onaylayın`
 - **Body:** paste `confirmation-tr.html`
 
-### Magic link
+### Invite user (Auth invite fallback)
 
-- **Subject (TR):** `Marvi Society — giriş bağlantınız`
-- **Body:** paste `magic-link-tr.html`
+Used when Resend is not configured — `send-email` falls back to Supabase Auth invite.
+
+- **Subject (TR):** `Marvi Society — davetlisiniz`
+- **Body:** paste `invite-user-tr.html`
+
+Make sure `{{ .Data.invite_code }}` is kept so the code appears in the email.
+
 
 ## iOS app
 

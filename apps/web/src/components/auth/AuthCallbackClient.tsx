@@ -54,12 +54,23 @@ export function AuthCallbackClient() {
     async function run() {
       const code = params.get("code");
       const next = safeNextPath(params.get("next"));
+      const inviteCode = params.get("invite_code")?.trim();
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           setMessage(error.message);
           setStatus("error");
+          return;
+        }
+        if (inviteCode) {
+          try {
+            localStorage.setItem("marvi_pending_invite_code", inviteCode.toUpperCase());
+          } catch {
+            /* ignore */
+          }
+          const sep = next.includes("?") ? "&" : "?";
+          window.location.href = `${next}${sep}invite_code=${encodeURIComponent(inviteCode)}`;
           return;
         }
         window.location.href = next;

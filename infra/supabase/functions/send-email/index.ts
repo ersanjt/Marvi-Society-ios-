@@ -223,6 +223,93 @@ async function sendWithResend(to: string, subject: string, html: string) {
   return response.json();
 }
 
+async function sendInviteViaSupabaseAuth(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  inviteCode: string,
+) {
+  const redirectTo = `https://marvisociety.com/auth/callback?invite_code=${encodeURIComponent(inviteCode)}`;
+  const meta = { invite_code: inviteCode, marvi_invite: true };
+
+  const invited = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+    data: meta,
+  });
+
+  if (!invited.error) {
+    return { method: "auth_invite" as const };
+  }
+
+  const message = invited.error.message?.toLowerCase() ?? "";
+  const alreadyExists =
+    message.includes("already") ||
+    message.includes("registered") ||
+    message.includes("exists");
+
+  if (!alreadyExists) {
+    throw new Error(`Auth invite failed: ${invited.error.message}`);
+  }
+
+  // Existing account: send magic link / OTP via Supabase built-in mailer.
+  // invite_code travels in redirectTo so web/app can redeem after sign-in.
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const otpResponse = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      create_user: false,
+      data: meta,
+      options: { email_redirect_to: redirectTo },
+    }),
+  });
+
+  if (!otpResponse.ok) {
+    const text = await otpResponse.text();
+    throw new Error(`Auth magic link failed (${otpResponse.status}): ${text}`);
+  }
+
+  return { method: "auth_magiclink" as const };
+}
+
+async function deliverOutbox(
+  supabase: ReturnType<typeof createClient>,
+  outbox: OutboxRow,
+) {
+  const locale = localeOf(outbox.locale);
+  const template = outbox.template as Template;
+  const vars = outbox.variables ?? {};
+
+  // Invite emails: prefer Resend branded template; fall back to Supabase Auth mailer.
+  if (template === "invite_code") {
+    const inviteCode = String(vars.invite_code ?? "").trim();
+    if (!inviteCode) {
+      throw new Error("invite_code missing in outbox variables");
+    }
+
+    if (RESEND_API_KEY) {
+      const { subject, html } = buildEmail(template, locale, vars);
+      await sendWithResend(outbox.to_email, subject, html);
+      return { method: "resend" as const };
+    }
+
+    return await sendInviteViaSupabaseAuth(supabase, outbox.to_email, inviteCode);
+  }
+
+  if (!RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not configured on the Edge Function");
+  }
+
+  const { subject, html } = buildEmail(template, locale, vars);
+  await sendWithResend(outbox.to_email, subject, html);
+  return { method: "resend" as const };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "GET") {
     return Response.json({
@@ -231,6 +318,7 @@ Deno.serve(async (req) => {
       resendConfigured: Boolean(RESEND_API_KEY),
       fromEmailConfigured: Boolean(FROM_EMAIL),
       replyTo: REPLY_TO,
+      inviteFallback: "supabase_auth",
     });
   }
 
@@ -270,18 +358,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const locale = localeOf(outbox.locale);
-    const template = outbox.template as Template;
-    const { subject, html } = buildEmail(template, locale, outbox.variables ?? {});
-
-    await sendWithResend(outbox.to_email, subject, html);
+    const delivery = await deliverOutbox(supabase, outbox);
 
     await supabase
       .from("email_outbox")
-      .update({ status: "sent", sent_at: new Date().toISOString(), error_message: null })
+      .update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        error_message: delivery.method === "resend" ? null : `sent_via:${delivery.method}`,
+      })
       .eq("id", outboxId);
 
-    return Response.json({ ok: true, template, locale, to: outbox.to_email });
+    return Response.json({
+      ok: true,
+      template: outbox.template,
+      to: outbox.to_email,
+      method: delivery.method,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await supabase
