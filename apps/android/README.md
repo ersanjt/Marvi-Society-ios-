@@ -1,6 +1,6 @@
 # Marvi Society — Android
 
-Kotlin + Jetpack Compose app aligned with the iOS Marvi Society client (v1.3 / build 30).
+Kotlin + Jetpack Compose app aligned with the iOS Marvi Society client (v1.4.4 / build 35).
 
 ## Stack
 
@@ -25,6 +25,7 @@ cp local.properties.example local.properties
 
 ```bash
 cd apps/android
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17"   # or Android Studio JBR
 ./gradlew :app:assembleDebug
 ```
 
@@ -34,8 +35,10 @@ Without Supabase keys the app runs in **demo mode** with local sample data (onbo
 
 | Area | Android |
 |------|---------|
-| Email auth + onboarding gates | ✅ |
-| Invite code via RPC (no hardcoded codes) | ✅ |
+| Multi-step onboarding (welcome → auth → invite → profile/venue → agreement) | ✅ |
+| Hard gates: invite redemption + Instagram/TikTok handles | ✅ |
+| Deep links (`marvisociety://invite`, auth callback `invite_code`) | ✅ |
+| Email auth + invite RPC (no hardcoded codes) | ✅ |
 | Creator tabs: Explore, Community, Bookings, Profile | ✅ |
 | Venue tabs: Studio, Community, Inbox, Account | ✅ |
 | Admin tabs: Dashboard, Inbox, Account | ✅ |

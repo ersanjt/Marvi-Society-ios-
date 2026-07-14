@@ -1,5 +1,7 @@
 package com.marvisociety.app
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,8 +17,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleDeepLink(intent)
         setContent {
             MarviApp(viewModel = viewModel)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val data: Uri = intent?.data ?: return
+        when {
+            data.scheme.equals("marvisociety", ignoreCase = true) &&
+                data.host.equals("invite", ignoreCase = true) -> {
+                viewModel.applyPendingInviteCode(data.getQueryParameter("code"))
+            }
+            data.scheme.equals("https", ignoreCase = true) &&
+                data.host?.contains("marvisociety.com") == true -> {
+                viewModel.applyPendingInviteCode(
+                    data.getQueryParameter("invite_code") ?: data.getQueryParameter("code")
+                )
+            }
         }
     }
 }

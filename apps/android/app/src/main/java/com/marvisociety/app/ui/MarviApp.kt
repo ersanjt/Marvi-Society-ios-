@@ -1,5 +1,7 @@
 package com.marvisociety.app.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -20,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -27,24 +30,26 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.marvisociety.app.BuildConfig
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.SyncErrorBanner
 import com.marvisociety.app.ui.screens.AdminDashboardScreen
 import com.marvisociety.app.ui.screens.BookingsScreen
 import com.marvisociety.app.ui.screens.CommunityScreen
+import com.marvisociety.app.ui.screens.ConfigurationRequiredScreen
 import com.marvisociety.app.ui.screens.DirectChatScreen
 import com.marvisociety.app.ui.screens.DiscoverScreen
 import com.marvisociety.app.ui.screens.InboxScreen
+import com.marvisociety.app.ui.screens.InviteRequiredScreen
 import com.marvisociety.app.ui.screens.MemberProfileScreen
 import com.marvisociety.app.ui.screens.OfferDetailScreen
-import com.marvisociety.app.ui.screens.ConfigurationRequiredScreen
 import com.marvisociety.app.ui.screens.OnboardingScreen
 import com.marvisociety.app.ui.screens.ProfileScreen
+import com.marvisociety.app.ui.screens.SocialHandlesRequiredScreen
 import com.marvisociety.app.ui.screens.VenueStudioScreen
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviTheme
-import com.marvisociety.app.BuildConfig
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
@@ -58,9 +63,19 @@ fun MarviApp(viewModel: AppViewModel = viewModel()) {
                 ConfigurationRequiredScreen(viewModel)
             }
             viewModel.isBootstrapping && viewModel.isRemoteMode && !viewModel.hasCompletedOnboarding -> {
-                CircularProgressIndicator(color = MarviColor.Rose)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MarviColor.Rose)
+                }
             }
             !viewModel.hasCompletedOnboarding -> OnboardingScreen(viewModel)
+            // Match iOS ContentView gate order
+            viewModel.needsInviteRedemption -> InviteRequiredScreen(viewModel)
+            viewModel.needsSocialHandlesEntry -> SocialHandlesRequiredScreen(viewModel)
+            viewModel.isBootstrapping -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = MarviColor.Rose)
+                }
+            }
             else -> MainShell(viewModel)
         }
     }

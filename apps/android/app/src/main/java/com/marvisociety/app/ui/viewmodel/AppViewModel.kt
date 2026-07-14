@@ -82,6 +82,10 @@ class AppViewModel(
     var socialVerification by mutableStateOf<SocialVerificationStatus?>(null)
         private set
 
+    /** Deep-link / auth-callback invite code waiting to be redeemed. */
+    var pendingInviteCode by mutableStateOf<String?>(null)
+        private set
+
     val isRemoteMode: Boolean get() = repository.usesRemoteBackend
     val unreadInboxCount: Int get() = inboxMessages.count { !it.isRead }
 
@@ -89,6 +93,14 @@ class AppViewModel(
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             accountRole != UserRole.ADMIN && accountReferralCode.isNullOrBlank()
 
+    /** Hard gate: Instagram + TikTok handles (matches iOS needsSocialHandlesEntry). */
+    val needsSocialHandlesEntry: Boolean
+        get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
+            !needsInviteRedemption && accountRole != UserRole.ADMIN &&
+            !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
+            (profile.handle.isBlank() || profile.tiktokHandle.isBlank())
+
+    /** Soft gate for accept: handles + DM verification (matches iOS). */
     val needsSocialProfileCompletion: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             !needsInviteRedemption && accountRole != UserRole.ADMIN &&
@@ -235,16 +247,28 @@ class AppViewModel(
         }
     }
 
-    fun signUp(email: String, password: String, fullName: String, city: String, onSuccess: () -> Unit) {
+    fun signUp(
+        email: String,
+        password: String,
+        fullName: String,
+        city: String,
+        intent: String = "creator",
+        inviteCode: String? = null,
+        onSuccess: () -> Unit
+    ) {
         viewModelScope.launch {
             authError = null
             isBootstrapping = true
             runCatching {
-                val session = repository.signUpWithEmail(
-                    email,
-                    password,
-                    mapOf("full_name" to fullName, "city" to city.lowercase())
+                val meta = mutableMapOf(
+                    "full_name" to fullName,
+                    "city" to city.lowercase(),
+                    "signup_intent" to intent,
+                    "locale" to if (preferredLanguage == AppLanguage.TURKISH) "tr" else "en"
                 )
+                val code = inviteCode?.trim()?.uppercase().orEmpty()
+                if (code.isNotEmpty()) meta["invite_code"] = code
+                val session = repository.signUpWithEmail(email, password, meta)
                 sessionStore.saveTokens(session.accessToken, session.refreshToken)
                 isAuthenticated = true
                 bootstrapRemoteSession()
@@ -254,6 +278,41 @@ class AppViewModel(
             }
             isBootstrapping = false
         }
+    }
+
+    fun applyPendingInviteCode(code: String?) {
+        val normalized = code?.trim()?.uppercase()?.takeIf { it.isNotEmpty() }
+        pendingInviteCode = normalized
+    }
+
+    fun routeAfterAuthentication(onResult: (existingMember: Boolean, role: UserRole) -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                val existing = isExistingMemberOnServer()
+                val role = when {
+                    existing && allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE -> UserRole.VENUE
+                    existing -> allowedRoles.firstOrNull() ?: UserRole.CREATOR
+                    else -> selectedRole
+                }
+                onResult(existing, role)
+            }.onFailure {
+                onResult(false, selectedRole)
+            }
+        }
+    }
+
+    private suspend fun isExistingMemberOnServer(): Boolean {
+        if (!isRemoteMode || !isAuthenticated) return false
+        val context = runCatching { repository.fetchAccountContext() }.getOrNull() ?: return false
+        accountRole = context.role
+        allowedRoles = UserRole.allowedWorkspaces(context.role)
+        accountReferralCode = context.referralCode
+        if (context.role == UserRole.ADMIN) return true
+        if (context.hasVenueProfile) return true
+        if (context.referralCode.isNullOrBlank()) return false
+        val current = runCatching { repository.fetchProfile() }.getOrNull() ?: profile
+        profile = current
+        return current.handle.isNotBlank() && current.tiktokHandle.isNotBlank() && current.city.isNotBlank()
     }
 
     fun resetPassword(email: String, onSent: () -> Unit) {
@@ -344,7 +403,8 @@ class AppViewModel(
         }
     }
 
-    fun finishOnboarding() {
+    fun finishOnboarding(role: UserRole = selectedRole) {
+        selectedRole = role
         hasCompletedOnboarding = true
         persistSnapshot()
         refreshFromServer()

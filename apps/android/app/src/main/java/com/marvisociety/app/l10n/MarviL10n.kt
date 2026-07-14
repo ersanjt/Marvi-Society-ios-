@@ -25,7 +25,11 @@ object MarviL10n {
         SOCIAL_VERIFY_TITLE, SOCIAL_VERIFY_SUB, SOCIAL_VERIFY_CODE_LABEL, SOCIAL_VERIFY_COPY_CODE,
         SOCIAL_VERIFY_OPEN_INSTAGRAM, SOCIAL_VERIFY_SENT_BTN, SOCIAL_VERIFY_PENDING,
         SOCIAL_VERIFY_SUBMITTED, SOCIAL_VERIFY_VERIFIED,
-        FORGOT_PASSWORD, WELCOME_BACK, CREATE_ACCOUNT, OR_EMAIL, SIGNING_IN
+        FORGOT_PASSWORD, WELCOME_BACK, CREATE_ACCOUNT, OR_EMAIL, SIGNING_IN,
+        CHOOSE_PATH, JOIN_AS_CREATOR, JOIN_AS_CREATOR_SUB, JOIN_AS_BUSINESS, JOIN_AS_BUSINESS_SUB,
+        ALREADY_MEMBER, CONTINUE, BACK, INVITE_ACCEPTED, RESET_EMAIL_SENT,
+        VENUE_SETUP_TITLE, VENUE_SETUP_SUB, VENUE_NAME, VENUE_AREA,
+        AGREEMENT_TITLE, AGREEMENT_SUB, AGE_CONFIRM, TERMS_CONFIRM, AGREE_REQUIRED
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -54,7 +58,7 @@ object MarviL10n {
         Key.COMMUNITY_TAB to "Community",
         Key.HERO_LINE1 to "Marvi Society",
         Key.HERO_LINE2 to "Istanbul's private creator club",
-        Key.HERO_SUBTITLE to "Sign in to explore. Complete your profile in the Profile tab — admins review and approve accounts.",
+        Key.HERO_SUBTITLE to "Curated venue invitations for approved creators in Istanbul.",
         Key.GET_STARTED to "Get started",
         Key.INVITE_TITLE to "Invite code",
         Key.INVITE_SUBTITLE to "Enter the code sent to your email. Codes are not listed in the app.",
@@ -143,12 +147,31 @@ object MarviL10n {
         Key.WELCOME_BACK to "Welcome back",
         Key.CREATE_ACCOUNT to "Create account",
         Key.OR_EMAIL to "Or continue with email",
-        Key.SIGNING_IN to "Signing in…"
+        Key.SIGNING_IN to "Signing in…",
+        Key.CHOOSE_PATH to "How do you want to join?",
+        Key.JOIN_AS_CREATOR to "Join as Creator",
+        Key.JOIN_AS_CREATOR_SUB to "Get invited to curated venues. Share proof. Build your Istanbul presence.",
+        Key.JOIN_AS_BUSINESS to "Join as Business",
+        Key.JOIN_AS_BUSINESS_SUB to "Invite approved creators to your venue and run private collaborations.",
+        Key.ALREADY_MEMBER to "Already a member? Sign in",
+        Key.CONTINUE to "Continue",
+        Key.BACK to "Back",
+        Key.INVITE_ACCEPTED to "Invite accepted",
+        Key.RESET_EMAIL_SENT to "Password reset email sent.",
+        Key.VENUE_SETUP_TITLE to "Your venue",
+        Key.VENUE_SETUP_SUB to "Tell us where collaborations happen.",
+        Key.VENUE_NAME to "Venue name",
+        Key.VENUE_AREA to "Area / city",
+        Key.AGREEMENT_TITLE to "Almost in",
+        Key.AGREEMENT_SUB to "Confirm you are 18+ and accept the community rules.",
+        Key.AGE_CONFIRM to "I confirm I am 18 or older",
+        Key.TERMS_CONFIRM to "I agree to the Terms, Privacy Policy, and Community Guidelines",
+        Key.AGREE_REQUIRED to "Please confirm age and terms to continue."
     )
 
     private val turkish = mapOf(
         Key.HERO_LINE2 to "İstanbul'un özel creator kulübü",
-        Key.HERO_SUBTITLE to "Giriş yap ve keşfet. Profilini Profil sekmesinden tamamla — admin hesabını inceler ve onaylar.",
+        Key.HERO_SUBTITLE to "Onaylı creator'lar için İstanbul'da seçilmiş mekan davetleri.",
         Key.GET_STARTED to "Başla",
         Key.INVITE_TITLE to "Davet kodu",
         Key.INVITE_SUBTITLE to "E-postanıza gelen kodu girin. Kodlar uygulamada listelenmez.",
@@ -222,6 +245,25 @@ object MarviL10n {
         Key.WELCOME_BACK to "Tekrar hoş geldiniz",
         Key.CREATE_ACCOUNT to "Hesap oluştur",
         Key.OR_EMAIL to "Veya e-posta ile devam et",
-        Key.SIGNING_IN to "Giriş yapılıyor…"
+        Key.SIGNING_IN to "Giriş yapılıyor…",
+        Key.CHOOSE_PATH to "Nasıl katılmak istiyorsun?",
+        Key.JOIN_AS_CREATOR to "Creator olarak katıl",
+        Key.JOIN_AS_CREATOR_SUB to "Seçilmiş mekan davetleri al. Kanıt paylaş. İstanbul'daki varlığını güçlendir.",
+        Key.JOIN_AS_BUSINESS to "İşletme olarak katıl",
+        Key.JOIN_AS_BUSINESS_SUB to "Onaylı creator'ları mekanına davet et ve özel iş birlikleri yönet.",
+        Key.ALREADY_MEMBER to "Zaten üye misin? Giriş yap",
+        Key.CONTINUE to "Devam",
+        Key.BACK to "Geri",
+        Key.INVITE_ACCEPTED to "Davet kabul edildi",
+        Key.RESET_EMAIL_SENT to "Şifre sıfırlama e-postası gönderildi.",
+        Key.VENUE_SETUP_TITLE to "Mekanınız",
+        Key.VENUE_SETUP_SUB to "İş birliklerinin nerede olacağını belirtin.",
+        Key.VENUE_NAME to "Mekan adı",
+        Key.VENUE_AREA to "Bölge / şehir",
+        Key.AGREEMENT_TITLE to "Neredeyse tamam",
+        Key.AGREEMENT_SUB to "18+ olduğunuzu ve topluluk kurallarını kabul ettiğinizi onaylayın.",
+        Key.AGE_CONFIRM to "18 yaşında veya daha büyüğüm",
+        Key.TERMS_CONFIRM to "Şartlar, Gizlilik Politikası ve Topluluk Kurallarını kabul ediyorum",
+        Key.AGREE_REQUIRED to "Devam etmek için yaş ve şartları onaylayın."
     )
 }
