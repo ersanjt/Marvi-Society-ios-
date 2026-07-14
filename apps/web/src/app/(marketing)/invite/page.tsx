@@ -4,13 +4,13 @@ import { getI18n } from "@/lib/i18n/locale";
 export const metadata = { title: "Open invite" };
 
 type InvitePageProps = {
-  searchParams?: Promise<{ code?: string; invite_code?: string }> | { code?: string; invite_code?: string };
+  searchParams?: Promise<{ code?: string; invite_code?: string }>;
 };
 
 export default async function InvitePage({ searchParams }: InvitePageProps) {
   const { dict, locale } = await getI18n();
-  const params = searchParams instanceof Promise ? await searchParams : searchParams;
-  const code = (params?.code || params?.invite_code || "").trim().toUpperCase();
+  const params = (await searchParams) ?? {};
+  const code = (params.code || params.invite_code || "").trim().toUpperCase();
   const isTr = locale === "tr";
 
   return (
