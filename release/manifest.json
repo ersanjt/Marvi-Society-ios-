@@ -23,6 +23,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-14T17:28:22Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000023_fix_social_union_order_by)"
+    },
+    {
+      "at": "2026-07-14T17:15:54Z",
+      "status": "ok",
+      "message": "pushed a3a18f2 to origin/main"
+    },
+    {
       "at": "2026-07-14T17:15:49Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000023_fix_social_union_order_by)"
@@ -261,16 +271,6 @@
       "at": "2026-07-04T10:11:17Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000013_resolve_social_verification_task)"
-    },
-    {
-      "at": "2026-07-04T10:06:56Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000012_social_dm_verification)"
-    },
-    {
-      "at": "2026-07-01T13:29:13Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000011_social_complete)"
     }
   ],
   "releases": [
