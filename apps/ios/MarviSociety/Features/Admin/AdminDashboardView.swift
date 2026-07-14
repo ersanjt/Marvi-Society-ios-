@@ -631,7 +631,7 @@ private struct AdminTaskDetailSheet: View {
                                         detailRow("Niches", subjectDetail.niches.joined(separator: ", "))
                                     }
                                     if !subjectDetail.languages.isEmpty {
-                                        detailRow("Languages", subjectDetail.languages.joined(separator: ", "))
+                                        detailRow(appState.t(.languagesLabel), subjectDetail.languages.joined(separator: ", "))
                                     }
                                     if task.type == .socialVerification {
                                         if let tiktok = subjectDetail.tiktokHandle {

@@ -25,6 +25,7 @@ enum UserRole: String, CaseIterable, Codable, Identifiable {
     }
 
     var description: String {
+        // Prefer localized strings via MarviL10n when language is known.
         switch self {
         case .creator:
             "Find curated Istanbul invitations and submit proof."
@@ -32,6 +33,14 @@ enum UserRole: String, CaseIterable, Codable, Identifiable {
             "Create campaigns and manage creator attendance."
         case .admin:
             "Approve members, venues, campaigns, and proof."
+        }
+    }
+
+    func localizedDescription(language: AppLanguage) -> String {
+        switch self {
+        case .creator: MarviL10n.t(.roleCreatorDesc, language: language)
+        case .venue: MarviL10n.t(.roleVenueDesc, language: language)
+        case .admin: MarviL10n.t(.roleAdminDesc, language: language)
         }
     }
 

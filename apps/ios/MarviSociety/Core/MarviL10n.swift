@@ -90,7 +90,8 @@ enum MarviL10n {
         // Profile extended
         case workspace, workspaceAdminSub, workspaceSwitchSub, adminConsoleSub
         case openTasks, liveOffers, creatorSignals, creatorSignalsSub
-        case scoreLabel, deliveryLabel, strikeHistory, strikeHistorySub
+        case scoreLabel, deliveryLabel, contentFitLabel, languagesLabel, strikeHistory, strikeHistorySub
+        case roleCreatorDesc, roleVenueDesc, roleAdminDesc
         case socialAccounts, socialAccountsSub, displayName, bio, cityField, tiktokHandleField
         case handleEmpty
         case followingLabel, collaborationHistory, collaborationHistorySub
@@ -371,6 +372,10 @@ enum MarviL10n {
         .openTasks: "Open tasks", .liveOffers: "Live offers",
         .creatorSignals: "Creator signals", .creatorSignalsSub: "Used for invitation matching.",
         .scoreLabel: "Score", .deliveryLabel: "Delivery",
+        .contentFitLabel: "Content fit", .languagesLabel: "Languages",
+        .roleCreatorDesc: "Find curated Istanbul invitations and submit proof.",
+        .roleVenueDesc: "Create campaigns and manage creator attendance.",
+        .roleAdminDesc: "Approve members, venues, campaigns, and proof.",
         .strikeHistory: "Strike history", .strikeHistorySub: "Policy violations affect matching priority.",
         .socialAccounts: "Social accounts", .socialAccountsSub: "Linked profiles for verification and proof tracking.",
         .changeAvatar: "Profile photo", .changeCover: "Cover image",
@@ -781,6 +786,10 @@ enum MarviL10n {
         .openTasks: "Açık görevler", .liveOffers: "Canlı teklifler",
         .creatorSignals: "Creator sinyalleri", .creatorSignalsSub: "Davet eşleşmesi için kullanılır.",
         .scoreLabel: "Puan", .deliveryLabel: "Teslimat",
+        .contentFitLabel: "İçerik uyumu", .languagesLabel: "Diller",
+        .roleCreatorDesc: "Seçilmiş İstanbul davetlerini bul ve kanıt gönder.",
+        .roleVenueDesc: "Kampanya oluştur ve creator katılımını yönet.",
+        .roleAdminDesc: "Üyeleri, mekânları, kampanyaları ve kanıtları onayla.",
         .strikeHistory: "Uyarı geçmişi", .strikeHistorySub: "Politika ihlalleri eşleşme önceliğini etkiler.",
         .socialAccounts: "Sosyal hesaplar", .socialAccountsSub: "Doğrulama ve kanıt takibi için bağlı profiller.",
         .changeAvatar: "Profil fotoğrafı", .changeCover: "Kapak görseli",

@@ -102,10 +102,18 @@ struct ProfileView: View {
                                         profile: appState.profile,
                                         followCounts: appState.followCounts,
                                         followersLabel: appState.t(.followers),
-                                        followingLabel: appState.t(.followingLabel)
+                                        followingLabel: appState.t(.followingLabel),
+                                        contentFitLabel: appState.t(.contentFitLabel),
+                                        languagesLabel: appState.t(.languagesLabel),
+                                        deliveryLabel: appState.t(.deliveryLabel)
                                     )
                                 } else {
-                                    ProfileHealthPanel(profile: appState.profile, healthLabel: appState.t(.profileHealth))
+                                    ProfileHealthPanel(
+                                        profile: appState.profile,
+                                        healthLabel: appState.t(.profileHealth),
+                                        scoreLabel: appState.t(.scoreLabel),
+                                        deliveryLabel: appState.t(.deliveryLabel)
+                                    )
                                 }
                             }
                         }
@@ -130,7 +138,7 @@ struct ProfileView: View {
                                     }
                                 )
 
-                                Text(appState.selectedRole.description)
+                                Text(appState.selectedRole.localizedDescription(language: appState.preferredLanguage))
                                     .font(.subheadline)
                                     .foregroundStyle(MarviColor.muted)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -1039,6 +1047,9 @@ private struct ProfileEngagementPanel: View {
     let followCounts: FollowCounts
     let followersLabel: String
     let followingLabel: String
+    let contentFitLabel: String
+    let languagesLabel: String
+    let deliveryLabel: String
 
     var body: some View {
         VStack(spacing: 14) {
@@ -1048,9 +1059,9 @@ private struct ProfileEngagementPanel: View {
             }
 
             VStack(spacing: 10) {
-                AnalyticsBar(label: "Content fit", value: min(Double(max(profile.niches.count, 1)) / 6.0, 1), tint: MarviColor.rose)
-                AnalyticsBar(label: "Languages", value: min(Double(max(profile.languages.count, 1)) / 3.0, 1), tint: MarviColor.blue)
-                AnalyticsBar(label: "Delivery", value: proofRateValue, tint: MarviColor.emerald)
+                AnalyticsBar(label: contentFitLabel, value: min(Double(max(profile.niches.count, 1)) / 6.0, 1), tint: MarviColor.rose)
+                AnalyticsBar(label: languagesLabel, value: min(Double(max(profile.languages.count, 1)) / 3.0, 1), tint: MarviColor.blue)
+                AnalyticsBar(label: deliveryLabel, value: proofRateValue, tint: MarviColor.emerald)
             }
         }
     }
@@ -1065,12 +1076,14 @@ private struct ProfileEngagementPanel: View {
 private struct ProfileHealthPanel: View {
     let profile: CreatorProfile
     let healthLabel: String
+    let scoreLabel: String
+    let deliveryLabel: String
 
     var body: some View {
         HStack(spacing: 18) {
             VStack(alignment: .leading, spacing: 12) {
-                ProfileBigMetric(value: "\(profile.score)", label: "Score", icon: "star.fill", tint: MarviColor.gold)
-                ProfileBigMetric(value: profile.proofRate, label: "Delivery", icon: "checkmark.seal.fill", tint: MarviColor.emerald)
+                ProfileBigMetric(value: "\(profile.score)", label: scoreLabel, icon: "star.fill", tint: MarviColor.gold)
+                ProfileBigMetric(value: profile.proofRate, label: deliveryLabel, icon: "checkmark.seal.fill", tint: MarviColor.emerald)
             }
 
             Spacer()
