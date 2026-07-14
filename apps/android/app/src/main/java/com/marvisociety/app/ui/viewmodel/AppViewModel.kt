@@ -89,21 +89,20 @@ class AppViewModel(
     val isRemoteMode: Boolean get() = repository.usesRemoteBackend
     val unreadInboxCount: Int get() = inboxMessages.count { !it.isRead }
 
-    val needsInviteRedemption: Boolean
-        get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
-            accountRole != UserRole.ADMIN && accountReferralCode.isNullOrBlank()
+    /** Invite codes are no longer required for membership. */
+    val needsInviteRedemption: Boolean get() = false
 
     /** Hard gate: Instagram or TikTok handle (matches iOS needsSocialHandlesEntry). */
     val needsSocialHandlesEntry: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
-            !needsInviteRedemption && accountRole != UserRole.ADMIN &&
+            accountRole != UserRole.ADMIN &&
             !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
             profile.handle.isBlank() && profile.tiktokHandle.isBlank()
 
     /** Soft gate for accept: at least one handle + DM verification (matches iOS). */
     val needsSocialProfileCompletion: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
-            !needsInviteRedemption && accountRole != UserRole.ADMIN &&
+            accountRole != UserRole.ADMIN &&
             !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
             ((profile.handle.isBlank() && profile.tiktokHandle.isBlank()) ||
                 socialVerification?.isVerified != true)
@@ -113,7 +112,6 @@ class AppViewModel(
         get() {
             if (!isAuthenticated || !hasCompletedOnboarding) return t(MarviL10n.Key.SIGN_IN_TO_ACCEPT)
             if (accountRole == UserRole.ADMIN) return null
-            if (needsInviteRedemption) return t(MarviL10n.Key.ACCEPT_NEEDS_INVITE)
             if (needsSocialHandlesEntry) return t(MarviL10n.Key.NEEDS_SOCIAL)
             if (needsSocialProfileCompletion) {
                 return if (socialVerification?.isVerified != true) {
@@ -134,8 +132,7 @@ class AppViewModel(
         get() {
             if (!isAuthenticated || !hasCompletedOnboarding) return false
             if (accountRole == UserRole.ADMIN) return true
-            return !needsInviteRedemption && !needsSocialProfileCompletion &&
-                profile.status == MembershipStatus.APPROVED
+            return !needsSocialProfileCompletion && profile.status == MembershipStatus.APPROVED
         }
 
     val acceptedOfferIds: Set<String>
@@ -339,7 +336,6 @@ class AppViewModel(
         accountReferralCode = context.referralCode
         if (context.role == UserRole.ADMIN) return true
         if (context.hasVenueProfile) return true
-        if (context.referralCode.isNullOrBlank()) return false
         val current = runCatching { repository.fetchProfile() }.getOrNull() ?: profile
         profile = current
         return (current.handle.isNotBlank() || current.tiktokHandle.isNotBlank()) && current.city.isNotBlank()
@@ -454,7 +450,7 @@ class AppViewModel(
     }
 
     fun acceptOffer(offerId: String) {
-        if (needsInviteRedemption || needsSocialProfileCompletion || profile.status != MembershipStatus.APPROVED) {
+        if (needsSocialProfileCompletion || profile.status != MembershipStatus.APPROVED) {
             lastSyncError = acceptBlockedReason ?: t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
             return
         }

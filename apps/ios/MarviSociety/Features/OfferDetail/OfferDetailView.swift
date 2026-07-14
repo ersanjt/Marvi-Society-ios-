@@ -20,7 +20,7 @@ struct OfferDetailView: View {
     private var isUnderReview: Bool { appState.profile.status == .underReview }
     private var canAccept: Bool {
         !isPending && !isFull && !isPaused && !isUnderReview && appState.isAuthenticated
-            && !appState.needsInviteRedemption && !appState.needsSocialProfileCompletion
+            && !appState.needsSocialProfileCompletion
     }
 
     var body: some View {
@@ -214,7 +214,6 @@ struct OfferDetailView: View {
         if isUnderReview { return appState.t(.awaitingApproval) }
         if isPaused { return appState.t(.membershipPaused) }
         if isFull { return appState.t(.fullyBooked) }
-        if appState.needsInviteRedemption { return appState.t(.acceptNeedsInvite) }
         if appState.needsSocialProfileCompletion {
             return appState.needsSocialHandlesEntry
                 ? appState.t(.socialSetupTitle)

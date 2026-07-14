@@ -41,7 +41,6 @@ import com.marvisociety.app.ui.screens.ConfigurationRequiredScreen
 import com.marvisociety.app.ui.screens.DirectChatScreen
 import com.marvisociety.app.ui.screens.DiscoverScreen
 import com.marvisociety.app.ui.screens.InboxScreen
-import com.marvisociety.app.ui.screens.InviteRequiredScreen
 import com.marvisociety.app.ui.screens.MemberProfileScreen
 import com.marvisociety.app.ui.screens.OfferDetailScreen
 import com.marvisociety.app.ui.screens.OnboardingScreen
@@ -69,7 +68,6 @@ fun MarviApp(viewModel: AppViewModel = viewModel()) {
             }
             !viewModel.hasCompletedOnboarding -> OnboardingScreen(viewModel)
             // Match iOS ContentView gate order
-            viewModel.needsInviteRedemption -> InviteRequiredScreen(viewModel)
             viewModel.needsSocialHandlesEntry -> SocialHandlesRequiredScreen(viewModel)
             viewModel.isBootstrapping -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

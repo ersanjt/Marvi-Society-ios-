@@ -146,16 +146,12 @@ final class AppState: ObservableObject {
         adminTasks.filter { $0.status == .open }
     }
 
-    /// Signed-in user must redeem an invite before using the app (creators and venues).
-    var needsInviteRedemption: Bool {
-        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
-        if accountRole == .admin { return false }
-        return accountReferralCode == nil
-    }
+    /// Invite codes are no longer required for membership (kept for admin tooling only).
+    var needsInviteRedemption: Bool { false }
 
     /// Creators must link at least one social + verify ownership via DM code.
     var needsSocialProfileCompletion: Bool {
-        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding, !needsInviteRedemption else { return false }
+        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
         let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -166,7 +162,7 @@ final class AppState: ObservableObject {
 
     /// Hard gate: creator must enter Instagram or TikTok before using the main app.
     var needsSocialHandlesEntry: Bool {
-        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding, !needsInviteRedemption else { return false }
+        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
         let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -178,16 +174,13 @@ final class AppState: ObservableObject {
     var canAcceptOffers: Bool {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return true }
-        return !needsInviteRedemption
-            && !needsSocialProfileCompletion
-            && profile.status == .approved
+        return !needsSocialProfileCompletion && profile.status == .approved
     }
 
     /// Explains why Accept is disabled (shown under CTAs). Nil when accept is allowed.
     var acceptBlockedReason: String? {
         guard isAuthenticated, hasCompletedOnboarding else { return t(.signInToAccept) }
         if accountRole == .admin { return nil }
-        if needsInviteRedemption { return t(.acceptNeedsInvite) }
         if needsSocialHandlesEntry { return t(.socialSetupSub) }
         if needsSocialProfileCompletion {
             if socialVerification?.isVerified != true {
@@ -572,7 +565,6 @@ final class AppState: ObservableObject {
             accountReferralCode = context.referralCode
             if context.role == .admin { return true }
             if context.hasVenueProfile { return true }
-            if context.referralCode == nil { return false }
 
             let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
             let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -977,7 +969,7 @@ final class AppState: ObservableObject {
 
     func accept(_ offer: Offer, options: AcceptOfferOptions = AcceptOfferOptions()) {
         guard isAuthenticated, !isAccepted(offer), offer.remaining > 0 else { return }
-        if needsInviteRedemption || needsSocialProfileCompletion || profile.status != .approved {
+        if needsSocialProfileCompletion || profile.status != .approved {
             lastSyncError = t(.completeProfileToAccept)
             return
         }

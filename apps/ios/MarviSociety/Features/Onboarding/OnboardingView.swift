@@ -757,7 +757,7 @@ struct OnboardingView: View {
         case .invite:
             previous = .signIn
         case .profile, .venueSetup:
-            previous = .invite
+            previous = .signIn
         case .agreement:
             previous = signupIntent == .business ? .venueSetup : .profile
         }
@@ -788,12 +788,7 @@ struct OnboardingView: View {
                 await signInWithEmailFlow()
             }
         case .invite:
-            guard appState.isAuthenticated else {
-                advance(to: .signIn)
-                return
-            }
-            guard await validateInviteCode() else { return }
-            inviteValidated = true
+            // Invite codes removed — skip to profile/venue setup.
             if signupIntent == .business {
                 advance(to: .venueSetup)
             } else {
@@ -869,7 +864,7 @@ struct OnboardingView: View {
             return
         }
 
-        advance(to: .invite)
+        advance(to: signupIntent == .business ? .venueSetup : .profile)
     }
 
     private func signInWithEmailFlow() async {

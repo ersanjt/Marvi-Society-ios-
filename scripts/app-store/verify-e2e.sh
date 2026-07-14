@@ -103,15 +103,8 @@ except Exception:
   fi
 fi
 
-# 7. Referral code exists
-ref=$(curl -sS -m 15 "$SB_URL/rest/v1/referral_codes?code=eq.MARVI-IST&select=code" \
-  -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" 2>/dev/null || echo "[]")
-if echo "$ref" | grep -q MARVI-IST; then
-  echo "✓ Referral code MARVI-IST active"
-else
-  echo "✗ Referral MARVI-IST missing"
-  FAIL=1
-fi
+# 7. Invite codes optional (no longer required for membership)
+echo "✓ Invite-code gate removed — email/social auth only"
 
 echo ""
 if [[ "$FAIL" -eq 0 ]]; then

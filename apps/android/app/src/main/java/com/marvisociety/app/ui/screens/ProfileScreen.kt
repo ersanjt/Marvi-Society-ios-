@@ -44,15 +44,9 @@ import android.net.Uri
 
 @Composable
 fun ProfileScreen(viewModel: AppViewModel) {
-    var inviteCode by remember { mutableStateOf("") }
-    var inviteError by remember { mutableStateOf("") }
-    var inviteAccepted by remember { mutableStateOf(false) }
-    var isRedeeming by remember { mutableStateOf(false) }
-
     val showCompletion = viewModel.isAuthenticated &&
         viewModel.selectedRole == UserRole.CREATOR &&
-        (viewModel.needsInviteRedemption ||
-            viewModel.needsSocialProfileCompletion ||
+        (viewModel.needsSocialProfileCompletion ||
             viewModel.profile.status != MembershipStatus.APPROVED)
 
     MarviScreen {
@@ -94,32 +88,6 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             color = MarviColor.Gold,
                             fontWeight = FontWeight.SemiBold
                         )
-                    }
-
-                    if (viewModel.needsInviteRedemption) {
-                        OutlinedTextField(
-                            value = inviteCode,
-                            onValueChange = { inviteCode = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.INVITE_PLACEHOLDER)) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        if (inviteError.isNotEmpty()) Text(inviteError, color = MarviColor.Tomato)
-                        if (inviteAccepted) Text("✓", color = MarviColor.Emerald)
-                        Button(
-                            onClick = {
-                                isRedeeming = true
-                                inviteError = ""
-                                viewModel.validateAndRedeemInvite(inviteCode) { ok ->
-                                    isRedeeming = false
-                                    if (ok) inviteAccepted = true
-                                    else inviteError = viewModel.t(MarviL10n.Key.ERR_INVITE_INVALID)
-                                }
-                            },
-                            enabled = inviteCode.isNotBlank() && !isRedeeming,
-                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                        ) {
-                            Text(viewModel.t(MarviL10n.Key.JOIN_MARVI))
-                        }
                     }
 
                     if (viewModel.needsSocialProfileCompletion) {

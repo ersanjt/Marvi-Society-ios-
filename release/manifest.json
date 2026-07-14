@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260630000021_soften_social_handle_requirement",
-      "migrationCount": 40
+      "migrationHead": "20260630000022_remove_invite_gate_from_accept",
+      "migrationCount": 41
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-14T15:36:07Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000022_remove_invite_gate_from_accept)"
+    },
+    {
+      "at": "2026-07-14T15:02:03Z",
+      "status": "ok",
+      "message": "pushed df00e5b to origin/main"
+    },
     {
       "at": "2026-07-14T15:01:59Z",
       "status": "ok",
@@ -261,16 +271,6 @@
       "at": "2026-06-30T23:18:44Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000008_fix_rpc_overloads)"
-    },
-    {
-      "at": "2026-06-30T20:07:24Z",
-      "status": "ok",
-      "message": "pushed cdca491 to origin/main"
-    },
-    {
-      "at": "2026-06-30T20:02:50Z",
-      "status": "ok",
-      "message": "pushed 94403ca to origin/main"
     }
   ],
   "releases": [

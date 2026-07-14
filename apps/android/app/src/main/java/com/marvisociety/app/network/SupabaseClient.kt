@@ -194,7 +194,10 @@ class SupabaseClient(
     private suspend fun parseAuthResponse(response: HttpResponse): AuthSession {
         validate(response)
         val obj = response.body<JsonObject>()
-        val access = obj.string("access_token") ?: throw MarviApiException("Missing access token")
+        val access = obj.string("access_token")
+            ?: throw MarviApiException(
+                "We sent a confirmation link to your email. Open it to verify your account, then come back and sign in."
+            )
         val refresh = obj.string("refresh_token")
         setSession(access, refresh)
         return AuthSession(accessToken = access, refreshToken = refresh, userId = userIdFromJwt(access))

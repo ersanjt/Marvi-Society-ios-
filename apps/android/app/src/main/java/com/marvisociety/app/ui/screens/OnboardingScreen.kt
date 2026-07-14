@@ -104,7 +104,11 @@ fun OnboardingScreen(viewModel: AppViewModel) {
             if (existing) {
                 viewModel.finishOnboarding(role)
             } else {
-                step = OnboardingStep.INVITE
+                step = if (intent == SignupIntent.BUSINESS) {
+                    OnboardingStep.VENUE
+                } else {
+                    OnboardingStep.PROFILE
+                }
             }
         }
     }
@@ -185,7 +189,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                                 fullName = fullName,
                                 city = city,
                                 intent = if (intent == SignupIntent.BUSINESS) "business" else "creator",
-                                inviteCode = viewModel.pendingInviteCode
+                                inviteCode = null
                             ) {
                                 busy = false
                                 routeAfterAuth()
@@ -208,46 +212,16 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     }
                 )
 
-                OnboardingStep.INVITE -> InviteStep(
-                    viewModel = viewModel,
-                    code = inviteCode,
-                    accepted = inviteAccepted,
-                    localError = localError,
-                    busy = busy,
-                    onCode = {
-                        inviteCode = it
-                        inviteAccepted = false
-                        localError = ""
-                    },
-                    onBack = { step = OnboardingStep.SIGN_IN },
-                    onContinue = {
-                        localError = ""
-                        val normalized = normalizeInvite(inviteCode)
-                        if (normalized.isBlank()) {
-                            localError = viewModel.t(MarviL10n.Key.ERR_INVITE_INVALID)
-                            return@InviteStep
-                        }
-                        if (!viewModel.isAuthenticated) {
-                            localError = viewModel.t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
-                            step = OnboardingStep.SIGN_IN
-                            return@InviteStep
-                        }
-                        busy = true
-                        viewModel.validateAndRedeemInvite(normalized) { ok ->
-                            busy = false
-                            if (ok) {
-                                inviteAccepted = true
-                                step = if (intent == SignupIntent.BUSINESS) {
-                                    OnboardingStep.VENUE
-                                } else {
-                                    OnboardingStep.PROFILE
-                                }
-                            } else {
-                                localError = viewModel.t(MarviL10n.Key.ERR_INVITE_INVALID)
-                            }
+                OnboardingStep.INVITE -> {
+                    // Invite codes removed — skip immediately to profile/venue.
+                    LaunchedEffect(Unit) {
+                        step = if (intent == SignupIntent.BUSINESS) {
+                            OnboardingStep.VENUE
+                        } else {
+                            OnboardingStep.PROFILE
                         }
                     }
-                )
+                }
 
                 OnboardingStep.PROFILE -> ProfileStep(
                     viewModel = viewModel,
@@ -260,7 +234,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     onInstagram = { instagram = it },
                     onTiktok = { tiktok = it },
                     onCity = { city = it },
-                    onBack = { step = OnboardingStep.INVITE },
+                    onBack = { step = OnboardingStep.SIGN_IN },
                     onContinue = {
                         if ((instagram.isBlank() && tiktok.isBlank()) || city.isBlank()) {
                             localError = viewModel.t(MarviL10n.Key.NEEDS_SOCIAL)
@@ -287,7 +261,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     localError = localError,
                     onName = { venueName = it },
                     onArea = { venueArea = it },
-                    onBack = { step = OnboardingStep.INVITE },
+                    onBack = { step = OnboardingStep.SIGN_IN },
                     onContinue = {
                         if (venueName.isBlank() || venueArea.isBlank()) {
                             localError = viewModel.t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)

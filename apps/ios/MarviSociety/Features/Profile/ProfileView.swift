@@ -45,9 +45,7 @@ struct ProfileView: View {
 
     private var showsProfileCompletion: Bool {
         appState.isAuthenticated && appState.selectedRole == .creator
-            && (appState.needsInviteRedemption
-                || appState.needsSocialProfileCompletion
-                || appState.profile.status != .approved)
+            && (appState.needsSocialProfileCompletion || appState.profile.status != .approved)
     }
 
     private var managementTitle: String {
@@ -86,34 +84,10 @@ struct ProfileView: View {
 
                         if showsProfileCompletion {
                             ProfileCompletionCard(
-                                inviteCode: $profileInviteCode,
-                                inviteError: $profileInviteError,
-                                inviteAccepted: $profileInviteAccepted,
-                                isRedeeming: $isRedeemingInvite,
-                                needsInvite: appState.needsInviteRedemption,
                                 needsSocial: appState.needsSocialProfileCompletion,
                                 membershipStatus: appState.profile.status,
-                                language: appState.preferredLanguage,
-                                onRedeemInvite: {
-                                    Task {
-                                        profileInviteError = ""
-                                        isRedeemingInvite = true
-                                        defer { isRedeemingInvite = false }
-                                        if let error = await appState.redeemReferralCode(profileInviteCode) {
-                                            profileInviteError = error
-                                        } else {
-                                            profileInviteAccepted = true
-                                            appState.pendingInviteCode = nil
-                                            await appState.syncAllowedRoles()
-                                        }
-                                    }
-                                }
+                                language: appState.preferredLanguage
                             )
-                            .onAppear {
-                                if profileInviteCode.isEmpty, let pending = appState.pendingInviteCode {
-                                    profileInviteCode = pending
-                                }
-                            }
                         }
 
                         MarviCard {
@@ -1430,15 +1404,9 @@ private struct ShowcaseTile: View {
 }
 
 private struct ProfileCompletionCard: View {
-    @Binding var inviteCode: String
-    @Binding var inviteError: String
-    @Binding var inviteAccepted: Bool
-    @Binding var isRedeeming: Bool
-    let needsInvite: Bool
     let needsSocial: Bool
     let membershipStatus: MembershipStatus
     let language: AppLanguage
-    let onRedeemInvite: () -> Void
 
     var body: some View {
         MarviCard {
@@ -1455,38 +1423,6 @@ private struct ProfileCompletionCard: View {
                         pausedBySelf: false,
                         onReactivate: nil
                     )
-                }
-
-                if needsInvite {
-                    MarviTextField(
-                        placeholder: MarviL10n.t(.invitePlaceholder, language: language),
-                        text: $inviteCode,
-                        autocapitalization: .characters
-                    )
-
-                    if inviteAccepted {
-                        Label(MarviL10n.t(.inviteAccepted, language: language), systemImage: "checkmark.circle.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(MarviColor.emerald)
-                    }
-
-                    if !inviteError.isEmpty {
-                        Label(inviteError, systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(MarviColor.tomato)
-                    }
-
-                    Button(action: onRedeemInvite) {
-                        Text(isRedeeming ? MarviL10n.t(.validatingInvite, language: language) : MarviL10n.t(.continueAction, language: language))
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.white)
-                    .background(MarviGradient.brand)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .disabled(inviteCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isRedeeming)
                 }
 
                 if needsSocial {
