@@ -35,8 +35,8 @@ android {
         applicationId = "com.marvisociety.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 37
-        versionName = "1.4.6"
+        versionCode = 38
+        versionName = "1.4.7"
 
         buildConfigField("String", "SUPABASE_URL", "\"${prop("MARVI_SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${prop("MARVI_SUPABASE_ANON_KEY")}\"")
@@ -44,6 +44,11 @@ android {
             "boolean",
             "USE_REMOTE_BACKEND",
             "${prop("MARVI_API_MODE", "supabase") == "supabase" && prop("MARVI_SUPABASE_URL").isNotEmpty()}"
+        )
+        buildConfigField(
+            "boolean",
+            "GOOGLE_SIGN_IN_ENABLED",
+            "${prop("MARVI_GOOGLE_SIGN_IN_ENABLED", "true") == "true"}"
         )
     }
 
@@ -101,6 +106,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.datastore:datastore-preferences:1.1.2")
+    implementation("androidx.browser:browser:1.8.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("io.ktor:ktor-client-android:3.0.3")
     implementation("io.ktor:ktor-client-content-negotiation:3.0.3")

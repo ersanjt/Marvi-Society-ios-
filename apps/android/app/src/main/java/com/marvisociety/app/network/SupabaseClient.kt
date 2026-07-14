@@ -122,6 +122,18 @@ class SupabaseClient(
         parseAuthResponse(response)
     }
 
+    /** PKCE exchange after Google (or other OAuth) redirect — mirrors iOS GoogleSignInService. */
+    suspend fun exchangeAuthCode(code: String, codeVerifier: String): AuthSession {
+        val response = client.post("$baseUrl/auth/v1/token?grant_type=pkce") {
+            applyHeaders(authenticated = false)
+            setBody(buildJsonObject {
+                put("auth_code", code)
+                put("code_verifier", codeVerifier)
+            })
+        }
+        return parseAuthResponse(response)
+    }
+
     suspend fun <T> select(
         table: String,
         query: Map<String, String> = emptyMap(),

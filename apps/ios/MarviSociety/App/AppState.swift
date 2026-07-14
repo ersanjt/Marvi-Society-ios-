@@ -156,15 +156,19 @@ final class AppState: ObservableObject {
         return profile.status != .approved
     }
 
-    /// Creators must link at least one social + verify ownership via DM code.
-    var needsSocialProfileCompletion: Bool {
+    /// Soft nudge: Instagram DM verify recommended for trust (profile health), not a hard accept gate.
+    var needsSocialVerification: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
         let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
         let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if handle.isEmpty && tiktok.isEmpty { return true }
+        if handle.isEmpty && tiktok.isEmpty { return false }
         return socialVerification?.isVerified != true
+    }
+
+    var needsSocialProfileCompletion: Bool {
+        needsSocialHandlesEntry || needsSocialVerification
     }
 
     /// Hard gate: creator must enter Instagram or TikTok before using the main app.
@@ -183,7 +187,7 @@ final class AppState: ObservableObject {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return true }
         return !needsAdminApproval
-            && !needsSocialProfileCompletion
+            && !needsSocialHandlesEntry
             && profile.status == .approved
     }
 
@@ -199,12 +203,6 @@ final class AppState: ObservableObject {
             }
         }
         if needsSocialHandlesEntry { return t(.socialSetupSub) }
-        if needsSocialProfileCompletion {
-            if socialVerification?.isVerified != true {
-                return t(.acceptNeedsSocialVerify)
-            }
-            return t(.socialSetupSub)
-        }
         switch profile.status {
         case .underReview: return t(.awaitingApproval)
         case .paused: return t(.membershipPaused)
@@ -986,7 +984,7 @@ final class AppState: ObservableObject {
 
     func accept(_ offer: Offer, options: AcceptOfferOptions = AcceptOfferOptions()) {
         guard isAuthenticated, !isAccepted(offer), offer.remaining > 0 else { return }
-        if needsAdminApproval || needsSocialProfileCompletion || profile.status != .approved {
+        if needsAdminApproval || needsSocialHandlesEntry || profile.status != .approved {
             lastSyncError = acceptBlockedReason ?? t(.completeProfileToAccept)
             return
         }

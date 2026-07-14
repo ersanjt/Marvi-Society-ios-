@@ -32,6 +32,9 @@ class MainActivity : ComponentActivity() {
     private fun handleDeepLink(intent: Intent?) {
         val data: Uri = intent?.data ?: return
         when {
+            com.marvisociety.app.network.GoogleOAuth.isAuthCallback(data) -> {
+                viewModel.completeGoogleSignIn(data)
+            }
             data.scheme.equals("marvisociety", ignoreCase = true) &&
                 data.host.equals("invite", ignoreCase = true) -> {
                 viewModel.applyPendingInviteCode(data.getQueryParameter("code"))

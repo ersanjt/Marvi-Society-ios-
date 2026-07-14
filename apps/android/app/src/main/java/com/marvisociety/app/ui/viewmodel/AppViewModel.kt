@@ -105,13 +105,17 @@ class AppViewModel(
             !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
             profile.handle.isBlank() && profile.tiktokHandle.isBlank()
 
-    /** Soft gate for accept: at least one handle + DM verification (matches iOS). */
-    val needsSocialProfileCompletion: Boolean
+    /** Soft nudge only: DM verify recommended for trust, not a hard accept gate. */
+    val needsSocialVerification: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             accountRole != UserRole.ADMIN &&
             !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
-            ((profile.handle.isBlank() && profile.tiktokHandle.isBlank()) ||
-                socialVerification?.isVerified != true)
+            !(profile.handle.isBlank() && profile.tiktokHandle.isBlank()) &&
+            socialVerification?.isVerified != true
+
+    /** Profile completeness UI (handles missing OR verify pending). */
+    val needsSocialProfileCompletion: Boolean
+        get() = needsSocialHandlesEntry || needsSocialVerification
 
     /** Explains why Accept is disabled (matches iOS acceptBlockedReason). */
     val acceptBlockedReason: String?
@@ -125,13 +129,6 @@ class AppViewModel(
                 }
             }
             if (needsSocialHandlesEntry) return t(MarviL10n.Key.NEEDS_SOCIAL)
-            if (needsSocialProfileCompletion) {
-                return if (socialVerification?.isVerified != true) {
-                    t(MarviL10n.Key.ACCEPT_NEEDS_SOCIAL_VERIFY)
-                } else {
-                    t(MarviL10n.Key.NEEDS_SOCIAL)
-                }
-            }
             return when (profile.status) {
                 MembershipStatus.UNDER_REVIEW -> t(MarviL10n.Key.AWAITING_APPROVAL)
                 MembershipStatus.PAUSED -> t(MarviL10n.Key.MEMBERSHIP_PAUSED)
@@ -144,9 +141,15 @@ class AppViewModel(
         get() {
             if (!isAuthenticated || !hasCompletedOnboarding) return false
             if (accountRole == UserRole.ADMIN) return true
-            return !needsAdminApproval && !needsSocialProfileCompletion &&
+            return !needsAdminApproval && !needsSocialHandlesEntry &&
                 profile.status == MembershipStatus.APPROVED
         }
+
+    val pendingInviteBookingsCount: Int
+        get() = bookings.count { it.stage == BookingStage.INVITED }
+
+    val eventsTabBadgeCount: Int
+        get() = pendingInviteBookingsCount.coerceAtMost(99)
 
     val acceptedOfferIds: Set<String>
         get() = bookings.filter { it.stage != BookingStage.CANCELLED }.map { it.offer.id }.toSet()
@@ -282,6 +285,37 @@ class AppViewModel(
                 onSuccess()
             }.onFailure { error ->
                 authError = error.message ?: t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
+            }
+            isBootstrapping = false
+        }
+    }
+
+    fun startGoogleSignIn(context: android.content.Context) {
+        if (!com.marvisociety.app.network.GoogleOAuth.isEnabled()) {
+            authError = t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
+            return
+        }
+        authError = null
+        lastSyncError = null
+        runCatching {
+            com.marvisociety.app.network.GoogleOAuth.start(context)
+        }.onFailure { error ->
+            authError = error.message ?: t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
+        }
+    }
+
+    fun completeGoogleSignIn(uri: android.net.Uri) {
+        viewModelScope.launch {
+            authError = null
+            isBootstrapping = true
+            runCatching {
+                val session = repository.completeGoogleOAuth(uri)
+                sessionStore.saveTokens(session.accessToken, session.refreshToken)
+                isAuthenticated = true
+                bootstrapRemoteSession()
+            }.onFailure { error ->
+                authError = error.message ?: t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
+                lastSyncError = authError
             }
             isBootstrapping = false
         }
@@ -463,7 +497,7 @@ class AppViewModel(
     }
 
     fun acceptOffer(offerId: String) {
-        if (needsAdminApproval || needsSocialProfileCompletion || profile.status != MembershipStatus.APPROVED) {
+        if (needsAdminApproval || needsSocialHandlesEntry || profile.status != MembershipStatus.APPROVED) {
             lastSyncError = acceptBlockedReason ?: t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
             return
         }

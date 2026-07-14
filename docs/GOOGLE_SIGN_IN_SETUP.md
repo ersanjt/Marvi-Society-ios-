@@ -1,6 +1,6 @@
-# Google (Gmail) Sign-In — iOS + Supabase
+# Google (Gmail) Sign-In — iOS + Android + Supabase
 
-The iOS app uses **Supabase OAuth** with `ASWebAuthenticationSession` (no Google SDK).
+Both mobile apps use **Supabase OAuth** with PKCE (no Google SDK).
 
 **Flow (preferred):** Google → Supabase → `marvisociety://auth/callback?code=…` → app (direct, no website).
 
@@ -33,9 +33,7 @@ The iOS app uses **Supabase OAuth** with `ASWebAuthenticationSession` (no Google
   https://marvisociety.com/auth/callback
   ```
 
-The first line (`marvisociety://…`) is what the iOS app uses. Without it, users land on the website.
-
-Deploy web so `/auth/ios-callback` exists as fallback: `bash /root/whm-install-from-git.sh`
+The first line (`marvisociety://…`) is what iOS and Android use. Without it, users land on the website.
 
 ## 3. iOS build flag
 
@@ -45,16 +43,26 @@ In `apps/ios/Config/Secrets.xcconfig`:
 MARVI_GOOGLE_SIGN_IN_ENABLED = YES
 ```
 
-## 4. Test on device
+## 4. Android build flag
 
-1. Build and run on a physical iPhone.
-2. Onboarding → **Google ile devam et**.
-3. After Google login, the sheet should close and the app continues (not the website).
+In `apps/android/local.properties` (optional — defaults to enabled when Supabase is configured):
+
+```
+MARVI_GOOGLE_SIGN_IN_ENABLED=true
+```
+
+Android opens Custom Tabs, then returns via the existing `marvisociety://` intent filter in `AndroidManifest.xml`.
+
+## 5. Test on device
+
+1. Build and run on a physical phone.
+2. Onboarding → **Google ile devam et** / **Continue with Google**.
+3. After Google login, the browser should close and the app continues (not the website).
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |--------|-----|
 | Lands on marvisociety.com / portal | Add `marvisociety://auth/callback` to Supabase Redirect URLs; redeploy web for `/auth/ios-callback`. |
-| Browser opens but app never returns | Confirm `Marvi-URLTypes.plist` scheme `marvisociety` is in the target. |
+| Browser opens but app never returns | Confirm URL scheme `marvisociety` is registered (iOS URL types / Android intent-filter). |
 | "Google sign-in did not return a session" | Enable Google provider; verify Google Cloud redirect URI = Supabase callback URL. |

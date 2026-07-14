@@ -53,7 +53,7 @@ struct MainAppShell: View {
 
                 BookingsView()
                     .tabItem { Label(MarviL10n.t(.myEvents, language: lang), systemImage: "calendar.badge.clock") }
-                    .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
+                    .badge(appState.pendingInviteBookings.count > 0 ? appState.pendingInviteBookings.count : 0)
                     .tag(2)
 
                 ProfileView()

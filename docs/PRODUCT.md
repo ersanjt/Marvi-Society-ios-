@@ -5,9 +5,11 @@
 
 ## What Marvi Society is
 
-Marvi Society is a **private, invitation-only marketplace** that connects **approved creators** with **verified venue partners** for structured collaborations in Istanbul (expandable to other cities).
+Marvi Society is a **private, admin-approved marketplace** that connects **approved creators** with **verified venue partners** for structured collaborations in Istanbul (expandable to other cities).
 
 Creators receive curated experiences (dining, nightlife, wellness, beauty, fitness, retail). Venues receive agreed social content (stories, posts, reviews) through a managed workflow: invitation → booking → check-in → proof submission → review.
+
+**Access model:** Sign up with email / Apple / Google → add Instagram or TikTok → wait for **admin approval**. Referral/invite codes are optional growth tools (admin-issued), not a hard membership gate.
 
 **Business model:** Barter (experience in exchange for content). No direct cash payments between creators and venues in v1.
 
@@ -23,12 +25,13 @@ Creators receive curated experiences (dining, nightlife, wellness, beauty, fitne
 
 ### Creator
 
-1. **Onboarding** — Invite code, profile (Instagram, city), 18+ and legal acceptance, Sign in with Apple or email.
-2. **Explore** — Browse live campaigns, filter by area/date/category, save offers, view brief.
-3. **Accept** — Reserve a slot; booking appears in My Events.
-4. **Check-in** — Enter 4-digit code at venue.
-5. **Proof** — Submit story/post/review links (+ optional screenshot).
-6. **Profile** — Edit handles, sync account, view strikes and membership status.
+1. **Onboarding** — Profile (Instagram or TikTok, city), 18+ and legal acceptance, Sign in with Apple / Google / email.
+2. **Admin approval** — Membership stays under review until an operator approves.
+3. **Explore** — Browse live campaigns, filter by area/date/category, save offers, view brief.
+4. **Accept** — Reserve a slot; booking appears in My Events.
+5. **Check-in** — Enter 4-digit code at venue.
+6. **Proof** — Submit story/post/review links (+ optional screenshot).
+7. **Profile** — Edit handles, optional Instagram DM verification, sync account, view strikes and membership status.
 
 ### Venue
 
@@ -44,8 +47,10 @@ Creators receive curated experiences (dining, nightlife, wellness, beauty, fitne
 ## Product rules (enforced in app + backend)
 
 - **18+ only** — Confirmed at onboarding; stated in Terms.
-- **Invite-only** — Valid `referral_codes` required at sign-up.
-- **Admin approval** — Creator `status` may be `under_review` until approved.
+- **Admin approval** — Creator `status` stays `under_review` until approved (hard gate to the main app).
+- **Social handles** — Instagram **or** TikTok required before accepting offers.
+- **Social DM verify** — Optional trust signal (profile health + admin queue); not required to accept.
+- **Invite codes** — Optional referral/growth tool issued by admins; not required for signup or accept.
 - **Capacity** — `accept_offer` RPC decrements `remaining_slots`; no overbooking.
 - **Check-in** — Venue-issued code required; invalid code rejected.
 - **Proof deadline** — Submissions tracked; strikes for repeated misses.

@@ -26,6 +26,11 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     suspend fun signOut() = client.signOut()
     suspend fun refreshSession() = client.refreshSession()
     fun currentUserId(): String? = client.currentUserId()
+    fun supabaseClient(): SupabaseClient = client
+
+    suspend fun completeGoogleOAuth(uri: android.net.Uri): AuthSession =
+        GoogleOAuth.completeIfPossible(uri, client)
+            ?: throw MarviApiException("Not a Google auth callback")
 
     suspend fun fetchAccountContext(): AccountContext {
         // `fetch_account_context` RETURNS TABLE(role, status, has_venue_profile) → PostgREST array.

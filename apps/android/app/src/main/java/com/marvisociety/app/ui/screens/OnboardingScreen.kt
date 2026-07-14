@@ -426,6 +426,22 @@ private fun SignInStep(
         }
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    if (com.marvisociety.app.network.GoogleOAuth.isEnabled()) {
+        PrimaryButton(
+            title = if (busy) viewModel.t(MarviL10n.Key.SIGNING_IN)
+            else viewModel.t(MarviL10n.Key.SIGN_IN_WITH_GOOGLE),
+            enabled = !busy,
+            onClick = { viewModel.startGoogleSignIn(context) }
+        )
+        Text(
+            viewModel.t(MarviL10n.Key.OR_EMAIL),
+            color = MarviColor.Muted,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+
     MarviField(email, onEmail, viewModel.t(MarviL10n.Key.EMAIL))
     MarviField(password, onPassword, viewModel.t(MarviL10n.Key.PASSWORD), isPassword = true)
     if (isCreatingAccount) {

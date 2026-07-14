@@ -102,10 +102,16 @@ private fun MainShell(viewModel: AppViewModel) {
                             }
                         },
                         icon = {
-                            if (tab.route == "bookings" || tab.route == "inbox") {
+                            if (tab.route == "bookings") {
+                                BadgedBox(badge = {
+                                    if (viewModel.eventsTabBadgeCount > 0) {
+                                        Badge { Text(viewModel.eventsTabBadgeCount.toString()) }
+                                    }
+                                }) { tab.icon() }
+                            } else if (tab.route == "inbox") {
                                 BadgedBox(badge = {
                                     if (viewModel.unreadInboxCount > 0) {
-                                        Badge { Text(viewModel.unreadInboxCount.toString()) }
+                                        Badge { Text(viewModel.unreadInboxCount.coerceAtMost(99).toString()) }
                                     }
                                 }) { tab.icon() }
                             } else {
