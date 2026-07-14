@@ -14,13 +14,13 @@ enum MarviGradient {
     )
 
     static let warm = LinearGradient(
-        colors: [MarviColor.rose.opacity(0.35), MarviColor.aubergine.opacity(0.25), MarviColor.surface],
+        colors: [MarviColor.rose.opacity(0.18), MarviColor.aubergine.opacity(0.14), MarviColor.surface],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
     static let cool = LinearGradient(
-        colors: [MarviColor.aubergine.opacity(0.3), MarviColor.blue.opacity(0.15), MarviColor.surface],
+        colors: [MarviColor.aubergine.opacity(0.16), MarviColor.blue.opacity(0.08), MarviColor.surface],
         startPoint: .topTrailing,
         endPoint: .bottomLeading
     )
