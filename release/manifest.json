@@ -23,6 +23,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-14T15:01:59Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000021_soften_social_handle_requirement)"
+    },
+    {
+      "at": "2026-07-14T14:56:53Z",
+      "status": "ok",
+      "message": "pushed 3eb2630 to origin/main"
+    },
+    {
       "at": "2026-07-14T14:56:49Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000021_soften_social_handle_requirement)"
@@ -261,16 +271,6 @@
       "at": "2026-06-30T20:02:50Z",
       "status": "ok",
       "message": "pushed 94403ca to origin/main"
-    },
-    {
-      "at": "2026-06-30T20:02:44Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000007_chat_activity_mutual_match)"
-    },
-    {
-      "at": "2026-06-30T17:29:42Z",
-      "status": "ok",
-      "message": "pushed 0b59adc to origin/main"
     }
   ],
   "releases": [

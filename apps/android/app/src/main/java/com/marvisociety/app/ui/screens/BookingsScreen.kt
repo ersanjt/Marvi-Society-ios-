@@ -32,7 +32,12 @@ import com.marvisociety.app.ui.viewmodel.AppViewModel
 fun BookingsScreen(viewModel: AppViewModel) {
     MarviScreen {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Text(viewModel.t(MarviL10n.Key.MY_EVENTS_TITLE), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+            Text(
+                viewModel.t(MarviL10n.Key.MY_EVENTS_TITLE),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MarviColor.Ink,
+                fontWeight = FontWeight.Bold
+            )
             if (viewModel.bookings.isEmpty()) {
                 MarviCard {
                     Text(viewModel.t(MarviL10n.Key.NO_BOOKINGS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
@@ -62,15 +67,37 @@ private fun BookingCard(booking: Booking, viewModel: AppViewModel) {
         }
 
         when (booking.stage) {
-            BookingStage.CONFIRMED, BookingStage.INVITED -> {
+            BookingStage.INVITED -> {
+                val canAccept = viewModel.canAcceptOffers
+                viewModel.acceptBlockedReason?.takeIf { !canAccept }?.let { reason ->
+                    Text(
+                        reason,
+                        color = MarviColor.Gold,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                Button(
+                    onClick = { viewModel.acceptOffer(booking.offer.id) },
+                    enabled = canAccept,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                ) { Text(viewModel.t(MarviL10n.Key.ACCEPT_INVITATION)) }
+            }
+            BookingStage.CONFIRMED -> {
                 OutlinedTextField(
                     value = checkInCode,
                     onValueChange = { checkInCode = it },
                     label = { Text(viewModel.t(MarviL10n.Key.CHECK_IN)) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
                 )
                 Button(
                     onClick = { viewModel.checkIn(booking.id, checkInCode) },
+                    enabled = checkInCode.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
                 ) { Text(viewModel.t(MarviL10n.Key.CHECK_IN)) }
@@ -80,13 +107,19 @@ private fun BookingCard(booking: Booking, viewModel: AppViewModel) {
                     value = proofText,
                     onValueChange = { proofText = it },
                     label = { Text(viewModel.t(MarviL10n.Key.PROOF_LINKS)) },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
                     minLines = 2
                 )
                 Button(
                     onClick = {
-                        viewModel.submitProof(booking.id, proofText.lines().map { it.trim() }.filter { it.isNotEmpty() })
+                        viewModel.submitProof(
+                            booking.id,
+                            proofText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                        )
                     },
+                    enabled = proofText.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
                 ) { Text(viewModel.t(MarviL10n.Key.SUBMIT_PROOF)) }

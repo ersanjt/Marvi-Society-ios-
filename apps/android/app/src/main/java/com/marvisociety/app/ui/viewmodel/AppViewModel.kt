@@ -342,7 +342,7 @@ class AppViewModel(
         if (context.referralCode.isNullOrBlank()) return false
         val current = runCatching { repository.fetchProfile() }.getOrNull() ?: profile
         profile = current
-        return current.handle.isNotBlank() && current.tiktokHandle.isNotBlank() && current.city.isNotBlank()
+        return (current.handle.isNotBlank() || current.tiktokHandle.isNotBlank()) && current.city.isNotBlank()
     }
 
     fun resetPassword(email: String, onSent: () -> Unit) {
@@ -455,7 +455,7 @@ class AppViewModel(
 
     fun acceptOffer(offerId: String) {
         if (needsInviteRedemption || needsSocialProfileCompletion || profile.status != MembershipStatus.APPROVED) {
-            lastSyncError = t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
+            lastSyncError = acceptBlockedReason ?: t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
             return
         }
         viewModelScope.launch {

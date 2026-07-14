@@ -195,9 +195,15 @@ struct SocialProfileSetupView: View {
         isSaving = true
         defer { isSaving = false }
 
+        let previousHandle = appState.profile.handle
+        let previousTikTok = appState.profile.tiktokHandle
         appState.profile.handle = instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines)
         appState.profile.tiktokHandle = tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        _ = await appState.saveProfileToServer()
+        let ok = await appState.saveProfileToServer()
+        if !ok {
+            appState.profile.handle = previousHandle
+            appState.profile.tiktokHandle = previousTikTok
+        }
     }
 }
 
