@@ -40,9 +40,9 @@ struct BookingsView: View {
             StatusBadge(
                 id: EventBucket.requests.id,
                 title: EventBucket.requests.title(for: appState.preferredLanguage),
+                // Only items shown under “Bekleyen davetler” (not interest tab).
                 count: appState.pendingInviteBookings.count
-                    + appState.pendingCollaborationRequests.count
-                    + appState.interestOffers.count,
+                    + appState.pendingCollaborationRequests.filter(\.isPendingCreator).count,
                 tint: MarviColor.rose
             ),
             StatusBadge(
@@ -184,7 +184,7 @@ struct BookingsView: View {
                             }
                         }
                         .padding(16)
-                        .padding(.bottom, 24)
+                        .padding(.bottom, 88)
                     }
                     .refreshable { await appState.refreshFromServer() }
                     .onAppear { handleHighlightedBooking(proxy: proxy) }

@@ -130,6 +130,12 @@ final class AppState: ObservableObject {
         bookings.filter { $0.stage == .invited }
     }
 
+    /// Tab badge for My Events — matches Talepler grid (invites + creator collab pending).
+    var myEventsTabBadgeCount: Int {
+        pendingInviteBookings.count
+            + pendingCollaborationRequests.filter(\.isPendingCreator).count
+    }
+
     var interestOffers: [Offer] {
         offers.filter { savedOfferIDs.contains($0.id) && !acceptedOfferIDs.contains($0.id) }
     }

@@ -7,7 +7,7 @@ struct MainAppShell: View {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
-        appearance.shadowColor = UIColor(red: 1, green: 0.18, blue: 0.47, alpha: 0.15)
+        appearance.shadowColor = UIColor(red: 1, green: 0.18, blue: 0.47, alpha: 0.08)
 
         let normal = appearance.stackedLayoutAppearance.normal
         normal.iconColor = UIColor(white: 0.5, alpha: 1)
@@ -53,7 +53,7 @@ struct MainAppShell: View {
 
                 BookingsView()
                     .tabItem { Label(MarviL10n.t(.myEvents, language: lang), systemImage: "calendar.badge.clock") }
-                    .badge(appState.pendingInviteBookings.count > 0 ? appState.pendingInviteBookings.count : 0)
+                    .badge(appState.myEventsTabBadgeCount > 0 ? appState.myEventsTabBadgeCount : 0)
                     .tag(2)
 
                 ProfileView()
