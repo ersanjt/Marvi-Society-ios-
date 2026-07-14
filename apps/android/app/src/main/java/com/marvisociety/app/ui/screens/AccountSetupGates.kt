@@ -118,7 +118,7 @@ fun SocialHandlesRequiredScreen(viewModel: AppViewModel) {
             if (busy) CircularProgressIndicator(color = MarviColor.Rose)
             Button(
                 onClick = {
-                    if (instagram.isBlank() || tiktok.isBlank() || city.isBlank()) {
+                    if ((instagram.isBlank() && tiktok.isBlank()) || city.isBlank()) {
                         error = viewModel.t(MarviL10n.Key.NEEDS_SOCIAL)
                         return@Button
                     }

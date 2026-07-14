@@ -53,6 +53,7 @@ enum MarviL10n {
         case member, creator, saveToAccount, syncFromServer, signingOut
         case signOutTitle, signOutMessage, applicationChecklist, instagramConnected
         case profileCompletionTitle, profileCompletionSub, completeProfileToAccept
+        case acceptNeedsInvite, acceptNeedsSocialVerify, signInToAccept
         case socialVerifyTitle, socialVerifySub, socialVerifyCodeLabel, socialVerifyCopyCode
         case socialVerifyOpenInstagram, socialVerifySentBtn, socialVerifyPending, socialVerifySubmitted
         case socialVerifyVerified, socialVerifyConfirmAdmin
@@ -281,6 +282,9 @@ enum MarviL10n {
         .profileCompletionTitle: "Complete your profile",
         .profileCompletionSub: "Add your details here. An admin will review and approve your account.",
         .completeProfileToAccept: "Complete your profile and wait for admin approval before accepting invitations.",
+        .acceptNeedsInvite: "Redeem your invite code before accepting invitations.",
+        .acceptNeedsSocialVerify: "Verify Instagram via DM before accepting invitations.",
+        .signInToAccept: "Sign in to accept invitations.",
         .socialVerifyTitle: "Verify your social accounts",
         .socialVerifySub: "Send your personal code to @marvisociety on Instagram Direct from the account below. We use it to confirm the profile is yours.",
         .socialVerifyCodeLabel: "Your verification code",
@@ -405,7 +409,7 @@ enum MarviL10n {
         .sendInviteBtn: "Send invite email",
         .inviteSentSuccess: "Invite sent — they'll receive an email with their code.",
         .socialSetupTitle: "Link your social accounts",
-        .socialSetupSub: "Instagram and TikTok are required for verification and invite matching.",
+        .socialSetupSub: "Add Instagram or TikTok so venues can find you. You can add the other later.",
         .socialSetupContinue: "Save and continue",
         .errInviteEmailMismatch: "This invite was sent to a different email. Sign in with the invited address.",
         .signedIn: "Signed in", .notSignedIn: "Not signed in",
@@ -687,6 +691,9 @@ enum MarviL10n {
         .profileCompletionTitle: "Profilini tamamla",
         .profileCompletionSub: "Bilgilerini buradan ekle. Hesabın admin tarafından incelenip onaylanacak.",
         .completeProfileToAccept: "Davet kabul etmeden önce profilini tamamla ve admin onayını bekle.",
+        .acceptNeedsInvite: "Davet kabul etmeden önce davet kodunu kullan.",
+        .acceptNeedsSocialVerify: "Davet kabul etmeden önce Instagram DM doğrulamasını tamamla.",
+        .signInToAccept: "Davet kabul etmek için giriş yap.",
         .socialVerifyTitle: "Sosyal hesaplarını doğrula",
         .socialVerifySub: "Aşağıdaki Instagram hesabından @marvisociety hesabına Direct mesajla kişisel kodunu gönder. Profilin sana ait mi kontrol ediyoruz.",
         .socialVerifyCodeLabel: "Doğrulama kodun",
@@ -812,7 +819,7 @@ enum MarviL10n {
         .sendInviteBtn: "Davet e-postası gönder",
         .inviteSentSuccess: "Davet gönderildi — kod e-postayla iletilecek.",
         .socialSetupTitle: "Sosyal hesaplarını bağla",
-        .socialSetupSub: "Doğrulama ve davet eşleşmesi için Instagram ve TikTok zorunludur.",
+        .socialSetupSub: "Mekanların seni bulması için Instagram veya TikTok ekle. Diğerini sonra ekleyebilirsin.",
         .socialSetupContinue: "Kaydet ve devam et",
         .errInviteEmailMismatch: "Bu davet farklı bir e-postaya gönderildi. Davet edilen adresle giriş yap.",
         .signedIn: "Giriş yapıldı", .notSignedIn: "Giriş yapılmadı",

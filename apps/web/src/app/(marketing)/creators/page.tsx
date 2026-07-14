@@ -119,6 +119,9 @@ export default async function CreatorsPage() {
               <a href={SITE.appStoreUrl} className="marvi-btn-secondary">
                 {dict.creators.appStore}
               </a>
+              <a href={SITE.playStoreUrl} className="marvi-btn-secondary">
+                {dict.creators.playStore}
+              </a>
               <Link
                 href="/faq"
                 className="inline-flex items-center rounded-marvi border border-white/30 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"

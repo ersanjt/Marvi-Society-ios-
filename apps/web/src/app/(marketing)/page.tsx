@@ -3,6 +3,7 @@ import { AppShowcase } from "@/components/marketing/AppShowcase";
 import { CollaborationModelCard } from "@/components/marketing/CollaborationModelCard";
 import { PhoneFrame } from "@/components/marketing/AppScreenshot";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
+import { StoreDownloadButtons } from "@/components/marketing/StoreDownloadButtons";
 import { IconBuilding, IconCalendar, IconShield, IconSparkles } from "@/components/design/MarviIcons";
 import { MarviScreen, MetricTile } from "@/components/design/MarviUI";
 import { COLLABORATION_MODELS } from "@/lib/constants";
@@ -29,6 +30,12 @@ export default async function HomePage() {
                 {dict.hero.ctaBrands}
               </Link>
             </div>
+            <StoreDownloadButtons
+              className="mt-4"
+              appStoreLabel={dict.creators.appStore}
+              playStoreLabel={dict.creators.playStore}
+              primaryAppStore
+            />
             <div className="mt-10 grid grid-cols-3 gap-3">
               <MetricTile
                 icon={<IconBuilding size={18} />}
@@ -121,6 +128,12 @@ export default async function HomePage() {
               {dict.cta.faq}
             </Link>
           </div>
+          <StoreDownloadButtons
+            className="mt-4 justify-center"
+            appStoreLabel={dict.creators.appStore}
+            playStoreLabel={dict.creators.playStore}
+            primaryAppStore={false}
+          />
         </div>
       </section>
     </>

@@ -325,9 +325,21 @@ private struct MapOfferSheet: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.white)
-                    .background(MarviGradient.brand)
+                    .background(
+                        appState.canAcceptOffers
+                            ? AnyShapeStyle(MarviGradient.brand)
+                            : AnyShapeStyle(MarviColor.muted.opacity(0.4))
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .disabled(!appState.canAcceptOffers)
                 }
+            }
+
+            if !isAccepted, let reason = appState.acceptBlockedReason {
+                Text(reason)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(MarviColor.gold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(16)

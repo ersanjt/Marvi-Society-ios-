@@ -153,25 +153,25 @@ final class AppState: ObservableObject {
         return accountReferralCode == nil
     }
 
-    /// Creators must verify Instagram/TikTok ownership via DM code.
+    /// Creators must link at least one social + verify ownership via DM code.
     var needsSocialProfileCompletion: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding, !needsInviteRedemption else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
         let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
         let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if handle.isEmpty || tiktok.isEmpty { return true }
+        if handle.isEmpty && tiktok.isEmpty { return true }
         return socialVerification?.isVerified != true
     }
 
-    /// Hard gate: creator must enter Instagram + TikTok before using the main app.
+    /// Hard gate: creator must enter Instagram or TikTok before using the main app.
     var needsSocialHandlesEntry: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding, !needsInviteRedemption else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
         let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
         let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        return handle.isEmpty || tiktok.isEmpty
+        return handle.isEmpty && tiktok.isEmpty
     }
 
     /// Whether the signed-in creator may accept live offers (client-side gate; server also enforces).
@@ -181,6 +181,26 @@ final class AppState: ObservableObject {
         return !needsInviteRedemption
             && !needsSocialProfileCompletion
             && profile.status == .approved
+    }
+
+    /// Explains why Accept is disabled (shown under CTAs). Nil when accept is allowed.
+    var acceptBlockedReason: String? {
+        guard isAuthenticated, hasCompletedOnboarding else { return t(.signInToAccept) }
+        if accountRole == .admin { return nil }
+        if needsInviteRedemption { return t(.acceptNeedsInvite) }
+        if needsSocialHandlesEntry { return t(.socialSetupSub) }
+        if needsSocialProfileCompletion {
+            if socialVerification?.isVerified != true {
+                return t(.acceptNeedsSocialVerify)
+            }
+            return t(.socialSetupSub)
+        }
+        switch profile.status {
+        case .underReview: return t(.awaitingApproval)
+        case .paused: return t(.membershipPaused)
+        case .approved: return nil
+        default: return t(.completeProfileToAccept)
+        }
     }
 
     static func inferredSystemLanguage() -> AppLanguage {
@@ -557,7 +577,7 @@ final class AppState: ObservableObject {
             let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
             let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
             let city = profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !handle.isEmpty, !tiktok.isEmpty, !city.isEmpty { return true }
+            if (!handle.isEmpty || !tiktok.isEmpty), !city.isEmpty { return true }
             return false
         }
 

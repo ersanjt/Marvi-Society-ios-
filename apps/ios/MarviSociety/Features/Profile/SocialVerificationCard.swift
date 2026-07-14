@@ -24,7 +24,7 @@ struct SocialVerificationCard: View {
                         handleRow(label: "TikTok", value: appState.profile.tiktokHandle)
 
                         if appState.profile.handle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            || appState.profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            && appState.profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             Text(appState.t(.socialSetupSub))
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(MarviColor.gold)

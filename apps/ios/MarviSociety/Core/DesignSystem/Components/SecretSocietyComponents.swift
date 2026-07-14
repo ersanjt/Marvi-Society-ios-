@@ -330,35 +330,45 @@ struct SSDeclineAcceptRow: View {
     let onDecline: () -> Void
     let onAccept: () -> Void
     var acceptDisabled: Bool = false
+    var acceptDisabledReason: String? = nil
 
     var body: some View {
-        HStack(spacing: 10) {
-            Button(action: onDecline) {
-                Text(declineTitle)
-                    .font(.subheadline.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(MarviColor.ink)
-            .background(MarviColor.panelElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(MarviColor.border, lineWidth: 1)
-            )
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Button(action: onDecline) {
+                    Text(declineTitle)
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(MarviColor.ink)
+                .background(MarviColor.panelElevated)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(MarviColor.border, lineWidth: 1)
+                )
 
-            Button(action: onAccept) {
-                Text(acceptTitle)
-                    .font(.subheadline.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                Button(action: onAccept) {
+                    Text(acceptTitle)
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .background(acceptDisabled ? AnyShapeStyle(MarviColor.muted.opacity(0.4)) : AnyShapeStyle(MarviGradient.brand))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .disabled(acceptDisabled)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.white)
-            .background(acceptDisabled ? AnyShapeStyle(MarviColor.muted.opacity(0.4)) : AnyShapeStyle(MarviGradient.brand))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .disabled(acceptDisabled)
+
+            if acceptDisabled, let acceptDisabledReason, !acceptDisabledReason.isEmpty {
+                Text(acceptDisabledReason)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(MarviColor.gold)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

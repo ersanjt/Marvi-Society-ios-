@@ -3,20 +3,27 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BrandLockup } from "@/components/brand/BrandMark";
+import { InviteFallbackLinks } from "@/components/marketing/StoreDownloadButtons";
 import { MarviScreen, SyncBanner } from "@/components/design/MarviUI";
 import { createClient } from "@/lib/supabase/client";
+import { SITE } from "@/lib/constants";
 
 /** Only allow internal absolute paths to prevent open-redirect phishing. */
-function safeNextPath(value: string | null): string {
+function safeNextPath(value: string | null, hasInvite: boolean): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/portal/dashboard";
+    return hasInvite ? "/invite" : "/portal/dashboard";
   }
   return value;
 }
 
+function inviteDeepLink(code: string): string {
+  return `marvisociety://invite?code=${encodeURIComponent(code)}`;
+}
+
 export function AuthCallbackClient() {
-  const [status, setStatus] = useState<"loading" | "error" | "ios-bounce">("loading");
+  const [status, setStatus] = useState<"loading" | "error" | "ios-bounce" | "invite-handoff">("loading");
   const [message, setMessage] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -42,7 +49,6 @@ export function AuthCallbackClient() {
 
       const target = deepLink + hash;
       window.location.replace(target);
-      // Fallback if replace does not hand off to the native app sheet.
       const fallback = window.setTimeout(() => {
         window.location.href = target;
       }, 600);
@@ -51,10 +57,26 @@ export function AuthCallbackClient() {
 
     const supabase = createClient();
 
+    async function handoffInvite(code: string) {
+      const normalized = code.trim().toUpperCase();
+      setInviteCode(normalized);
+      try {
+        localStorage.setItem("marvi_pending_invite_code", normalized);
+      } catch {
+        /* ignore */
+      }
+      setStatus("invite-handoff");
+      const target = inviteDeepLink(normalized);
+      window.location.replace(target);
+      window.setTimeout(() => {
+        window.location.href = `/invite?code=${encodeURIComponent(normalized)}`;
+      }, 900);
+    }
+
     async function run() {
       const code = params.get("code");
-      const next = safeNextPath(params.get("next"));
-      const inviteCode = params.get("invite_code")?.trim();
+      const inviteFromQuery = params.get("invite_code")?.trim() || "";
+      const next = safeNextPath(params.get("next"), Boolean(inviteFromQuery));
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -63,17 +85,22 @@ export function AuthCallbackClient() {
           setStatus("error");
           return;
         }
-        if (inviteCode) {
-          try {
-            localStorage.setItem("marvi_pending_invite_code", inviteCode.toUpperCase());
-          } catch {
-            /* ignore */
-          }
-          const sep = next.includes("?") ? "&" : "?";
-          window.location.href = `${next}${sep}invite_code=${encodeURIComponent(inviteCode)}`;
+        if (inviteFromQuery) {
+          await handoffInvite(inviteFromQuery);
+          return;
+        }
+        // Creators should not land in the venue portal by default.
+        if (next.startsWith("/portal") && params.get("intent") !== "venue") {
+          window.location.href = "/creators";
           return;
         }
         window.location.href = next;
+        return;
+      }
+
+      // Invite-only link (no auth code): send straight to app / download landing.
+      if (inviteFromQuery) {
+        await handoffInvite(inviteFromQuery);
         return;
       }
 
@@ -111,6 +138,27 @@ export function AuthCallbackClient() {
         {status === "loading" ? <p className="mt-8 text-sm text-muted">Signing you in…</p> : null}
         {status === "ios-bounce" ? (
           <p className="mt-8 text-sm text-muted">Returning to Marvi Society app…</p>
+        ) : null}
+        {status === "invite-handoff" ? (
+          <div className="mt-8 w-full space-y-6">
+            <p className="text-sm text-muted">Opening the Marvi Society app…</p>
+            <InviteFallbackLinks
+              inviteDeepLink={inviteCode ? inviteDeepLink(inviteCode) : "marvisociety://invite"}
+              openLabel="Open in app"
+              appStoreLabel="Download on App Store"
+              playStoreLabel="Get it on Google Play"
+            />
+            <p className="text-xs text-muted">
+              Venue operators can continue in the{" "}
+              <Link href="/portal/login" className="font-semibold text-rose hover:underline">
+                brand portal
+              </Link>
+              .
+            </p>
+            <a href={SITE.url} className="text-xs text-muted hover:underline">
+              marvisociety.com
+            </a>
+          </div>
         ) : null}
         {status === "error" ? (
           <div className="mt-8 w-full">

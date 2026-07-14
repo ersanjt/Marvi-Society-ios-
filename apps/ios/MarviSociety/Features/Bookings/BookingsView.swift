@@ -385,7 +385,8 @@ private struct InterestOfferCard: View {
                     acceptTitle: appState.t(.accept),
                     onDecline: decline,
                     onAccept: accept,
-                    acceptDisabled: !appState.canAcceptOffers
+                    acceptDisabled: !appState.canAcceptOffers,
+                    acceptDisabledReason: appState.acceptBlockedReason
                 )
             }
         }
@@ -437,7 +438,8 @@ private struct BookingCard: View {
                         acceptTitle: appState.t(.accept),
                         onDecline: decline,
                         onAccept: accept,
-                        acceptDisabled: !appState.canAcceptOffers
+                        acceptDisabled: !appState.canAcceptOffers,
+                        acceptDisabledReason: appState.acceptBlockedReason
                     )
                 } else if booking.stage != .completed && booking.stage != .cancelled {
                     HStack(spacing: 10) {
@@ -452,7 +454,7 @@ private struct BookingCard: View {
                         .background(MarviColor.panelElevated)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                        Button(action: checkIn) {
+                        Button(action: primaryAction) {
                             Label(primaryActionTitle, systemImage: primaryActionIcon)
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
@@ -463,19 +465,6 @@ private struct BookingCard: View {
                         .background(canPrimaryAction ? AnyShapeStyle(MarviGradient.brand) : AnyShapeStyle(MarviColor.panelElevated))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .disabled(!canPrimaryAction)
-                    }
-
-                    if booking.stage == .checkedIn || booking.stage == .proofDue {
-                        Button(action: submitProof) {
-                            Label(appState.t(.submitProof), systemImage: "tray.and.arrow.up")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 11)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white)
-                        .background(MarviGradient.brand)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
 
                     if booking.stage == .checkedIn || booking.stage == .proofDue || booking.stage == .completed {
@@ -497,6 +486,13 @@ private struct BookingCard: View {
 
     private var canPrimaryAction: Bool {
         booking.stage == .confirmed || booking.stage == .checkedIn || booking.stage == .proofDue
+    }
+
+    private var primaryAction: () -> Void {
+        switch booking.stage {
+        case .checkedIn, .proofDue: submitProof
+        default: checkIn
+        }
     }
 
     private var primaryActionTitle: String {

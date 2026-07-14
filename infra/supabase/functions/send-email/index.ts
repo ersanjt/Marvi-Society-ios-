@@ -295,7 +295,7 @@ function resolveAuthRecipient(template: Template, toEmail: string, vars: Record<
 function resolveRedirect(template: Template, vars: Record<string, string>): string {
   if (template === "invite_code") {
     const code = String(vars.invite_code ?? "").trim();
-    return `${SITE_URL}/auth/callback?invite_code=${encodeURIComponent(code)}`;
+    return `${SITE_URL}/invite?code=${encodeURIComponent(code)}`;
   }
   if (template === "contact_form" || template === "demo_request") {
     return `${SITE_URL}/portal/dashboard`;

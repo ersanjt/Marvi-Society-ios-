@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260630000020_email_auth_fallback_flush",
-      "migrationCount": 39
+      "migrationHead": "20260630000021_soften_social_handle_requirement",
+      "migrationCount": 40
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-14T13:58:34Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000021_soften_social_handle_requirement)"
+    },
+    {
+      "at": "2026-07-14T13:44:10Z",
+      "status": "ok",
+      "message": "pushed 1754555 to origin/main"
+    },
     {
       "at": "2026-07-14T13:44:06Z",
       "status": "ok",
@@ -261,16 +271,6 @@
       "at": "2026-06-30T17:10:15Z",
       "status": "ok",
       "message": "pushed 2711bdb to origin/main"
-    },
-    {
-      "at": "2026-06-30T17:10:11Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000006_creator_showcase)"
-    },
-    {
-      "at": "2026-06-30T16:59:12Z",
-      "status": "ok",
-      "message": "pushed 81d23ab to origin/main"
     }
   ],
   "releases": [

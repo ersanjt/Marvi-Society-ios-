@@ -42,8 +42,13 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
             Text(offer.valueLabel, color = MarviColor.Rose, fontWeight = FontWeight.SemiBold)
             if (offer.description.isNotEmpty()) Text(offer.description, color = MarviColor.Ink)
             if (!accepted) {
+                val canAccept = viewModel.canAcceptOffers
+                viewModel.acceptBlockedReason?.takeIf { !canAccept }?.let { reason ->
+                    Text(reason, color = MarviColor.Gold, style = MaterialTheme.typography.bodySmall)
+                }
                 Button(
                     onClick = { viewModel.acceptOffer(offer.id); onBack() },
+                    enabled = canAccept,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
                 ) { Text(viewModel.t(MarviL10n.Key.ACCEPT_INVITATION)) }

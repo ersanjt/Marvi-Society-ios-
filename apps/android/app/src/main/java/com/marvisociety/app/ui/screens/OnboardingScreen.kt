@@ -262,7 +262,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     onCity = { city = it },
                     onBack = { step = OnboardingStep.INVITE },
                     onContinue = {
-                        if (instagram.isBlank() || tiktok.isBlank() || city.isBlank()) {
+                        if ((instagram.isBlank() && tiktok.isBlank()) || city.isBlank()) {
                             localError = viewModel.t(MarviL10n.Key.NEEDS_SOCIAL)
                             return@ProfileStep
                         }

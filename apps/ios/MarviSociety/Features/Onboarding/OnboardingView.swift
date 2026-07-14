@@ -726,9 +726,9 @@ struct OnboardingView: View {
     }
 
     private var isProfileValid: Bool {
-        !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasSocial = !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return hasSocial && !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // MARK: - Actions

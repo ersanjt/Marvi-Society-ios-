@@ -121,6 +121,14 @@ struct OfferDetailView: View {
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
+                if !isAccepted, let reason = acceptBlockedHint {
+                    Text(reason)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.gold)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+
                 PrimaryActionButton(
                     title: primaryActionTitle,
                     systemImage: primaryActionIcon,
@@ -206,12 +214,24 @@ struct OfferDetailView: View {
         if isUnderReview { return appState.t(.awaitingApproval) }
         if isPaused { return appState.t(.membershipPaused) }
         if isFull { return appState.t(.fullyBooked) }
+        if appState.needsInviteRedemption { return appState.t(.acceptNeedsInvite) }
+        if appState.needsSocialProfileCompletion {
+            return appState.needsSocialHandlesEntry
+                ? appState.t(.socialSetupTitle)
+                : appState.t(.acceptNeedsSocialVerify)
+        }
         switch offer.collaborationModel {
         case .instant: return appState.t(.useNow)
         case .event: return appState.t(.rsvpEvent)
         case .gift: return appState.t(.confirmGift)
         default: return appState.t(.acceptInvitation)
         }
+    }
+
+    private var acceptBlockedHint: String? {
+        guard !isAccepted, !isPending, !isFull else { return nil }
+        if isUnderReview || isPaused { return nil }
+        return appState.acceptBlockedReason
     }
 
     private var primaryActionIcon: String {

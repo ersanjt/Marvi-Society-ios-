@@ -107,7 +107,7 @@ struct InviteRequiredView: View {
     }
 }
 
-/// Blocks creator access until Instagram and TikTok handles are saved.
+/// Blocks creator access until Instagram or TikTok handle is saved.
 struct SocialProfileSetupView: View {
     @EnvironmentObject private var appState: AppState
     @State private var instagramHandle = ""
@@ -187,7 +187,7 @@ struct SocialProfileSetupView: View {
 
     private var isValid: Bool {
         !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func save() async {

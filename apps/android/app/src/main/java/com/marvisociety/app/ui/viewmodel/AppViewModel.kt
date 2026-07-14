@@ -93,20 +93,50 @@ class AppViewModel(
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             accountRole != UserRole.ADMIN && accountReferralCode.isNullOrBlank()
 
-    /** Hard gate: Instagram + TikTok handles (matches iOS needsSocialHandlesEntry). */
+    /** Hard gate: Instagram or TikTok handle (matches iOS needsSocialHandlesEntry). */
     val needsSocialHandlesEntry: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             !needsInviteRedemption && accountRole != UserRole.ADMIN &&
             !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
-            (profile.handle.isBlank() || profile.tiktokHandle.isBlank())
+            profile.handle.isBlank() && profile.tiktokHandle.isBlank()
 
-    /** Soft gate for accept: handles + DM verification (matches iOS). */
+    /** Soft gate for accept: at least one handle + DM verification (matches iOS). */
     val needsSocialProfileCompletion: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             !needsInviteRedemption && accountRole != UserRole.ADMIN &&
             !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
-            (profile.handle.isBlank() || profile.tiktokHandle.isBlank() ||
+            ((profile.handle.isBlank() && profile.tiktokHandle.isBlank()) ||
                 socialVerification?.isVerified != true)
+
+    /** Explains why Accept is disabled (matches iOS acceptBlockedReason). */
+    val acceptBlockedReason: String?
+        get() {
+            if (!isAuthenticated || !hasCompletedOnboarding) return t(MarviL10n.Key.SIGN_IN_TO_ACCEPT)
+            if (accountRole == UserRole.ADMIN) return null
+            if (needsInviteRedemption) return t(MarviL10n.Key.ACCEPT_NEEDS_INVITE)
+            if (needsSocialHandlesEntry) return t(MarviL10n.Key.NEEDS_SOCIAL)
+            if (needsSocialProfileCompletion) {
+                return if (socialVerification?.isVerified != true) {
+                    t(MarviL10n.Key.ACCEPT_NEEDS_SOCIAL_VERIFY)
+                } else {
+                    t(MarviL10n.Key.NEEDS_SOCIAL)
+                }
+            }
+            return when (profile.status) {
+                MembershipStatus.UNDER_REVIEW -> t(MarviL10n.Key.AWAITING_APPROVAL)
+                MembershipStatus.PAUSED -> t(MarviL10n.Key.MEMBERSHIP_PAUSED)
+                MembershipStatus.APPROVED -> null
+                else -> t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
+            }
+        }
+
+    val canAcceptOffers: Boolean
+        get() {
+            if (!isAuthenticated || !hasCompletedOnboarding) return false
+            if (accountRole == UserRole.ADMIN) return true
+            return !needsInviteRedemption && !needsSocialProfileCompletion &&
+                profile.status == MembershipStatus.APPROVED
+        }
 
     val acceptedOfferIds: Set<String>
         get() = bookings.filter { it.stage != BookingStage.CANCELLED }.map { it.offer.id }.toSet()
