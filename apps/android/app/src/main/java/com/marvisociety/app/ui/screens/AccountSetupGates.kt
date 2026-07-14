@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.marvisociety.app.data.MembershipStatus
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
@@ -148,3 +149,59 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedLabelColor = MarviColor.Muted,
     cursorColor = MarviColor.Rose
 )
+
+/** Full-screen gate until admin approves membership (matches iOS ApprovalPendingView). */
+@Composable
+fun ApprovalPendingScreen(viewModel: AppViewModel) {
+    var busy by remember { mutableStateOf(false) }
+    val paused = viewModel.profile.status == MembershipStatus.PAUSED
+
+    LaunchedEffect(viewModel.needsAdminApproval) {
+        while (viewModel.needsAdminApproval) {
+            kotlinx.coroutines.delay(20_000)
+            viewModel.refreshFromServer()
+        }
+    }
+
+    MarviScreen {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                if (paused) {
+                    viewModel.t(MarviL10n.Key.MEMBERSHIP_PAUSED)
+                } else {
+                    viewModel.t(MarviL10n.Key.UNDER_REVIEW_BANNER)
+                },
+                style = MaterialTheme.typography.headlineMedium,
+                color = MarviColor.Ink,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                if (paused) {
+                    viewModel.t(MarviL10n.Key.AWAITING_APPROVAL)
+                } else {
+                    viewModel.t(MarviL10n.Key.UNDER_REVIEW_BANNER_SUB)
+                },
+                color = MarviColor.Muted
+            )
+            if (busy) CircularProgressIndicator(color = MarviColor.Rose)
+            Button(
+                onClick = {
+                    busy = true
+                    viewModel.refreshFromServer()
+                    busy = false
+                },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+            ) {
+                Text(viewModel.t(MarviL10n.Key.SYNC_FROM_SERVER), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}

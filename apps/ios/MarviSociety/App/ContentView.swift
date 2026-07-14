@@ -13,6 +13,8 @@ struct ContentView: View {
                 ReauthView()
             } else if appState.needsSocialHandlesEntry {
                 SocialProfileSetupView()
+            } else if appState.needsAdminApproval {
+                ApprovalPendingView()
             } else if appState.isBootstrapping {
                 BootstrapSplashView()
             } else {

@@ -92,6 +92,12 @@ class AppViewModel(
     /** Invite codes are no longer required for membership. */
     val needsInviteRedemption: Boolean get() = false
 
+    /** Hard gate: admin must approve membership before the main app unlocks. */
+    val needsAdminApproval: Boolean
+        get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
+            accountRole != UserRole.ADMIN &&
+            profile.status != MembershipStatus.APPROVED
+
     /** Hard gate: Instagram or TikTok handle (matches iOS needsSocialHandlesEntry). */
     val needsSocialHandlesEntry: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
@@ -112,6 +118,12 @@ class AppViewModel(
         get() {
             if (!isAuthenticated || !hasCompletedOnboarding) return t(MarviL10n.Key.SIGN_IN_TO_ACCEPT)
             if (accountRole == UserRole.ADMIN) return null
+            if (needsAdminApproval) {
+                return when (profile.status) {
+                    MembershipStatus.PAUSED -> t(MarviL10n.Key.MEMBERSHIP_PAUSED)
+                    else -> t(MarviL10n.Key.AWAITING_APPROVAL)
+                }
+            }
             if (needsSocialHandlesEntry) return t(MarviL10n.Key.NEEDS_SOCIAL)
             if (needsSocialProfileCompletion) {
                 return if (socialVerification?.isVerified != true) {
@@ -132,7 +144,8 @@ class AppViewModel(
         get() {
             if (!isAuthenticated || !hasCompletedOnboarding) return false
             if (accountRole == UserRole.ADMIN) return true
-            return !needsSocialProfileCompletion && profile.status == MembershipStatus.APPROVED
+            return !needsAdminApproval && !needsSocialProfileCompletion &&
+                profile.status == MembershipStatus.APPROVED
         }
 
     val acceptedOfferIds: Set<String>
@@ -450,7 +463,7 @@ class AppViewModel(
     }
 
     fun acceptOffer(offerId: String) {
-        if (needsSocialProfileCompletion || profile.status != MembershipStatus.APPROVED) {
+        if (needsAdminApproval || needsSocialProfileCompletion || profile.status != MembershipStatus.APPROVED) {
             lastSyncError = acceptBlockedReason ?: t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
             return
         }

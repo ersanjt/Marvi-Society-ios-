@@ -207,6 +207,80 @@ struct SocialProfileSetupView: View {
     }
 }
 
+/// Blocks main app until an admin approves the membership.
+struct ApprovalPendingView: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var isRefreshing = false
+
+    private var isPaused: Bool { appState.profile.status == .paused }
+
+    var body: some View {
+        ZStack {
+            AccountGateBackdrop()
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 40)
+
+                VStack(alignment: .leading, spacing: 22) {
+                    AccountGateHeader(
+                        eyebrow: appState.t(.member),
+                        title: isPaused ? appState.t(.membershipPaused) : appState.t(.underReviewBanner),
+                        subtitle: isPaused
+                            ? appState.t(.pausedAdminBannerSub)
+                            : appState.t(.underReviewBannerSub)
+                    )
+
+                    if let error = appState.lastSyncError {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.tomato)
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                Spacer()
+
+                Button {
+                    Task { await refresh() }
+                } label: {
+                    Text(isRefreshing ? appState.t(.pleaseWait) : appState.t(.syncFromServer))
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(AnyShapeStyle(MarviGradient.brand))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(isRefreshing)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
+            }
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
+
+            if isRefreshing {
+                Color.black.opacity(0.45).ignoresSafeArea()
+                ProgressView().tint(MarviColor.rose).scaleEffect(1.2)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .task {
+            // Soft poll so approval unlocks without forcing a relaunch.
+            while !Task.isCancelled, appState.needsAdminApproval {
+                try? await Task.sleep(nanoseconds: 20_000_000_000)
+                await appState.refreshFromServer()
+            }
+        }
+    }
+
+    private func refresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        await appState.refreshFromServer()
+    }
+}
+
 private struct AccountGateBackdrop: View {
     var body: some View {
         LinearGradient(

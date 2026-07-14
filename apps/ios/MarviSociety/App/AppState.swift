@@ -149,6 +149,13 @@ final class AppState: ObservableObject {
     /// Invite codes are no longer required for membership (kept for admin tooling only).
     var needsInviteRedemption: Bool { false }
 
+    /// Hard gate: membership must be admin-approved before using the app.
+    var needsAdminApproval: Bool {
+        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
+        if accountRole == .admin { return false }
+        return profile.status != .approved
+    }
+
     /// Creators must link at least one social + verify ownership via DM code.
     var needsSocialProfileCompletion: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
@@ -165,6 +172,7 @@ final class AppState: ObservableObject {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
+        // Don't block approval wait on handles for venues; creators need handles first.
         let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
         let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
         return handle.isEmpty && tiktok.isEmpty
@@ -174,13 +182,22 @@ final class AppState: ObservableObject {
     var canAcceptOffers: Bool {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return true }
-        return !needsSocialProfileCompletion && profile.status == .approved
+        return !needsAdminApproval
+            && !needsSocialProfileCompletion
+            && profile.status == .approved
     }
 
     /// Explains why Accept is disabled (shown under CTAs). Nil when accept is allowed.
     var acceptBlockedReason: String? {
         guard isAuthenticated, hasCompletedOnboarding else { return t(.signInToAccept) }
         if accountRole == .admin { return nil }
+        if needsAdminApproval {
+            switch profile.status {
+            case .paused: return t(.membershipPaused)
+            case .underReview: return t(.awaitingApproval)
+            default: return t(.awaitingApproval)
+            }
+        }
         if needsSocialHandlesEntry { return t(.socialSetupSub) }
         if needsSocialProfileCompletion {
             if socialVerification?.isVerified != true {
@@ -969,8 +986,8 @@ final class AppState: ObservableObject {
 
     func accept(_ offer: Offer, options: AcceptOfferOptions = AcceptOfferOptions()) {
         guard isAuthenticated, !isAccepted(offer), offer.remaining > 0 else { return }
-        if needsSocialProfileCompletion || profile.status != .approved {
-            lastSyncError = t(.completeProfileToAccept)
+        if needsAdminApproval || needsSocialProfileCompletion || profile.status != .approved {
+            lastSyncError = acceptBlockedReason ?? t(.completeProfileToAccept)
             return
         }
         pendingOfferIDs.insert(offer.id)

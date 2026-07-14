@@ -45,6 +45,7 @@ import com.marvisociety.app.ui.screens.MemberProfileScreen
 import com.marvisociety.app.ui.screens.OfferDetailScreen
 import com.marvisociety.app.ui.screens.OnboardingScreen
 import com.marvisociety.app.ui.screens.ProfileScreen
+import com.marvisociety.app.ui.screens.ApprovalPendingScreen
 import com.marvisociety.app.ui.screens.SocialHandlesRequiredScreen
 import com.marvisociety.app.ui.screens.VenueStudioScreen
 import com.marvisociety.app.ui.theme.MarviColor
@@ -69,6 +70,7 @@ fun MarviApp(viewModel: AppViewModel = viewModel()) {
             !viewModel.hasCompletedOnboarding -> OnboardingScreen(viewModel)
             // Match iOS ContentView gate order
             viewModel.needsSocialHandlesEntry -> SocialHandlesRequiredScreen(viewModel)
+            viewModel.needsAdminApproval -> ApprovalPendingScreen(viewModel)
             viewModel.isBootstrapping -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = MarviColor.Rose)
