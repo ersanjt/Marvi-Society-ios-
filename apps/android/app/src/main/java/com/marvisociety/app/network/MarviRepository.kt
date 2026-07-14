@@ -110,8 +110,35 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 put("bio", profile.bio)
                 put("niches", JsonArray(profile.niches.map { kotlinx.serialization.json.JsonPrimitive(it) }))
                 put("languages", JsonArray(profile.languages.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+                if (profile.avatarUrl.isNotBlank()) put("avatar_url", profile.avatarUrl)
+                if (profile.coverUrl.isNotBlank()) put("cover_url", profile.coverUrl)
             }
         )
+    }
+
+    /** Uploads to private `proof-uploads` and returns the relative storage path for `p_links`. */
+    suspend fun uploadProofImage(bookingId: String, imageData: ByteArray, fileName: String): String {
+        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+        val path = "$userId/$bookingId/$fileName"
+        return client.uploadObject(
+            bucket = "proof-uploads",
+            path = path,
+            data = imageData,
+            contentType = "image/jpeg"
+        )
+    }
+
+    /** Uploads to public `profile-media` and returns a cache-busted public URL. */
+    suspend fun uploadProfileImage(imageData: ByteArray, fileName: String, kind: String): String {
+        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+        val path = "$userId/$kind/$fileName"
+        client.uploadObject(
+            bucket = "profile-media",
+            path = path,
+            data = imageData,
+            contentType = "image/jpeg"
+        )
+        return client.publicStorageUrl("profile-media", path)
     }
 
     suspend fun fetchNotifications(): List<InboxMessage> {

@@ -1,4 +1,4 @@
-# وضعیت همه بخش‌ها — Marvi Society (ژوئن 2026)
+# وضعیت همه بخش‌ها — Marvi Society (ژوئیه ۲۰۲۶)
 
 اجرای تست خودکار:
 
@@ -8,95 +8,90 @@ npm run verify:all
 
 ---
 
-## ✅ کار می‌کند (تست شده)
+## ✅ کار می‌کند (تست شده / آنلاین)
 
 ### iOS — Creator
 | بخش | وضعیت |
 |-----|--------|
 | ورود ایمیل / ثبت‌نام / فراموشی رمز | ✅ |
-| کد دعوت MARVI-IST | ✅ |
+| Apple + Google Sign-In | ✅ (در Secrets روشن) |
 | Explore (لیست + فیلتر + نقشه) | ✅ |
 | ۴ مدل همکاری (دعوت، رویداد، هدیه، فوری) | ✅ |
 | جزئیات offer + پذیرش | ✅ |
-| My Events (Etkinliklerim) + check-in + proof | ✅ |
+| My Events + check-in + proof | ✅ |
+| Community (فید / اعضا / پیام) | ✅ (SQL UNION فیکس شد) |
 | پروفایل + ویرایش + pause/delete | ✅ |
-| Inbox (با refresh دستی) | ✅ |
+| تأیید ادمین (hard gate) | ✅ |
+| Instagram یا TikTok + DM verify اختیاری | ✅ |
+| Inbox | ✅ |
+| TestFlight | ✅ **1.4.7 (44)** |
 
-### iOS — Venue
+### iOS — Venue / Admin
 | بخش | وضعیت |
 |-----|--------|
-| Venue Studio — چند مکان | ✅ |
-| ساخت کمپین + ارسال برای review | ✅ |
-| صف review مکان | ✅ |
-| Swipe creators (shortlist/pass) | ✅ |
+| Venue Studio | ✅ |
+| Admin queue + approve/reject | ✅ |
 
-### iOS — Admin
+### Android
 | بخش | وضعیت |
 |-----|--------|
-| صف تأیید (approve/reject/strike) | ✅ |
-| دایرکتوری کاربران | ✅ |
-| نقشه کاربران | ✅ |
-| Broadcast جغرافیایی | ✅ |
+| Compose shell + Supabase | ✅ |
+| Onboarding + gates (admin / social) | ✅ |
+| Google Sign-In (Custom Tabs + PKCE) | ✅ |
+| Discover / Bookings / Community / Profile | ✅ |
+| AAB آماده Play | ✅ **1.4.8 (39)** در `release/google-play/` |
+| آپلود عکس proof + آواتار | ✅ |
+| نقشه / push کامل | ⏳ parity بعدی |
 
 ### وب
 | بخش | وضعیت |
 |-----|--------|
 | marvisociety.com — marketing | ✅ |
-| Portal (login, dashboard, campaigns, creators, reviews) | ✅ |
-| Admin console | ✅ |
+| Portal + Admin | ✅ |
 | `/auth/callback` + `/auth/reset-password` | ✅ |
-| Delete account | ✅ |
-| Health API + service role | ✅ |
+| `/auth/ios-callback` | ✅ (deep link به اپ) |
+| `/invite` در کد | ✅ — **نیاز به WHM redeploy اگر زنده 404 است** |
 
 ### Backend (Supabase)
 | بخش | وضعیت |
 |-----|--------|
-| ۹ offer زنده در Explore | ✅ |
-| همه RPCهای اصلی | ✅ |
-| اکانت review + booking دمو | ✅ |
+| Offers زنده | ✅ |
+| Resend / send-email | ✅ (`resendConfigured: true`) |
+| Migration head | ✅ `20260630000024_soften_social_verify_accept_gate` |
 
 ---
 
-## ⏸ عمداً خاموش (برای App Review)
+## مدل دسترسی (به‌روز)
 
-| بخش | دلیل | فعال‌سازی بعد از تأیید |
-|-----|------|------------------------|
-| Sign in with Apple | ریجکت اپل روی iPad | `MARVI_APPLE_SIGN_IN_ENABLED = YES` + Supabase Apple |
-| Sign in with Google | ایمن‌سازی review | `MARVI_GOOGLE_SIGN_IN_ENABLED = YES` + deploy وب (انجام شد) |
+1. ثبت‌نام (ایمیل / Apple / Google)  
+2. Instagram **یا** TikTok  
+3. تأیید ادمین (قفل اپ)  
+4. استفاده از سرویس‌ها  
+5. DM verify سوشال = توصیه / سلامت پروفایل (برای Accept اجباری نیست)
 
----
-
-## ❌ هنوز deploy / تنظیم نشده
-
-| بخش | مشکل | راه‌حل |
-|-----|------|--------|
-| **ایمیل تراکنشی** (welcome, OTP) | Edge function `send-email` deploy نشده | `docs/EMAIL_SETUP.md` → Resend + `supabase functions deploy send-email` |
-| **Push از سرور** (APNs) | `send-push` deploy نشده | APNs key در Supabase secrets + deploy function |
-| **تأیید Instagram/TikTok** | فقط handle در پروفایل | فاز ۲ — OAuth بعدی |
-| **Inbox realtime** | فقط pull-to-refresh | فاز ۲ — Supabase Realtime |
-| **Android** | نمونه محلی | فاز ۴ |
+کدهای دعوت = ابزار رشد ادمین؛ گیت سخت عضویت نیستند.
 
 ---
 
-## App Store — الان چه کار کنید
+## ⏳ باقی‌مانده
 
-**برای Resubmit (ایمن):**
-- بیلد **1.0 (7)** — فقط ایمیل
-- اکانت: `review@marvisociety.com` / `MarviReview2026!`
-- `docs/app-store/CONNECT_PASTE.txt`
-
-**بعد از تأیید App Store:**
-- Apple + Google را روشن کنید
-- Edge functions ایمیل/push را deploy کنید
+| بخش | راه‌حل |
+|-----|--------|
+| آپلود AAB به Play | دستی در Console یا `play-service-account.json` + `npm run publish:android` |
+| Deploy وب WHM (`/invite`) | `npm run web:deploy` روی سرور |
+| Push سرور (APNs) | secrets + `send-push` deploy |
+| Auth templates Dashboard | `SUPABASE_ACCESS_TOKEN` + `npm run email:apply-auth-templates` |
+| Android map / photo / push | parity فاز بعد |
 
 ---
 
 ## دستورات مفید
 
 ```bash
-npm run verify:all      # همه تست‌ها
-npm run verify:e2e      # اکانت review + وب
-npm run verify:auth     # صفحات auth
-bash scripts/verify-supabase-rpcs.sh
-bash scripts/app-store/build-ios-release.sh
+npm run status
+npm run verify:all
+npm run testflight
+npm run build:android && npm run package:android
+npm run web:deploy
+npm run publish:android   # نیاز به play-service-account.json
 ```

@@ -1,31 +1,45 @@
 package com.marvisociety.app.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.marvisociety.app.data.AppLanguage
 import com.marvisociety.app.data.MembershipStatus
 import com.marvisociety.app.data.SocialVerificationState
@@ -36,11 +50,6 @@ import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.SectionTitle
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 
 @Composable
 fun ProfileScreen(viewModel: AppViewModel) {
@@ -48,6 +57,10 @@ fun ProfileScreen(viewModel: AppViewModel) {
         viewModel.selectedRole == UserRole.CREATOR &&
         (viewModel.needsSocialProfileCompletion ||
             viewModel.profile.status != MembershipStatus.APPROVED)
+
+    val avatarPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { viewModel.uploadProfilePhoto(it, "avatar") } }
 
     MarviScreen {
         Column(
@@ -57,14 +70,60 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                viewModel.profile.name.ifBlank { "Creator" },
-                style = MaterialTheme.typography.headlineSmall,
-                color = MarviColor.Ink,
-                fontWeight = FontWeight.Bold
-            )
-            Text("@${viewModel.profile.handle} · ${viewModel.profile.city}", color = MarviColor.Muted)
-            Text("Score ${viewModel.profile.score} · Proof ${viewModel.profile.proofRate}", color = MarviColor.Graphite)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(MarviColor.Rose.copy(alpha = 0.15f))
+                        .clickable {
+                            avatarPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (viewModel.profile.avatarUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = viewModel.profile.avatarUrl,
+                            contentDescription = viewModel.t(MarviL10n.Key.CHANGE_PHOTO),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            viewModel.profile.name.take(1).ifBlank { "?" }.uppercase(),
+                            color = MarviColor.Rose,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        viewModel.profile.name.ifBlank { "Creator" },
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MarviColor.Ink,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text("@${viewModel.profile.handle} · ${viewModel.profile.city}", color = MarviColor.Muted)
+                    Text("Score ${viewModel.profile.score} · Proof ${viewModel.profile.proofRate}", color = MarviColor.Graphite)
+                }
+            }
+
+            OutlinedButton(
+                onClick = {
+                    avatarPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(viewModel.t(MarviL10n.Key.CHANGE_PHOTO))
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text("${viewModel.followCounts.followers} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Ink)

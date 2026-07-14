@@ -1,5 +1,9 @@
 package com.marvisociety.app.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +63,11 @@ fun BookingsScreen(viewModel: AppViewModel) {
 private fun BookingCard(booking: Booking, viewModel: AppViewModel) {
     var checkInCode by remember(booking.id) { mutableStateOf("") }
     var proofText by remember(booking.id) { mutableStateOf("") }
+    var screenshotUri by remember(booking.id) { mutableStateOf<Uri?>(null) }
+
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> screenshotUri = uri }
 
     MarviCard {
         Text(booking.offer.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
@@ -112,14 +122,33 @@ private fun BookingCard(booking: Booking, viewModel: AppViewModel) {
                         .padding(top = 8.dp),
                     minLines = 2
                 )
+                OutlinedButton(
+                    onClick = {
+                        photoPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Text(
+                        if (screenshotUri != null) {
+                            viewModel.t(MarviL10n.Key.PROOF_SCREENSHOT_ATTACHED)
+                        } else {
+                            viewModel.t(MarviL10n.Key.PROOF_ADD_SCREENSHOT)
+                        }
+                    )
+                }
                 Button(
                     onClick = {
                         viewModel.submitProof(
                             booking.id,
-                            proofText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+                            proofText.lines().map { it.trim() }.filter { it.isNotEmpty() },
+                            screenshotUri
                         )
                     },
-                    enabled = proofText.isNotBlank(),
+                    enabled = proofText.isNotBlank() || screenshotUri != null,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
                 ) { Text(viewModel.t(MarviL10n.Key.SUBMIT_PROOF)) }

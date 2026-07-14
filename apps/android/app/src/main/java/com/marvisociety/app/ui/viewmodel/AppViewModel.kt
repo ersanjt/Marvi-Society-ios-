@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.marvisociety.app.data.*
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.network.ImageUploadHelper
 import com.marvisociety.app.network.MarviApiException
 import com.marvisociety.app.network.MarviRepository
 import kotlinx.coroutines.launch
@@ -522,11 +523,48 @@ class AppViewModel(
         }
     }
 
-    fun submitProof(bookingId: String, links: List<String>) {
+    fun submitProof(bookingId: String, links: List<String>, screenshotUri: android.net.Uri? = null) {
         viewModelScope.launch {
             runCatching {
-                val booking = repository.submitProof(bookingId, links)
+                val allLinks = links.toMutableList()
+                if (screenshotUri != null) {
+                    val bytes = ImageUploadHelper.prepareJpeg(
+                        getApplication(),
+                        screenshotUri,
+                        ImageUploadHelper.Profile.PROOF
+                    )
+                    val fileName = "proof-${bookingId.take(8)}.jpg"
+                    val path = repository.uploadProofImage(bookingId, bytes, fileName)
+                    allLinks.add(path)
+                }
+                if (allLinks.isEmpty()) {
+                    throw MarviApiException("Add a proof link or screenshot")
+                }
+                val booking = repository.submitProof(bookingId, allLinks)
                 bookings = bookings.map { if (it.id == booking.id) booking else it }
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun uploadProfilePhoto(uri: android.net.Uri, kind: String = "avatar") {
+        viewModelScope.launch {
+            runCatching {
+                val profileKind = when (kind) {
+                    "cover" -> ImageUploadHelper.Profile.COVER
+                    else -> ImageUploadHelper.Profile.AVATAR
+                }
+                val bytes = ImageUploadHelper.prepareJpeg(getApplication(), uri, profileKind)
+                val fileName = "$kind.jpg"
+                val url = repository.uploadProfileImage(bytes, fileName, kind)
+                val updated = if (kind == "cover") {
+                    profile.copy(coverUrl = url)
+                } else {
+                    profile.copy(avatarUrl = url)
+                }
+                profile = updated
+                if (repository.usesRemoteBackend && isAuthenticated) {
+                    repository.updateProfile(updated)
+                }
             }.onFailure { error -> lastSyncError = error.message }
         }
     }

@@ -16,6 +16,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.ByteArrayContent
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
@@ -201,6 +202,37 @@ class SupabaseClient(
             applyHeaders(authenticated = true)
         }
         validate(response)
+    }
+
+    /**
+     * Raw binary Storage upload — mirrors iOS `SupabaseClient.uploadObject`.
+     * Returns the relative object path (not a signed URL).
+     */
+    suspend fun uploadObject(
+        bucket: String,
+        path: String,
+        data: ByteArray,
+        contentType: String
+    ): String {
+        val cleanPath = path.trimStart('/')
+        val url = "$baseUrl/storage/v1/object/$bucket/$cleanPath"
+        val response = client.post(url) {
+            header("apikey", anonKey)
+            header(
+                "Authorization",
+                if (!accessToken.isNullOrBlank()) "Bearer $accessToken" else "Bearer $anonKey"
+            )
+            header("x-upsert", "true")
+            setBody(ByteArrayContent(data, ContentType.parse(contentType)))
+        }
+        validate(response)
+        return cleanPath
+    }
+
+    fun publicStorageUrl(bucket: String, path: String, cacheBust: Boolean = true): String {
+        val cleanPath = path.trimStart('/')
+        val base = "$baseUrl/storage/v1/object/public/$bucket/$cleanPath"
+        return if (cacheBust) "$base?v=${System.currentTimeMillis() / 1000}" else base
     }
 
     private suspend fun parseAuthResponse(response: HttpResponse): AuthSession {

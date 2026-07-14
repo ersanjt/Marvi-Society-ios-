@@ -12,8 +12,8 @@
       "version": "0.2.0"
     },
     "android": {
-      "marketingVersion": "1.4.7",
-      "versionCode": 38,
+      "marketingVersion": "1.4.8",
+      "versionCode": 39,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-14T20:51:17Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000024_soften_social_verify_accept_gate)"
+    },
+    {
+      "at": "2026-07-14T18:35:15Z",
+      "status": "ok",
+      "message": "pushed b78c7cc to origin/main"
+    },
     {
       "at": "2026-07-14T18:35:11Z",
       "status": "ok",
@@ -261,16 +271,6 @@
       "at": "2026-07-08T01:19:43Z",
       "status": "ok",
       "message": "pushed 18017d0 to origin/main"
-    },
-    {
-      "at": "2026-07-08T01:19:39Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000014_accept_offer_profile_gates)"
-    },
-    {
-      "at": "2026-07-06T15:39:06Z",
-      "status": "ok",
-      "message": "pushed 04a926a to origin/main"
     }
   ],
   "releases": [

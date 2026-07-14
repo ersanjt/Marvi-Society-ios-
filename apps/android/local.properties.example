@@ -4,5 +4,7 @@
 MARVI_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 MARVI_SUPABASE_ANON_KEY=your-anon-public-key
 MARVI_API_MODE=supabase
+# Optional — defaults to true when Supabase mode is on
+MARVI_GOOGLE_SIGN_IN_ENABLED=true
 
 sdk.dir=/path/to/Android/sdk
