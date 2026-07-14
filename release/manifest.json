@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.4.8",
-      "buildNumber": 45,
+      "buildNumber": 46,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-14T21:02:28Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000024_soften_social_verify_accept_gate)"
+    },
+    {
+      "at": "2026-07-14T21:00:13Z",
+      "status": "ok",
+      "message": "pushed a365222 to origin/main"
+    },
     {
       "at": "2026-07-14T21:00:08Z",
       "status": "ok",
@@ -261,16 +271,6 @@
       "at": "2026-07-13T15:06:57Z",
       "status": "ok",
       "message": "pushed 619ee85 to origin/main"
-    },
-    {
-      "at": "2026-07-13T15:06:53Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000014_accept_offer_profile_gates)"
-    },
-    {
-      "at": "2026-07-13T14:59:59Z",
-      "status": "ok",
-      "message": "pushed 2b95e94 to origin/main"
     }
   ],
   "releases": [

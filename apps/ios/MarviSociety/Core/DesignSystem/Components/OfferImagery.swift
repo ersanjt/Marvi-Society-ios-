@@ -27,37 +27,46 @@ enum OfferImagery {
     }
 }
 
+/// Offer photo that always stays inside its frame (no text overlap from scaledToFill bleed).
 struct OfferImageView: View {
     let offer: Offer
     var height: CGFloat = 200
     var cornerRadius: CGFloat = 0
 
     var body: some View {
-        Group {
-            if let url = OfferImagery.imageURL(for: offer) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    case .failure:
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .overlay {
+                imageContent
+            }
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var imageContent: some View {
+        if let url = OfferImagery.imageURL(for: offer) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .failure:
+                    placeholder
+                default:
+                    ZStack {
                         placeholder
-                    default:
-                        ZStack {
-                            placeholder
-                            ProgressView().tint(.white)
-                        }
+                        ProgressView().tint(.white)
                     }
                 }
-            } else {
-                placeholder
             }
+        } else {
+            placeholder
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
     private var placeholder: some View {
@@ -67,5 +76,6 @@ struct OfferImageView: View {
                 .font(.system(size: height > 100 ? 48 : 28, weight: .light))
                 .foregroundStyle(.white.opacity(0.25))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

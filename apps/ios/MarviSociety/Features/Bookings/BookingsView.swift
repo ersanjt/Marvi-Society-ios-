@@ -360,22 +360,29 @@ private struct InterestOfferCard: View {
         MarviCard {
             VStack(alignment: .leading, spacing: 12) {
                 Button(action: open) {
-                    HStack(spacing: 12) {
-                        OfferImageView(offer: offer, height: 72, cornerRadius: 12)
-                            .frame(width: 64, height: 72)
+                    HStack(spacing: 14) {
+                        OfferImageView(offer: offer, height: 80, cornerRadius: 12)
+                            .frame(width: 72, height: 80)
+                            .clipped()
+                            .layoutPriority(0)
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(offer.title)
                                 .font(.headline.weight(.bold))
                                 .foregroundStyle(MarviColor.ink)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
                             Text("\(offer.venue) · \(offer.area)")
                                 .font(.caption)
                                 .foregroundStyle(MarviColor.muted)
+                                .lineLimit(2)
                             Text("\(offer.dateLabel) · \(offer.timeLabel)")
                                 .font(.caption2)
                                 .foregroundStyle(MarviColor.graphite)
+                                .lineLimit(1)
                         }
-                        Spacer()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .layoutPriority(1)
                     }
                 }
                 .buttonStyle(.plain)
@@ -407,9 +414,11 @@ private struct BookingCard: View {
         MarviCard {
             VStack(alignment: .leading, spacing: 14) {
                 Button(action: open) {
-                    HStack(alignment: .top, spacing: 12) {
-                        OfferImageView(offer: booking.offer, height: 72, cornerRadius: 12)
-                            .frame(width: 64, height: 72)
+                    HStack(alignment: .top, spacing: 14) {
+                        OfferImageView(offer: booking.offer, height: 80, cornerRadius: 12)
+                            .frame(width: 72, height: 80)
+                            .clipped()
+                            .layoutPriority(0)
 
                         VStack(alignment: .leading, spacing: 6) {
                             StatusPill(text: booking.stage.label(for: appState.preferredLanguage), tint: stageTint, systemImage: "circle.fill")
@@ -417,17 +426,21 @@ private struct BookingCard: View {
                             Text(booking.offer.title)
                                 .font(.headline.weight(.bold))
                                 .foregroundStyle(MarviColor.ink)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
 
                             Label("\(booking.offer.venue) · \(booking.offer.area)", systemImage: "mappin.and.ellipse")
                                 .font(.subheadline)
                                 .foregroundStyle(MarviColor.muted)
+                                .lineLimit(2)
 
                             Text("\(booking.offer.dateLabel) · \(booking.offer.timeLabel)")
                                 .font(.caption)
                                 .foregroundStyle(MarviColor.graphite)
+                                .lineLimit(1)
                         }
-
-                        Spacer(minLength: 0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .layoutPriority(1)
                     }
                 }
                 .buttonStyle(.plain)
