@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260630000026_campaign_media_and_fields",
-      "migrationCount": 45
+      "migrationHead": "20260715000001_repair_venue_reviews",
+      "migrationCount": 46
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-15T14:21:35Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260715000001_repair_venue_reviews)"
+    },
+    {
+      "at": "2026-07-15T12:17:35Z",
+      "status": "ok",
+      "message": "pushed 32093bb to origin/main"
+    },
     {
       "at": "2026-07-15T12:17:30Z",
       "status": "ok",
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-07-14T15:01:59Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000021_soften_social_handle_requirement)"
-    },
-    {
-      "at": "2026-07-14T14:56:53Z",
-      "status": "ok",
-      "message": "pushed 3eb2630 to origin/main"
-    },
-    {
-      "at": "2026-07-14T14:56:49Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000021_soften_social_handle_requirement)"
     }
