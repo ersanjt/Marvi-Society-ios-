@@ -375,7 +375,7 @@ data class VenueReviewItem(
 data class AppSnapshot(
     val hasCompletedOnboarding: Boolean = false,
     val selectedRole: UserRole = UserRole.CREATOR,
-    val preferredLanguage: AppLanguage = AppLanguage.ENGLISH,
+    val preferredLanguage: AppLanguage = AppLanguage.TURKISH,
     val languageManuallySet: Boolean = false,
     val pushNotificationsEnabled: Boolean = true,
     val proofRemindersEnabled: Boolean = true

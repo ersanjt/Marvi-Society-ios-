@@ -88,6 +88,30 @@ fun OnboardingScreen(viewModel: AppViewModel) {
         }
     }
 
+    // A brand-new Google user returns from the OAuth browser here; jump them to the
+    // matching profile/venue step instead of leaving them on the WELCOME screen.
+    LaunchedEffect(viewModel.postGoogleAuthDestination) {
+        when (viewModel.postGoogleAuthDestination) {
+            AppViewModel.PostAuthDestination.PROFILE -> {
+                intent = SignupIntent.CREATOR
+                isCreatingAccount = true
+                busy = false
+                localError = ""
+                step = OnboardingStep.PROFILE
+                viewModel.consumePostGoogleAuthDestination()
+            }
+            AppViewModel.PostAuthDestination.VENUE -> {
+                intent = SignupIntent.BUSINESS
+                isCreatingAccount = true
+                busy = false
+                localError = ""
+                step = OnboardingStep.VENUE
+                viewModel.consumePostGoogleAuthDestination()
+            }
+            null -> Unit
+        }
+    }
+
     val progress = when (step) {
         OnboardingStep.WELCOME -> 0.15f
         OnboardingStep.SIGN_IN -> 0.35f

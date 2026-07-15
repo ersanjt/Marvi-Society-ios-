@@ -29,6 +29,8 @@ class AppViewModel(
         private set
     var preferredLanguage by mutableStateOf(AppLanguage.TURKISH)
         private set
+    /** True only after the user explicitly picks a language in Profile. */
+    private var languageManuallySet = false
 
     var isBootstrapping by mutableStateOf(false)
         private set
@@ -98,6 +100,16 @@ class AppViewModel(
     /** Deep-link / auth-callback invite code waiting to be redeemed. */
     var pendingInviteCode by mutableStateOf<String?>(null)
         private set
+
+    /** Where a brand-new Google user should continue onboarding after the OAuth callback. */
+    enum class PostAuthDestination { PROFILE, VENUE }
+
+    var postGoogleAuthDestination by mutableStateOf<PostAuthDestination?>(null)
+        private set
+
+    fun consumePostGoogleAuthDestination() {
+        postGoogleAuthDestination = null
+    }
 
     val isRemoteMode: Boolean get() = repository.usesRemoteBackend
     val unreadInboxCount: Int get() = inboxMessages.count { !it.isRead }
@@ -175,7 +187,14 @@ class AppViewModel(
             val snapshot = sessionStore.loadSnapshot()
             hasCompletedOnboarding = snapshot.hasCompletedOnboarding
             selectedRole = snapshot.selectedRole
-            preferredLanguage = snapshot.preferredLanguage
+            languageManuallySet = snapshot.languageManuallySet
+            // Istanbul Turkish is the default; only honor a stored language when the
+            // user explicitly picked one in Profile.
+            preferredLanguage = if (snapshot.languageManuallySet) {
+                snapshot.preferredLanguage
+            } else {
+                AppLanguage.TURKISH
+            }
 
             if (repository.usesRemoteBackend) {
                 val (access, refresh) = sessionStore.loadTokens()
@@ -214,6 +233,7 @@ class AppViewModel(
 
     fun switchLanguage(language: AppLanguage) {
         preferredLanguage = language
+        languageManuallySet = true
         persistSnapshot()
     }
 
@@ -345,7 +365,24 @@ class AppViewModel(
                 val session = repository.completeGoogleOAuth(uri)
                 sessionStore.saveTokens(session.accessToken, session.refreshToken)
                 isAuthenticated = true
-                bootstrapRemoteSession()
+                // Route exactly like the email sign-in path: existing members drop
+                // straight into the app; new Google users continue onboarding at the
+                // profile/venue step. Without this the app kept showing the WELCOME
+                // page after a successful Google login.
+                val existing = isExistingMemberOnServer()
+                if (existing) {
+                    val role = when {
+                        allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE -> UserRole.VENUE
+                        else -> allowedRoles.firstOrNull() ?: UserRole.CREATOR
+                    }
+                    finishOnboarding(role)
+                } else {
+                    postGoogleAuthDestination = if (selectedRole == UserRole.VENUE) {
+                        PostAuthDestination.VENUE
+                    } else {
+                        PostAuthDestination.PROFILE
+                    }
+                }
             }.onFailure { error ->
                 authError = error.message ?: t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
                 lastSyncError = authError
@@ -924,7 +961,8 @@ class AppViewModel(
                 AppSnapshot(
                     hasCompletedOnboarding = hasCompletedOnboarding,
                     selectedRole = selectedRole,
-                    preferredLanguage = preferredLanguage
+                    preferredLanguage = preferredLanguage,
+                    languageManuallySet = languageManuallySet
                 )
             )
         }
