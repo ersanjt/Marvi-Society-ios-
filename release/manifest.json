@@ -23,6 +23,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-15T14:41:47Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260715000001_repair_venue_reviews)"
+    },
+    {
+      "at": "2026-07-15T14:21:39Z",
+      "status": "ok",
+      "message": "pushed 43a18d1 to origin/main"
+    },
+    {
       "at": "2026-07-15T14:21:35Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260715000001_repair_venue_reviews)"
@@ -261,16 +271,6 @@
       "at": "2026-07-14T15:36:07Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000022_remove_invite_gate_from_accept)"
-    },
-    {
-      "at": "2026-07-14T15:02:03Z",
-      "status": "ok",
-      "message": "pushed df00e5b to origin/main"
-    },
-    {
-      "at": "2026-07-14T15:01:59Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000021_soften_social_handle_requirement)"
     }
   ],
   "releases": [
