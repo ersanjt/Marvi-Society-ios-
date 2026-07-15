@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.marvisociety.app.ui.theme.InterFamily
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
 
@@ -284,7 +285,7 @@ fun MarviTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = singleLine,
-        textStyle = TextStyle(color = MarviColor.Ink, fontSize = 15.sp),
+        textStyle = TextStyle(color = MarviColor.Ink, fontSize = 15.sp, fontFamily = InterFamily),
         cursorBrush = SolidColor(MarviColor.Rose),
         modifier = modifier
             .fillMaxWidth()

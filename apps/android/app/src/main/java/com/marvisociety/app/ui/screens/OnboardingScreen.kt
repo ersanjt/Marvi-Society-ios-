@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -46,6 +45,7 @@ import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
+import com.marvisociety.app.ui.theme.NewsreaderFamily
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
 private enum class OnboardingStep {
@@ -324,7 +324,7 @@ private fun WelcomeStep(
         color = MarviColor.Ink,
         fontSize = 34.sp,
         fontWeight = FontWeight.Bold,
-        fontFamily = FontFamily.Serif
+        fontFamily = NewsreaderFamily
     )
     Text(viewModel.t(MarviL10n.Key.HERO_SUBTITLE), color = MarviColor.Muted)
     Spacer(modifier = Modifier.height(8.dp))
