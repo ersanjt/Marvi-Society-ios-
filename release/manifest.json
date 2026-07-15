@@ -4,16 +4,16 @@
   "releasedAt": "2026-06-11T00:00:00Z",
   "components": {
     "ios": {
-      "marketingVersion": "1.4.8",
-      "buildNumber": 47,
+      "marketingVersion": "1.5.0",
+      "buildNumber": 49,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
       "version": "0.2.0"
     },
     "android": {
-      "marketingVersion": "1.4.8",
-      "versionCode": 39,
+      "marketingVersion": "1.5.0",
+      "versionCode": 41,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-07-15T10:21:24Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000026_campaign_media_and_fields)"
+    },
+    {
+      "at": "2026-07-15T10:17:30Z",
+      "status": "ok",
+      "message": "pushed a78ab5b to origin/main"
+    },
     {
       "at": "2026-07-15T10:17:25Z",
       "status": "ok",
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-07-13T17:23:28Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000020_email_auth_fallback_flush)"
-    },
-    {
-      "at": "2026-07-13T17:12:16Z",
-      "status": "ok",
-      "message": "pushed 1a395c8 to origin/main"
-    },
-    {
-      "at": "2026-07-13T17:12:11Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000020_email_auth_fallback_flush)"
     }
