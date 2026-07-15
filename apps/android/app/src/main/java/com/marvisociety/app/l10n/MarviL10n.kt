@@ -62,7 +62,8 @@ object MarviL10n {
         CANCEL_INVITATION, KEEP_BTN, CANCEL_INVITATION_Q, VENUE_NOTIFIED_CANCEL,
         SHARE_THOUGHTS, HOSPITALITY, EXPERIENCE, OPTIONAL_NOTE, SUBMITTING, RATE_VENUE,
         VENUE_INVITE_TITLE, VENUE_INVITE_SUB, ACCEPT_VENUE_INVITE, SAVING, DECLINE,
-        PENDING_INVITES_TITLE, ACCEPTANCE_TERMS, USE_NOW
+        PENDING_INVITES_TITLE, ACCEPTANCE_TERMS, USE_NOW,
+        LOADING_WORKSPACE
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -333,7 +334,8 @@ object MarviL10n {
         Key.DECLINE to "Decline",
         Key.PENDING_INVITES_TITLE to "Pending invitations",
         Key.ACCEPTANCE_TERMS to "Acceptance terms",
-        Key.USE_NOW to "Use now"
+        Key.USE_NOW to "Use now",
+        Key.LOADING_WORKSPACE to "Loading your workspace…"
     )
 
     private val turkish = mapOf(
@@ -555,7 +557,8 @@ object MarviL10n {
         Key.DECLINE to "Reddet",
         Key.PENDING_INVITES_TITLE to "Bekleyen davetler",
         Key.ACCEPTANCE_TERMS to "Kabul koşulları",
-        Key.USE_NOW to "Şimdi kullan"
+        Key.USE_NOW to "Şimdi kullan",
+        Key.LOADING_WORKSPACE to "Çalışma alanın yükleniyor…"
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =

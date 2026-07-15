@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +44,7 @@ import coil.compose.AsyncImage
 import com.marvisociety.app.data.AdminTaskStatus
 import com.marvisociety.app.data.CollaborationModel
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.components.BrandLockup
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
@@ -64,7 +66,7 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Text(viewModel.t(MarviL10n.Key.ADMIN), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                BrandLockup(subtitle = viewModel.t(MarviL10n.Key.ADMIN))
             }
             item {
                 Text(viewModel.t(MarviL10n.Key.ADMIN_TASKS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
@@ -173,7 +175,8 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
 fun InboxScreen(viewModel: AppViewModel) {
     MarviScreen {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Text(viewModel.t(MarviL10n.Key.INBOX_TITLE), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+            BrandLockup(subtitle = viewModel.t(MarviL10n.Key.INBOX_TITLE))
+            Spacer(Modifier.height(12.dp))
             if (viewModel.inboxMessages.isEmpty()) {
                 MarviCard {
                     Text(viewModel.t(MarviL10n.Key.INBOX_EMPTY), color = MarviColor.Muted)

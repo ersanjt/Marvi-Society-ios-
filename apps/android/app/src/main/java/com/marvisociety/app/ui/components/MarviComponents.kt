@@ -1,5 +1,11 @@
 package com.marvisociety.app.ui.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,20 +27,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +52,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.marvisociety.app.R
 import com.marvisociety.app.ui.theme.InterFamily
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
@@ -485,5 +496,90 @@ fun ProgressBar(progress: Float, modifier: Modifier = Modifier) {
                 .clip(RoundedCornerShape(50))
                 .background(MarviGradient.Brand)
         )
+    }
+}
+
+/** Marvi brand mark — mirrors iOS `BrandMark` (continuous rounded square, r = size*0.2237). */
+@Composable
+fun BrandMark(size: Dp = 46.dp, modifier: Modifier = Modifier) {
+    Image(
+        painter = painterResource(R.drawable.brand_mark),
+        contentDescription = "Marvi Society",
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(size * 0.2237f)),
+        contentScale = ContentScale.Crop
+    )
+}
+
+/** Brand mark + wordmark stack — mirrors iOS `BrandLockup`. */
+@Composable
+fun BrandLockup(subtitle: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        BrandMark(size = 48.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                "Marvi Society",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MarviColor.Ink,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+            Text(
+                subtitle.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MarviColor.Muted,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/** Launch/bootstrap screen — mirrors iOS `BootstrapSplashView`. */
+@Composable
+fun BootstrapSplash(message: String) {
+    val transition = rememberInfiniteTransition(label = "splash")
+    val pulse by transition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MarviColor.Surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(220.dp)
+                .scale(pulse)
+                .blur(48.dp)
+                .clip(CircleShape)
+                .background(MarviColor.Rose.copy(alpha = 0.18f))
+        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            BrandMark(size = 72.dp, modifier = Modifier.scale(pulse))
+            CircularProgressIndicator(color = MarviColor.Rose)
+            Text(
+                message,
+                style = MaterialTheme.typography.titleMedium,
+                color = MarviColor.Muted,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }

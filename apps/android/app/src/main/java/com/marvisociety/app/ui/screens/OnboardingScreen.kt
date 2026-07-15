@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.components.BrandMark
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.NewsreaderFamily
@@ -336,13 +337,8 @@ private fun WelcomeStep(
     onMember: () -> Unit
 ) {
     Spacer(modifier = Modifier.height(28.dp))
-    Text(
-        "MARVI SOCIETY",
-        color = MarviColor.Rose,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 2.sp
-    )
+    BrandMark(size = 64.dp)
+    Spacer(modifier = Modifier.height(20.dp))
     Text(
         viewModel.t(MarviL10n.Key.HERO_LINE1),
         color = MarviColor.Ink,
