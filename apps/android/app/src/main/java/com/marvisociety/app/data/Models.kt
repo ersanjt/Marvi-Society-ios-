@@ -292,6 +292,55 @@ data class Strike(
     val dateLabel: String
 )
 
+enum class ShowcaseMediaType(val api: String) {
+    IMAGE("image"), VIDEO("video"), LINK("link");
+
+    companion object {
+        fun fromApi(raw: String?): ShowcaseMediaType = when (raw?.lowercase()) {
+            "image" -> IMAGE
+            "video" -> VIDEO
+            else -> LINK
+        }
+    }
+}
+
+data class ShowcaseItem(
+    val id: String,
+    val mediaType: ShowcaseMediaType,
+    val mediaUrl: String,
+    val externalUrl: String,
+    val caption: String
+)
+
+data class CollaborationEntry(
+    val id: String,
+    val venueName: String,
+    val area: String,
+    val title: String,
+    val dateLabel: String,
+    val venueRating: Double?
+)
+
+data class InfluencerCandidate(
+    val id: String,
+    val name: String,
+    val niche: String,
+    val score: Int,
+    val punctuality: Int,
+    val presentation: Int,
+    val followers: String
+)
+
+data class VenueReviewItem(
+    val id: String,
+    val creatorName: String,
+    val instagramHandle: String,
+    val offerTitle: String,
+    val stageLabel: String,
+    val checkedInLabel: String,
+    val hasReview: Boolean
+)
+
 data class AppSnapshot(
     val hasCompletedOnboarding: Boolean = false,
     val selectedRole: UserRole = UserRole.CREATOR,

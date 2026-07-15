@@ -374,6 +374,83 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         }
     }
 
+    suspend fun fetchSwipeCandidates(offerId: String?): List<InfluencerCandidate> {
+        val body = buildJsonObject {
+            if (!offerId.isNullOrBlank()) put("p_offer_id", offerId)
+        }
+        val rows = client.rpcJson("fetch_swipe_candidates", body).asArrayOrEmpty()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val audience = obj.int("audience_count") ?: 0
+            val score = obj.double("score")?.toInt() ?: obj.int("score") ?: 0
+            val proofRate = obj.double("proof_rate")?.toInt() ?: obj.int("proof_rate") ?: 0
+            val followers = if (audience >= 1000) {
+                String.format(Locale.US, "%.1fK", audience / 1000.0)
+            } else audience.toString()
+            val niche = row.stringList("niches").firstOrNull() ?: "Creator"
+            val name = obj.string("full_name")?.takeIf { it.isNotBlank() }
+                ?: obj.string("instagram_handle") ?: ""
+            InfluencerCandidate(
+                id = obj.string("creator_id") ?: obj.string("id") ?: return@mapNotNull null,
+                name = name,
+                niche = niche,
+                score = score,
+                punctuality = proofRate.coerceIn(60, 99),
+                presentation = score.coerceIn(60, 99),
+                followers = followers
+            )
+        }
+    }
+
+    suspend fun shortlistCreator(creatorId: String, offerId: String?) {
+        client.rpcVoid(
+            "shortlist_creator",
+            buildJsonObject {
+                put("p_creator_id", creatorId)
+                if (!offerId.isNullOrBlank()) put("p_offer_id", offerId)
+            }
+        )
+    }
+
+    suspend fun passCreator(creatorId: String, offerId: String?) {
+        client.rpcVoid(
+            "pass_creator",
+            buildJsonObject {
+                put("p_creator_id", creatorId)
+                if (!offerId.isNullOrBlank()) put("p_offer_id", offerId)
+            }
+        )
+    }
+
+    suspend fun fetchVenueReviewQueue(): List<VenueReviewItem> {
+        val rows = client.rpcJson("fetch_venue_review_queue", buildJsonObject { }).asArrayOrEmpty()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val stageRaw = obj.string("stage") ?: ""
+            VenueReviewItem(
+                id = obj.string("booking_id") ?: obj.string("id") ?: return@mapNotNull null,
+                creatorName = obj.string("creator_name") ?: "",
+                instagramHandle = obj.string("instagram_handle") ?: "",
+                offerTitle = obj.string("offer_title") ?: "",
+                stageLabel = stageRaw.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                checkedInLabel = obj.string("checked_in_label") ?: "",
+                hasReview = obj.bool("has_review") == true
+            )
+        }
+    }
+
+    suspend fun submitVenueReview(bookingId: String, punctuality: Int, presentation: Int, comment: String) {
+        client.rpcVoid(
+            "submit_venue_review",
+            buildJsonObject {
+                put("p_booking_id", bookingId)
+                put("p_punctuality", punctuality)
+                put("p_presentation", presentation)
+                put("p_comment", comment)
+            }
+        )
+    }
+
     suspend fun searchMembers(query: String?): List<MemberSearchResult> {
         val body = buildJsonObject {
             put("p_limit", 30)
@@ -536,6 +613,56 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 id = obj.string("id") ?: return@mapNotNull null,
                 reason = obj.string("reason") ?: "",
                 dateLabel = formatRelative(obj.string("created_at"))
+            )
+        }
+    }
+
+    suspend fun fetchMyShowcase(): List<ShowcaseItem> {
+        val rows = client.rpcJson("get_my_showcase", buildJsonObject { }).asArrayOrEmpty()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            ShowcaseItem(
+                id = obj.string("id") ?: return@mapNotNull null,
+                mediaType = ShowcaseMediaType.fromApi(obj.string("media_type")),
+                mediaUrl = obj.string("media_url") ?: "",
+                externalUrl = obj.string("external_url") ?: "",
+                caption = obj.string("caption") ?: ""
+            )
+        }
+    }
+
+    suspend fun addShowcaseItem(mediaType: ShowcaseMediaType, mediaUrl: String, externalUrl: String, caption: String) {
+        client.insert(
+            "creator_showcase",
+            buildJsonObject {
+                put("media_type", mediaType.api)
+                put("media_url", mediaUrl)
+                put("external_url", externalUrl)
+                put("caption", caption)
+            }
+        )
+    }
+
+    suspend fun deleteShowcaseItem(id: String) {
+        client.rpcVoid("delete_showcase_item", buildJsonObject { put("p_id", id) })
+    }
+
+    suspend fun fetchMyCollaborationHistory(): List<CollaborationEntry> {
+        val rows = client.rpcJson("get_my_collaboration_history", buildJsonObject { }).asArrayOrEmpty()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val venueRating = obj["venue_rating"]?.asObjectOrNull()?.let { rating ->
+                val p = rating.int("punctuality")
+                val pr = rating.int("presentation")
+                if (p != null && pr != null) (p + pr) / 2.0 else null
+            }
+            CollaborationEntry(
+                id = obj.string("booking_id") ?: obj.string("id") ?: return@mapNotNull null,
+                venueName = obj.string("venue_name") ?: "",
+                area = obj.string("area") ?: "",
+                title = obj.string("title") ?: "",
+                dateLabel = formatDate(obj.string("date")),
+                venueRating = venueRating
             )
         }
     }

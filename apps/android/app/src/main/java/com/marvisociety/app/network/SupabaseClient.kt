@@ -183,6 +183,15 @@ class SupabaseClient(
         return response.body()
     }
 
+    suspend fun insert(table: String, body: JsonObject) {
+        val response = client.post("$baseUrl/rest/v1/$table") {
+            applyHeaders(authenticated = true)
+            header("Prefer", "return=minimal")
+            setBody(body)
+        }
+        validate(response)
+    }
+
     suspend fun patch(table: String, filters: Map<String, String>, body: JsonObject) {
         val query = filters.entries.joinToString("&") { (k, v) ->
             "$k=${java.net.URLEncoder.encode(v, Charsets.UTF_8.name())}"

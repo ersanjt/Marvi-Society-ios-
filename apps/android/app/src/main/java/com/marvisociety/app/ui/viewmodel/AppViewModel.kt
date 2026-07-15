@@ -70,6 +70,10 @@ class AppViewModel(
         private set
     var campaigns by mutableStateOf<List<Campaign>>(emptyList())
         private set
+    var swipeCandidates by mutableStateOf<List<InfluencerCandidate>>(emptyList())
+        private set
+    var venueReviewQueue by mutableStateOf<List<VenueReviewItem>>(emptyList())
+        private set
     var memberSearchResults by mutableStateOf<List<MemberSearchResult>>(emptyList())
         private set
     var followingActivity by mutableStateOf<List<MemberActivityItem>>(emptyList())
@@ -79,6 +83,10 @@ class AppViewModel(
     var followCounts by mutableStateOf(FollowCounts.ZERO)
         private set
     var strikes by mutableStateOf<List<Strike>>(emptyList())
+        private set
+    var showcaseItems by mutableStateOf<List<ShowcaseItem>>(emptyList())
+        private set
+    var collaborationHistory by mutableStateOf<List<CollaborationEntry>>(emptyList())
         private set
     var socialVerification by mutableStateOf<SocialVerificationStatus?>(null)
         private set
@@ -264,6 +272,8 @@ class AppViewModel(
                     strikes = repository.fetchStrikes()
                     if (accountRole != UserRole.ADMIN) {
                         socialVerification = repository.ensureSocialVerificationCode()
+                        showcaseItems = runCatching { repository.fetchMyShowcase() }.getOrDefault(showcaseItems)
+                        collaborationHistory = runCatching { repository.fetchMyCollaborationHistory() }.getOrDefault(collaborationHistory)
                     }
 
                     when (selectedRole) {
@@ -275,6 +285,8 @@ class AppViewModel(
                         UserRole.VENUE -> {
                             myVenues = repository.fetchMyVenues()
                             campaigns = repository.fetchCampaigns()
+                            swipeCandidates = runCatching { repository.fetchSwipeCandidates(null) }.getOrDefault(swipeCandidates)
+                            venueReviewQueue = runCatching { repository.fetchVenueReviewQueue() }.getOrDefault(venueReviewQueue)
                         }
                         UserRole.CREATOR -> Unit
                     }
@@ -458,6 +470,10 @@ class AppViewModel(
         profile = profile.copy(city = city.trim())
     }
 
+    fun updateProfileBio(bio: String) {
+        profile = profile.copy(bio = bio)
+    }
+
     fun saveProfileFromEditor() {
         viewModelScope.launch {
             if (repository.usesRemoteBackend && isAuthenticated) {
@@ -630,6 +646,48 @@ class AppViewModel(
         }
     }
 
+    fun loadSwipeCandidates() {
+        viewModelScope.launch {
+            runCatching { swipeCandidates = repository.fetchSwipeCandidates(null) }
+                .onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun shortlistCreator(creatorId: String) {
+        viewModelScope.launch {
+            runCatching {
+                repository.shortlistCreator(creatorId, null)
+                swipeCandidates = swipeCandidates.filterNot { it.id == creatorId }
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun passCreator(creatorId: String) {
+        viewModelScope.launch {
+            runCatching {
+                repository.passCreator(creatorId, null)
+                swipeCandidates = swipeCandidates.filterNot { it.id == creatorId }
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun loadVenueReviewQueue() {
+        viewModelScope.launch {
+            runCatching { venueReviewQueue = repository.fetchVenueReviewQueue() }
+                .onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun submitVenueReview(bookingId: String, punctuality: Int, presentation: Int, comment: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                repository.submitVenueReview(bookingId, punctuality, presentation, comment)
+                venueReviewQueue = repository.fetchVenueReviewQueue()
+                onDone()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
     fun searchMembers(query: String?) {
         viewModelScope.launch {
             runCatching {
@@ -676,6 +734,81 @@ class AppViewModel(
 
     suspend fun openDirectThread(peerUserId: String): String =
         repository.ensureDirectThread(peerUserId)
+
+    fun pauseAccount() {
+        viewModelScope.launch {
+            runCatching {
+                repository.pauseOwnAccount()
+                refreshFromServer()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun reactivateAccount() {
+        viewModelScope.launch {
+            runCatching {
+                repository.reactivateOwnAccount()
+                refreshFromServer()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun loadShowcase() {
+        viewModelScope.launch {
+            runCatching { showcaseItems = repository.fetchMyShowcase() }
+                .onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun deleteShowcaseItem(id: String) {
+        viewModelScope.launch {
+            runCatching {
+                repository.deleteShowcaseItem(id)
+                showcaseItems = showcaseItems.filterNot { it.id == id }
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun addShowcaseLink(externalUrl: String, caption: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                repository.addShowcaseItem(ShowcaseMediaType.LINK, "", externalUrl.trim(), caption.trim())
+                showcaseItems = repository.fetchMyShowcase()
+                onDone()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    suspend fun fetchProfileComments(targetUserId: String): List<ProfileComment> =
+        runCatching { repository.fetchProfileComments(targetUserId) }.getOrDefault(emptyList())
+
+    fun addProfileComment(targetUserId: String, body: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                repository.addProfileComment(targetUserId, body)
+                onDone()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun markInboxRead(id: String) {
+        viewModelScope.launch {
+            runCatching {
+                repository.markNotificationRead(id)
+                inboxMessages = inboxMessages.map { if (it.id == id) it.copy(isRead = true) else it }
+            }
+        }
+    }
+
+    fun adminCreateInvite(code: String?, ownerType: String, maxUses: Int, inviteEmail: String?, onDone: () -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                repository.adminCreateInviteCode(code, ownerType, maxUses, inviteEmail)
+                adminInviteCodes = repository.fetchAdminInviteCodes()
+                onDone()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
 
     fun approveTask(taskId: String) {
         viewModelScope.launch {

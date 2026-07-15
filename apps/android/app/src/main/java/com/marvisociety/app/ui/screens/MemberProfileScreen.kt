@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,8 +54,11 @@ fun MemberProfileScreen(
 ) {
     var creatorProfile by remember { mutableStateOf<PublicCreatorProfile?>(null) }
     var venueProfile by remember { mutableStateOf<PublicVenueProfile?>(null) }
+    var comments by remember { mutableStateOf<List<com.marvisociety.app.data.ProfileComment>>(emptyList()) }
+    var commentDraft by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val commentTargetId = member.userId.ifBlank { member.id }
 
     LaunchedEffect(member.id) {
         if (member.isVenue) {
@@ -62,6 +66,7 @@ fun MemberProfileScreen(
         } else {
             creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
         }
+        comments = viewModel.fetchProfileComments(commentTargetId)
     }
 
     val displayName = creatorProfile?.name?.takeIf { it.isNotBlank() }
@@ -127,7 +132,11 @@ fun MemberProfileScreen(
                     if (profile.bio.isNotBlank()) {
                         Text(profile.bio, color = MarviColor.Ink)
                     }
-                    Text("${profile.followerCount} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Graphite)
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text("${profile.followerCount} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Graphite)
+                        Text("${profile.followingCount} ${viewModel.t(MarviL10n.Key.FOLLOWING_LABEL)}", color = MarviColor.Graphite)
+                        Text("${viewModel.t(MarviL10n.Key.SCORE_LABEL)} ${profile.score}", color = MarviColor.Gold)
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
@@ -163,6 +172,51 @@ fun MemberProfileScreen(
                     Text("${profile.area} · ${viewModel.categoryLabel(profile.category)}", color = MarviColor.Muted)
                     Text(profile.bio, color = MarviColor.Ink)
                 }
+            }
+
+            MarviCard {
+                Text(
+                    viewModel.t(MarviL10n.Key.COMMENTS),
+                    color = MarviColor.Ink,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (comments.isEmpty()) {
+                    Text(viewModel.t(MarviL10n.Key.NO_COMMENTS), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                } else {
+                    comments.forEach { comment ->
+                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                            Text(
+                                comment.authorName.ifBlank { "@${comment.authorHandle}" },
+                                color = MarviColor.Ink,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(comment.body, color = MarviColor.Graphite, style = MaterialTheme.typography.bodyMedium)
+                            Text(comment.createdLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = commentDraft,
+                    onValueChange = { commentDraft = it },
+                    label = { Text(viewModel.t(MarviL10n.Key.ADD_COMMENT)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = {
+                        val body = commentDraft.trim()
+                        if (body.isNotEmpty()) {
+                            viewModel.addProfileComment(commentTargetId, body) {
+                                commentDraft = ""
+                                scope.launch { comments = viewModel.fetchProfileComments(commentTargetId) }
+                            }
+                        }
+                    },
+                    enabled = commentDraft.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                ) { Text(viewModel.t(MarviL10n.Key.SEND)) }
             }
 
             Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {

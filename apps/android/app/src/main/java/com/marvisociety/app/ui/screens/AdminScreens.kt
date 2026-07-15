@@ -4,15 +4,20 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
@@ -30,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,6 +52,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun AdminDashboardScreen(viewModel: AppViewModel) {
     LaunchedEffect(Unit) { viewModel.refreshFromServer() }
+
+    var showCreateInvite by remember { mutableStateOf(false) }
+    var inviteEmail by remember { mutableStateOf("") }
+    var inviteMaxUses by remember { mutableStateOf("1") }
+    var inviteOwnerType by remember { mutableStateOf("creator") }
 
     MarviScreen {
         LazyColumn(
@@ -78,7 +89,64 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                 }
             }
             item {
-                Text(viewModel.t(MarviL10n.Key.INVITE_CODES), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink, modifier = Modifier.padding(top = 8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(viewModel.t(MarviL10n.Key.INVITE_CODES), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    Button(
+                        onClick = { showCreateInvite = !showCreateInvite },
+                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                    ) {
+                        Text(if (showCreateInvite) viewModel.t(MarviL10n.Key.CLOSE) else viewModel.t(MarviL10n.Key.CREATE_INVITE_CODE))
+                    }
+                }
+            }
+            if (showCreateInvite) {
+                item {
+                    MarviCard {
+                        OutlinedTextField(
+                            value = inviteEmail,
+                            onValueChange = { inviteEmail = it },
+                            label = { Text(viewModel.t(MarviL10n.Key.INVITE_EMAIL)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = inviteMaxUses,
+                            onValueChange = { inviteMaxUses = it.filter { ch -> ch.isDigit() }.ifBlank { "1" } },
+                            label = { Text(viewModel.t(MarviL10n.Key.MAX_USES)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("creator", "venue").forEach { type ->
+                                FilterChip(
+                                    selected = inviteOwnerType == type,
+                                    onClick = { inviteOwnerType = type },
+                                    label = { Text(if (type == "venue") viewModel.t(MarviL10n.Key.VENUE_TAG) else viewModel.t(MarviL10n.Key.CREATOR_TAG)) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
+                                        selectedLabelColor = MarviColor.Rose
+                                    )
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = {
+                                viewModel.adminCreateInvite(
+                                    code = null,
+                                    ownerType = inviteOwnerType,
+                                    maxUses = inviteMaxUses.toIntOrNull()?.coerceIn(1, 999) ?: 1,
+                                    inviteEmail = inviteEmail.ifBlank { null }
+                                ) {
+                                    inviteEmail = ""; inviteMaxUses = "1"; showCreateInvite = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
+                        ) { Text(viewModel.t(MarviL10n.Key.CREATE)) }
+                    }
+                }
             }
             items(viewModel.adminInviteCodes, key = { it.code }) { code ->
                 MarviCard {
@@ -113,8 +181,22 @@ fun InboxScreen(viewModel: AppViewModel) {
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(viewModel.inboxMessages, key = { it.id }) { msg ->
-                        MarviCard {
-                            Text(msg.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        MarviCard(
+                            modifier = Modifier.clickable {
+                                if (!msg.isRead) viewModel.markInboxRead(msg.id)
+                            }
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (!msg.isRead) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(MarviColor.Rose)
+                                    )
+                                }
+                                Text(msg.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                            }
                             Text(msg.body, color = MarviColor.Graphite)
                             Text(msg.dateLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
                         }
@@ -142,6 +224,11 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
     var submitting by remember { mutableStateOf(false) }
     var formError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadSwipeCandidates()
+        viewModel.loadVenueReviewQueue()
+    }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -330,6 +417,123 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
                     Text(campaign.dateLabel, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
                 }
             }
+
+            item {
+                Text(
+                    viewModel.t(MarviL10n.Key.MATCH_CREATORS_TITLE),
+                    fontWeight = FontWeight.SemiBold,
+                    color = MarviColor.Ink,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+            if (viewModel.swipeCandidates.isEmpty()) {
+                item {
+                    Text(viewModel.t(MarviL10n.Key.NO_CANDIDATES), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                }
+            } else {
+                items(viewModel.swipeCandidates, key = { it.id }) { candidate ->
+                    MarviCard {
+                        Text(candidate.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        Text(
+                            "${candidate.niche} · ${candidate.followers}",
+                            color = MarviColor.Muted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            "${viewModel.t(MarviL10n.Key.SCORE_LABEL)} ${candidate.score} · ${viewModel.t(MarviL10n.Key.PUNCTUALITY)} ${candidate.punctuality} · ${viewModel.t(MarviL10n.Key.PRESENTATION)} ${candidate.presentation}",
+                            color = MarviColor.Graphite,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                            Button(
+                                onClick = { viewModel.shortlistCreator(candidate.id) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
+                            ) { Text(viewModel.t(MarviL10n.Key.SHORTLIST)) }
+                            OutlinedButton(onClick = { viewModel.passCreator(candidate.id) }) {
+                                Text(viewModel.t(MarviL10n.Key.PASS))
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    viewModel.t(MarviL10n.Key.REVIEW_QUEUE_TITLE),
+                    fontWeight = FontWeight.SemiBold,
+                    color = MarviColor.Ink,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+            if (viewModel.venueReviewQueue.isEmpty()) {
+                item {
+                    Text(viewModel.t(MarviL10n.Key.NO_REVIEWS), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                }
+            } else {
+                items(viewModel.venueReviewQueue, key = { it.id }) { review ->
+                    VenueReviewCard(review, viewModel)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VenueReviewCard(review: com.marvisociety.app.data.VenueReviewItem, viewModel: AppViewModel) {
+    var punctuality by remember(review.id) { mutableStateOf(4) }
+    var presentation by remember(review.id) { mutableStateOf(4) }
+    var comment by remember(review.id) { mutableStateOf("") }
+    var expanded by remember(review.id) { mutableStateOf(false) }
+
+    MarviCard {
+        Text(review.creatorName.ifBlank { "@${review.instagramHandle}" }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+        Text(review.offerTitle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        Text(
+            listOf(review.stageLabel, review.checkedInLabel).filter { it.isNotBlank() }.joinToString(" · "),
+            color = MarviColor.Graphite,
+            style = MaterialTheme.typography.bodySmall
+        )
+        if (review.hasReview) {
+            Text(viewModel.t(MarviL10n.Key.REVIEWED), color = MarviColor.Emerald, fontWeight = FontWeight.SemiBold)
+        } else if (!expanded) {
+            Button(
+                onClick = { expanded = true },
+                modifier = Modifier.padding(top = 6.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+            ) { Text(viewModel.t(MarviL10n.Key.RATE_CREATOR)) }
+        } else {
+            RatingRow(viewModel.t(MarviL10n.Key.PUNCTUALITY), punctuality) { punctuality = it }
+            RatingRow(viewModel.t(MarviL10n.Key.PRESENTATION), presentation) { presentation = it }
+            OutlinedTextField(
+                value = comment,
+                onValueChange = { comment = it },
+                label = { Text(viewModel.t(MarviL10n.Key.REVIEW_COMMENT)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = {
+                    viewModel.submitVenueReview(review.id, punctuality, presentation, comment.trim()) {
+                        expanded = false
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
+            ) { Text(viewModel.t(MarviL10n.Key.SUBMIT_REVIEW)) }
+        }
+    }
+}
+
+@Composable
+private fun RatingRow(label: String, value: Int, onChange: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, color = MarviColor.Graphite, modifier = Modifier.weight(1f))
+        (1..5).forEach { star ->
+            Text(
+                if (star <= value) "★" else "☆",
+                color = MarviColor.Gold,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.clickable { onChange(star) }
+            )
         }
     }
 }

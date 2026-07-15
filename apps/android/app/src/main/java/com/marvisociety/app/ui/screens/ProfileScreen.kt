@@ -251,6 +251,27 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             }
                         }
                     }
+
+                    if (viewModel.profile.bio.isNotBlank()) {
+                        MarviCard {
+                            Text(viewModel.profile.bio, color = MarviColor.Ink)
+                        }
+                    }
+
+                    ShowcaseSection(viewModel)
+                    CollaborationHistorySection(viewModel)
+
+                    if (viewModel.strikes.isNotEmpty()) {
+                        MarviCard {
+                            SectionTitle(text = viewModel.t(MarviL10n.Key.STRIKES_TITLE))
+                            viewModel.strikes.forEach { strike ->
+                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                    Text(strike.reason, color = MarviColor.Tomato, fontWeight = FontWeight.SemiBold)
+                                    Text(strike.dateLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 ProfileMainTab.EDIT -> {
@@ -273,6 +294,13 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             onValueChange = { viewModel.updateProfileCity(it) },
                             label = { Text(viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER)) },
                             modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = viewModel.profile.bio,
+                            onValueChange = { viewModel.updateProfileBio(it) },
+                            label = { Text(viewModel.t(MarviL10n.Key.BIO_PLACEHOLDER)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3
                         )
                         Button(
                             onClick = { viewModel.saveProfileFromEditor() },
@@ -326,6 +354,51 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
 
                 ProfileMainTab.ACCOUNT -> {
+                    val context = LocalContext.current
+                    viewModel.accountReferralCode?.takeIf { it.isNotBlank() }?.let { code ->
+                        MarviCard {
+                            SectionTitle(text = viewModel.t(MarviL10n.Key.REFERRAL_CODE_TITLE))
+                            Text(code, color = MarviColor.Rose, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
+                            SecondaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.COPY_CODE),
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("Marvi invite", code))
+                                }
+                            )
+                        }
+                    }
+
+                    if (viewModel.accountRole == UserRole.ADMIN || viewModel.allowedRoles.contains(UserRole.ADMIN)) {
+                        MarviCard {
+                            SectionTitle(text = viewModel.t(MarviL10n.Key.WORKSPACE))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                viewModel.allowedRoles.forEach { role ->
+                                    FilterChip(
+                                        selected = viewModel.selectedRole == role,
+                                        onClick = { viewModel.switchRole(role) },
+                                        label = { Text(roleLabel(role, viewModel)) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (viewModel.selectedRole == UserRole.CREATOR && viewModel.accountRole != UserRole.ADMIN) {
+                        if (viewModel.accountPausedBySelf) {
+                            Button(
+                                onClick = { viewModel.reactivateAccount() },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
+                            ) { Text(viewModel.t(MarviL10n.Key.REACTIVATE_ACCOUNT)) }
+                        } else {
+                            OutlinedButton(
+                                onClick = { viewModel.pauseAccount() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text(viewModel.t(MarviL10n.Key.PAUSE_ACCOUNT), color = MarviColor.Gold) }
+                        }
+                    }
+
                     TextButton(onClick = { viewModel.signOut() }, modifier = Modifier.fillMaxWidth()) {
                         Text(viewModel.t(MarviL10n.Key.SIGN_OUT), color = MarviColor.Tomato)
                     }
@@ -355,4 +428,115 @@ private fun roleLabel(role: UserRole, viewModel: AppViewModel): String = when (r
     UserRole.CREATOR -> viewModel.t(MarviL10n.Key.ROLE_CREATOR)
     UserRole.VENUE -> viewModel.t(MarviL10n.Key.ROLE_VENUE)
     UserRole.ADMIN -> viewModel.t(MarviL10n.Key.ROLE_ADMIN)
+}
+
+@Composable
+private fun ShowcaseSection(viewModel: AppViewModel) {
+    val context = LocalContext.current
+    var adding by remember { mutableStateOf(false) }
+    var link by remember { mutableStateOf("") }
+    var caption by remember { mutableStateOf("") }
+
+    MarviCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SectionTitle(text = viewModel.t(MarviL10n.Key.SHOWCASE_TITLE))
+            TextButton(onClick = { adding = !adding }) {
+                Text(if (adding) viewModel.t(MarviL10n.Key.CLOSE) else viewModel.t(MarviL10n.Key.SHOWCASE_ADD_LINK))
+            }
+        }
+
+        if (adding) {
+            OutlinedTextField(
+                value = link,
+                onValueChange = { link = it },
+                label = { Text(viewModel.t(MarviL10n.Key.SHOWCASE_LINK_PLACEHOLDER)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = caption,
+                onValueChange = { caption = it },
+                label = { Text(viewModel.t(MarviL10n.Key.SHOWCASE_CAPTION_PLACEHOLDER)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Button(
+                onClick = {
+                    if (link.isNotBlank()) {
+                        viewModel.addShowcaseLink(link, caption) {
+                            link = ""; caption = ""; adding = false
+                        }
+                    }
+                },
+                enabled = link.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+            ) { Text(viewModel.t(MarviL10n.Key.ADD)) }
+        }
+
+        if (viewModel.showcaseItems.isEmpty()) {
+            Text(viewModel.t(MarviL10n.Key.SHOWCASE_EMPTY), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        } else {
+            viewModel.showcaseItems.forEach { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            item.caption.ifBlank { item.externalUrl.ifBlank { item.mediaUrl } },
+                            color = MarviColor.Ink,
+                            maxLines = 1
+                        )
+                        val url = item.externalUrl.ifBlank { item.mediaUrl }
+                        if (url.isNotBlank()) {
+                            Text(url, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                        }
+                    }
+                    val openUrl = item.externalUrl.ifBlank { item.mediaUrl }
+                    if (openUrl.isNotBlank()) {
+                        TextButton(onClick = {
+                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(openUrl))) }
+                        }) { Text(viewModel.t(MarviL10n.Key.OPEN_LINK)) }
+                    }
+                    TextButton(onClick = { viewModel.deleteShowcaseItem(item.id) }) {
+                        Text(viewModel.t(MarviL10n.Key.DELETE), color = MarviColor.Tomato)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollaborationHistorySection(viewModel: AppViewModel) {
+    MarviCard {
+        SectionTitle(text = viewModel.t(MarviL10n.Key.COLLAB_HISTORY_TITLE))
+        if (viewModel.collaborationHistory.isEmpty()) {
+            Text(viewModel.t(MarviL10n.Key.NO_COLLABORATIONS), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        } else {
+            viewModel.collaborationHistory.forEach { entry ->
+                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text(entry.title.ifBlank { entry.venueName }, color = MarviColor.Ink, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        listOf(entry.venueName, entry.area, entry.dateLabel).filter { it.isNotBlank() }.joinToString(" · "),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    entry.venueRating?.let { rating ->
+                        Text(
+                            "${viewModel.t(MarviL10n.Key.RATING_LABEL)}: ${String.format(java.util.Locale.US, "%.1f", rating)}",
+                            color = MarviColor.Gold,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
