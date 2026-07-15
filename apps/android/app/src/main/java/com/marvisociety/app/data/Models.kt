@@ -321,6 +321,37 @@ data class CollaborationEntry(
     val venueRating: Double?
 )
 
+/** Extra info collected at accept time depending on the collaboration model. */
+data class AcceptOfferOptions(
+    val shippingAddress: String? = null,
+    val rsvpGuests: Int? = null
+)
+
+/** A booking-scoped collaboration chat thread between a creator and a venue. */
+data class ChatConversation(
+    val id: String,
+    val bookingId: String,
+    val offerTitle: String,
+    val venueName: String,
+    val lastMessage: String,
+    val lastMessageAt: String
+) {
+    val title: String get() = venueName.ifBlank { offerTitle }
+    val preview: String get() = lastMessage.trim().ifEmpty { offerTitle }
+}
+
+/** A venue-initiated collaboration invite awaiting the creator's acceptance. */
+data class PendingCollaborationRequest(
+    val id: String,
+    val offerId: String,
+    val offerTitle: String,
+    val venueName: String,
+    val status: String,
+    val createdLabel: String
+) {
+    val isPendingCreator: Boolean get() = status == "pending_creator"
+}
+
 data class InfluencerCandidate(
     val id: String,
     val name: String,

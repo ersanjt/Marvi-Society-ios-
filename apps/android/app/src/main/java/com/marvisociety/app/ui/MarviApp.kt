@@ -43,6 +43,8 @@ import com.marvisociety.app.ui.components.SyncErrorBanner
 import com.marvisociety.app.ui.screens.AdminDashboardScreen
 import com.marvisociety.app.ui.screens.ApprovalPendingScreen
 import com.marvisociety.app.ui.screens.BookingsScreen
+import com.marvisociety.app.ui.screens.CollaborationChatScreen
+import com.marvisociety.app.ui.screens.CollaborationThreadScreen
 import com.marvisociety.app.ui.screens.CommunityScreen
 import com.marvisociety.app.ui.screens.ConfigurationRequiredScreen
 import com.marvisociety.app.ui.screens.DirectChatScreen
@@ -97,7 +99,8 @@ private fun MainShell(viewModel: AppViewModel) {
     val currentRoute = backStack?.destination?.route.orEmpty()
     val hideBottomBar = currentRoute.startsWith("offer/") ||
         currentRoute.startsWith("member/") ||
-        currentRoute.startsWith("chat/")
+        currentRoute.startsWith("chat/") ||
+        currentRoute.startsWith("collab")
 
     Scaffold(
         containerColor = MarviColor.Surface,
@@ -214,7 +217,30 @@ private fun MainShell(viewModel: AppViewModel) {
                         onBack = { navController.popBackStack() }
                     )
                 }
-                composable("bookings") { BookingsScreen(viewModel) }
+                composable("bookings") {
+                    BookingsScreen(viewModel, onOpenMessages = { navController.navigate("collab") })
+                }
+                composable("collab") {
+                    CollaborationChatScreen(
+                        viewModel = viewModel,
+                        onOpenConversation = { convo ->
+                            val title = convo.title.ifBlank { "Marvi" }
+                            navController.navigate("collabchat/${convo.id}/$title")
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "collabchat/{conversationId}/{title}",
+                    arguments = listOf(
+                        navArgument("conversationId") { type = NavType.StringType },
+                        navArgument("title") { type = NavType.StringType }
+                    )
+                ) { entry ->
+                    val conversationId = entry.arguments?.getString("conversationId").orEmpty()
+                    val title = entry.arguments?.getString("title").orEmpty()
+                    CollaborationThreadScreen(conversationId, title, viewModel) { navController.popBackStack() }
+                }
                 composable("profile") { ProfileScreen(viewModel) }
                 composable("studio") { VenueStudioScreen(viewModel) }
                 composable("inbox") { InboxScreen(viewModel) }

@@ -56,7 +56,13 @@ object MarviL10n {
         MATCH_CREATORS_TITLE, NO_CANDIDATES, SHORTLIST, PASS,
         REVIEW_QUEUE_TITLE, NO_REVIEWS, RATE_CREATOR, PUNCTUALITY, PRESENTATION,
         REVIEW_COMMENT, SUBMIT_REVIEW, REVIEWED,
-        MAP_VIEW, LIST_VIEW, NEAR_YOU, DETAILS, NO_MAP_OFFERS
+        MAP_VIEW, LIST_VIEW, NEAR_YOU, DETAILS, NO_MAP_OFFERS,
+        MESSAGES_TITLE, NO_MESSAGES_YET, NO_MESSAGES_YET_SUB, REFRESH,
+        CONFIRM_GIFT, SHIPPING_ADDRESS, RSVP_EVENT, GUEST_COUNT, EXTRAS_REQUIRED_SUB,
+        CANCEL_INVITATION, KEEP_BTN, CANCEL_INVITATION_Q, VENUE_NOTIFIED_CANCEL,
+        SHARE_THOUGHTS, HOSPITALITY, EXPERIENCE, OPTIONAL_NOTE, SUBMITTING, RATE_VENUE,
+        VENUE_INVITE_TITLE, VENUE_INVITE_SUB, ACCEPT_VENUE_INVITE, SAVING, DECLINE,
+        PENDING_INVITES_TITLE, ACCEPTANCE_TERMS, USE_NOW
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -300,7 +306,34 @@ object MarviL10n {
         Key.LIST_VIEW to "List",
         Key.NEAR_YOU to "Near you",
         Key.DETAILS to "Details",
-        Key.NO_MAP_OFFERS to "No events with a location yet."
+        Key.NO_MAP_OFFERS to "No events with a location yet.",
+        Key.MESSAGES_TITLE to "Messages",
+        Key.NO_MESSAGES_YET to "No messages yet",
+        Key.NO_MESSAGES_YET_SUB to "Once you collaborate with a venue, your conversation will appear here.",
+        Key.REFRESH to "Refresh",
+        Key.CONFIRM_GIFT to "Confirm gift",
+        Key.SHIPPING_ADDRESS to "Shipping address",
+        Key.RSVP_EVENT to "RSVP to event",
+        Key.GUEST_COUNT to "Guest count",
+        Key.EXTRAS_REQUIRED_SUB to "A few details before we confirm your spot.",
+        Key.CANCEL_INVITATION to "Cancel invitation",
+        Key.KEEP_BTN to "Keep it",
+        Key.CANCEL_INVITATION_Q to "Cancel this invitation?",
+        Key.VENUE_NOTIFIED_CANCEL to "The venue will be notified that you cancelled.",
+        Key.SHARE_THOUGHTS to "Share your thoughts",
+        Key.HOSPITALITY to "Hospitality",
+        Key.EXPERIENCE to "Experience",
+        Key.OPTIONAL_NOTE to "Optional note",
+        Key.SUBMITTING to "Submitting…",
+        Key.RATE_VENUE to "Rate venue",
+        Key.VENUE_INVITE_TITLE to "Venue invitation",
+        Key.VENUE_INVITE_SUB to "A venue would like to collaborate with you.",
+        Key.ACCEPT_VENUE_INVITE to "Accept invitation",
+        Key.SAVING to "Saving…",
+        Key.DECLINE to "Decline",
+        Key.PENDING_INVITES_TITLE to "Pending invitations",
+        Key.ACCEPTANCE_TERMS to "Acceptance terms",
+        Key.USE_NOW to "Use now"
     )
 
     private val turkish = mapOf(
@@ -495,7 +528,34 @@ object MarviL10n {
         Key.LIST_VIEW to "Liste",
         Key.NEAR_YOU to "Yakınında",
         Key.DETAILS to "Detaylar",
-        Key.NO_MAP_OFFERS to "Henüz konumu olan etkinlik yok."
+        Key.NO_MAP_OFFERS to "Henüz konumu olan etkinlik yok.",
+        Key.MESSAGES_TITLE to "Mesajlar",
+        Key.NO_MESSAGES_YET to "Henüz mesaj yok",
+        Key.NO_MESSAGES_YET_SUB to "Bir mekanla iş birliği yaptığında sohbetin burada görünür.",
+        Key.REFRESH to "Yenile",
+        Key.CONFIRM_GIFT to "Hediyeyi onayla",
+        Key.SHIPPING_ADDRESS to "Teslimat adresi",
+        Key.RSVP_EVENT to "Etkinliğe katıl",
+        Key.GUEST_COUNT to "Misafir sayısı",
+        Key.EXTRAS_REQUIRED_SUB to "Yerini onaylamadan önce birkaç detay.",
+        Key.CANCEL_INVITATION to "Daveti iptal et",
+        Key.KEEP_BTN to "Vazgeç",
+        Key.CANCEL_INVITATION_Q to "Bu davet iptal edilsin mi?",
+        Key.VENUE_NOTIFIED_CANCEL to "İptal ettiğin mekana bildirilecek.",
+        Key.SHARE_THOUGHTS to "Görüşlerini paylaş",
+        Key.HOSPITALITY to "Misafirperverlik",
+        Key.EXPERIENCE to "Deneyim",
+        Key.OPTIONAL_NOTE to "İsteğe bağlı not",
+        Key.SUBMITTING to "Gönderiliyor…",
+        Key.RATE_VENUE to "Mekanı değerlendir",
+        Key.VENUE_INVITE_TITLE to "Mekan daveti",
+        Key.VENUE_INVITE_SUB to "Bir mekan seninle iş birliği yapmak istiyor.",
+        Key.ACCEPT_VENUE_INVITE to "Daveti kabul et",
+        Key.SAVING to "Kaydediliyor…",
+        Key.DECLINE to "Reddet",
+        Key.PENDING_INVITES_TITLE to "Bekleyen davetler",
+        Key.ACCEPTANCE_TERMS to "Kabul koşulları",
+        Key.USE_NOW to "Şimdi kullan"
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =

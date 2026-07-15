@@ -225,10 +225,117 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             ?: result.toString().contains("true", ignoreCase = true)
     }
 
-    suspend fun acceptOffer(offerId: String): Booking {
+    suspend fun acceptOffer(
+        offerId: String,
+        options: AcceptOfferOptions = AcceptOfferOptions()
+    ): Booking {
         val row = client.rpcJson(
             "accept_offer",
-            buildJsonObject { put("p_offer_id", offerId) }
+            buildJsonObject {
+                put("p_offer_id", offerId)
+                val shipping = options.shippingAddress?.trim()
+                if (!shipping.isNullOrEmpty()) put("p_shipping_address", shipping)
+                options.rsvpGuests?.let { put("p_rsvp_guests", it) }
+            }
+        )
+        return hydrateBooking(row)
+    }
+
+    suspend fun cancelBooking(bookingId: String) {
+        client.rpcVoid("cancel_booking", buildJsonObject { put("p_booking_id", bookingId) })
+    }
+
+    suspend fun submitCreatorReview(
+        bookingId: String,
+        hospitality: Int,
+        experience: Int,
+        comment: String
+    ) {
+        client.rpcVoid(
+            "submit_creator_review",
+            buildJsonObject {
+                put("p_booking_id", bookingId)
+                put("p_hospitality", hospitality)
+                put("p_experience", experience)
+                put("p_comment", comment.trim())
+            }
+        )
+    }
+
+    suspend fun fetchConversations(): List<ChatConversation> {
+        val rows = client.rpcJson("get_my_conversations", buildJsonObject { }).asArrayOrEmpty()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val id = obj.string("id") ?: return@mapNotNull null
+            ChatConversation(
+                id = id,
+                bookingId = obj.string("booking_id") ?: "",
+                offerTitle = obj.string("offer_title") ?: "",
+                venueName = obj.string("venue_name") ?: "",
+                lastMessage = obj.string("last_message") ?: "",
+                lastMessageAt = formatRelative(obj.string("last_message_at") ?: obj.string("created_at"))
+            )
+        }
+    }
+
+    suspend fun fetchConversationMessages(conversationId: String): List<ChatMessage> {
+        val rows = client.rpcJson(
+            "get_conversation_messages",
+            buildJsonObject { put("p_conversation_id", conversationId) }
+        ).asArrayOrEmpty()
+        val myId = client.currentUserId()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val senderId = obj.string("sender_user_id") ?: return@mapNotNull null
+            ChatMessage(
+                id = obj.string("id") ?: UUID.randomUUID().toString(),
+                senderId = senderId,
+                body = obj.string("body") ?: "",
+                createdLabel = formatRelative(obj.string("created_at")),
+                isMine = senderId == myId
+            )
+        }
+    }
+
+    suspend fun sendConversationMessage(conversationId: String, body: String): ChatMessage {
+        val row = client.rpcJson(
+            "send_message",
+            buildJsonObject {
+                put("p_conversation_id", conversationId)
+                put("p_body", body.trim())
+            }
+        )
+        val obj = row.asObjectOrNull() ?: throw MarviApiException("Invalid message response")
+        val senderId = obj.string("sender_user_id") ?: client.currentUserId().orEmpty()
+        return ChatMessage(
+            id = obj.string("id") ?: UUID.randomUUID().toString(),
+            senderId = senderId,
+            body = obj.string("body") ?: body,
+            createdLabel = formatRelative(obj.string("created_at")),
+            isMine = senderId == client.currentUserId()
+        )
+    }
+
+    suspend fun fetchPendingCollaborationRequests(): List<PendingCollaborationRequest> {
+        val rows = client.rpcJson("get_my_pending_collaboration_requests", buildJsonObject { }).asArrayOrEmpty()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val id = obj.string("id") ?: return@mapNotNull null
+            PendingCollaborationRequest(
+                id = id,
+                offerId = obj.string("offer_id") ?: "",
+                offerTitle = obj.string("offer_title") ?: "",
+                venueName = obj.string("venue_name") ?: "",
+                status = obj.string("status") ?: "",
+                createdLabel = formatRelative(obj.string("created_at"))
+            )
+        }
+    }
+
+    suspend fun creatorAcceptCollaboration(requestId: String): Booking {
+        val row = client.rpcJson(
+            "creator_accept_collaboration",
+            buildJsonObject { put("p_request_id", requestId) }
         )
         return hydrateBooking(row)
     }

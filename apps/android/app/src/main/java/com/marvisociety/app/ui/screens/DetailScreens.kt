@@ -1,6 +1,7 @@
 package com.marvisociety.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,14 +18,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,10 +42,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.marvisociety.app.data.ChatConversation
 import com.marvisociety.app.data.ChatMessage
+import com.marvisociety.app.data.CollaborationModel
 import com.marvisociety.app.data.Offer
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.OfferImagery
+import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.InfoBadge
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
@@ -57,9 +67,31 @@ import kotlinx.coroutines.launch
 @Composable
 fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit) {
     val accepted = offer.id in viewModel.acceptedOfferIds
+    val saved = offer.id in viewModel.savedOfferIds
     val filled = if (offer.capacity > 0) {
         (offer.capacity - offer.remaining).toFloat() / offer.capacity.toFloat()
     } else 0f
+
+    var showShippingDialog by remember { mutableStateOf(false) }
+    var showRsvpDialog by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
+    var shippingAddress by remember { mutableStateOf("") }
+    var rsvpGuests by remember { mutableIntStateOf(2) }
+
+    fun beginAccept() {
+        when (offer.collaborationModel) {
+            CollaborationModel.GIFT -> showShippingDialog = true
+            CollaborationModel.EVENT -> showRsvpDialog = true
+            else -> { viewModel.acceptOffer(offer.id); onBack() }
+        }
+    }
+
+    val acceptTitle = when {
+        offer.collaborationModel == CollaborationModel.INSTANT -> viewModel.t(MarviL10n.Key.USE_NOW)
+        offer.collaborationModel == CollaborationModel.EVENT -> viewModel.t(MarviL10n.Key.RSVP_EVENT)
+        offer.collaborationModel == CollaborationModel.GIFT -> viewModel.t(MarviL10n.Key.CONFIRM_GIFT)
+        else -> viewModel.t(MarviL10n.Key.ACCEPT_INVITATION)
+    }
 
     MarviScreen {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -101,10 +133,23 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         StatusPill(viewModel.modelLabel(offer.collaborationModel), MarviColor.Rose)
                         StatusPill("${offer.remaining} ${viewModel.t(MarviL10n.Key.SLOTS_SUFFIX)}", MarviColor.Gold)
+                        IconButton(
+                            onClick = { viewModel.toggleSaved(offer.id) },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MarviColor.Panel.copy(alpha = 0.85f))
+                        ) {
+                            Icon(
+                                if (saved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                null,
+                                tint = if (saved) MarviColor.Rose else MarviColor.Ink
+                            )
+                        }
                     }
                     Column(
                         modifier = Modifier
@@ -182,16 +227,132 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                         Text(reason, color = MarviColor.Gold, style = MaterialTheme.typography.bodySmall)
                     }
                     PrimaryActionButton(
-                        title = viewModel.t(MarviL10n.Key.ACCEPT_INVITATION),
-                        onClick = { viewModel.acceptOffer(offer.id); onBack() },
+                        title = acceptTitle,
+                        onClick = { beginAccept() },
                         enabled = canAccept,
                         icon = Icons.Default.Check
                     )
+                    SecondaryActionButton(title = viewModel.t(MarviL10n.Key.CLOSE), onClick = onBack)
                 } else {
                     StatusPill(viewModel.t(MarviL10n.Key.ALREADY_ACCEPTED), MarviColor.Emerald)
+                    SecondaryActionButton(
+                        title = viewModel.t(MarviL10n.Key.CANCEL_INVITATION),
+                        onClick = { showCancelDialog = true }
+                    )
                 }
-                SecondaryActionButton(title = viewModel.t(MarviL10n.Key.CLOSE), onClick = onBack)
             }
+        }
+
+        if (showShippingDialog) {
+            AlertDialog(
+                onDismissRequest = { showShippingDialog = false },
+                containerColor = MarviColor.Panel,
+                title = { Text(viewModel.t(MarviL10n.Key.CONFIRM_GIFT), color = MarviColor.Ink) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            viewModel.t(MarviL10n.Key.EXTRAS_REQUIRED_SUB),
+                            color = MarviColor.Muted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        MarviTextField(
+                            value = shippingAddress,
+                            onValueChange = { shippingAddress = it },
+                            placeholder = viewModel.t(MarviL10n.Key.SHIPPING_ADDRESS),
+                            singleLine = false
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showShippingDialog = false
+                            viewModel.acceptOffer(offer.id, shippingAddress = shippingAddress)
+                            onBack()
+                        },
+                        enabled = shippingAddress.isNotBlank()
+                    ) {
+                        Text(viewModel.t(MarviL10n.Key.CONFIRM_GIFT), color = MarviColor.Rose)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showShippingDialog = false }) {
+                        Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
+                    }
+                }
+            )
+        }
+
+        if (showRsvpDialog) {
+            AlertDialog(
+                onDismissRequest = { showRsvpDialog = false },
+                containerColor = MarviColor.Panel,
+                title = { Text(viewModel.t(MarviL10n.Key.RSVP_EVENT), color = MarviColor.Ink) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "${viewModel.t(MarviL10n.Key.GUEST_COUNT)}: $rsvpGuests",
+                            color = MarviColor.Ink,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Slider(
+                            value = rsvpGuests.toFloat(),
+                            onValueChange = { rsvpGuests = it.toInt() },
+                            valueRange = 1f..6f,
+                            steps = 4
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showRsvpDialog = false
+                            viewModel.acceptOffer(offer.id, rsvpGuests = rsvpGuests)
+                            onBack()
+                        }
+                    ) {
+                        Text(viewModel.t(MarviL10n.Key.RSVP_EVENT), color = MarviColor.Rose)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRsvpDialog = false }) {
+                        Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
+                    }
+                }
+            )
+        }
+
+        if (showCancelDialog) {
+            AlertDialog(
+                onDismissRequest = { showCancelDialog = false },
+                containerColor = MarviColor.Panel,
+                title = { Text(viewModel.t(MarviL10n.Key.CANCEL_INVITATION_Q), color = MarviColor.Ink) },
+                text = {
+                    Text(
+                        viewModel.t(MarviL10n.Key.VENUE_NOTIFIED_CANCEL),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showCancelDialog = false
+                            viewModel.bookings.firstOrNull { it.offer.id == offer.id }?.let {
+                                viewModel.cancelBooking(it.id)
+                            }
+                            onBack()
+                        }
+                    ) {
+                        Text(viewModel.t(MarviL10n.Key.CANCEL_INVITATION), color = MarviColor.Tomato)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCancelDialog = false }) {
+                        Text(viewModel.t(MarviL10n.Key.KEEP_BTN), color = MarviColor.Muted)
+                    }
+                }
+            )
         }
     }
 }
@@ -253,6 +414,133 @@ fun DirectChatScreen(
                     scope.launch {
                         runCatching {
                             val msg = viewModel.sendDirectMessage(threadId, body)
+                            messages = messages + msg
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun CollaborationChatScreen(
+    viewModel: AppViewModel,
+    onOpenConversation: (ChatConversation) -> Unit,
+    onBack: () -> Unit
+) {
+    LaunchedEffect(Unit) { viewModel.loadConversations() }
+
+    MarviScreen {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MarviColor.Ink)
+                }
+                Text(
+                    viewModel.t(MarviL10n.Key.MESSAGES_TITLE),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MarviColor.Ink,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (viewModel.conversations.isEmpty()) {
+                EmptyStateView(
+                    title = viewModel.t(MarviL10n.Key.NO_MESSAGES_YET),
+                    subtitle = viewModel.t(MarviL10n.Key.NO_MESSAGES_YET_SUB)
+                )
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(viewModel.conversations, key = { it.id }) { convo ->
+                        MarviCard(modifier = Modifier.clickable { onOpenConversation(convo) }) {
+                            Text(
+                                convo.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MarviColor.Ink,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                convo.preview,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MarviColor.Muted,
+                                maxLines = 2
+                            )
+                            if (convo.lastMessageAt.isNotBlank()) {
+                                Text(
+                                    convo.lastMessageAt,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MarviColor.Graphite
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CollaborationThreadScreen(
+    conversationId: String,
+    title: String,
+    viewModel: AppViewModel,
+    onBack: () -> Unit
+) {
+    var messages by remember { mutableStateOf(emptyList<ChatMessage>()) }
+    var draft by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(conversationId) {
+        runCatching { messages = viewModel.fetchConversationMessages(conversationId) }
+    }
+
+    MarviScreen {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MarviColor.Ink)
+                }
+                Text(title, style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+            }
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(messages, key = { it.id }) { msg ->
+                    val bubbleColor = if (msg.isMine) MarviColor.Rose.copy(alpha = 0.18f) else MarviColor.PanelElevated
+                    val textColor = if (msg.isMine) MarviColor.Rose else MarviColor.Ink
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(bubbleColor)
+                            .padding(12.dp),
+                        horizontalAlignment = if (msg.isMine) Alignment.End else Alignment.Start
+                    ) {
+                        Text(msg.body, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                        Text(msg.createdLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            MarviTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                placeholder = viewModel.t(MarviL10n.Key.MESSAGE)
+            )
+            PrimaryActionButton(
+                title = viewModel.t(MarviL10n.Key.SEND),
+                onClick = {
+                    val body = draft.trim()
+                    if (body.isEmpty()) return@PrimaryActionButton
+                    draft = ""
+                    scope.launch {
+                        runCatching {
+                            val msg = viewModel.sendConversationMessage(conversationId, body)
                             messages = messages + msg
                         }
                     }

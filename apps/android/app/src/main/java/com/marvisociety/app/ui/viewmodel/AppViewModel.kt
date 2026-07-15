@@ -80,6 +80,10 @@ class AppViewModel(
         private set
     var directThreads by mutableStateOf<List<DirectThread>>(emptyList())
         private set
+    var conversations by mutableStateOf<List<ChatConversation>>(emptyList())
+        private set
+    var pendingCollaborationRequests by mutableStateOf<List<PendingCollaborationRequest>>(emptyList())
+        private set
     var followCounts by mutableStateOf(FollowCounts.ZERO)
         private set
     var strikes by mutableStateOf<List<Strike>>(emptyList())
@@ -288,7 +292,11 @@ class AppViewModel(
                             swipeCandidates = runCatching { repository.fetchSwipeCandidates(null) }.getOrDefault(swipeCandidates)
                             venueReviewQueue = runCatching { repository.fetchVenueReviewQueue() }.getOrDefault(venueReviewQueue)
                         }
-                        UserRole.CREATOR -> Unit
+                        UserRole.CREATOR -> {
+                            pendingCollaborationRequests = runCatching {
+                                repository.fetchPendingCollaborationRequests()
+                            }.getOrDefault(pendingCollaborationRequests)
+                        }
                     }
                 }
             }.onFailure { error ->
@@ -525,7 +533,11 @@ class AppViewModel(
         }
     }
 
-    fun acceptOffer(offerId: String) {
+    fun acceptOffer(
+        offerId: String,
+        shippingAddress: String? = null,
+        rsvpGuests: Int? = null
+    ) {
         if (needsAdminApproval || needsSocialHandlesEntry || profile.status != MembershipStatus.APPROVED) {
             lastSyncError = acceptBlockedReason ?: t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
             return
@@ -533,11 +545,77 @@ class AppViewModel(
         viewModelScope.launch {
             runCatching {
                 if (repository.usesRemoteBackend && isAuthenticated) {
-                    val booking = repository.acceptOffer(offerId)
+                    val booking = repository.acceptOffer(
+                        offerId,
+                        AcceptOfferOptions(shippingAddress = shippingAddress, rsvpGuests = rsvpGuests)
+                    )
                     bookings = listOf(booking) + bookings.filter { it.id != booking.id }
                 }
             }.onFailure { error ->
                 lastSyncError = error.message
+            }
+        }
+    }
+
+    fun cancelBooking(bookingId: String) {
+        viewModelScope.launch {
+            runCatching {
+                repository.cancelBooking(bookingId)
+                bookings = bookings.filter { it.id != bookingId }
+                loadPendingCollaborationRequests()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun loadConversations() {
+        if (!repository.usesRemoteBackend || !isAuthenticated) return
+        viewModelScope.launch {
+            runCatching {
+                conversations = repository.fetchConversations()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    suspend fun fetchConversationMessages(conversationId: String): List<ChatMessage> =
+        repository.fetchConversationMessages(conversationId)
+
+    suspend fun sendConversationMessage(conversationId: String, body: String): ChatMessage =
+        repository.sendConversationMessage(conversationId, body)
+
+    fun loadPendingCollaborationRequests() {
+        if (!repository.usesRemoteBackend || !isAuthenticated) return
+        viewModelScope.launch {
+            runCatching {
+                pendingCollaborationRequests = repository.fetchPendingCollaborationRequests()
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun creatorAcceptCollaboration(requestId: String) {
+        viewModelScope.launch {
+            runCatching {
+                val booking = repository.creatorAcceptCollaboration(requestId)
+                bookings = listOf(booking) + bookings.filter { it.id != booking.id }
+                pendingCollaborationRequests = pendingCollaborationRequests.filter { it.id != requestId }
+            }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun submitCreatorReview(
+        bookingId: String,
+        hospitality: Int,
+        experience: Int,
+        comment: String,
+        onResult: (Boolean) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                repository.submitCreatorReview(bookingId, hospitality, experience, comment)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
             }
         }
     }
