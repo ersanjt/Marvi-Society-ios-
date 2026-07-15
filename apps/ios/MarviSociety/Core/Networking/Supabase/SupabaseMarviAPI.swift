@@ -331,6 +331,21 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         if let venueID {
             body["p_venue_id"] = venueID.uuidString
         }
+        if !input.imageName.isEmpty {
+            body["p_image_name"] = input.imageName
+        }
+        if !input.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_description"] = input.description
+        }
+        if !input.timeLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_time_label"] = input.timeLabel
+        }
+        if !input.requirements.isEmpty {
+            body["p_requirements"] = input.requirements
+        }
+        if !input.hostNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_host_note"] = input.hostNote
+        }
 
         struct OfferIDRow: Decodable { let id: UUID }
 
@@ -364,6 +379,28 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             status: .review,
             deliverables: input.deliverables
         )
+    }
+
+    func uploadVenueCampaignImage(data: Data, fileName: String, venueID: UUID) async throws -> String {
+        let path = "\(venueID.uuidString)/campaigns/\(UUID().uuidString)-\(fileName)"
+        _ = try await client.uploadObject(
+            bucket: "venue-media",
+            path: path,
+            data: data,
+            contentType: "image/jpeg"
+        )
+        guard let base = APIConfig.supabaseURL else { return path }
+        var components = URLComponents(
+            url: base
+                .appending(path: "storage/v1/object/public/venue-media")
+                .appending(path: path),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "v", value: String(Int(Date().timeIntervalSince1970)))]
+        return components?.url?.absoluteString ?? base
+            .appending(path: "storage/v1/object/public/venue-media")
+            .appending(path: path)
+            .absoluteString
     }
 
     func fetchMyVenues() async throws -> [VenueSummary] {

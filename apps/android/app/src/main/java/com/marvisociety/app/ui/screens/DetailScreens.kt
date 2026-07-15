@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -20,11 +22,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.marvisociety.app.data.ChatMessage
 import com.marvisociety.app.data.Offer
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.OfferImagery
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
@@ -36,11 +42,38 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
     val accepted = offer.id in viewModel.acceptedOfferIds
     MarviScreen {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            AsyncImage(
+                model = OfferImagery.imageUrl(offer),
+                contentDescription = offer.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(190.dp)
+                    .clip(RoundedCornerShape(14.dp)),
+                contentScale = ContentScale.Crop
+            )
             Text(offer.title, style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
             Text("${offer.venue} · ${offer.area}", color = MarviColor.Muted)
             Text("${offer.dateLabel} ${offer.timeLabel}".trim(), color = MarviColor.Graphite)
             Text(offer.valueLabel, color = MarviColor.Rose, fontWeight = FontWeight.SemiBold)
             if (offer.description.isNotEmpty()) Text(offer.description, color = MarviColor.Ink)
+            if (offer.deliverables.isNotEmpty()) {
+                MarviCard {
+                    Text(viewModel.t(MarviL10n.Key.DELIVERABLES_HINT), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    offer.deliverables.forEach { Text("• $it", color = MarviColor.Graphite) }
+                }
+            }
+            if (offer.requirements.isNotEmpty()) {
+                MarviCard {
+                    Text(viewModel.t(MarviL10n.Key.REQUIREMENTS_HINT), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    offer.requirements.forEach { Text("• $it", color = MarviColor.Graphite) }
+                }
+            }
+            if (offer.hostNote.isNotBlank()) {
+                MarviCard {
+                    Text(viewModel.t(MarviL10n.Key.HOST_NOTE), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    Text(offer.hostNote, color = MarviColor.Graphite)
+                }
+            }
             if (!accepted) {
                 val canAccept = viewModel.canAcceptOffers
                 viewModel.acceptBlockedReason?.takeIf { !canAccept }?.let { reason ->

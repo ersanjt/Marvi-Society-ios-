@@ -43,6 +43,7 @@ protocol MarviAPI: Sendable {
     func registerVenueLocation(_ input: RegisterVenueInput) async throws -> VenueSummary
     func fetchCampaigns() async throws -> [Campaign]
     func createCampaign(_ input: CreateCampaignInput, venueID: UUID?) async throws -> Campaign
+    func uploadVenueCampaignImage(data: Data, fileName: String, venueID: UUID) async throws -> String
     func fetchVenueSummary() async throws -> VenueSummary?
     func hasVenueProfile() async throws -> Bool
 
@@ -202,6 +203,13 @@ extension MarviAPI {
         _ = input
         _ = venueID
         throw MarviAPIError.server(message: "Campaigns require Supabase mode")
+    }
+
+    func uploadVenueCampaignImage(data: Data, fileName: String, venueID: UUID) async throws -> String {
+        _ = data
+        _ = fileName
+        _ = venueID
+        throw MarviAPIError.server(message: "Campaign media requires Supabase mode")
     }
 
     func fetchMyVenues() async throws -> [VenueSummary] { [] }

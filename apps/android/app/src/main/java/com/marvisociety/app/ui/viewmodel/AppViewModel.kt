@@ -569,6 +569,55 @@ class AppViewModel(
         }
     }
 
+    suspend fun createCampaign(
+        title: String,
+        model: CollaborationModel,
+        dateLabel: String,
+        valueLabel: String,
+        slots: Int,
+        deliverables: List<String>,
+        imageUri: android.net.Uri? = null,
+        description: String = "",
+        timeLabel: String = "Flexible",
+        requirements: List<String> = emptyList(),
+        hostNote: String = ""
+    ): Boolean {
+        return runCatching {
+            lastSyncError = null
+            val venue = myVenues.firstOrNull { it.isActive } ?: myVenues.firstOrNull()
+                ?: throw MarviApiException("No venue profile linked")
+            var imageName = ""
+            if (imageUri != null) {
+                val bytes = ImageUploadHelper.prepareJpeg(
+                    getApplication(),
+                    imageUri,
+                    ImageUploadHelper.Profile.COVER
+                )
+                imageName = repository.uploadVenueCampaignImage(venue.id, bytes, "campaign.jpg")
+            }
+            repository.createCampaign(
+                title = title,
+                category = venue.category.api,
+                model = model.api,
+                dateLabel = dateLabel,
+                valueLabel = valueLabel.ifBlank { "Complimentary experience" },
+                slots = slots,
+                deliverables = deliverables,
+                venueId = venue.id,
+                imageName = imageName,
+                description = description,
+                timeLabel = timeLabel.ifBlank { "Flexible" },
+                requirements = requirements,
+                hostNote = hostNote
+            )
+            campaigns = repository.fetchCampaigns()
+            true
+        }.getOrElse { error ->
+            lastSyncError = error.message
+            false
+        }
+    }
+
     fun searchMembers(query: String?) {
         viewModelScope.launch {
             runCatching {

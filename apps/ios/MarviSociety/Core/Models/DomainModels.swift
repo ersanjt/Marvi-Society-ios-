@@ -718,6 +718,11 @@ struct CreateCampaignInput: Sendable {
     let valueLabel: String
     let slots: Int
     let deliverables: [String]
+    var imageName: String = ""
+    var description: String = ""
+    var timeLabel: String = "Flexible"
+    var requirements: [String] = []
+    var hostNote: String = ""
 }
 
 struct Campaign: Codable, Identifiable, Hashable {

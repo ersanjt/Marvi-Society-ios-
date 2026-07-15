@@ -1,4 +1,6 @@
+import PhotosUI
 import SwiftUI
+import UIKit
 
 private enum VenueReviewSegment: CaseIterable, Identifiable {
     case checkedIn, checkedOut, noShow
@@ -691,9 +693,16 @@ private struct CampaignBuilderSheet: View {
     @State private var campaignDate = Date().addingTimeInterval(86400 * 7)
     @State private var valueLabel = ""
     @State private var deliverablesText = ""
+    @State private var descriptionText = ""
+    @State private var timeLabel = ""
+    @State private var requirementsText = ""
+    @State private var hostNoteText = ""
     @State private var slots = 10.0
     @State private var isSubmitting = false
     @State private var venueLocked = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var photoData: Data?
+    @State private var photoPreview: UIImage?
 
     var body: some View {
         NavigationStack {
@@ -703,6 +712,38 @@ private struct CampaignBuilderSheet: View {
 
                     MarviCard {
                         VStack(alignment: .leading, spacing: 14) {
+                            Text(appState.t(.campaignImageLabel))
+                                .font(.caption.weight(.bold))
+                                .textCase(.uppercase)
+                                .foregroundStyle(MarviColor.muted)
+
+                            PhotosPicker(selection: $photoItem, matching: .images) {
+                                ZStack {
+                                    if let photoPreview {
+                                        Image(uiImage: photoPreview)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        MarviColor.panelElevated
+                                        Label(appState.t(.addCampaignPhoto), systemImage: "photo.on.rectangle")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(MarviColor.rose)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 160)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            }
+                            .onChange(of: photoItem) { _, item in
+                                Task {
+                                    guard let item,
+                                          let data = try? await item.loadTransferable(type: Data.self),
+                                          let image = UIImage(data: data) else { return }
+                                    photoData = data
+                                    photoPreview = image
+                                }
+                            }
+
                             MarviTextField(placeholder: appState.t(.campaignTitlePh), text: $title)
                             MarviTextField(placeholder: appState.t(.venueNamePh), text: $venueName)
                                 .disabled(venueLocked)
@@ -716,8 +757,12 @@ private struct CampaignBuilderSheet: View {
                             )
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(MarviColor.ink)
+                            MarviTextField(placeholder: appState.t(.campaignTimePh), text: $timeLabel)
                             MarviTextField(placeholder: appState.t(.valuePh), text: $valueLabel)
+                            MarviTextField(placeholder: appState.t(.campaignDescriptionPh), text: $descriptionText)
                             MarviTextField(placeholder: appState.t(.deliverablesPh), text: $deliverablesText)
+                            MarviTextField(placeholder: appState.t(.campaignRequirementsPh), text: $requirementsText)
+                            MarviTextField(placeholder: appState.t(.campaignHostNotePh), text: $hostNoteText)
 
                             Text(appState.t(.collaborationModelLabel))
                                 .font(.caption.weight(.bold))
@@ -773,7 +818,12 @@ private struct CampaignBuilderSheet: View {
                                 dateLabel: Self.dateFormatter.string(from: campaignDate),
                                 valueLabel: valueLabel.isEmpty ? "Complimentary experience" : valueLabel,
                                 slots: Int(slots),
-                                deliverables: campaignDeliverables
+                                deliverables: campaignDeliverables,
+                                imageData: photoData,
+                                description: descriptionText,
+                                timeLabel: timeLabel.isEmpty ? "Flexible" : timeLabel,
+                                requirements: campaignRequirements,
+                                hostNote: hostNoteText
                             )
                             isSubmitting = false
                             if success { dismiss() }
@@ -808,6 +858,13 @@ private struct CampaignBuilderSheet: View {
 
     private var campaignDeliverables: [String] {
         deliverablesText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    private var campaignRequirements: [String] {
+        requirementsText
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }

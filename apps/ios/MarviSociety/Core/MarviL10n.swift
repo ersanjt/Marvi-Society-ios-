@@ -177,6 +177,7 @@ enum MarviL10n {
         case reviewAlreadySubmitted, submitReview, creatorReviewNav
         case newCampaign, newCampaignSub, campaignTitlePh, venueNamePh, areaPh, eventDateLabel
         case valuePh, deliverablesPh, sendToAdminReview, createNav
+        case campaignDescriptionPh, campaignTimePh, campaignRequirementsPh, campaignHostNotePh, campaignImageLabel, addCampaignPhoto
         case segmentCheckedIn, segmentCheckedOut, segmentNoShow, tabEstablishments, tabBrands
         case followersCount, creatorSlotsVenue
         case myLocations, myLocationsSub, addLocation, addLocationSub, selectLocation
@@ -575,6 +576,12 @@ enum MarviL10n {
         .eventDateLabel: "Event date", .valuePh: "Value (e.g. Dinner for 2)",
         .deliverablesPh: "Deliverables, comma separated",
         .sendToAdminReview: "Send to admin review", .createNav: "Create",
+        .campaignDescriptionPh: "Description for creators",
+        .campaignTimePh: "Time (e.g. 19:00–22:00)",
+        .campaignRequirementsPh: "Requirements, comma separated",
+        .campaignHostNotePh: "Note for creators (optional)",
+        .campaignImageLabel: "Campaign photo",
+        .addCampaignPhoto: "Add photo",
         .segmentCheckedIn: "Checked in", .segmentCheckedOut: "Checked out", .segmentNoShow: "No show",
         .tabEstablishments: "Establishments", .tabBrands: "Brands",
         .followersCount: "%d followers", .creatorSlotsVenue: "%@ · %d creator slots",
@@ -989,6 +996,12 @@ enum MarviL10n {
         .eventDateLabel: "Etkinlik tarihi", .valuePh: "Değer (ör. 2 kişilik akşam yemeği)",
         .deliverablesPh: "Teslim edilecekler, virgülle ayır",
         .sendToAdminReview: "Admin incelemesine gönder", .createNav: "Oluştur",
+        .campaignDescriptionPh: "Üreticiler için açıklama",
+        .campaignTimePh: "Saat (ör. 19:00–22:00)",
+        .campaignRequirementsPh: "Gereksinimler, virgülle ayır",
+        .campaignHostNotePh: "Üreticilere not (opsiyonel)",
+        .campaignImageLabel: "Kampanya fotoğrafı",
+        .addCampaignPhoto: "Fotoğraf ekle",
         .segmentCheckedIn: "Check-in yapıldı", .segmentCheckedOut: "Check-out", .segmentNoShow: "Gelmedi",
         .tabEstablishments: "Mekânlar", .tabBrands: "Markalar",
         .followersCount: "%d takipçi", .creatorSlotsVenue: "%@ · %d creator kontenjanı",

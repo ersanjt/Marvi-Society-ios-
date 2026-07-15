@@ -1250,23 +1250,45 @@ final class AppState: ObservableObject {
         dateLabel: String,
         valueLabel: String,
         slots: Int,
-        deliverables: [String]
+        deliverables: [String],
+        imageData: Data? = nil,
+        description: String = "",
+        timeLabel: String = "Flexible",
+        requirements: [String] = [],
+        hostNote: String = ""
     ) async -> Bool {
-        let input = CreateCampaignInput(
-            title: title,
-            category: category,
-            collaborationModel: collaborationModel,
-            dateLabel: dateLabel,
-            valueLabel: valueLabel,
-            slots: slots,
-            deliverables: deliverables
-        )
-
         isSyncing = true
         lastSyncError = nil
         defer { isSyncing = false }
 
         do {
+            var imageName = ""
+            if let imageData, let venueID = activeVenue?.id ?? (try? await api.fetchVenueSummary())?.id {
+                guard let prepared = ImageUploadPreprocessor.prepare(imageData, profile: .cover) else {
+                    throw MarviAPIError.server(message: "Could not process campaign photo")
+                }
+                imageName = try await api.uploadVenueCampaignImage(
+                    data: prepared,
+                    fileName: "campaign.jpg",
+                    venueID: venueID
+                )
+            }
+
+            let input = CreateCampaignInput(
+                title: title,
+                category: category,
+                collaborationModel: collaborationModel,
+                dateLabel: dateLabel,
+                valueLabel: valueLabel,
+                slots: slots,
+                deliverables: deliverables,
+                imageName: imageName,
+                description: description,
+                timeLabel: timeLabel,
+                requirements: requirements,
+                hostNote: hostNote
+            )
+
             let campaign = try await api.createCampaign(input, venueID: activeVenue?.id)
             campaigns.insert(campaign, at: 0)
             await refreshFromServer()

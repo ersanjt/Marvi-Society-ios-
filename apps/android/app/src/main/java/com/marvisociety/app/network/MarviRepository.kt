@@ -4,8 +4,10 @@ import com.marvisociety.app.data.*
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -139,6 +141,56 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             contentType = "image/jpeg"
         )
         return client.publicStorageUrl("profile-media", path)
+    }
+
+    /** Uploads campaign cover to public `venue-media` and returns a cache-busted public URL. */
+    suspend fun uploadVenueCampaignImage(venueId: String, imageData: ByteArray, fileName: String): String {
+        val path = "$venueId/campaigns/${System.currentTimeMillis()}-$fileName"
+        client.uploadObject(
+            bucket = "venue-media",
+            path = path,
+            data = imageData,
+            contentType = "image/jpeg"
+        )
+        return client.publicStorageUrl("venue-media", path)
+    }
+
+    suspend fun createCampaign(
+        title: String,
+        category: String,
+        model: String,
+        dateLabel: String,
+        valueLabel: String,
+        slots: Int,
+        deliverables: List<String>,
+        venueId: String?,
+        imageName: String = "",
+        description: String = "",
+        timeLabel: String = "Flexible",
+        requirements: List<String> = emptyList(),
+        hostNote: String = ""
+    ): String {
+        val body = buildJsonObject {
+            put("p_title", title)
+            put("p_category", category)
+            put("p_model", model)
+            put("p_date_label", dateLabel)
+            put("p_value_label", valueLabel)
+            put("p_slots", slots)
+            putJsonArray("p_deliverables") { deliverables.forEach { add(it) } }
+            if (!venueId.isNullOrBlank()) put("p_venue_id", venueId)
+            if (imageName.isNotBlank()) put("p_image_name", imageName)
+            if (description.isNotBlank()) put("p_description", description)
+            if (timeLabel.isNotBlank()) put("p_time_label", timeLabel)
+            if (requirements.isNotEmpty()) {
+                putJsonArray("p_requirements") { requirements.forEach { add(it) } }
+            }
+            if (hostNote.isNotBlank()) put("p_host_note", hostNote)
+        }
+        val row = client.rpcJson("submit_campaign_for_review", body)
+        return row.asObjectOrNull()?.string("id")
+            ?: row.toString().trim('"').takeIf { it.isNotBlank() && it != "null" }
+            ?: throw MarviApiException("Campaign submit returned empty id")
     }
 
     suspend fun fetchNotifications(): List<InboxMessage> {

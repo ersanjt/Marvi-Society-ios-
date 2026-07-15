@@ -145,6 +145,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func registerVenueLocation(_ input: RegisterVenueInput) async throws -> VenueSummary { throw notConfigured() }
     func fetchCampaigns() async throws -> [Campaign] { throw notConfigured() }
     func createCampaign(_ input: CreateCampaignInput, venueID: UUID?) async throws -> Campaign { throw notConfigured() }
+    func uploadVenueCampaignImage(data: Data, fileName: String, venueID: UUID) async throws -> String { throw notConfigured() }
     func fetchVenueSummary() async throws -> VenueSummary? { throw notConfigured() }
     func hasVenueProfile() async throws -> Bool { throw notConfigured() }
     func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions) async throws -> Booking { throw notConfigured() }
