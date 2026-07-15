@@ -23,6 +23,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-15T09:22:48Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000025_public_profile_media_urls)"
+    },
+    {
+      "at": "2026-07-15T09:20:29Z",
+      "status": "ok",
+      "message": "pushed 49c821b to origin/main"
+    },
+    {
       "at": "2026-07-15T09:20:25Z",
       "status": "error",
       "message": "supabase db push failed"
@@ -261,16 +271,6 @@
       "at": "2026-07-13T16:21:31Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000019_fix_email_dispatch_http)"
-    },
-    {
-      "at": "2026-07-13T16:00:51Z",
-      "status": "ok",
-      "message": "pushed 350d59e to origin/main"
-    },
-    {
-      "at": "2026-07-13T16:00:47Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000017_enable_pg_net_dispatch)"
     }
   ],
   "releases": [

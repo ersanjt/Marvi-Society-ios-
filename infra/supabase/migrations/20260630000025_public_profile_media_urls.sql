@@ -155,6 +155,9 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_creator_public_profile_by_creator_id(UUID) TO authenticated;
 
+-- Changing RETURNS TABLE requires drop first (Postgres cannot alter OUT params in place).
+DROP FUNCTION IF EXISTS public.search_members(TEXT, INTEGER);
+
 CREATE OR REPLACE FUNCTION public.search_members(
     p_query TEXT DEFAULT NULL,
     p_limit INTEGER DEFAULT 30

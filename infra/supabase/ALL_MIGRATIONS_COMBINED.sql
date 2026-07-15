@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-07-15T09:20:11Z
+-- Generated: 2026-07-15T09:22:36Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
@@ -8702,6 +8702,9 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_creator_public_profile_by_creator_id(UUID) TO authenticated;
+
+-- Changing RETURNS TABLE requires drop first (Postgres cannot alter OUT params in place).
+DROP FUNCTION IF EXISTS public.search_members(TEXT, INTEGER);
 
 CREATE OR REPLACE FUNCTION public.search_members(
     p_query TEXT DEFAULT NULL,
