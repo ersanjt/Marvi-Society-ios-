@@ -725,6 +725,28 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             .absoluteString
     }
 
+    /// Persists just the avatar/cover column, independent of the rest of the
+    /// profile form. Keeps photo uploads reliable even if other fields are
+    /// mid-edit or invalid.
+    func updateProfileImageURL(_ url: String, kind: ProfileImageKind) async throws {
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
+
+        // Ensure a row exists — PATCH on zero rows succeeds silently in PostgREST.
+        let _: CreatorProfileHealRow = try await client.rpc(
+            function: "ensure_creator_profile",
+            body: [:]
+        )
+
+        let column = kind == .avatar ? "avatar_url" : "cover_url"
+        try await client.patch(
+            table: "creator_profiles",
+            query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
+            body: [column: url]
+        )
+    }
+
     func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String {
         guard let userID = await client.currentUserID() else {
             throw MarviAPIError.notAuthenticated

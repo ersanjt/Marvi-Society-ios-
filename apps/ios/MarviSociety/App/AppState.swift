@@ -1117,11 +1117,15 @@ final class AppState: ObservableObject {
                 fileName: "\(kind.rawValue).jpg",
                 kind: kind
             )
+            // Persist just the image column so the photo can't be wiped by an
+            // unrelated field or a post-save refetch that races the write.
+            try await api.updateProfileImageURL(url, kind: kind)
             switch kind {
             case .avatar: profile.avatarURL = url
             case .cover: profile.coverURL = url
             }
-            return await saveProfileToServer()
+            lastSyncError = nil
+            return true
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             return false

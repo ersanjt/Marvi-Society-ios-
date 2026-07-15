@@ -62,6 +62,7 @@ protocol MarviAPI: Sendable {
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws
     func submitCreatorReview(bookingID: UUID, hospitality: Int, experience: Int, comment: String) async throws
     func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String
+    func updateProfileImageURL(_ url: String, kind: ProfileImageKind) async throws
     func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String
     func fetchMyShowcase() async throws -> [ShowcaseItem]
     func fetchShowcase(userID: UUID) async throws -> [ShowcaseItem]
@@ -133,6 +134,11 @@ extension MarviAPI {
 
     func updateProfile(_ profile: CreatorProfile) async throws {
         _ = profile
+    }
+
+    func updateProfileImageURL(_ url: String, kind: ProfileImageKind) async throws {
+        _ = url
+        _ = kind
     }
 
     func validateReferralCode(_ code: String) async throws -> Bool {
