@@ -105,7 +105,7 @@ private fun BookingCard(booking: Booking, viewModel: AppViewModel) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(booking.offer.title, style = MaterialTheme.typography.titleMedium, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
                 Text("${booking.offer.venue} · ${booking.offer.area}", style = MaterialTheme.typography.bodySmall, color = MarviColor.Muted)
-                StatusPill(stageLabel(booking.stage, viewModel), stageTint(booking.stage))
+                StatusPill(viewModel.stageLabel(booking.stage), stageTint(booking.stage))
                 if (booking.proofDeadline.isNotEmpty()) {
                     Text(booking.proofDeadline, style = MaterialTheme.typography.bodySmall, color = MarviColor.Graphite)
                 }
@@ -167,15 +167,6 @@ private fun BookingCard(booking: Booking, viewModel: AppViewModel) {
             else -> Unit
         }
     }
-}
-
-private fun stageLabel(stage: BookingStage, viewModel: AppViewModel): String = when (stage) {
-    BookingStage.INVITED -> viewModel.t(MarviL10n.Key.STAGE_INVITED)
-    BookingStage.CONFIRMED -> viewModel.t(MarviL10n.Key.STAGE_CONFIRMED)
-    BookingStage.CHECKED_IN -> viewModel.t(MarviL10n.Key.STAGE_CHECKED_IN)
-    BookingStage.PROOF_DUE -> viewModel.t(MarviL10n.Key.STAGE_PROOF_DUE)
-    BookingStage.COMPLETED -> viewModel.t(MarviL10n.Key.STAGE_COMPLETED)
-    BookingStage.CANCELLED -> "Cancelled"
 }
 
 private fun stageTint(stage: BookingStage) = when (stage) {

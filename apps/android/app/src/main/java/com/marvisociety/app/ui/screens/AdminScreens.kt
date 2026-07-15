@@ -83,18 +83,18 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
             items(viewModel.adminInviteCodes, key = { it.code }) { code ->
                 MarviCard {
                     Text(code.code, fontWeight = FontWeight.Bold, color = MarviColor.Rose)
-                    Text("${code.useCount}/${code.maxUses} uses · ${code.ownerType}", color = MarviColor.Muted)
+                    Text("${code.useCount}/${code.maxUses} ${viewModel.t(MarviL10n.Key.USES_SUFFIX)} · ${code.ownerType}", color = MarviColor.Muted)
                     code.inviteEmail?.let { Text(it, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall) }
                 }
             }
             item {
-                Text("Users", fontWeight = FontWeight.SemiBold, color = MarviColor.Ink, modifier = Modifier.padding(top = 8.dp))
+                Text(viewModel.t(MarviL10n.Key.ADMIN_USERS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink, modifier = Modifier.padding(top = 8.dp))
             }
             items(viewModel.adminUsers, key = { it.id }) { user ->
                 MarviCard {
                     Text(user.fullName.ifBlank { user.email }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                     Text("${user.email} · ${user.city}", color = MarviColor.Muted)
-                    Text(user.role.label, color = MarviColor.Rose)
+                    Text(viewModel.roleLabel(user.role), color = MarviColor.Rose)
                 }
             }
         }
@@ -158,8 +158,8 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
             items(viewModel.myVenues, key = { it.id }) { venue ->
                 MarviCard {
                     Text(venue.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                    Text("${venue.area} · ${venue.category.name}", color = MarviColor.Muted)
-                    if (venue.isActive) Text("Active", color = MarviColor.Emerald)
+                    Text("${venue.area} · ${viewModel.categoryLabel(venue.category)}", color = MarviColor.Muted)
+                    if (venue.isActive) Text(viewModel.t(MarviL10n.Key.VENUE_ACTIVE), color = MarviColor.Emerald)
                 }
             }
             item {
@@ -263,7 +263,7 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
                                 FilterChip(
                                     selected = model == option,
                                     onClick = { model = option },
-                                    label = { Text(option.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                    label = { Text(viewModel.modelLabel(option)) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
                                         selectedLabelColor = MarviColor.Rose
@@ -275,7 +275,7 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
                             onClick = {
                                 val lines = deliverables.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() }
                                 if (title.isBlank() || lines.isEmpty()) {
-                                    formError = "Title and deliverables required"
+                                    formError = viewModel.t(MarviL10n.Key.ERR_TITLE_DELIVERABLES)
                                     return@Button
                                 }
                                 formError = null
@@ -284,13 +284,13 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
                                     val ok = viewModel.createCampaign(
                                         title = title.trim(),
                                         model = model,
-                                        dateLabel = dateLabel.ifBlank { "TBD" },
+                                        dateLabel = dateLabel.ifBlank { viewModel.t(MarviL10n.Key.VALUE_TBD) },
                                         valueLabel = valueLabel,
                                         slots = slots.toIntOrNull()?.coerceIn(1, 30) ?: 5,
                                         deliverables = lines,
                                         imageUri = imageUri,
                                         description = description,
-                                        timeLabel = timeLabel.ifBlank { "Flexible" },
+                                        timeLabel = timeLabel.ifBlank { viewModel.t(MarviL10n.Key.VALUE_FLEXIBLE) },
                                         requirements = requirements.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() },
                                         hostNote = hostNote
                                     )

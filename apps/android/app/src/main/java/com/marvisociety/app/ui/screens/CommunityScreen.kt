@@ -155,7 +155,7 @@ private fun MemberCard(member: MemberSearchResult, viewModel: AppViewModel, onCl
                 Text(member.displayName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                 Text("@${member.handle} · ${member.city}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    if (member.isVenue) "Venue" else "Creator",
+                    if (member.isVenue) viewModel.t(MarviL10n.Key.VENUE_TAG) else viewModel.t(MarviL10n.Key.CREATOR_TAG),
                     color = MarviColor.Rose,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold

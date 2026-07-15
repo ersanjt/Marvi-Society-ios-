@@ -160,7 +160,7 @@ fun MemberProfileScreen(
 
             venueProfile?.let { profile ->
                 MarviCard {
-                    Text("${profile.area} · ${profile.category.name}", color = MarviColor.Muted)
+                    Text("${profile.area} · ${viewModel.categoryLabel(profile.category)}", color = MarviColor.Muted)
                     Text(profile.bio, color = MarviColor.Ink)
                 }
             }

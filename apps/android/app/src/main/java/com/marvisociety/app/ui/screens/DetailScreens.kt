@@ -103,8 +103,8 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        StatusPill(offer.modelLabel, MarviColor.Rose)
-                        StatusPill("${offer.remaining} slots", MarviColor.Gold)
+                        StatusPill(viewModel.modelLabel(offer.collaborationModel), MarviColor.Rose)
+                        StatusPill("${offer.remaining} ${viewModel.t(MarviL10n.Key.SLOTS_SUFFIX)}", MarviColor.Gold)
                     }
                     Column(
                         modifier = Modifier
@@ -124,46 +124,46 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.weight(1f)) {
-                            MetricTile(offer.dateLabel.ifBlank { "TBD" }, "Date", MarviColor.Rose)
+                            MetricTile(offer.dateLabel.ifBlank { viewModel.t(MarviL10n.Key.VALUE_TBD) }, viewModel.t(MarviL10n.Key.METRIC_DATE), MarviColor.Rose)
                         }
                         Box(modifier = Modifier.weight(1f)) {
-                            MetricTile(offer.timeLabel.ifBlank { "Flexible" }, "Time", MarviColor.Aubergine)
+                            MetricTile(offer.timeLabel.ifBlank { viewModel.t(MarviL10n.Key.VALUE_FLEXIBLE) }, viewModel.t(MarviL10n.Key.METRIC_TIME), MarviColor.Aubergine)
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.weight(1f)) {
-                            MetricTile(offer.valueLabel, "Value", MarviColor.Gold)
+                            MetricTile(offer.valueLabel, viewModel.t(MarviL10n.Key.METRIC_VALUE), MarviColor.Gold)
                         }
                         Box(modifier = Modifier.weight(1f)) {
-                            MetricTile("${offer.remaining}/${offer.capacity}", "Slots", MarviColor.Emerald)
+                            MetricTile("${offer.remaining}/${offer.capacity}", viewModel.t(MarviL10n.Key.METRIC_SLOTS), MarviColor.Emerald)
                         }
                     }
-                    Text("Capacity", style = MaterialTheme.typography.labelMedium, color = MarviColor.Muted)
+                    Text(viewModel.t(MarviL10n.Key.CAPACITY), style = MaterialTheme.typography.labelMedium, color = MarviColor.Muted)
                     ProgressBar(filled)
                 }
 
                 if (offer.deliverables.isNotEmpty()) {
                     MarviCard {
-                        Text("Deliverables", style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.DELIVERABLES_TITLE), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink)
                         offer.deliverables.forEach { Text("• $it", color = MarviColor.Graphite, style = MaterialTheme.typography.bodyMedium) }
                     }
                 }
                 if (offer.requirements.isNotEmpty()) {
                     MarviCard {
-                        Text("Requirements", style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.REQUIREMENTS_TITLE), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink)
                         offer.requirements.forEach { Text("• $it", color = MarviColor.Graphite, style = MaterialTheme.typography.bodyMedium) }
                     }
                 }
                 if (offer.hostNote.isNotBlank()) {
                     MarviCard {
-                        Text("Host note", style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.HOST_NOTE_TITLE), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink)
                         Text(offer.hostNote, color = MarviColor.Graphite, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    InfoBadge(offer.category.name.lowercase().replaceFirstChar { it.uppercase() })
-                    InfoBadge(offer.modelLabel)
+                    InfoBadge(viewModel.categoryLabel(offer.category))
+                    InfoBadge(viewModel.modelLabel(offer.collaborationModel))
                 }
 
                 Spacer(Modifier.height(80.dp))
@@ -188,7 +188,7 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                         icon = Icons.Default.Check
                     )
                 } else {
-                    StatusPill("Already accepted", MarviColor.Emerald)
+                    StatusPill(viewModel.t(MarviL10n.Key.ALREADY_ACCEPTED), MarviColor.Emerald)
                 }
                 SecondaryActionButton(title = viewModel.t(MarviL10n.Key.CLOSE), onClick = onBack)
             }

@@ -178,6 +178,18 @@ class AppViewModel(
 
     fun t(key: MarviL10n.Key): String = MarviL10n.t(key, preferredLanguage)
 
+    fun categoryLabel(category: com.marvisociety.app.data.OfferCategory): String =
+        MarviL10n.categoryLabel(category, preferredLanguage)
+
+    fun modelLabel(model: com.marvisociety.app.data.CollaborationModel): String =
+        MarviL10n.modelLabel(model, preferredLanguage)
+
+    fun stageLabel(stage: com.marvisociety.app.data.BookingStage): String =
+        MarviL10n.stageLabel(stage, preferredLanguage)
+
+    fun roleLabel(role: UserRole): String =
+        MarviL10n.roleLabel(role, preferredLanguage)
+
     fun setWorkspaceTab(index: Int) {
         workspaceTabIndex = index
     }
@@ -600,13 +612,13 @@ class AppViewModel(
                 category = venue.category.api,
                 model = model.api,
                 dateLabel = dateLabel,
-                valueLabel = valueLabel.ifBlank { "Complimentary experience" },
+                valueLabel = valueLabel.ifBlank { t(MarviL10n.Key.CAMPAIGN_DEFAULT_VALUE) },
                 slots = slots,
                 deliverables = deliverables,
                 venueId = venue.id,
                 imageName = imageName,
                 description = description,
-                timeLabel = timeLabel.ifBlank { "Flexible" },
+                timeLabel = timeLabel.ifBlank { t(MarviL10n.Key.VALUE_FLEXIBLE) },
                 requirements = requirements,
                 hostNote = hostNote
             )

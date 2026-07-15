@@ -91,7 +91,7 @@ fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
                     )
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            "Up next in ",
+                            viewModel.t(MarviL10n.Key.UP_NEXT_IN),
                             style = MaterialTheme.typography.displaySmall,
                             color = MarviColor.Ink
                         )
@@ -103,7 +103,7 @@ fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
                         )
                     }
                     Text(
-                        "${displayed.size} events",
+                        "${displayed.size} ${viewModel.t(MarviL10n.Key.EVENTS_SUFFIX)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MarviColor.Rose,
                         fontWeight = FontWeight.SemiBold
@@ -140,14 +140,14 @@ fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     item {
                         FilterChipPill(
-                            label = "All",
+                            label = viewModel.t(MarviL10n.Key.CATEGORY_ALL),
                             selected = categoryFilter == null,
                             onClick = { categoryFilter = null }
                         )
                     }
                     items(OfferCategory.entries) { cat ->
                         FilterChipPill(
-                            label = cat.name.lowercase().replaceFirstChar { it.uppercase() },
+                            label = viewModel.categoryLabel(cat),
                             selected = categoryFilter == cat,
                             onClick = { categoryFilter = cat }
                         )
@@ -168,6 +168,8 @@ fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
                         offer = offer,
                         saved = offer.id in viewModel.savedOfferIds,
                         accepted = offer.id in viewModel.acceptedOfferIds,
+                        modelLabel = viewModel.modelLabel(offer.collaborationModel),
+                        acceptedLabel = viewModel.t(MarviL10n.Key.ACCEPTED_LABEL),
                         onClick = { onOfferClick(offer) },
                         onToggleSaved = { viewModel.toggleSaved(offer.id) }
                     )
@@ -225,6 +227,8 @@ private fun EventListCard(
     offer: Offer,
     saved: Boolean,
     accepted: Boolean,
+    modelLabel: String,
+    acceptedLabel: String,
     onClick: () -> Unit,
     onToggleSaved: () -> Unit
 ) {
@@ -269,8 +273,8 @@ private fun EventListCard(
                 maxLines = 1
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                StatusPill(offer.modelLabel, MarviColor.Aubergine)
-                if (accepted) StatusPill("Accepted", MarviColor.Emerald)
+                StatusPill(modelLabel, MarviColor.Aubergine)
+                if (accepted) StatusPill(acceptedLabel, MarviColor.Emerald)
             }
         }
         Box(

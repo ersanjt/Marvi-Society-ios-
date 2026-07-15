@@ -37,7 +37,16 @@ object MarviL10n {
         CHOOSE_PATH, JOIN_AS_CREATOR, JOIN_AS_CREATOR_SUB, JOIN_AS_BUSINESS, JOIN_AS_BUSINESS_SUB,
         ALREADY_MEMBER, CONTINUE, BACK, INVITE_ACCEPTED, RESET_EMAIL_SENT,
         VENUE_SETUP_TITLE, VENUE_SETUP_SUB, VENUE_NAME, VENUE_AREA,
-        AGREEMENT_TITLE, AGREEMENT_SUB, AGE_CONFIRM, TERMS_CONFIRM, AGREE_REQUIRED
+        AGREEMENT_TITLE, AGREEMENT_SUB, AGE_CONFIRM, TERMS_CONFIRM, AGREE_REQUIRED,
+        CATEGORY_ALL, CATEGORY_DINING, CATEGORY_NIGHTLIFE, CATEGORY_WELLNESS,
+        CATEGORY_BEAUTY, CATEGORY_FITNESS, CATEGORY_RETAIL,
+        MODEL_INVITATION, MODEL_EVENT, MODEL_GIFT, MODEL_INSTANT,
+        METRIC_DATE, METRIC_TIME, METRIC_VALUE, METRIC_SLOTS, CAPACITY,
+        DELIVERABLES_TITLE, REQUIREMENTS_TITLE, HOST_NOTE_TITLE,
+        VALUE_TBD, VALUE_FLEXIBLE, SLOTS_SUFFIX, ALREADY_ACCEPTED, ACCEPTED_LABEL,
+        EVENTS_SUFFIX, UP_NEXT_IN, STAGE_CANCELLED, ADMIN_USERS, USES_SUFFIX,
+        VENUE_ACTIVE, ERR_TITLE_DELIVERABLES, VENUE_TAG, CREATOR_TAG,
+        SCORE_LABEL, CAMPAIGN_DEFAULT_VALUE
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -204,7 +213,42 @@ object MarviL10n {
         Key.AGREEMENT_SUB to "Confirm you are 18+ and accept the community rules.",
         Key.AGE_CONFIRM to "I confirm I am 18 or older",
         Key.TERMS_CONFIRM to "I agree to the Terms, Privacy Policy, and Community Guidelines",
-        Key.AGREE_REQUIRED to "Please confirm age and terms to continue."
+        Key.AGREE_REQUIRED to "Please confirm age and terms to continue.",
+        Key.CATEGORY_ALL to "All",
+        Key.CATEGORY_DINING to "Dining",
+        Key.CATEGORY_NIGHTLIFE to "Nightlife",
+        Key.CATEGORY_WELLNESS to "Wellness",
+        Key.CATEGORY_BEAUTY to "Beauty",
+        Key.CATEGORY_FITNESS to "Fitness",
+        Key.CATEGORY_RETAIL to "Retail",
+        Key.MODEL_INVITATION to "Invitation",
+        Key.MODEL_EVENT to "Event",
+        Key.MODEL_GIFT to "Gift",
+        Key.MODEL_INSTANT to "Instant",
+        Key.METRIC_DATE to "Date",
+        Key.METRIC_TIME to "Time",
+        Key.METRIC_VALUE to "Value",
+        Key.METRIC_SLOTS to "Slots",
+        Key.CAPACITY to "Capacity",
+        Key.DELIVERABLES_TITLE to "Deliverables",
+        Key.REQUIREMENTS_TITLE to "Requirements",
+        Key.HOST_NOTE_TITLE to "Host note",
+        Key.VALUE_TBD to "TBD",
+        Key.VALUE_FLEXIBLE to "Flexible",
+        Key.SLOTS_SUFFIX to "slots",
+        Key.ALREADY_ACCEPTED to "Already accepted",
+        Key.ACCEPTED_LABEL to "Accepted",
+        Key.EVENTS_SUFFIX to "events",
+        Key.UP_NEXT_IN to "Up next in ",
+        Key.STAGE_CANCELLED to "Cancelled",
+        Key.ADMIN_USERS to "Users",
+        Key.USES_SUFFIX to "uses",
+        Key.VENUE_ACTIVE to "Active",
+        Key.ERR_TITLE_DELIVERABLES to "Title and deliverables required",
+        Key.VENUE_TAG to "Venue",
+        Key.CREATOR_TAG to "Creator",
+        Key.SCORE_LABEL to "Score",
+        Key.CAMPAIGN_DEFAULT_VALUE to "Complimentary experience"
     )
 
     private val turkish = mapOf(
@@ -322,6 +366,88 @@ object MarviL10n {
         Key.AGREEMENT_SUB to "18+ olduğunuzu ve topluluk kurallarını kabul ettiğinizi onaylayın.",
         Key.AGE_CONFIRM to "18 yaşında veya daha büyüğüm",
         Key.TERMS_CONFIRM to "Şartlar, Gizlilik Politikası ve Topluluk Kurallarını kabul ediyorum",
-        Key.AGREE_REQUIRED to "Devam etmek için yaş ve şartları onaylayın."
+        Key.AGREE_REQUIRED to "Devam etmek için yaş ve şartları onaylayın.",
+        Key.CATEGORY_ALL to "Tümü",
+        Key.CATEGORY_DINING to "Yeme-İçme",
+        Key.CATEGORY_NIGHTLIFE to "Gece Hayatı",
+        Key.CATEGORY_WELLNESS to "Wellness",
+        Key.CATEGORY_BEAUTY to "Güzellik",
+        Key.CATEGORY_FITNESS to "Fitness",
+        Key.CATEGORY_RETAIL to "Perakende",
+        Key.MODEL_INVITATION to "Davet",
+        Key.MODEL_EVENT to "Etkinlik",
+        Key.MODEL_GIFT to "Hediye",
+        Key.MODEL_INSTANT to "Anında",
+        Key.METRIC_DATE to "Tarih",
+        Key.METRIC_TIME to "Saat",
+        Key.METRIC_VALUE to "Değer",
+        Key.METRIC_SLOTS to "Kontenjan",
+        Key.CAPACITY to "Kapasite",
+        Key.DELIVERABLES_TITLE to "Teslimatlar",
+        Key.REQUIREMENTS_TITLE to "Gereksinimler",
+        Key.HOST_NOTE_TITLE to "Mekân notu",
+        Key.VALUE_TBD to "Belirlenecek",
+        Key.VALUE_FLEXIBLE to "Esnek",
+        Key.SLOTS_SUFFIX to "kontenjan",
+        Key.ALREADY_ACCEPTED to "Zaten kabul edildi",
+        Key.ACCEPTED_LABEL to "Kabul edildi",
+        Key.EVENTS_SUFFIX to "etkinlik",
+        Key.UP_NEXT_IN to "Sırada ",
+        Key.STAGE_CANCELLED to "İptal edildi",
+        Key.ADMIN_USERS to "Kullanıcılar",
+        Key.USES_SUFFIX to "kullanım",
+        Key.VENUE_ACTIVE to "Aktif",
+        Key.ERR_TITLE_DELIVERABLES to "Başlık ve teslimatlar zorunlu",
+        Key.VENUE_TAG to "Mekân",
+        Key.CREATOR_TAG to "Creator",
+        Key.SCORE_LABEL to "Puan",
+        Key.CAMPAIGN_DEFAULT_VALUE to "Ücretsiz deneyim"
     )
+
+    fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =
+        t(
+            when (category) {
+                com.marvisociety.app.data.OfferCategory.DINING -> Key.CATEGORY_DINING
+                com.marvisociety.app.data.OfferCategory.NIGHTLIFE -> Key.CATEGORY_NIGHTLIFE
+                com.marvisociety.app.data.OfferCategory.WELLNESS -> Key.CATEGORY_WELLNESS
+                com.marvisociety.app.data.OfferCategory.BEAUTY -> Key.CATEGORY_BEAUTY
+                com.marvisociety.app.data.OfferCategory.FITNESS -> Key.CATEGORY_FITNESS
+                com.marvisociety.app.data.OfferCategory.RETAIL -> Key.CATEGORY_RETAIL
+            },
+            language
+        )
+
+    fun modelLabel(model: com.marvisociety.app.data.CollaborationModel, language: AppLanguage): String =
+        t(
+            when (model) {
+                com.marvisociety.app.data.CollaborationModel.INVITATION -> Key.MODEL_INVITATION
+                com.marvisociety.app.data.CollaborationModel.EVENT -> Key.MODEL_EVENT
+                com.marvisociety.app.data.CollaborationModel.GIFT -> Key.MODEL_GIFT
+                com.marvisociety.app.data.CollaborationModel.INSTANT -> Key.MODEL_INSTANT
+            },
+            language
+        )
+
+    fun stageLabel(stage: com.marvisociety.app.data.BookingStage, language: AppLanguage): String =
+        t(
+            when (stage) {
+                com.marvisociety.app.data.BookingStage.INVITED -> Key.STAGE_INVITED
+                com.marvisociety.app.data.BookingStage.CONFIRMED -> Key.STAGE_CONFIRMED
+                com.marvisociety.app.data.BookingStage.CHECKED_IN -> Key.STAGE_CHECKED_IN
+                com.marvisociety.app.data.BookingStage.PROOF_DUE -> Key.STAGE_PROOF_DUE
+                com.marvisociety.app.data.BookingStage.COMPLETED -> Key.STAGE_COMPLETED
+                com.marvisociety.app.data.BookingStage.CANCELLED -> Key.STAGE_CANCELLED
+            },
+            language
+        )
+
+    fun roleLabel(role: com.marvisociety.app.data.UserRole, language: AppLanguage): String =
+        t(
+            when (role) {
+                com.marvisociety.app.data.UserRole.CREATOR -> Key.ROLE_CREATOR
+                com.marvisociety.app.data.UserRole.VENUE -> Key.ROLE_VENUE
+                com.marvisociety.app.data.UserRole.ADMIN -> Key.ROLE_ADMIN
+            },
+            language
+        )
 }

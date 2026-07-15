@@ -154,7 +154,7 @@ fun ProfileScreen(viewModel: AppViewModel) {
                     color = MarviColor.Ink
                 )
                 Text("@${viewModel.profile.handle} · ${viewModel.profile.city}", color = MarviColor.Muted)
-                StatusPill("Score ${viewModel.profile.score}", MarviColor.Gold)
+                StatusPill("${viewModel.t(MarviL10n.Key.SCORE_LABEL)} ${viewModel.profile.score}", MarviColor.Gold)
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
