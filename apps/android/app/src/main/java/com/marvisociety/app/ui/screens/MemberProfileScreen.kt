@@ -2,11 +2,19 @@ package com.marvisociety.app.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -18,10 +26,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.marvisociety.app.data.MemberSearchResult
 import com.marvisociety.app.data.PublicCreatorProfile
 import com.marvisociety.app.data.PublicVenueProfile
@@ -52,14 +64,69 @@ fun MemberProfileScreen(
         }
     }
 
+    val displayName = creatorProfile?.name?.takeIf { it.isNotBlank() }
+        ?: venueProfile?.name?.takeIf { it.isNotBlank() }
+        ?: member.displayName
+    val coverUrl = creatorProfile?.coverUrl?.takeIf { it.isNotBlank() }
+    val avatarUrl = creatorProfile?.avatarUrl?.takeIf { it.isNotBlank() }
+        ?: member.avatarUrl?.takeIf { it.isNotBlank() }
+
     MarviScreen {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(member.displayName, style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
-            Text("@${member.handle} · ${member.city}", color = MarviColor.Muted)
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MarviColor.Aubergine.copy(alpha = 0.45f))
+                ) {
+                    if (coverUrl != null) {
+                        AsyncImage(
+                            model = coverUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(x = 12.dp, y = 28.dp)
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(MarviColor.Rose.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (avatarUrl != null) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = displayName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            displayName.take(1).ifBlank { "?" }.uppercase(),
+                            color = MarviColor.Rose,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.padding(top = 28.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(displayName, style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                Text("@${member.handle} · ${member.city}", color = MarviColor.Muted)
+            }
 
             creatorProfile?.let { profile ->
                 MarviCard {
-                    Text(profile.bio, color = MarviColor.Ink)
+                    if (profile.bio.isNotBlank()) {
+                        Text(profile.bio, color = MarviColor.Ink)
+                    }
                     Text("${profile.followerCount} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Graphite)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

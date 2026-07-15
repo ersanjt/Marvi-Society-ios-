@@ -1325,6 +1325,7 @@ private struct MemberSearchRow: Decodable {
     let score: Double?
     let followers: Int?
     let is_following: Bool?
+    let avatar_url: String?
 
     func toResult() -> MemberSearchResult {
         MemberSearchResult(
@@ -1337,7 +1338,8 @@ private struct MemberSearchRow: Decodable {
             city: (city ?? "istanbul").capitalized,
             score: Int(score ?? 0),
             followers: followers ?? 0,
-            isFollowing: is_following ?? false
+            isFollowing: is_following ?? false,
+            avatarURL: avatar_url ?? ""
         )
     }
 }

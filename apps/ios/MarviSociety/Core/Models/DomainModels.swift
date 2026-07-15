@@ -479,6 +479,7 @@ struct MemberSearchResult: Identifiable, Equatable, Sendable {
     let score: Int
     let followers: Int
     var isFollowing: Bool
+    let avatarURL: String
 
     var isCreator: Bool { memberType == .creator }
     var isVenue: Bool { memberType == .venue }

@@ -667,14 +667,18 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     private fun parseMemberSearch(el: JsonElement): MemberSearchResult? {
         val obj = el.asObjectOrNull() ?: return null
         val userId = obj.string("user_id")
-        // `id` = creator_id (for public-profile lookup); `userId` = auth user id (for follow/DM).
+        // `id` = creator/venue profile ref (public-profile lookup); `userId` = auth user id (follow/DM).
         return MemberSearchResult(
-            id = obj.string("creator_id") ?: obj.string("id") ?: userId ?: return null,
+            id = obj.string("profile_ref_id")
+                ?: obj.string("creator_id")
+                ?: obj.string("id")
+                ?: userId
+                ?: return null,
             userId = userId ?: "",
             displayName = obj.string("full_name") ?: obj.string("display_name") ?: "",
             handle = (obj.string("instagram_handle") ?: obj.string("handle") ?: "").removePrefix("@"),
             city = obj.string("city")?.replaceFirstChar { it.uppercase() } ?: "",
-            avatarUrl = obj.string("avatar_url"),
+            avatarUrl = obj.string("avatar_url")?.takeIf { it.isNotBlank() },
             isVenue = obj.string("member_type")?.equals("venue", ignoreCase = true) == true
                 || obj.bool("is_venue") == true,
             isFollowing = obj.bool("is_following") == true

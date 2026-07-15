@@ -314,10 +314,21 @@ private struct MemberSearchRow: View {
             Button(action: onOpenProfile) {
                 HStack(spacing: 12) {
                     ZStack {
-                        MarviGradient.brandVertical
-                        Text(String(member.displayName.prefix(1)).uppercased())
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
+                        if let avatarURL = URL(string: member.avatarURL), !member.avatarURL.isEmpty {
+                            AsyncImage(url: avatarURL) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image.resizable().scaledToFill()
+                                default:
+                                    MarviGradient.brandVertical
+                                }
+                            }
+                        } else {
+                            MarviGradient.brandVertical
+                            Text(String(member.displayName.prefix(1)).uppercased())
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(.white)
+                        }
                     }
                     .frame(width: 44, height: 44)
                     .clipShape(Circle())
@@ -622,15 +633,10 @@ private struct PublicCreatorHero: View {
     var body: some View {
         MarviCard {
             VStack(alignment: .leading, spacing: 16) {
+                coverBanner
+
                 HStack(alignment: .top, spacing: 14) {
-                    ZStack {
-                        MarviGradient.brandVertical
-                        Text(String(displayName.prefix(1)).uppercased())
-                            .font(.title.weight(.bold))
-                            .foregroundStyle(.white)
-                    }
-                    .frame(width: 64, height: 64)
-                    .clipShape(Circle())
+                    avatarBadge
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(displayName)
@@ -705,6 +711,65 @@ private struct PublicCreatorHero: View {
                 .buttonStyle(.plain)
                 .disabled(isTogglingFollow)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var coverBanner: some View {
+        Group {
+            if let coverURL = URL(string: publicProfile.profile.coverURL), !publicProfile.profile.coverURL.isEmpty {
+                AsyncImage(url: coverURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        coverPlaceholder
+                    }
+                }
+            } else {
+                coverPlaceholder
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 120)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var coverPlaceholder: some View {
+        LinearGradient(
+            colors: [MarviColor.aubergine.opacity(0.55), MarviColor.rose.opacity(0.35)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    @ViewBuilder
+    private var avatarBadge: some View {
+        ZStack {
+            if let avatarURL = URL(string: publicProfile.profile.avatarURL), !publicProfile.profile.avatarURL.isEmpty {
+                AsyncImage(url: avatarURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        avatarInitials
+                    }
+                }
+            } else {
+                avatarInitials
+            }
+        }
+        .frame(width: 64, height: 64)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(MarviColor.panel, lineWidth: 2))
+    }
+
+    private var avatarInitials: some View {
+        ZStack {
+            MarviGradient.brandVertical
+            Text(String(displayName.prefix(1)).uppercased())
+                .font(.title.weight(.bold))
+                .foregroundStyle(.white)
         }
     }
 

@@ -16,10 +16,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -62,6 +65,10 @@ fun ProfileScreen(viewModel: AppViewModel) {
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let { viewModel.uploadProfilePhoto(it, "avatar") } }
 
+    val coverPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { viewModel.uploadProfilePhoto(it, "cover") } }
+
     MarviScreen {
         Column(
             modifier = Modifier
@@ -70,12 +77,32 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
                 Box(
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MarviColor.Aubergine.copy(alpha = 0.4f))
+                        .clickable {
+                            coverPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                ) {
+                    if (viewModel.profile.coverUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = viewModel.profile.coverUrl,
+                            contentDescription = viewModel.t(MarviL10n.Key.CHANGE_COVER),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .offset(x = 8.dp, y = 28.dp)
                         .size(72.dp)
                         .clip(CircleShape)
                         .background(MarviColor.Rose.copy(alpha = 0.15f))
@@ -102,27 +129,40 @@ fun ProfileScreen(viewModel: AppViewModel) {
                         )
                     }
                 }
-                Column {
-                    Text(
-                        viewModel.profile.name.ifBlank { "Creator" },
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MarviColor.Ink,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("@${viewModel.profile.handle} · ${viewModel.profile.city}", color = MarviColor.Muted)
-                    Text("Score ${viewModel.profile.score} · Proof ${viewModel.profile.proofRate}", color = MarviColor.Graphite)
-                }
             }
 
-            OutlinedButton(
-                onClick = {
-                    avatarPicker.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(viewModel.t(MarviL10n.Key.CHANGE_PHOTO))
+            Column(modifier = Modifier.padding(top = 28.dp)) {
+                Text(
+                    viewModel.profile.name.ifBlank { "Creator" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MarviColor.Ink,
+                    fontWeight = FontWeight.Bold
+                )
+                Text("@${viewModel.profile.handle} · ${viewModel.profile.city}", color = MarviColor.Muted)
+                Text("Score ${viewModel.profile.score} · Proof ${viewModel.profile.proofRate}", color = MarviColor.Graphite)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        avatarPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(viewModel.t(MarviL10n.Key.CHANGE_PHOTO))
+                }
+                OutlinedButton(
+                    onClick = {
+                        coverPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(viewModel.t(MarviL10n.Key.CHANGE_COVER))
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {

@@ -492,6 +492,8 @@ struct PublicCreatorProfileRow: Decodable {
     let niches: [String]?
     let score: Double?
     let proof_rate: Double?
+    let avatar_url: String?
+    let cover_url: String?
     let followers: Int?
     let following: Int?
     let is_following: Bool?
@@ -512,8 +514,8 @@ struct PublicCreatorProfileRow: Decodable {
             bio: bio ?? "",
             languages: [],
             completedApplicationSteps: 0,
-            avatarURL: "",
-            coverURL: ""
+            avatarURL: avatar_url ?? "",
+            coverURL: cover_url ?? ""
         )
 
         return PublicCreatorProfile(
