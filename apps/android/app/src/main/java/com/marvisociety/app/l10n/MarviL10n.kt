@@ -55,7 +55,8 @@ object MarviL10n {
         OWNER_TYPE, CREATE, RATING_LABEL,
         MATCH_CREATORS_TITLE, NO_CANDIDATES, SHORTLIST, PASS,
         REVIEW_QUEUE_TITLE, NO_REVIEWS, RATE_CREATOR, PUNCTUALITY, PRESENTATION,
-        REVIEW_COMMENT, SUBMIT_REVIEW, REVIEWED
+        REVIEW_COMMENT, SUBMIT_REVIEW, REVIEWED,
+        MAP_VIEW, LIST_VIEW, NEAR_YOU, DETAILS, NO_MAP_OFFERS
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -294,7 +295,12 @@ object MarviL10n {
         Key.PRESENTATION to "Presentation",
         Key.REVIEW_COMMENT to "Comment (optional)",
         Key.SUBMIT_REVIEW to "Submit review",
-        Key.REVIEWED to "Reviewed"
+        Key.REVIEWED to "Reviewed",
+        Key.MAP_VIEW to "Map",
+        Key.LIST_VIEW to "List",
+        Key.NEAR_YOU to "Near you",
+        Key.DETAILS to "Details",
+        Key.NO_MAP_OFFERS to "No events with a location yet."
     )
 
     private val turkish = mapOf(
@@ -484,7 +490,12 @@ object MarviL10n {
         Key.PRESENTATION to "Sunum",
         Key.REVIEW_COMMENT to "Yorum (isteğe bağlı)",
         Key.SUBMIT_REVIEW to "Değerlendirmeyi gönder",
-        Key.REVIEWED to "Değerlendirildi"
+        Key.REVIEWED to "Değerlendirildi",
+        Key.MAP_VIEW to "Harita",
+        Key.LIST_VIEW to "Liste",
+        Key.NEAR_YOU to "Yakınında",
+        Key.DETAILS to "Detaylar",
+        Key.NO_MAP_OFFERS to "Henüz konumu olan etkinlik yok."
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =

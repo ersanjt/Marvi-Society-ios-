@@ -55,6 +55,7 @@ import com.marvisociety.app.ui.viewmodel.AppViewModel
 fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
     var filter by remember { mutableStateOf(DiscoverFilter.ALL) }
     var categoryFilter by remember { mutableStateOf<OfferCategory?>(null) }
+    var mapMode by remember { mutableStateOf(false) }
 
     val base = when (filter) {
         DiscoverFilter.ALL -> viewModel.offers
@@ -63,6 +64,26 @@ fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
     val displayed = if (categoryFilter == null) base else base.filter { it.category == categoryFilter }
     val featured = viewModel.offers.take(5)
     val city = viewModel.profile.city.ifBlank { "Istanbul" }
+
+    if (mapMode) {
+        MarviScreen {
+            Box(modifier = Modifier.fillMaxSize()) {
+                MapDiscoverScreen(viewModel, onOfferClick)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    FilterChipPill(
+                        label = viewModel.t(MarviL10n.Key.LIST_VIEW),
+                        selected = true,
+                        onClick = { mapMode = false }
+                    )
+                }
+            }
+        }
+        return
+    }
 
     MarviScreen {
         LazyColumn(
@@ -132,6 +153,11 @@ fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
                         label = viewModel.t(MarviL10n.Key.FILTER_SAVED),
                         selected = filter == DiscoverFilter.SAVED,
                         onClick = { filter = DiscoverFilter.SAVED }
+                    )
+                    FilterChipPill(
+                        label = viewModel.t(MarviL10n.Key.MAP_VIEW),
+                        selected = false,
+                        onClick = { mapMode = true }
                     )
                 }
             }
