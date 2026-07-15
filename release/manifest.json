@@ -23,6 +23,16 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-15T09:52:44Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260630000026_campaign_media_and_fields)"
+    },
+    {
+      "at": "2026-07-15T09:47:12Z",
+      "status": "ok",
+      "message": "pushed 11b764a to origin/main"
+    },
+    {
       "at": "2026-07-15T09:47:07Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000026_campaign_media_and_fields)"
@@ -261,16 +271,6 @@
       "at": "2026-07-13T16:36:18Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000020_email_auth_fallback_flush)"
-    },
-    {
-      "at": "2026-07-13T16:26:15Z",
-      "status": "ok",
-      "message": "pushed 53e6e4f to origin/main"
-    },
-    {
-      "at": "2026-07-13T16:26:12Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000019_fix_email_dispatch_http)"
     }
   ],
   "releases": [

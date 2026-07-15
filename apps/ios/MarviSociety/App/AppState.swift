@@ -1263,7 +1263,14 @@ final class AppState: ObservableObject {
 
         do {
             var imageName = ""
-            if let imageData, let venueID = activeVenue?.id ?? (try? await api.fetchVenueSummary())?.id {
+            if let imageData {
+                var venueID = activeVenue?.id
+                if venueID == nil {
+                    venueID = try await api.fetchVenueSummary()?.id
+                }
+                guard let venueID else {
+                    throw MarviAPIError.server(message: "No venue profile linked to this account.")
+                }
                 guard let prepared = ImageUploadPreprocessor.prepare(imageData, profile: .cover) else {
                     throw MarviAPIError.server(message: "Could not process campaign photo")
                 }
