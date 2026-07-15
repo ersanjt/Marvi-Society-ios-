@@ -4,52 +4,73 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.marvisociety.app.data.Booking
 import com.marvisociety.app.data.BookingStage
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.OfferImagery
+import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
+import com.marvisociety.app.ui.components.OfferImageView
+import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.SecondaryActionButton
+import com.marvisociety.app.ui.components.StatusPill
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
 @Composable
 fun BookingsScreen(viewModel: AppViewModel) {
     MarviScreen {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
             Text(
                 viewModel.t(MarviL10n.Key.MY_EVENTS_TITLE),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MarviColor.Ink,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.displayLarge,
+                color = MarviColor.Ink
             )
+            Text(
+                viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MarviColor.Muted
+            )
+
             if (viewModel.bookings.isEmpty()) {
-                MarviCard {
-                    Text(viewModel.t(MarviL10n.Key.NO_BOOKINGS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
-                    Text(viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB), color = MarviColor.Muted)
-                }
+                EmptyStateView(
+                    title = viewModel.t(MarviL10n.Key.NO_BOOKINGS),
+                    subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB)
+                )
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     items(viewModel.bookings, key = { it.id }) { booking ->
                         BookingCard(booking, viewModel)
                     }
@@ -70,88 +91,78 @@ private fun BookingCard(booking: Booking, viewModel: AppViewModel) {
     ) { uri -> screenshotUri = uri }
 
     MarviCard {
-        Text(booking.offer.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-        Text("${booking.offer.venue} · ${stageLabel(booking.stage, viewModel)}", color = MarviColor.Muted)
-        if (booking.proofDeadline.isNotEmpty()) {
-            Text(booking.proofDeadline, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            OfferImageView(
+                url = OfferImagery.imageUrl(booking.offer),
+                contentDescription = booking.offer.title,
+                modifier = Modifier.size(72.dp, 80.dp),
+                height = 80.dp,
+                cornerRadius = 12.dp
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(booking.offer.title, style = MaterialTheme.typography.titleMedium, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                Text("${booking.offer.venue} · ${booking.offer.area}", style = MaterialTheme.typography.bodySmall, color = MarviColor.Muted)
+                StatusPill(stageLabel(booking.stage, viewModel), stageTint(booking.stage))
+                if (booking.proofDeadline.isNotEmpty()) {
+                    Text(booking.proofDeadline, style = MaterialTheme.typography.bodySmall, color = MarviColor.Graphite)
+                }
+            }
         }
 
         when (booking.stage) {
             BookingStage.INVITED -> {
                 val canAccept = viewModel.canAcceptOffers
                 viewModel.acceptBlockedReason?.takeIf { !canAccept }?.let { reason ->
-                    Text(
-                        reason,
-                        color = MarviColor.Gold,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
+                    Text(reason, color = MarviColor.Gold, style = MaterialTheme.typography.bodySmall)
                 }
-                Button(
+                PrimaryActionButton(
+                    title = viewModel.t(MarviL10n.Key.ACCEPT_INVITATION),
                     onClick = { viewModel.acceptOffer(booking.offer.id) },
-                    enabled = canAccept,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                ) { Text(viewModel.t(MarviL10n.Key.ACCEPT_INVITATION)) }
+                    enabled = canAccept
+                )
             }
             BookingStage.CONFIRMED -> {
-                OutlinedTextField(
+                MarviTextField(
                     value = checkInCode,
                     onValueChange = { checkInCode = it },
-                    label = { Text(viewModel.t(MarviL10n.Key.CHECK_IN)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+                    placeholder = viewModel.t(MarviL10n.Key.CHECK_IN)
                 )
-                Button(
+                PrimaryActionButton(
+                    title = viewModel.t(MarviL10n.Key.CHECK_IN),
                     onClick = { viewModel.checkIn(booking.id, checkInCode) },
-                    enabled = checkInCode.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                ) { Text(viewModel.t(MarviL10n.Key.CHECK_IN)) }
+                    enabled = checkInCode.isNotBlank()
+                )
             }
             BookingStage.CHECKED_IN, BookingStage.PROOF_DUE -> {
-                OutlinedTextField(
+                MarviTextField(
                     value = proofText,
                     onValueChange = { proofText = it },
-                    label = { Text(viewModel.t(MarviL10n.Key.PROOF_LINKS)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    minLines = 2
+                    placeholder = viewModel.t(MarviL10n.Key.PROOF_LINKS),
+                    singleLine = false
                 )
-                OutlinedButton(
-                    onClick = {
-                        photoPicker.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
+                SecondaryActionButton(
+                    title = if (screenshotUri != null) {
+                        viewModel.t(MarviL10n.Key.PROOF_SCREENSHOT_ATTACHED)
+                    } else {
+                        viewModel.t(MarviL10n.Key.PROOF_ADD_SCREENSHOT)
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
-                ) {
-                    Text(
-                        if (screenshotUri != null) {
-                            viewModel.t(MarviL10n.Key.PROOF_SCREENSHOT_ATTACHED)
-                        } else {
-                            viewModel.t(MarviL10n.Key.PROOF_ADD_SCREENSHOT)
-                        }
-                    )
-                }
-                Button(
+                    onClick = {
+                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                )
+                PrimaryActionButton(
+                    title = viewModel.t(MarviL10n.Key.SUBMIT_PROOF),
                     onClick = {
                         viewModel.submitProof(
                             booking.id,
                             proofText.lines().map { it.trim() }.filter { it.isNotEmpty() },
                             screenshotUri
                         )
-                    },
-                    enabled = proofText.isNotBlank() || screenshotUri != null,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                ) { Text(viewModel.t(MarviL10n.Key.SUBMIT_PROOF)) }
+                    }
+                )
             }
             else -> Unit
         }
@@ -165,4 +176,13 @@ private fun stageLabel(stage: BookingStage, viewModel: AppViewModel): String = w
     BookingStage.PROOF_DUE -> viewModel.t(MarviL10n.Key.STAGE_PROOF_DUE)
     BookingStage.COMPLETED -> viewModel.t(MarviL10n.Key.STAGE_COMPLETED)
     BookingStage.CANCELLED -> "Cancelled"
+}
+
+private fun stageTint(stage: BookingStage) = when (stage) {
+    BookingStage.INVITED -> MarviColor.Gold
+    BookingStage.CONFIRMED -> MarviColor.Emerald
+    BookingStage.CHECKED_IN -> MarviColor.Blue
+    BookingStage.PROOF_DUE -> MarviColor.Tomato
+    BookingStage.COMPLETED -> MarviColor.Aubergine
+    BookingStage.CANCELLED -> MarviColor.Muted
 }

@@ -38,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -48,10 +49,16 @@ import com.marvisociety.app.data.MembershipStatus
 import com.marvisociety.app.data.SocialVerificationState
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
+import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.components.SectionTitle
+import com.marvisociety.app.ui.components.StatusPill
 import com.marvisociety.app.ui.theme.MarviColor
+import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
 @Composable
@@ -83,7 +90,7 @@ fun ProfileScreen(viewModel: AppViewModel) {
                         .fillMaxWidth()
                         .height(120.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(MarviColor.Aubergine.copy(alpha = 0.4f))
+                        .background(MarviGradient.BrandVertical)
                         .clickable {
                             coverPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -105,7 +112,7 @@ fun ProfileScreen(viewModel: AppViewModel) {
                         .offset(x = 8.dp, y = 28.dp)
                         .size(72.dp)
                         .clip(CircleShape)
-                        .background(MarviColor.Rose.copy(alpha = 0.15f))
+                        .background(MarviGradient.BrandVertical)
                         .clickable {
                             avatarPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -123,7 +130,7 @@ fun ProfileScreen(viewModel: AppViewModel) {
                     } else {
                         Text(
                             viewModel.profile.name.take(1).ifBlank { "?" }.uppercase(),
-                            color = MarviColor.Rose,
+                            color = Color.White,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.headlineSmall
                         )
@@ -131,37 +138,36 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
             }
 
-            Column(modifier = Modifier.padding(top = 28.dp)) {
+            Column(modifier = Modifier.padding(top = 28.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     viewModel.profile.name.ifBlank { "Creator" },
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MarviColor.Ink,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MarviColor.Ink
                 )
                 Text("@${viewModel.profile.handle} · ${viewModel.profile.city}", color = MarviColor.Muted)
-                Text("Score ${viewModel.profile.score} · Proof ${viewModel.profile.proofRate}", color = MarviColor.Graphite)
+                StatusPill("Score ${viewModel.profile.score}", MarviColor.Gold)
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = {
-                        avatarPicker.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(viewModel.t(MarviL10n.Key.CHANGE_PHOTO))
+                Box(modifier = Modifier.weight(1f)) {
+                    SecondaryActionButton(
+                        title = viewModel.t(MarviL10n.Key.CHANGE_PHOTO),
+                        onClick = {
+                            avatarPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    )
                 }
-                OutlinedButton(
-                    onClick = {
-                        coverPicker.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(viewModel.t(MarviL10n.Key.CHANGE_COVER))
+                Box(modifier = Modifier.weight(1f)) {
+                    SecondaryActionButton(
+                        title = viewModel.t(MarviL10n.Key.CHANGE_COVER),
+                        onClick = {
+                            coverPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    )
                 }
             }
 

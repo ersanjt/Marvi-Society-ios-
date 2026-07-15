@@ -13,11 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,10 +36,15 @@ import com.marvisociety.app.data.MemberSearchResult
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
+import com.marvisociety.app.ui.components.SectionTitle
+import com.marvisociety.app.ui.components.SegmentedTabs
+import com.marvisociety.app.ui.components.StatusPill
 import com.marvisociety.app.ui.theme.MarviColor
+import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun CommunityScreen(
     viewModel: AppViewModel,
@@ -61,46 +63,46 @@ fun CommunityScreen(
     }
 
     MarviScreen {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Text(
-                viewModel.t(MarviL10n.Key.COMMUNITY_TAB),
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MarviColor.Ink,
-                fontWeight = FontWeight.Bold
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SectionTitle(viewModel.t(MarviL10n.Key.COMMUNITY_TAB))
+            SegmentedTabs(
+                tabs = listOf(
+                    viewModel.t(MarviL10n.Key.COMMUNITY_SEGMENT_FEED),
+                    viewModel.t(MarviL10n.Key.COMMUNITY_SEGMENT_MEMBERS),
+                    viewModel.t(MarviL10n.Key.COMMUNITY_SEGMENT_MESSAGES)
+                ),
+                selectedIndex = tab,
+                onSelect = { tab = it }
             )
-            PrimaryTabRow(selectedTabIndex = tab, containerColor = MarviColor.Panel) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text(viewModel.t(MarviL10n.Key.COMMUNITY_SEGMENT_FEED)) })
-                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text(viewModel.t(MarviL10n.Key.COMMUNITY_SEGMENT_MEMBERS)) })
-                Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text(viewModel.t(MarviL10n.Key.COMMUNITY_SEGMENT_MESSAGES)) })
-            }
 
-            if (tab == 1) {
-                OutlinedTextField(
-                    value = search,
-                    onValueChange = { search = it },
-                    placeholder = { Text(viewModel.t(MarviL10n.Key.COMMUNITY_SEARCH_PROMPT)) },
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
-                )
-                Text(
-                    viewModel.t(MarviL10n.Key.COMMUNITY_SEARCH_PROMPT),
-                    modifier = Modifier.padding(horizontal = 16.dp).clickable { viewModel.searchMembers(search) },
-                    color = MarviColor.Rose
-                )
-            }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                when (tab) {
-                    0 -> items(viewModel.followingActivity, key = { it.id }) { item ->
+            when (tab) {
+                0 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(viewModel.followingActivity, key = { it.id }) { item ->
                         ActivityCard(item)
                     }
-                    1 -> items(viewModel.memberSearchResults, key = { it.id }) { member ->
-                        MemberCard(member, viewModel) { onOpenMember(member) }
+                }
+                1 -> {
+                    MarviTextField(
+                        value = search,
+                        onValueChange = {
+                            search = it
+                            viewModel.searchMembers(it.ifBlank { null })
+                        },
+                        placeholder = viewModel.t(MarviL10n.Key.COMMUNITY_SEARCH_PROMPT)
+                    )
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 8.dp)) {
+                        items(viewModel.memberSearchResults, key = { it.id }) { member ->
+                            MemberCard(member, viewModel) { onOpenMember(member) }
+                        }
                     }
-                    2 -> items(viewModel.directThreads, key = { it.id }) { thread ->
+                }
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(viewModel.directThreads, key = { it.id }) { thread ->
                         ThreadCard(thread) { onOpenThread(thread) }
                     }
                 }
@@ -112,10 +114,9 @@ fun CommunityScreen(
 @Composable
 private fun ActivityCard(item: MemberActivityItem) {
     MarviCard {
-        Text(item.actorName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-        Text("@${item.actorHandle}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
-        Text(item.title, color = MarviColor.Ink)
-        Text(item.subtitle, color = MarviColor.Graphite)
+        Text(item.actorName, fontWeight = FontWeight.Bold, color = MarviColor.Ink, style = MaterialTheme.typography.titleMedium)
+        Text(item.title, color = MarviColor.Ink, style = MaterialTheme.typography.bodyMedium)
+        if (item.subtitle.isNotBlank()) Text(item.subtitle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
         Text(item.createdLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -131,7 +132,7 @@ private fun MemberCard(member: MemberSearchResult, viewModel: AppViewModel, onCl
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(MarviColor.Rose.copy(alpha = 0.15f)),
+                    .background(MarviGradient.BrandVertical),
                 contentAlignment = Alignment.Center
             ) {
                 val avatar = member.avatarUrl
@@ -145,16 +146,23 @@ private fun MemberCard(member: MemberSearchResult, viewModel: AppViewModel, onCl
                 } else {
                     Text(
                         member.displayName.take(1).ifBlank { "?" }.uppercase(),
-                        color = MarviColor.Rose,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(member.displayName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                Text("@${member.handle} · ${member.city}", color = MarviColor.Muted)
-                Text(if (member.isVenue) "Venue" else "Creator", color = MarviColor.Rose, style = MaterialTheme.typography.bodySmall)
-                if (member.isFollowing) Text(viewModel.t(MarviL10n.Key.FOLLOWING_LABEL), color = MarviColor.Emerald)
+                Text("@${member.handle} · ${member.city}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (member.isVenue) "Venue" else "Creator",
+                    color = MarviColor.Rose,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            if (member.isFollowing) {
+                StatusPill(viewModel.t(MarviL10n.Key.FOLLOWING_LABEL), MarviColor.Emerald)
             }
         }
     }
@@ -163,9 +171,33 @@ private fun MemberCard(member: MemberSearchResult, viewModel: AppViewModel, onCl
 @Composable
 private fun ThreadCard(thread: DirectThread, onClick: () -> Unit) {
     MarviCard(modifier = Modifier.clickable(onClick = onClick)) {
-        Text(thread.peerName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-        Text("@${thread.peerHandle}", color = MarviColor.Muted)
-        Text(thread.lastMessage, color = MarviColor.Graphite)
-        Text(thread.lastMessageAt, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MarviGradient.BrandVertical),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!thread.peerAvatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = thread.peerAvatarUrl,
+                        contentDescription = thread.peerName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(thread.peerName.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(thread.peerName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                Text("@${thread.peerHandle}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                Text(thread.lastMessage, color = MarviColor.Graphite, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+            }
+            if (thread.unreadCount > 0) {
+                StatusPill("${thread.unreadCount}", MarviColor.Rose)
+            }
+        }
     }
 }

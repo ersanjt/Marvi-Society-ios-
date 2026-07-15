@@ -1,14 +1,15 @@
 package com.marvisociety.app.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Badge
@@ -21,13 +22,18 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.marvisociety.app.BuildConfig
@@ -35,6 +41,7 @@ import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.SyncErrorBanner
 import com.marvisociety.app.ui.screens.AdminDashboardScreen
+import com.marvisociety.app.ui.screens.ApprovalPendingScreen
 import com.marvisociety.app.ui.screens.BookingsScreen
 import com.marvisociety.app.ui.screens.CommunityScreen
 import com.marvisociety.app.ui.screens.ConfigurationRequiredScreen
@@ -45,11 +52,12 @@ import com.marvisociety.app.ui.screens.MemberProfileScreen
 import com.marvisociety.app.ui.screens.OfferDetailScreen
 import com.marvisociety.app.ui.screens.OnboardingScreen
 import com.marvisociety.app.ui.screens.ProfileScreen
-import com.marvisociety.app.ui.screens.ApprovalPendingScreen
 import com.marvisociety.app.ui.screens.SocialHandlesRequiredScreen
 import com.marvisociety.app.ui.screens.VenueStudioScreen
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviTheme
+import com.marvisociety.app.ui.theme.TabBarBackground
+import com.marvisociety.app.ui.theme.TabSelected
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
@@ -68,7 +76,6 @@ fun MarviApp(viewModel: AppViewModel = viewModel()) {
                 }
             }
             !viewModel.hasCompletedOnboarding -> OnboardingScreen(viewModel)
-            // Match iOS ContentView gate order
             viewModel.needsSocialHandlesEntry -> SocialHandlesRequiredScreen(viewModel)
             viewModel.needsAdminApproval -> ApprovalPendingScreen(viewModel)
             viewModel.isBootstrapping -> {
@@ -86,52 +93,68 @@ private fun MainShell(viewModel: AppViewModel) {
     val navController = rememberNavController()
     val scope = rememberCoroutineScope()
     val tabs = tabsForRole(viewModel.selectedRole)
+    val backStack by navController.currentBackStackEntryAsState()
+    val currentRoute = backStack?.destination?.route.orEmpty()
+    val hideBottomBar = currentRoute.startsWith("offer/") ||
+        currentRoute.startsWith("member/") ||
+        currentRoute.startsWith("chat/")
 
     Scaffold(
+        containerColor = MarviColor.Surface,
         bottomBar = {
-            NavigationBar(containerColor = MarviColor.Panel) {
-                tabs.forEachIndexed { index, tab ->
-                    NavigationBarItem(
-                        selected = viewModel.workspaceTabIndex == index,
-                        onClick = {
-                            viewModel.setWorkspaceTab(index)
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = {
-                            if (tab.route == "bookings") {
-                                BadgedBox(badge = {
-                                    if (viewModel.eventsTabBadgeCount > 0) {
-                                        Badge { Text(viewModel.eventsTabBadgeCount.toString()) }
-                                    }
-                                }) { tab.icon() }
-                            } else if (tab.route == "inbox") {
-                                BadgedBox(badge = {
-                                    if (viewModel.unreadInboxCount > 0) {
-                                        Badge { Text(viewModel.unreadInboxCount.coerceAtMost(99).toString()) }
-                                    }
-                                }) { tab.icon() }
-                            } else {
-                                tab.icon()
-                            }
-                        },
-                        label = { Text(viewModel.t(tab.labelKey)) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MarviColor.Rose,
-                            selectedTextColor = MarviColor.Rose,
-                            unselectedIconColor = MarviColor.Muted,
-                            unselectedTextColor = MarviColor.Muted,
-                            indicatorColor = MarviColor.Rose.copy(alpha = 0.12f)
+            if (!hideBottomBar) {
+                NavigationBar(containerColor = TabBarBackground, tonalElevation = 0.dp) {
+                    tabs.forEachIndexed { index, tab ->
+                        NavigationBarItem(
+                            selected = viewModel.workspaceTabIndex == index,
+                            onClick = {
+                                viewModel.setWorkspaceTab(index)
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = {
+                                when (tab.route) {
+                                    "bookings" -> BadgedBox(badge = {
+                                        if (viewModel.eventsTabBadgeCount > 0) {
+                                            Badge(containerColor = TabSelected) {
+                                                Text(viewModel.eventsTabBadgeCount.toString())
+                                            }
+                                        }
+                                    }) { tab.icon() }
+                                    "inbox" -> BadgedBox(badge = {
+                                        if (viewModel.unreadInboxCount > 0) {
+                                            Badge(containerColor = TabSelected) {
+                                                Text(viewModel.unreadInboxCount.coerceAtMost(99).toString())
+                                            }
+                                        }
+                                    }) { tab.icon() }
+                                    else -> tab.icon()
+                                }
+                            },
+                            label = {
+                                Text(
+                                    viewModel.t(tab.labelKey),
+                                    fontSize = 10.sp,
+                                    fontWeight = if (viewModel.workspaceTabIndex == index) FontWeight.Bold else FontWeight.SemiBold
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = TabSelected,
+                                selectedTextColor = TabSelected,
+                                unselectedIconColor = MarviColor.Muted,
+                                unselectedTextColor = MarviColor.Muted,
+                                indicatorColor = TabSelected.copy(alpha = 0.12f)
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
     ) { padding ->
-        androidx.compose.foundation.layout.Column(modifier = Modifier.padding(padding)) {
+        Column(modifier = Modifier.padding(padding)) {
             viewModel.lastSyncError?.let { error ->
                 SyncErrorBanner(
                     message = error,
@@ -224,7 +247,7 @@ private fun MainShell(viewModel: AppViewModel) {
 
 private fun tabsForRole(role: UserRole): List<TabSpec> = when (role) {
     UserRole.CREATOR -> listOf(
-        TabSpec("discover", MarviL10n.Key.EXPLORE) { Icon(Icons.Default.Search, null) },
+        TabSpec("discover", MarviL10n.Key.EXPLORE) { Icon(Icons.Default.AutoAwesome, null) },
         TabSpec("community", MarviL10n.Key.COMMUNITY_TAB) { Icon(Icons.Default.Groups, null) },
         TabSpec("bookings", MarviL10n.Key.MY_EVENTS) { Icon(Icons.Default.CalendarMonth, null) },
         TabSpec("profile", MarviL10n.Key.PROFILE) { Icon(Icons.Default.Person, null) }
