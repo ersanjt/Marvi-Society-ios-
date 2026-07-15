@@ -230,9 +230,10 @@ final class AppState: ObservableObject {
 
     private func applyInferredLanguageFromLocation(latitude: Double, longitude: Double) {
         guard !languageManuallySet else { return }
-        preferredLanguage = AppLanguage.isCoordinateInTurkey(latitude: latitude, longitude: longitude)
-            ? .turkish
-            : .english
+        // Keep Turkish as the default; only reinforce it when GPS is in Turkey.
+        if AppLanguage.isCoordinateInTurkey(latitude: latitude, longitude: longitude) {
+            preferredLanguage = .turkish
+        }
     }
 
     var backendLabel: String { "Supabase" }
@@ -500,9 +501,23 @@ final class AppState: ObservableObject {
 
         if let loadedStrikes = try? await api.fetchStrikes() { strikes = loadedStrikes }
 
-        if let history = try? await api.fetchMyCollaborationHistory() { collaborationHistory = history }
+        do {
+            collaborationHistory = try await api.fetchMyCollaborationHistory()
+        } catch {
+            syncErrors.append("collaboration")
+            if lastSyncError == nil, let message = friendlyErrorMessage(error) {
+                lastSyncError = message
+            }
+        }
         if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
-        if let items = try? await api.fetchMyShowcase() { showcaseItems = items }
+        do {
+            showcaseItems = try await api.fetchMyShowcase()
+        } catch {
+            syncErrors.append("showcase")
+            if lastSyncError == nil, let message = friendlyErrorMessage(error) {
+                lastSyncError = message
+            }
+        }
         if isAuthenticated, accountRole != .admin {
             if let verification = try? await api.ensureSocialVerificationCode() {
                 socialVerification = verification

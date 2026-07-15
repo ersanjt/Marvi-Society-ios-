@@ -151,6 +151,7 @@ enum MarviL10n {
         case adminCreateInviteCode, adminUpdateInviteQuota, adminInviteQuotaPh
         case studioUnderReview, studioUpcoming, studioOpenSwipe, studioHappening, studioPast, studioCreate
         case profileEngagement
+        case profileTabOverview, profileTabEdit, profileTabAccount, profileTabSettings
         case communityTab, communityTitle, communitySub, communitySearchPrompt
         case communityFeedTitle, communityFeedSub, communityFeedEmpty
         case communityMembersTitle, communityMembersSub, communityMembersEmpty, communityMembersEmptySub
@@ -510,6 +511,10 @@ enum MarviL10n {
         .studioUnderReview: "Under\nReview", .studioUpcoming: "Upcoming\nEvents", .studioOpenSwipe: "Open for\nswipe",
         .studioHappening: "Happening", .studioPast: "Past", .studioCreate: "Create",
         .profileEngagement: "Engagement",
+        .profileTabOverview: "Overview",
+        .profileTabEdit: "Edit",
+        .profileTabAccount: "Account",
+        .profileTabSettings: "Settings",
         .communityTab: "Community",
         .communityTitle: "Find members",
         .communitySub: "Search creators, follow people you admire, and see where they collaborate.",
@@ -930,6 +935,10 @@ enum MarviL10n {
         .studioUnderReview: "İncelemede", .studioUpcoming: "Yaklaşan\nEtkinlikler", .studioOpenSwipe: "Swipe\naçık",
         .studioHappening: "Devam eden", .studioPast: "Geçmiş", .studioCreate: "Oluştur",
         .profileEngagement: "Etkileşim",
+        .profileTabOverview: "Genel",
+        .profileTabEdit: "Düzenle",
+        .profileTabAccount: "Hesap",
+        .profileTabSettings: "Ayarlar",
         .communityTab: "Topluluk",
         .communityTitle: "Üyeleri bul",
         .communitySub: "Creator ara, takip et, nereye gittiklerini ve ne paylaştıklarını gör.",

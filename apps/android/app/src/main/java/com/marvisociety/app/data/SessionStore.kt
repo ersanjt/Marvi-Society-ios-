@@ -56,7 +56,7 @@ class SessionStore(private val context: Context) {
             hasCompletedOnboarding = bool("onboarding"),
             selectedRole = str("role")?.let { runCatching { UserRole.valueOf(it) }.getOrNull() } ?: UserRole.CREATOR,
             preferredLanguage = str("lang")?.let { runCatching { AppLanguage.valueOf(it) }.getOrNull() }
-                ?: AppLanguage.ENGLISH,
+                ?: AppLanguage.TURKISH,
             languageManuallySet = bool("langManual"),
             pushNotificationsEnabled = bool("push", true),
             proofRemindersEnabled = bool("proof", true)

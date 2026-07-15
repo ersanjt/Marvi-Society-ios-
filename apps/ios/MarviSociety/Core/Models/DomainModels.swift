@@ -304,14 +304,11 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Fallback when no locale signal is available.
-    static var defaultApp: AppLanguage { .english }
+    /// Fallback when no locale signal is available — Istanbul Turkish is the product default.
+    static var defaultApp: AppLanguage { .turkish }
 
-    /// Device/App Store region and system language (before GPS).
-    static func inferredFromDevice() -> AppLanguage {
-        if isDeviceLikelyInTurkey { return .turkish }
-        return .english
-    }
+    /// Prefer Turkish as the primary app language; English is opt-in via Settings.
+    static func inferredFromDevice() -> AppLanguage { .turkish }
 
     static var isDeviceLikelyInTurkey: Bool {
         let region = Locale.current.region?.identifier

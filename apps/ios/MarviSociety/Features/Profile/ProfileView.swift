@@ -15,6 +15,22 @@ private enum ProfileInsightTab: String, CaseIterable {
     }
 }
 
+private enum ProfileMainTab: String, CaseIterable {
+    case overview
+    case edit
+    case account
+    case settings
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .overview: MarviL10n.t(.profileTabOverview, language: language)
+        case .edit: MarviL10n.t(.profileTabEdit, language: language)
+        case .account: MarviL10n.t(.profileTabAccount, language: language)
+        case .settings: MarviL10n.t(.profileTabSettings, language: language)
+        }
+    }
+}
+
 struct ProfileView: View {
     @EnvironmentObject private var appState: AppState
     @State private var isShowingSignOutConfirmation = false
@@ -30,6 +46,7 @@ struct ProfileView: View {
     @State private var nichesText = ""
     @State private var languagesText = ""
     @State private var selectedInsightTab: ProfileInsightTab = .engagement
+    @State private var selectedMainTab: ProfileMainTab = .overview
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var coverPickerItem: PhotosPickerItem?
     @State private var isUploadingPhoto = false
@@ -38,6 +55,7 @@ struct ProfileView: View {
     @State private var inviteEmail = ""
     @State private var isSendingInvite = false
     @State private var inviteSuccessMessage: String?
+    @State private var inviteErrorMessage: String?
     @State private var profileInviteCode = ""
     @State private var profileInviteError = ""
     @State private var isRedeemingInvite = false
@@ -46,6 +64,10 @@ struct ProfileView: View {
     private var showsProfileCompletion: Bool {
         appState.isAuthenticated && appState.selectedRole == .creator
             && (appState.needsSocialProfileCompletion || appState.profile.status != .approved)
+    }
+
+    private var isChecklistComplete: Bool {
+        completedChecklistSteps >= 8
     }
 
     private var managementTitle: String {
@@ -77,6 +99,7 @@ struct ProfileView: View {
                             isUploadingPhoto: isUploadingPhoto,
                             onManagement: {
                                 withAnimation {
+                                    selectedMainTab = .overview
                                     proxy.scrollTo("workspace-section", anchor: .center)
                                 }
                             }
@@ -90,6 +113,12 @@ struct ProfileView: View {
                             )
                         }
 
+                        ProfileMainTabPicker(
+                            selected: $selectedMainTab,
+                            language: appState.preferredLanguage
+                        )
+
+                        if selectedMainTab == .overview {
                         MarviCard {
                             VStack(alignment: .leading, spacing: 14) {
                                 ProfileInsightPicker(
@@ -130,6 +159,7 @@ struct ProfileView: View {
                                 WorkspaceRolePicker(
                                     roles: UserRole.sortedWorkspaces(appState.allowedRoles),
                                     selected: $appState.selectedRole,
+                                    language: appState.preferredLanguage,
                                     onSelect: { role in
                                         appState.switchWorkspace(to: role)
                                         if role == .admin {
@@ -203,13 +233,10 @@ struct ProfileView: View {
                                     )
 
                                     if appState.collaborationHistory.isEmpty {
-                                        EmptyStateView(
-                                            title: appState.t(.noCollaborationsYet),
-                                            subtitle: appState.t(.noCollaborationsSub),
-                                            icon: "building.2",
-                                            actionTitle: nil,
-                                            action: nil
-                                        )
+                                        Text(appState.t(.noCollaborationsSub))
+                                            .font(.caption)
+                                            .foregroundStyle(MarviColor.muted)
+                                            .fixedSize(horizontal: false, vertical: true)
                                     } else {
                                         ForEach(appState.collaborationHistory) { entry in
                                             CollaborationRowView(entry: entry)
@@ -240,7 +267,9 @@ struct ProfileView: View {
                                 }
                             }
                         }
+                        }
 
+                        if selectedMainTab == .edit {
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 SectionTitle(title: appState.t(.socialAccounts), subtitle: appState.t(.socialAccountsSub))
@@ -371,6 +400,7 @@ struct ProfileView: View {
                             ShowcaseEditorCard()
                         }
 
+                        if !isChecklistComplete {
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 SectionTitle(
@@ -386,6 +416,7 @@ struct ProfileView: View {
                                 ChecklistRow(title: appState.t(.creatorReferences), isDone: !appState.profile.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 ChecklistRow(title: appState.t(.agreementSigned), isDone: appState.profile.status == .approved)
                             }
+                        }
                         }
 
                         if appState.isAuthenticated, appState.selectedRole == .creator {
@@ -408,12 +439,19 @@ struct ProfileView: View {
                                             .foregroundStyle(MarviColor.emerald)
                                     }
 
+                                    if let inviteErrorMessage {
+                                        Label(inviteErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(MarviColor.tomato)
+                                    }
+
                                     Button {
                                         Task {
                                             isSendingInvite = true
                                             inviteSuccessMessage = nil
+                                            inviteErrorMessage = nil
                                             if let error = await appState.sendCreatorInvite(email: inviteEmail) {
-                                                _ = error
+                                                inviteErrorMessage = error
                                             } else {
                                                 inviteSuccessMessage = appState.t(.inviteSentSuccess)
                                                 inviteEmail = ""
@@ -441,9 +479,15 @@ struct ProfileView: View {
                             }
                         }
 
+                        }
+
+                        if selectedMainTab == .account {
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: appState.t(.accountSection))
+                                SectionTitle(
+                                    title: appState.t(.accountSection),
+                                    subtitle: appState.t(.accountSectionSub)
+                                )
 
                                 HStack {
                                     Label(
@@ -495,26 +539,6 @@ struct ProfileView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                                     .disabled(isSigningOut || appState.isSyncing)
                                 }
-                            }
-                        }
-
-                        #if DEBUG
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 8) {
-                                SectionTitle(title: appState.t(.developer), subtitle: "Mode: \(appState.backendLabel)")
-                                Text(appState.t(.debugBuildsOnly))
-                                    .font(.caption)
-                                    .foregroundStyle(MarviColor.muted)
-                            }
-                        }
-                        #endif
-
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(
-                                    title: appState.t(.accountSection),
-                                    subtitle: appState.t(.accountSectionSub)
-                                )
 
                                 if appState.profile.status == .paused, appState.accountPausedBySelf {
                                     Text(appState.t(.pausedSelfBannerSub))
@@ -584,6 +608,17 @@ struct ProfileView: View {
                             }
                         }
 
+                        #if DEBUG
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                SectionTitle(title: appState.t(.developer), subtitle: "Mode: \(appState.backendLabel)")
+                                Text(appState.t(.debugBuildsOnly))
+                                    .font(.caption)
+                                    .foregroundStyle(MarviColor.muted)
+                            }
+                        }
+                        #endif
+
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 SectionTitle(title: appState.t(.legalSection), subtitle: appState.t(.legalSectionSub))
@@ -631,7 +666,9 @@ struct ProfileView: View {
                                 }
                             }
                         }
+                        }
 
+                        if selectedMainTab == .settings {
                         MarviCard {
                             VStack(alignment: .leading, spacing: 14) {
                                 SectionTitle(title: appState.t(.settingsSection), subtitle: appState.t(.settingsSub))
@@ -647,6 +684,7 @@ struct ProfileView: View {
                                 Toggle(appState.t(.proofReminders), isOn: $appState.proofRemindersEnabled)
                                 Toggle(appState.t(.autoSaveProofLinks), isOn: $appState.autoSaveProofLinks)
                             }
+                        }
                         }
                     }
                     .padding(16)
@@ -951,6 +989,38 @@ private struct AdminQuickStat: View {
         .padding(12)
         .background(tint.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+private struct ProfileMainTabPicker: View {
+    @Binding var selected: ProfileMainTab
+    let language: AppLanguage
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ProfileMainTab.allCases, id: \.rawValue) { tab in
+                    Button {
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                            selected = tab
+                        }
+                    } label: {
+                        Text(tab.title(for: language))
+                            .font(.caption.weight(.bold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .foregroundStyle(selected == tab ? .white : MarviColor.muted)
+                            .background(
+                                selected == tab
+                                    ? AnyShapeStyle(MarviGradient.brand)
+                                    : AnyShapeStyle(MarviColor.panelElevated)
+                            )
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }
 

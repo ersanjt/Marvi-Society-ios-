@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkspaceRolePicker: View {
     let roles: [UserRole]
     @Binding var selected: UserRole
+    var language: AppLanguage = .turkish
     var onSelect: ((UserRole) -> Void)?
 
     var body: some View {
@@ -13,7 +14,7 @@ struct WorkspaceRolePicker: View {
                         selected = role
                         onSelect?(role)
                     } label: {
-                        Label(role.rawValue, systemImage: role.icon)
+                        Label(role.label(for: language), systemImage: role.icon)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(selected == role ? .white : MarviColor.ink)
                             .padding(.horizontal, 14)

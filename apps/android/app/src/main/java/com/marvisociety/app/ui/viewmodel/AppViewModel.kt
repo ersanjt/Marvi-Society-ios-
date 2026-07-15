@@ -27,7 +27,7 @@ class AppViewModel(
         private set
     var workspaceTabIndex by mutableIntStateOf(0)
         private set
-    var preferredLanguage by mutableStateOf(AppLanguage.ENGLISH)
+    var preferredLanguage by mutableStateOf(AppLanguage.TURKISH)
         private set
 
     var isBootstrapping by mutableStateOf(false)

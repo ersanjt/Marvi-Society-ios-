@@ -35,6 +35,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,8 +65,13 @@ import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
+private enum class ProfileMainTab {
+    OVERVIEW, EDIT, ACCOUNT, SETTINGS
+}
+
 @Composable
 fun ProfileScreen(viewModel: AppViewModel) {
+    var selectedTab by remember { mutableStateOf(ProfileMainTab.OVERVIEW) }
     val showCompletion = viewModel.isAuthenticated &&
         viewModel.selectedRole == UserRole.CREATOR &&
         (viewModel.needsSocialProfileCompletion ||
@@ -140,7 +149,7 @@ fun ProfileScreen(viewModel: AppViewModel) {
 
             Column(modifier = Modifier.padding(top = 28.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    viewModel.profile.name.ifBlank { "Creator" },
+                    viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.ROLE_CREATOR) },
                     style = MaterialTheme.typography.displaySmall,
                     color = MarviColor.Ink
                 )
@@ -171,11 +180,6 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("${viewModel.followCounts.followers} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Ink)
-                Text("${viewModel.followCounts.following} ${viewModel.t(MarviL10n.Key.FOLLOWING_LABEL)}", color = MarviColor.Ink)
-            }
-
             if (showCompletion) {
                 MarviCard {
                     SectionTitle(
@@ -203,109 +207,145 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
             }
 
-            MarviCard {
-                SectionTitle(text = viewModel.t(MarviL10n.Key.PROFILE_SETUP_TITLE))
-                OutlinedTextField(
-                    value = viewModel.profile.handle,
-                    onValueChange = { viewModel.updateProfileHandle(it) },
-                    label = { Text(viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = viewModel.profile.tiktokHandle,
-                    onValueChange = { viewModel.updateProfileTiktok(it) },
-                    label = { Text(viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = viewModel.profile.city,
-                    onValueChange = { viewModel.updateProfileCity(it) },
-                    label = { Text(viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Button(
-                    onClick = { viewModel.saveProfileFromEditor() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                ) {
-                    Text(viewModel.t(MarviL10n.Key.SYNC_FROM_SERVER))
-                }
-            }
-
-            val verification = viewModel.socialVerification
-            if (verification != null && viewModel.selectedRole == UserRole.CREATOR) {
-                val context = LocalContext.current
-                LaunchedEffect(Unit) { viewModel.loadSocialVerification() }
-                MarviCard {
-                    SectionTitle(text = viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_TITLE))
-                    Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_SUB), color = MarviColor.Muted)
-                    verification.code?.let { code ->
-                        if (!verification.isVerified) {
-                            Text(code, color = MarviColor.Rose, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
-                            Text(verification.dmMessage, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("Marvi verification", verification.dmMessage))
-                                }) { Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_COPY_CODE)) }
-                                Button(onClick = {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/${verification.marviInstagramHandle}")))
-                                }) { Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_OPEN_INSTAGRAM)) }
-                            }
-                            if (verification.state == SocialVerificationState.PENDING) {
-                                Button(
-                                    onClick = { viewModel.submitSocialVerificationSent { } },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                                ) { Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_SENT_BTN)) }
-                            }
-                        }
-                    }
-                    Text(
-                        when (verification.state) {
-                            SocialVerificationState.VERIFIED -> viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_VERIFIED)
-                            SocialVerificationState.SUBMITTED -> viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_SUBMITTED)
-                            SocialVerificationState.PENDING -> viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_PENDING)
-                            SocialVerificationState.NEEDS_HANDLES -> viewModel.t(MarviL10n.Key.NEEDS_SOCIAL)
-                        },
-                        color = if (verification.isVerified) MarviColor.Emerald else MarviColor.Gold,
-                        fontWeight = FontWeight.SemiBold
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                listOf(
+                    ProfileMainTab.OVERVIEW to MarviL10n.Key.PROFILE_TAB_OVERVIEW,
+                    ProfileMainTab.EDIT to MarviL10n.Key.PROFILE_TAB_EDIT,
+                    ProfileMainTab.ACCOUNT to MarviL10n.Key.PROFILE_TAB_ACCOUNT,
+                    ProfileMainTab.SETTINGS to MarviL10n.Key.PROFILE_TAB_SETTINGS
+                ).forEach { (tab, key) ->
+                    FilterChip(
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        label = { Text(viewModel.t(key)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
+                            selectedLabelColor = MarviColor.Rose
+                        )
                     )
                 }
             }
 
-            if (viewModel.allowedRoles.size > 1) {
-                Text(viewModel.t(MarviL10n.Key.WORKSPACE), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    viewModel.allowedRoles.forEach { role ->
-                        FilterChip(
-                            selected = viewModel.selectedRole == role,
-                            onClick = { viewModel.switchRole(role) },
-                            label = { Text(roleLabel(role, viewModel)) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MarviColor.Rose.copy(alpha = 0.2f),
-                                selectedLabelColor = MarviColor.Rose
+            when (selectedTab) {
+                ProfileMainTab.OVERVIEW -> {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text("${viewModel.followCounts.followers} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Ink)
+                        Text("${viewModel.followCounts.following} ${viewModel.t(MarviL10n.Key.FOLLOWING_LABEL)}", color = MarviColor.Ink)
+                    }
+
+                    if (viewModel.allowedRoles.size > 1) {
+                        MarviCard {
+                            SectionTitle(text = viewModel.t(MarviL10n.Key.WORKSPACE))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                viewModel.allowedRoles.forEach { role ->
+                                    FilterChip(
+                                        selected = viewModel.selectedRole == role,
+                                        onClick = { viewModel.switchRole(role) },
+                                        label = { Text(roleLabel(role, viewModel)) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.2f),
+                                            selectedLabelColor = MarviColor.Rose
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ProfileMainTab.EDIT -> {
+                    MarviCard {
+                        SectionTitle(text = viewModel.t(MarviL10n.Key.PROFILE_SETUP_TITLE))
+                        OutlinedTextField(
+                            value = viewModel.profile.handle,
+                            onValueChange = { viewModel.updateProfileHandle(it) },
+                            label = { Text(viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = viewModel.profile.tiktokHandle,
+                            onValueChange = { viewModel.updateProfileTiktok(it) },
+                            label = { Text(viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = viewModel.profile.city,
+                            onValueChange = { viewModel.updateProfileCity(it) },
+                            label = { Text(viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Button(
+                            onClick = { viewModel.saveProfileFromEditor() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
+                        ) {
+                            Text(viewModel.t(MarviL10n.Key.SAVE_PROFILE))
+                        }
+                    }
+
+                    val verification = viewModel.socialVerification
+                    if (verification != null && viewModel.selectedRole == UserRole.CREATOR) {
+                        val context = LocalContext.current
+                        LaunchedEffect(Unit) { viewModel.loadSocialVerification() }
+                        MarviCard {
+                            SectionTitle(text = viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_TITLE))
+                            Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_SUB), color = MarviColor.Muted)
+                            verification.code?.let { code ->
+                                if (!verification.isVerified) {
+                                    Text(code, color = MarviColor.Rose, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
+                                    Text(verification.dmMessage, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(onClick = {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            clipboard.setPrimaryClip(ClipData.newPlainText("Marvi verification", verification.dmMessage))
+                                        }) { Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_COPY_CODE)) }
+                                        Button(onClick = {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/${verification.marviInstagramHandle}")))
+                                        }) { Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_OPEN_INSTAGRAM)) }
+                                    }
+                                    if (verification.state == SocialVerificationState.PENDING) {
+                                        Button(
+                                            onClick = { viewModel.submitSocialVerificationSent { } },
+                                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                                        ) { Text(viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_SENT_BTN)) }
+                                    }
+                                }
+                            }
+                            Text(
+                                when (verification.state) {
+                                    SocialVerificationState.VERIFIED -> viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_VERIFIED)
+                                    SocialVerificationState.SUBMITTED -> viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_SUBMITTED)
+                                    SocialVerificationState.PENDING -> viewModel.t(MarviL10n.Key.SOCIAL_VERIFY_PENDING)
+                                    SocialVerificationState.NEEDS_HANDLES -> viewModel.t(MarviL10n.Key.NEEDS_SOCIAL)
+                                },
+                                color = if (verification.isVerified) MarviColor.Emerald else MarviColor.Gold,
+                                fontWeight = FontWeight.SemiBold
                             )
+                        }
+                    }
+                }
+
+                ProfileMainTab.ACCOUNT -> {
+                    TextButton(onClick = { viewModel.signOut() }, modifier = Modifier.fillMaxWidth()) {
+                        Text(viewModel.t(MarviL10n.Key.SIGN_OUT), color = MarviColor.Tomato)
+                    }
+                }
+
+                ProfileMainTab.SETTINGS -> {
+                    Text(viewModel.t(MarviL10n.Key.LANGUAGE_LABEL), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = viewModel.preferredLanguage == AppLanguage.ENGLISH,
+                            onClick = { viewModel.switchLanguage(AppLanguage.ENGLISH) },
+                            label = { Text("English") }
+                        )
+                        FilterChip(
+                            selected = viewModel.preferredLanguage == AppLanguage.TURKISH,
+                            onClick = { viewModel.switchLanguage(AppLanguage.TURKISH) },
+                            label = { Text("Türkçe") }
                         )
                     }
                 }
-            }
-
-            Text(viewModel.t(MarviL10n.Key.LANGUAGE_LABEL), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = viewModel.preferredLanguage == AppLanguage.ENGLISH,
-                    onClick = { viewModel.switchLanguage(AppLanguage.ENGLISH) },
-                    label = { Text("English") }
-                )
-                FilterChip(
-                    selected = viewModel.preferredLanguage == AppLanguage.TURKISH,
-                    onClick = { viewModel.switchLanguage(AppLanguage.TURKISH) },
-                    label = { Text("Türkçe") }
-                )
-            }
-
-            TextButton(onClick = { viewModel.signOut() }, modifier = Modifier.fillMaxWidth()) {
-                Text(viewModel.t(MarviL10n.Key.SIGN_OUT), color = MarviColor.Tomato)
             }
         }
     }
