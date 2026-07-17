@@ -56,17 +56,21 @@ fun MemberProfileScreen(
     var venueProfile by remember { mutableStateOf<PublicVenueProfile?>(null) }
     var comments by remember { mutableStateOf<List<com.marvisociety.app.data.ProfileComment>>(emptyList()) }
     var commentDraft by remember { mutableStateOf("") }
+    var profileError by remember { mutableStateOf<String?>(null) }
+    var isFollowBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val commentTargetId = member.userId.ifBlank { member.id }
 
     LaunchedEffect(member.id) {
-        if (member.isVenue) {
-            venueProfile = viewModel.fetchVenuePublicProfile(member.id)
-        } else {
-            creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
-        }
-        comments = viewModel.fetchProfileComments(commentTargetId)
+        runCatching {
+            if (member.isVenue) {
+                venueProfile = viewModel.fetchVenuePublicProfile(member.id)
+            } else {
+                creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
+            }
+            comments = viewModel.fetchProfileComments(commentTargetId)
+        }.onFailure { profileError = it.message }
     }
 
     val displayName = creatorProfile?.name?.takeIf { it.isNotBlank() }
@@ -143,10 +147,27 @@ fun MemberProfileScreen(
                         onClick = {
                             scope.launch {
                                 val targetUserId = member.userId.ifBlank { member.id }
-                                if (profile.isFollowing) viewModel.unfollowUser(targetUserId) else viewModel.followUser(targetUserId)
-                                creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
+                                isFollowBusy = true
+                                val onResult: (Boolean) -> Unit = { succeeded ->
+                                    if (succeeded) {
+                                        scope.launch {
+                                            runCatching {
+                                                creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
+                                            }.onFailure { profileError = it.message }
+                                            isFollowBusy = false
+                                        }
+                                    } else {
+                                        isFollowBusy = false
+                                    }
+                                }
+                                if (profile.isFollowing) {
+                                    viewModel.unfollowUser(targetUserId, onResult)
+                                } else {
+                                    viewModel.followUser(targetUserId, onResult)
+                                }
                             }
                         },
+                        enabled = !isFollowBusy,
                         colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
                     ) {
                         Text(if (profile.isFollowing) viewModel.t(MarviL10n.Key.UNFOLLOW_CREATOR) else viewModel.t(MarviL10n.Key.FOLLOW_CREATOR))
@@ -172,6 +193,10 @@ fun MemberProfileScreen(
                     Text("${profile.area} · ${viewModel.categoryLabel(profile.category)}", color = MarviColor.Muted)
                     Text(profile.bio, color = MarviColor.Ink)
                 }
+            }
+
+            profileError?.let {
+                Text(it, color = MarviColor.Tomato, style = MaterialTheme.typography.bodySmall)
             }
 
             MarviCard {
@@ -209,7 +234,11 @@ fun MemberProfileScreen(
                         if (body.isNotEmpty()) {
                             viewModel.addProfileComment(commentTargetId, body) {
                                 commentDraft = ""
-                                scope.launch { comments = viewModel.fetchProfileComments(commentTargetId) }
+                                scope.launch {
+                                    runCatching {
+                                        comments = viewModel.fetchProfileComments(commentTargetId)
+                                    }.onFailure { profileError = it.message }
+                                }
                             }
                         }
                     },

@@ -124,9 +124,14 @@ fun SocialHandlesRequiredScreen(viewModel: AppViewModel) {
                         return@Button
                     }
                     busy = true
-                    viewModel.completeProfileSetup(name, instagram, tiktok, city) {
+                    viewModel.completeProfileSetup(name, instagram, tiktok, city) { succeeded ->
                         busy = false
-                        viewModel.refreshFromServer()
+                        if (succeeded) {
+                            viewModel.refreshFromServer()
+                        } else {
+                            error = viewModel.lastSyncError
+                                ?: viewModel.t(MarviL10n.Key.SYNC_ERROR)
+                        }
                     }
                 },
                 enabled = !busy,
@@ -153,7 +158,6 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
 /** Full-screen gate until admin approves membership (matches iOS ApprovalPendingView). */
 @Composable
 fun ApprovalPendingScreen(viewModel: AppViewModel) {
-    var busy by remember { mutableStateOf(false) }
     val paused = viewModel.profile.status == MembershipStatus.PAUSED
 
     LaunchedEffect(viewModel.needsAdminApproval) {
@@ -189,14 +193,10 @@ fun ApprovalPendingScreen(viewModel: AppViewModel) {
                 },
                 color = MarviColor.Muted
             )
-            if (busy) CircularProgressIndicator(color = MarviColor.Rose)
+            if (viewModel.isSyncing) CircularProgressIndicator(color = MarviColor.Rose)
             Button(
-                onClick = {
-                    busy = true
-                    viewModel.refreshFromServer()
-                    busy = false
-                },
-                enabled = !busy,
+                onClick = viewModel::refreshFromServer,
+                enabled = !viewModel.isSyncing,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
             ) {

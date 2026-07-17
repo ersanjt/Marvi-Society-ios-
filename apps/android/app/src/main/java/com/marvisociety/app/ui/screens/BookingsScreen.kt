@@ -64,7 +64,9 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
         BookingBucket.REQUESTS to pendingRequests.size + viewModel.bookings.count { it.stage == BookingStage.INVITED },
         BookingBucket.TO_CONFIRM to viewModel.bookings.count { it.stage == BookingStage.CONFIRMED },
         BookingBucket.TO_REVIEW to viewModel.bookings.count { it.stage == BookingStage.PROOF_DUE },
-        BookingBucket.TO_VISIT to viewModel.bookings.count { it.stage == BookingStage.CHECKED_IN }
+        BookingBucket.TO_VISIT to viewModel.bookings.count { it.stage == BookingStage.CHECKED_IN },
+        BookingBucket.COMPLETED to viewModel.bookings.count { it.stage == BookingStage.COMPLETED },
+        BookingBucket.CANCELLED to viewModel.bookings.count { it.stage == BookingStage.CANCELLED }
     )
     val requests = if (selectedBucket == BookingBucket.REQUESTS) pendingRequests else emptyList()
     val bookings = viewModel.bookings.filter { booking ->
@@ -73,6 +75,8 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
             BookingBucket.TO_CONFIRM -> booking.stage == BookingStage.CONFIRMED
             BookingBucket.TO_REVIEW -> booking.stage == BookingStage.PROOF_DUE
             BookingBucket.TO_VISIT -> booking.stage == BookingStage.CHECKED_IN
+            BookingBucket.COMPLETED -> booking.stage == BookingStage.COMPLETED
+            BookingBucket.CANCELLED -> booking.stage == BookingStage.CANCELLED
         }
     }
 
@@ -92,7 +96,7 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                         color = MarviColor.Ink
                     )
                     Text(
-                        viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB),
+                        viewModel.t(MarviL10n.Key.MY_EVENTS_SUB),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MarviColor.Muted
                     )
@@ -154,7 +158,7 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
     }
 }
 
-private enum class BookingBucket { REQUESTS, TO_CONFIRM, TO_REVIEW, TO_VISIT }
+private enum class BookingBucket { REQUESTS, TO_CONFIRM, TO_REVIEW, TO_VISIT, COMPLETED, CANCELLED }
 
 @Composable
 private fun BookingStatusGrid(
@@ -167,7 +171,9 @@ private fun BookingStatusGrid(
         Triple(BookingBucket.REQUESTS, MarviL10n.Key.REQUESTS, MarviColor.Rose),
         Triple(BookingBucket.TO_CONFIRM, MarviL10n.Key.TO_CONFIRM, MarviColor.Aubergine),
         Triple(BookingBucket.TO_REVIEW, MarviL10n.Key.TO_REVIEW, MarviColor.Gold),
-        Triple(BookingBucket.TO_VISIT, MarviL10n.Key.TO_VISIT, MarviColor.Blue)
+        Triple(BookingBucket.TO_VISIT, MarviL10n.Key.TO_VISIT, MarviColor.Blue),
+        Triple(BookingBucket.COMPLETED, MarviL10n.Key.STAGE_COMPLETED, MarviColor.Emerald),
+        Triple(BookingBucket.CANCELLED, MarviL10n.Key.STAGE_CANCELLED, MarviColor.Tomato)
     )
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         items.chunked(2).forEach { rowItems ->
@@ -242,7 +248,9 @@ private fun PendingCollaborationRequestCard(
             },
             onClick = {
                 isAccepting = true
-                viewModel.creatorAcceptCollaboration(request.id)
+                viewModel.creatorAcceptCollaboration(request.id) { succeeded ->
+                    if (!succeeded) isAccepting = false
+                }
             },
             enabled = !isAccepting
         )
@@ -258,6 +266,7 @@ private fun BookingCard(
     var checkInCode by remember(booking.id) { mutableStateOf("") }
     var proofText by remember(booking.id) { mutableStateOf("") }
     var screenshotUri by remember(booking.id) { mutableStateOf<Uri?>(null) }
+    var operationBusy by remember(booking.id) { mutableStateOf(false) }
 
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -297,12 +306,19 @@ private fun BookingCard(
                 }
                 PrimaryActionButton(
                     title = viewModel.t(MarviL10n.Key.ACCEPT_INVITATION),
-                    onClick = { viewModel.acceptOffer(booking.offer.id) },
-                    enabled = canAccept
+                    onClick = {
+                        operationBusy = true
+                        viewModel.acceptOffer(booking.offer.id) { operationBusy = false }
+                    },
+                    enabled = canAccept && !operationBusy
                 )
                 SecondaryActionButton(
                     title = viewModel.t(MarviL10n.Key.DECLINE),
-                    onClick = { viewModel.cancelBooking(booking.id) }
+                    onClick = {
+                        operationBusy = true
+                        viewModel.cancelBooking(booking.id) { operationBusy = false }
+                    },
+                    enabled = !operationBusy
                 )
             }
             BookingStage.CONFIRMED -> {
@@ -313,8 +329,11 @@ private fun BookingCard(
                 )
                 PrimaryActionButton(
                     title = viewModel.t(MarviL10n.Key.CHECK_IN),
-                    onClick = { viewModel.checkIn(booking.id, checkInCode) },
-                    enabled = checkInCode.isNotBlank()
+                    onClick = {
+                        operationBusy = true
+                        viewModel.checkIn(booking.id, checkInCode) { operationBusy = false }
+                    },
+                    enabled = checkInCode.isNotBlank() && !operationBusy
                 )
             }
             BookingStage.CHECKED_IN, BookingStage.PROOF_DUE -> {
@@ -332,17 +351,30 @@ private fun BookingCard(
                     },
                     onClick = {
                         photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    }
+                    },
+                    enabled = !operationBusy
                 )
                 PrimaryActionButton(
-                    title = viewModel.t(MarviL10n.Key.SUBMIT_PROOF),
+                    title = if (operationBusy) {
+                        viewModel.t(MarviL10n.Key.SUBMITTING)
+                    } else {
+                        viewModel.t(MarviL10n.Key.SUBMIT_PROOF)
+                    },
                     onClick = {
+                        operationBusy = true
                         viewModel.submitProof(
                             booking.id,
                             proofText.lines().map { it.trim() }.filter { it.isNotEmpty() },
                             screenshotUri
-                        )
-                    }
+                        ) { succeeded ->
+                            operationBusy = false
+                            if (succeeded) {
+                                proofText = ""
+                                screenshotUri = null
+                            }
+                        }
+                    },
+                    enabled = !operationBusy && (proofText.isNotBlank() || screenshotUri != null)
                 )
                 SecondaryActionButton(
                     title = viewModel.t(MarviL10n.Key.RATE_VENUE),

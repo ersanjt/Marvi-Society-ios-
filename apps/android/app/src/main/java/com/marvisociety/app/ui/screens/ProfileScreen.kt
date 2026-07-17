@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
@@ -101,7 +102,7 @@ fun ProfileScreen(viewModel: AppViewModel) {
                         .height(120.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(MarviGradient.BrandVertical)
-                        .clickable {
+                        .clickable(enabled = !viewModel.isProfileMediaUploading) {
                             coverPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
@@ -123,7 +124,7 @@ fun ProfileScreen(viewModel: AppViewModel) {
                         .size(72.dp)
                         .clip(CircleShape)
                         .background(MarviGradient.BrandVertical)
-                        .clickable {
+                        .clickable(enabled = !viewModel.isProfileMediaUploading) {
                             avatarPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
@@ -145,6 +146,12 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             style = MaterialTheme.typography.headlineSmall
                         )
                     }
+                }
+                if (viewModel.isProfileMediaUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MarviColor.Rose
+                    )
                 }
             }
 
@@ -172,7 +179,8 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             avatarPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
-                        }
+                        },
+                        enabled = !viewModel.isProfileMediaUploading
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
@@ -182,7 +190,8 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             coverPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
-                        }
+                        },
+                        enabled = !viewModel.isProfileMediaUploading
                     )
                 }
             }

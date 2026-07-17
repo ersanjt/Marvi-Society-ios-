@@ -77,12 +77,20 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
     var showCancelDialog by remember { mutableStateOf(false) }
     var shippingAddress by remember { mutableStateOf("") }
     var rsvpGuests by remember { mutableIntStateOf(2) }
+    var isAccepting by remember { mutableStateOf(false) }
+    var isCancelling by remember { mutableStateOf(false) }
 
     fun beginAccept() {
         when (offer.collaborationModel) {
             CollaborationModel.GIFT -> showShippingDialog = true
             CollaborationModel.EVENT -> showRsvpDialog = true
-            else -> { viewModel.acceptOffer(offer.id); onBack() }
+            else -> {
+                isAccepting = true
+                viewModel.acceptOffer(offer.id) { succeeded ->
+                    isAccepting = false
+                    if (succeeded) onBack()
+                }
+            }
         }
     }
 
@@ -241,7 +249,7 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                     PrimaryActionButton(
                         title = acceptTitle,
                         onClick = { beginAccept() },
-                        enabled = canAccept,
+                        enabled = canAccept && !isAccepting,
                         icon = Icons.Default.Check
                     )
                     SecondaryActionButton(title = viewModel.t(MarviL10n.Key.CLOSE), onClick = onBack)
@@ -257,7 +265,7 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
 
         if (showShippingDialog) {
             AlertDialog(
-                onDismissRequest = { showShippingDialog = false },
+                onDismissRequest = { if (!isAccepting) showShippingDialog = false },
                 containerColor = MarviColor.Panel,
                 title = { Text(viewModel.t(MarviL10n.Key.CONFIRM_GIFT), color = MarviColor.Ink) },
                 text = {
@@ -278,17 +286,22 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            showShippingDialog = false
-                            viewModel.acceptOffer(offer.id, shippingAddress = shippingAddress)
-                            onBack()
+                            isAccepting = true
+                            viewModel.acceptOffer(offer.id, shippingAddress = shippingAddress) { succeeded ->
+                                isAccepting = false
+                                if (succeeded) {
+                                    showShippingDialog = false
+                                    onBack()
+                                }
+                            }
                         },
-                        enabled = shippingAddress.isNotBlank()
+                        enabled = shippingAddress.isNotBlank() && !isAccepting
                     ) {
                         Text(viewModel.t(MarviL10n.Key.CONFIRM_GIFT), color = MarviColor.Rose)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showShippingDialog = false }) {
+                    TextButton(onClick = { showShippingDialog = false }, enabled = !isAccepting) {
                         Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
                     }
                 }
@@ -297,7 +310,7 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
 
         if (showRsvpDialog) {
             AlertDialog(
-                onDismissRequest = { showRsvpDialog = false },
+                onDismissRequest = { if (!isAccepting) showRsvpDialog = false },
                 containerColor = MarviColor.Panel,
                 title = { Text(viewModel.t(MarviL10n.Key.RSVP_EVENT), color = MarviColor.Ink) },
                 text = {
@@ -318,16 +331,22 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            showRsvpDialog = false
-                            viewModel.acceptOffer(offer.id, rsvpGuests = rsvpGuests)
-                            onBack()
-                        }
+                            isAccepting = true
+                            viewModel.acceptOffer(offer.id, rsvpGuests = rsvpGuests) { succeeded ->
+                                isAccepting = false
+                                if (succeeded) {
+                                    showRsvpDialog = false
+                                    onBack()
+                                }
+                            }
+                        },
+                        enabled = !isAccepting
                     ) {
                         Text(viewModel.t(MarviL10n.Key.RSVP_EVENT), color = MarviColor.Rose)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showRsvpDialog = false }) {
+                    TextButton(onClick = { showRsvpDialog = false }, enabled = !isAccepting) {
                         Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
                     }
                 }
@@ -336,7 +355,7 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
 
         if (showCancelDialog) {
             AlertDialog(
-                onDismissRequest = { showCancelDialog = false },
+                onDismissRequest = { if (!isCancelling) showCancelDialog = false },
                 containerColor = MarviColor.Panel,
                 title = { Text(viewModel.t(MarviL10n.Key.CANCEL_INVITATION_Q), color = MarviColor.Ink) },
                 text = {
@@ -349,18 +368,24 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            showCancelDialog = false
                             viewModel.bookings.firstOrNull { it.offer.id == offer.id }?.let {
-                                viewModel.cancelBooking(it.id)
+                                isCancelling = true
+                                viewModel.cancelBooking(it.id) { succeeded ->
+                                    isCancelling = false
+                                    if (succeeded) {
+                                        showCancelDialog = false
+                                        onBack()
+                                    }
+                                }
                             }
-                            onBack()
-                        }
+                        },
+                        enabled = !isCancelling
                     ) {
                         Text(viewModel.t(MarviL10n.Key.CANCEL_INVITATION), color = MarviColor.Tomato)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showCancelDialog = false }) {
+                    TextButton(onClick = { showCancelDialog = false }, enabled = !isCancelling) {
                         Text(viewModel.t(MarviL10n.Key.KEEP_BTN), color = MarviColor.Muted)
                     }
                 }
@@ -378,10 +403,13 @@ fun DirectChatScreen(
 ) {
     var messages by remember { mutableStateOf(emptyList<ChatMessage>()) }
     var draft by remember { mutableStateOf("") }
+    var chatError by remember { mutableStateOf<String?>(null) }
+    var isSending by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(threadId) {
         runCatching { messages = viewModel.fetchDirectMessages(threadId) }
+            .onFailure { chatError = it.message }
     }
 
     MarviScreen {
@@ -417,19 +445,24 @@ fun DirectChatScreen(
                 onValueChange = { draft = it },
                 placeholder = viewModel.t(MarviL10n.Key.MESSAGE)
             )
+            chatError?.let { Text(it, color = MarviColor.Tomato, style = MaterialTheme.typography.bodySmall) }
             PrimaryActionButton(
                 title = viewModel.t(MarviL10n.Key.SEND),
                 onClick = {
                     val body = draft.trim()
                     if (body.isEmpty()) return@PrimaryActionButton
-                    draft = ""
+                    chatError = null
+                    isSending = true
                     scope.launch {
                         runCatching {
                             val msg = viewModel.sendDirectMessage(threadId, body)
                             messages = messages + msg
-                        }
+                            if (draft.trim() == body) draft = ""
+                        }.onFailure { chatError = it.message }
+                        isSending = false
                     }
-                }
+                },
+                enabled = draft.isNotBlank() && !isSending
             )
         }
     }
@@ -505,10 +538,13 @@ fun CollaborationThreadScreen(
 ) {
     var messages by remember { mutableStateOf(emptyList<ChatMessage>()) }
     var draft by remember { mutableStateOf("") }
+    var chatError by remember { mutableStateOf<String?>(null) }
+    var isSending by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(conversationId) {
         runCatching { messages = viewModel.fetchConversationMessages(conversationId) }
+            .onFailure { chatError = it.message }
     }
 
     MarviScreen {
@@ -544,19 +580,24 @@ fun CollaborationThreadScreen(
                 onValueChange = { draft = it },
                 placeholder = viewModel.t(MarviL10n.Key.MESSAGE)
             )
+            chatError?.let { Text(it, color = MarviColor.Tomato, style = MaterialTheme.typography.bodySmall) }
             PrimaryActionButton(
                 title = viewModel.t(MarviL10n.Key.SEND),
                 onClick = {
                     val body = draft.trim()
                     if (body.isEmpty()) return@PrimaryActionButton
-                    draft = ""
+                    chatError = null
+                    isSending = true
                     scope.launch {
                         runCatching {
                             val msg = viewModel.sendConversationMessage(conversationId, body)
                             messages = messages + msg
-                        }
+                            if (draft.trim() == body) draft = ""
+                        }.onFailure { chatError = it.message }
+                        isSending = false
                     }
-                }
+                },
+                enabled = draft.isNotBlank() && !isSending
             )
         }
     }

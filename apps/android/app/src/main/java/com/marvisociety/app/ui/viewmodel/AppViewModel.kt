@@ -36,6 +36,8 @@ class AppViewModel(
         private set
     var isSyncing by mutableStateOf(false)
         private set
+    var isProfileMediaUploading by mutableStateOf(false)
+        private set
     var isAuthenticated by mutableStateOf(false)
         private set
     var lastSyncError by mutableStateOf<String?>(null)
@@ -352,15 +354,17 @@ class AppViewModel(
         }
     }
 
-    fun startGoogleSignIn(context: android.content.Context) {
+    fun startGoogleSignIn(context: android.content.Context, role: UserRole = UserRole.CREATOR) {
         if (!com.marvisociety.app.network.GoogleOAuth.isEnabled()) {
             authError = t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
             return
         }
         authError = null
         lastSyncError = null
+        selectedRole = role
+        persistSnapshot()
         runCatching {
-            com.marvisociety.app.network.GoogleOAuth.start(context)
+            com.marvisociety.app.network.GoogleOAuth.start(context, role.name)
         }.onFailure { error ->
             authError = error.message ?: t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
         }
@@ -371,7 +375,13 @@ class AppViewModel(
             authError = null
             isBootstrapping = true
             runCatching {
-                val session = repository.completeGoogleOAuth(uri)
+                val completion = repository.completeGoogleOAuth(uri, getApplication())
+                val session = completion.session
+                completion.role?.let { roleName ->
+                    runCatching { UserRole.valueOf(roleName) }
+                        .getOrNull()
+                        ?.let { selectedRole = it }
+                }
                 sessionStore.saveTokens(session.accessToken, session.refreshToken)
                 isAuthenticated = true
                 // Route exactly like the email sign-in path: existing members drop
@@ -496,7 +506,13 @@ class AppViewModel(
         }
     }
 
-    fun completeProfileSetup(name: String, handle: String, tiktok: String, city: String, onDone: () -> Unit) {
+    fun completeProfileSetup(
+        name: String,
+        handle: String,
+        tiktok: String,
+        city: String,
+        onDone: (Boolean) -> Unit
+    ) {
         viewModelScope.launch {
             val updated = profile.copy(
                 name = name.trim(),
@@ -504,11 +520,17 @@ class AppViewModel(
                 tiktokHandle = tiktok.trim().removePrefix("@"),
                 city = city.trim()
             )
-            profile = updated
-            if (repository.usesRemoteBackend && isAuthenticated) {
-                runCatching { repository.updateProfile(updated) }
+            runCatching {
+                if (repository.usesRemoteBackend && isAuthenticated) {
+                    repository.updateProfile(updated)
+                }
+                profile = updated
+            }.onSuccess {
+                onDone(true)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onDone(false)
             }
-            onDone()
         }
     }
 
@@ -534,6 +556,8 @@ class AppViewModel(
                 runCatching {
                     repository.updateProfile(profile)
                     socialVerification = repository.ensureSocialVerificationCode()
+                }.onFailure { error ->
+                    lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
                 }
             }
         }
@@ -543,6 +567,8 @@ class AppViewModel(
         viewModelScope.launch {
             runCatching {
                 socialVerification = repository.ensureSocialVerificationCode()
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
             }
         }
     }
@@ -572,6 +598,8 @@ class AppViewModel(
                 runCatching {
                     val saved = repository.toggleSavedOffer(offerId)
                     savedOfferIds = if (saved) savedOfferIds + offerId else savedOfferIds - offerId
+                }.onFailure { error ->
+                    lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
                 }
             }
         } else {
@@ -582,10 +610,12 @@ class AppViewModel(
     fun acceptOffer(
         offerId: String,
         shippingAddress: String? = null,
-        rsvpGuests: Int? = null
+        rsvpGuests: Int? = null,
+        onResult: (Boolean) -> Unit = {}
     ) {
         if (needsAdminApproval || needsSocialHandlesEntry || profile.status != MembershipStatus.APPROVED) {
             lastSyncError = acceptBlockedReason ?: t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
+            onResult(false)
             return
         }
         viewModelScope.launch {
@@ -597,19 +627,28 @@ class AppViewModel(
                     )
                     bookings = listOf(booking) + bookings.filter { it.id != booking.id }
                 }
+                onResult(true)
             }.onFailure { error ->
                 lastSyncError = error.message
+                onResult(false)
             }
         }
     }
 
-    fun cancelBooking(bookingId: String) {
+    fun cancelBooking(bookingId: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             runCatching {
                 repository.cancelBooking(bookingId)
-                bookings = bookings.filter { it.id != bookingId }
+                bookings = bookings.map {
+                    if (it.id == bookingId) it.copy(stage = BookingStage.CANCELLED) else it
+                }
                 loadPendingCollaborationRequests()
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
@@ -637,13 +676,18 @@ class AppViewModel(
         }
     }
 
-    fun creatorAcceptCollaboration(requestId: String) {
+    fun creatorAcceptCollaboration(requestId: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             runCatching {
                 val booking = repository.creatorAcceptCollaboration(requestId)
                 bookings = listOf(booking) + bookings.filter { it.id != booking.id }
                 pendingCollaborationRequests = pendingCollaborationRequests.filter { it.id != requestId }
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
@@ -666,16 +710,26 @@ class AppViewModel(
         }
     }
 
-    fun checkIn(bookingId: String, code: String) {
+    fun checkIn(bookingId: String, code: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             runCatching {
                 val booking = repository.checkIn(bookingId, code)
                 bookings = bookings.map { if (it.id == booking.id) booking else it }
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
-    fun submitProof(bookingId: String, links: List<String>, screenshotUri: android.net.Uri? = null) {
+    fun submitProof(
+        bookingId: String,
+        links: List<String>,
+        screenshotUri: android.net.Uri? = null,
+        onResult: (Boolean) -> Unit = {}
+    ) {
         viewModelScope.launch {
             runCatching {
                 val allLinks = links.toMutableList()
@@ -694,11 +748,18 @@ class AppViewModel(
                 }
                 val booking = repository.submitProof(bookingId, allLinks)
                 bookings = bookings.map { if (it.id == booking.id) booking else it }
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
     fun uploadProfilePhoto(uri: android.net.Uri, kind: String = "avatar") {
+        if (isProfileMediaUploading) return
+        isProfileMediaUploading = true
         viewModelScope.launch {
             runCatching {
                 val profileKind = when (kind) {
@@ -713,11 +774,35 @@ class AppViewModel(
                 } else {
                     profile.copy(avatarUrl = url)
                 }
-                profile = updated
                 if (repository.usesRemoteBackend && isAuthenticated) {
                     repository.updateProfile(updated)
                 }
+                profile = updated
             }.onFailure { error -> lastSyncError = error.message }
+            isProfileMediaUploading = false
+        }
+    }
+
+    fun registerVenue(
+        name: String,
+        area: String,
+        category: OfferCategory,
+        contactName: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                repository.registerVenueLocation(name, area, category.api, contactName)
+                myVenues = repository.fetchMyVenues()
+                val context = repository.fetchAccountContext()
+                accountRole = context.role
+                allowedRoles = UserRole.allowedWorkspaces(context.role)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(false)
+            }
         }
     }
 
@@ -802,13 +887,23 @@ class AppViewModel(
         }
     }
 
-    fun submitVenueReview(bookingId: String, punctuality: Int, presentation: Int, comment: String, onDone: () -> Unit) {
+    fun submitVenueReview(
+        bookingId: String,
+        punctuality: Int,
+        presentation: Int,
+        comment: String,
+        onResult: (Boolean) -> Unit
+    ) {
         viewModelScope.launch {
             runCatching {
                 repository.submitVenueReview(bookingId, punctuality, presentation, comment)
                 venueReviewQueue = repository.fetchVenueReviewQueue()
-                onDone()
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
@@ -848,12 +943,26 @@ class AppViewModel(
     suspend fun fetchVenuePublicProfile(venueId: String): PublicVenueProfile? =
         repository.fetchVenuePublicProfile(venueId)
 
-    fun followUser(userId: String) {
-        viewModelScope.launch { runCatching { repository.followUser(userId) } }
+    fun followUser(userId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { repository.followUser(userId) }
+                .onSuccess { onResult(true) }
+                .onFailure { error ->
+                    lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                    onResult(false)
+                }
+        }
     }
 
-    fun unfollowUser(userId: String) {
-        viewModelScope.launch { runCatching { repository.unfollowUser(userId) } }
+    fun unfollowUser(userId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { repository.unfollowUser(userId) }
+                .onSuccess { onResult(true) }
+                .onFailure { error ->
+                    lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                    onResult(false)
+                }
+        }
     }
 
     suspend fun openDirectThread(peerUserId: String): String =
@@ -904,7 +1013,7 @@ class AppViewModel(
     }
 
     suspend fun fetchProfileComments(targetUserId: String): List<ProfileComment> =
-        runCatching { repository.fetchProfileComments(targetUserId) }.getOrDefault(emptyList())
+        repository.fetchProfileComments(targetUserId)
 
     fun addProfileComment(targetUserId: String, body: String, onDone: () -> Unit) {
         viewModelScope.launch {
@@ -920,35 +1029,57 @@ class AppViewModel(
             runCatching {
                 repository.markNotificationRead(id)
                 inboxMessages = inboxMessages.map { if (it.id == id) it.copy(isRead = true) else it }
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
             }
         }
     }
 
-    fun adminCreateInvite(code: String?, ownerType: String, maxUses: Int, inviteEmail: String?, onDone: () -> Unit) {
+    fun adminCreateInvite(
+        code: String?,
+        ownerType: String,
+        maxUses: Int,
+        inviteEmail: String?,
+        onResult: (Boolean) -> Unit
+    ) {
         viewModelScope.launch {
             runCatching {
                 repository.adminCreateInviteCode(code, ownerType, maxUses, inviteEmail)
                 adminInviteCodes = repository.fetchAdminInviteCodes()
-                onDone()
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
-    fun approveTask(taskId: String) {
+    fun approveTask(taskId: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             runCatching {
                 repository.approveTask(taskId)
                 adminTasks = repository.fetchAdminTasks()
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
-    fun rejectTask(taskId: String) {
+    fun rejectTask(taskId: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             runCatching {
                 repository.rejectTask(taskId)
                 adminTasks = repository.fetchAdminTasks()
-            }.onFailure { error -> lastSyncError = error.message }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 

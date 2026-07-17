@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-07-17T14:35:51Z
+-- Generated: 2026-07-17T15:49:54Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
@@ -9066,6 +9066,26 @@ CREATE POLICY venue_reviews_insert ON public.venue_reviews
             JOIN public.venue_profiles v ON v.id = o.venue_id
             WHERE b.id = booking_id AND v.owner_user_id = auth.uid()
         )
+    );
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260717000001_proof_upload_retry_policy.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Allow creators to replace a proof screenshot for the same booking.
+-- The clients upload with x-upsert=true, which becomes UPDATE when the
+-- deterministic object path already exists.
+
+DROP POLICY IF EXISTS proof_update_own ON storage.objects;
+CREATE POLICY proof_update_own ON storage.objects
+    FOR UPDATE
+    USING (
+        bucket_id = 'proof-uploads'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    )
+    WITH CHECK (
+        bucket_id = 'proof-uploads'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
     );
 
 

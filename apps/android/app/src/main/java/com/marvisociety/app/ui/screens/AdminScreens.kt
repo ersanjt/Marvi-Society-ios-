@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -60,6 +61,8 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
     var inviteEmail by remember { mutableStateOf("") }
     var inviteMaxUses by remember { mutableStateOf("1") }
     var inviteOwnerType by remember { mutableStateOf("creator") }
+    var isCreatingInvite by remember { mutableStateOf(false) }
+    var resolvingTaskId by remember { mutableStateOf<String?>(null) }
 
     MarviScreen {
         LazyColumn(
@@ -99,11 +102,19 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                     if (task.status == AdminTaskStatus.OPEN) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                             Button(
-                                onClick = { viewModel.approveTask(task.id) },
+                                onClick = {
+                                    resolvingTaskId = task.id
+                                    viewModel.approveTask(task.id) { resolvingTaskId = null }
+                                },
+                                enabled = resolvingTaskId == null,
                                 colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
                             ) { Text(viewModel.t(MarviL10n.Key.APPROVE)) }
                             Button(
-                                onClick = { viewModel.rejectTask(task.id) },
+                                onClick = {
+                                    resolvingTaskId = task.id
+                                    viewModel.rejectTask(task.id) { resolvingTaskId = null }
+                                },
+                                enabled = resolvingTaskId == null,
                                 colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Tomato)
                             ) { Text(viewModel.t(MarviL10n.Key.REJECT)) }
                         }
@@ -158,18 +169,33 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                         }
                         Button(
                             onClick = {
+                                isCreatingInvite = true
                                 viewModel.adminCreateInvite(
                                     code = null,
                                     ownerType = inviteOwnerType,
                                     maxUses = inviteMaxUses.toIntOrNull()?.coerceIn(1, 999) ?: 1,
                                     inviteEmail = inviteEmail.ifBlank { null }
-                                ) {
-                                    inviteEmail = ""; inviteMaxUses = "1"; showCreateInvite = false
+                                ) { succeeded ->
+                                    isCreatingInvite = false
+                                    if (succeeded) {
+                                        inviteEmail = ""
+                                        inviteMaxUses = "1"
+                                        showCreateInvite = false
+                                    }
                                 }
                             },
+                            enabled = !isCreatingInvite,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                        ) { Text(viewModel.t(MarviL10n.Key.CREATE)) }
+                        ) {
+                            Text(
+                                if (isCreatingInvite) {
+                                    viewModel.t(MarviL10n.Key.SUBMITTING)
+                                } else {
+                                    viewModel.t(MarviL10n.Key.CREATE)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -559,10 +585,11 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
 
 @Composable
 private fun VenueReviewCard(review: com.marvisociety.app.data.VenueReviewItem, viewModel: AppViewModel) {
-    var punctuality by remember(review.id) { mutableStateOf(4) }
-    var presentation by remember(review.id) { mutableStateOf(4) }
+    var punctuality by remember(review.id) { mutableIntStateOf(4) }
+    var presentation by remember(review.id) { mutableIntStateOf(4) }
     var comment by remember(review.id) { mutableStateOf("") }
     var expanded by remember(review.id) { mutableStateOf(false) }
+    var submitting by remember(review.id) { mutableStateOf(false) }
 
     MarviCard {
         Text(review.creatorName.ifBlank { "@${review.instagramHandle}" }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
@@ -591,13 +618,24 @@ private fun VenueReviewCard(review: com.marvisociety.app.data.VenueReviewItem, v
             )
             Button(
                 onClick = {
-                    viewModel.submitVenueReview(review.id, punctuality, presentation, comment.trim()) {
-                        expanded = false
+                    submitting = true
+                    viewModel.submitVenueReview(review.id, punctuality, presentation, comment.trim()) { succeeded ->
+                        submitting = false
+                        if (succeeded) expanded = false
                     }
                 },
+                enabled = !submitting,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-            ) { Text(viewModel.t(MarviL10n.Key.SUBMIT_REVIEW)) }
+            ) {
+                Text(
+                    if (submitting) {
+                        viewModel.t(MarviL10n.Key.SUBMITTING)
+                    } else {
+                        viewModel.t(MarviL10n.Key.SUBMIT_REVIEW)
+                    }
+                )
+            }
         }
     }
 }

@@ -242,7 +242,7 @@ class SupabaseClient(
     fun publicStorageUrl(bucket: String, path: String, cacheBust: Boolean = true): String {
         val cleanPath = path.trimStart('/')
         val base = "$baseUrl/storage/v1/object/public/$bucket/$cleanPath"
-        return if (cacheBust) "$base?v=${System.currentTimeMillis() / 1000}" else base
+        return if (cacheBust) "$base?v=${System.currentTimeMillis()}" else base
     }
 
     private suspend fun parseAuthResponse(response: HttpResponse): AuthSession {

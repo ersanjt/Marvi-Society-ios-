@@ -3,6 +3,7 @@ package com.marvisociety.app.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.marvisociety.app.data.OfferCategory
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandMark
@@ -74,6 +77,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
     var tiktok by remember { mutableStateOf("") }
     var venueName by remember { mutableStateOf("") }
     var venueArea by remember { mutableStateOf("Istanbul") }
+    var venueCategory by remember { mutableStateOf(OfferCategory.DINING) }
     var ageConfirmed by remember { mutableStateOf(false) }
     var termsAccepted by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf("") }
@@ -288,9 +292,14 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                             handle = instagram,
                             tiktok = tiktok,
                             city = city
-                        ) {
+                        ) { succeeded ->
                             busy = false
-                            step = OnboardingStep.AGREEMENT
+                            if (succeeded) {
+                                step = OnboardingStep.AGREEMENT
+                            } else {
+                                localError = viewModel.lastSyncError
+                                    ?: viewModel.t(MarviL10n.Key.SYNC_ERROR)
+                            }
                         }
                     }
                 )
@@ -299,9 +308,11 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     viewModel = viewModel,
                     venueName = venueName,
                     venueArea = venueArea,
+                    venueCategory = venueCategory,
                     localError = localError,
                     onName = { venueName = it },
                     onArea = { venueArea = it },
+                    onCategory = { venueCategory = it },
                     onBack = { step = OnboardingStep.SIGN_IN },
                     onContinue = {
                         if (venueName.isBlank() || venueArea.isBlank()) {
@@ -332,8 +343,26 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                             localError = viewModel.t(MarviL10n.Key.AGREE_REQUIRED)
                             return@AgreementStep
                         }
-                        val role = if (intent == SignupIntent.BUSINESS) UserRole.VENUE else UserRole.CREATOR
-                        viewModel.finishOnboarding(role)
+                        localError = ""
+                        if (intent == SignupIntent.BUSINESS) {
+                            busy = true
+                            viewModel.registerVenue(
+                                name = venueName,
+                                area = venueArea,
+                                category = venueCategory,
+                                contactName = fullName.ifBlank { email.substringBefore("@") }
+                            ) { succeeded ->
+                                busy = false
+                                if (succeeded) {
+                                    viewModel.finishOnboarding(UserRole.VENUE)
+                                } else {
+                                    localError = viewModel.lastSyncError
+                                        ?: viewModel.t(MarviL10n.Key.SYNC_ERROR)
+                                }
+                            }
+                        } else {
+                            viewModel.finishOnboarding(UserRole.CREATOR)
+                        }
                     }
                 )
             }
@@ -454,7 +483,16 @@ private fun SignInStep(
         color = MarviColor.Ink,
         fontWeight = FontWeight.Bold
     )
-    Text(viewModel.t(MarviL10n.Key.PROFILE_SETUP_SUB), color = MarviColor.Muted)
+    Text(
+        viewModel.t(
+            if (intent == SignupIntent.BUSINESS) {
+                MarviL10n.Key.VENUE_SETUP_SUB
+            } else {
+                MarviL10n.Key.PROFILE_SETUP_SUB
+            }
+        ),
+        color = MarviColor.Muted
+    )
 
     if (isCreatingAccount) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -477,7 +515,12 @@ private fun SignInStep(
             title = if (busy) viewModel.t(MarviL10n.Key.SIGNING_IN)
             else viewModel.t(MarviL10n.Key.SIGN_IN_WITH_GOOGLE),
             enabled = !busy,
-            onClick = { viewModel.startGoogleSignIn(context) }
+            onClick = {
+                viewModel.startGoogleSignIn(
+                    context,
+                    if (intent == SignupIntent.BUSINESS) UserRole.VENUE else UserRole.CREATOR
+                )
+            }
         )
         Text(
             viewModel.t(MarviL10n.Key.OR_EMAIL),
@@ -584,9 +627,11 @@ private fun VenueStep(
     viewModel: AppViewModel,
     venueName: String,
     venueArea: String,
+    venueCategory: OfferCategory,
     localError: String,
     onName: (String) -> Unit,
     onArea: (String) -> Unit,
+    onCategory: (OfferCategory) -> Unit,
     onBack: () -> Unit,
     onContinue: () -> Unit
 ) {
@@ -594,6 +639,18 @@ private fun VenueStep(
     Text(viewModel.t(MarviL10n.Key.VENUE_SETUP_SUB), color = MarviColor.Muted)
     MarviField(venueName, onName, viewModel.t(MarviL10n.Key.VENUE_NAME))
     MarviField(venueArea, onArea, viewModel.t(MarviL10n.Key.VENUE_AREA))
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OfferCategory.entries.forEach { category ->
+            FilterChip(
+                selected = venueCategory == category,
+                onClick = { onCategory(category) },
+                label = { Text(viewModel.categoryLabel(category)) }
+            )
+        }
+    }
     if (localError.isNotEmpty()) Text(localError, color = MarviColor.Tomato)
     PrimaryButton(title = viewModel.t(MarviL10n.Key.CONTINUE), onClick = onContinue)
     TextButton(onClick = onBack) { Text(viewModel.t(MarviL10n.Key.BACK), color = MarviColor.Muted) }

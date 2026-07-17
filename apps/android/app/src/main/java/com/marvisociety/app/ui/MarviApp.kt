@@ -1,5 +1,6 @@
 package com.marvisociety.app.ui
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -177,7 +178,9 @@ private fun MainShell(viewModel: AppViewModel) {
                             navController.navigate("member/${member.id}")
                         },
                         onOpenThread = { thread ->
-                            navController.navigate("chat/${thread.id}/${thread.peerName}")
+                            navController.navigate(
+                                "chat/${thread.id}/${Uri.encode(thread.peerName)}"
+                            )
                         }
                     )
                 }
@@ -204,7 +207,9 @@ private fun MainShell(viewModel: AppViewModel) {
                             scope.launch {
                                 runCatching {
                                     val threadId = viewModel.openDirectThread(peerId)
-                                    navController.navigate("chat/$threadId/${member.displayName}")
+                                    navController.navigate(
+                                        "chat/$threadId/${Uri.encode(member.displayName)}"
+                                    )
                                 }
                             }
                         },
@@ -219,7 +224,7 @@ private fun MainShell(viewModel: AppViewModel) {
                         viewModel = viewModel,
                         onOpenConversation = { convo ->
                             val title = convo.title.ifBlank { "Marvi" }
-                            navController.navigate("collabchat/${convo.id}/$title")
+                            navController.navigate("collabchat/${convo.id}/${Uri.encode(title)}")
                         },
                         onBack = { navController.popBackStack() }
                     )
@@ -232,7 +237,7 @@ private fun MainShell(viewModel: AppViewModel) {
                     )
                 ) { entry ->
                     val conversationId = entry.arguments?.getString("conversationId").orEmpty()
-                    val title = entry.arguments?.getString("title").orEmpty()
+                    val title = Uri.decode(entry.arguments?.getString("title").orEmpty())
                     CollaborationThreadScreen(conversationId, title, viewModel) { navController.popBackStack() }
                 }
                 composable("profile") { ProfileScreen(viewModel) }
@@ -257,7 +262,7 @@ private fun MainShell(viewModel: AppViewModel) {
                     )
                 ) { entry ->
                     val threadId = entry.arguments?.getString("threadId").orEmpty()
-                    val peerName = entry.arguments?.getString("peerName").orEmpty()
+                    val peerName = Uri.decode(entry.arguments?.getString("peerName").orEmpty())
                     DirectChatScreen(threadId, peerName, viewModel) { navController.popBackStack() }
                 }
             }

@@ -30,8 +30,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     fun currentUserId(): String? = client.currentUserId()
     fun supabaseClient(): SupabaseClient = client
 
-    suspend fun completeGoogleOAuth(uri: android.net.Uri): AuthSession =
-        GoogleOAuth.completeIfPossible(uri, client)
+    suspend fun completeGoogleOAuth(uri: android.net.Uri, context: android.content.Context): GoogleOAuth.Completion =
+        GoogleOAuth.completeIfPossible(uri, client, context)
             ?: throw MarviApiException("Not a Google auth callback")
 
     suspend fun fetchAccountContext(): AccountContext {
@@ -458,6 +458,29 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     suspend fun fetchMyVenues(): List<VenueSummary> {
         val rows = client.rpcJson("fetch_my_venues", buildJsonObject { }).asArrayOrEmpty()
         return rows.mapNotNull { parseVenueSummary(it) }
+    }
+
+    suspend fun registerVenueLocation(
+        name: String,
+        area: String,
+        category: String,
+        contactName: String
+    ): String {
+        val result = client.rpcJson(
+            "register_venue_location",
+            buildJsonObject {
+                put("p_venue_name", name.trim())
+                put("p_area", area.trim())
+                put("p_category", category)
+                put("p_address", "")
+                put("p_contact_name", contactName.trim())
+                put("p_contact_phone", "")
+            }
+        )
+        return result.asObjectOrNull()?.string("id")
+            ?: result.asObjectOrNull()?.string("venue_id")
+            ?: result.toString().trim('"').takeIf { it.isNotBlank() && it != "null" }
+            ?: throw MarviApiException("Venue registration returned empty id")
     }
 
     suspend fun fetchCampaigns(): List<Campaign> {

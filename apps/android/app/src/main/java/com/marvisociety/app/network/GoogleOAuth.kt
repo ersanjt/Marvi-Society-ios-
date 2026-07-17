@@ -17,10 +17,21 @@ object GoogleOAuth {
     const val CALLBACK_SCHEME = "marvisociety"
     const val CALLBACK_HOST = "auth"
     const val REDIRECT_URI = "marvisociety://auth/callback"
+    private const val PREFS = "marvi_oauth"
+    private const val KEY_VERIFIER = "pkce_verifier"
+    private const val KEY_STARTED_AT = "pkce_started_at"
+    private const val KEY_ROLE = "signup_role"
+    private const val MAX_AGE_MS = 15 * 60 * 1000L
 
     data class Pending(
         val codeVerifier: String,
+        val role: String,
         val startedAtMs: Long = System.currentTimeMillis()
+    )
+
+    data class Completion(
+        val session: AuthSession,
+        val role: String?
     )
 
     @Volatile
@@ -29,13 +40,25 @@ object GoogleOAuth {
 
     fun isEnabled(): Boolean = BuildConfig.GOOGLE_SIGN_IN_ENABLED && BuildConfig.USE_REMOTE_BACKEND
 
-    fun clearPending() {
+    fun clearPending(context: Context? = null) {
         pending = null
+        context?.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            ?.edit()
+            ?.remove(KEY_VERIFIER)
+            ?.remove(KEY_STARTED_AT)
+            ?.remove(KEY_ROLE)
+            ?.apply()
     }
 
-    fun start(context: Context) {
+    fun start(context: Context, role: String = "CREATOR") {
         val verifier = generateCodeVerifier()
-        pending = Pending(codeVerifier = verifier)
+        pending = Pending(codeVerifier = verifier, role = role)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_VERIFIER, verifier)
+            .putLong(KEY_STARTED_AT, pending?.startedAtMs ?: System.currentTimeMillis())
+            .putString(KEY_ROLE, role)
+            .commit()
         val challenge = codeChallenge(verifier)
         val url = buildAuthorizeUrl(challenge)
         CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
@@ -48,28 +71,41 @@ object GoogleOAuth {
         return path.equals("callback", ignoreCase = true) || path.isEmpty()
     }
 
-    suspend fun completeIfPossible(uri: Uri, client: SupabaseClient): AuthSession? {
+    suspend fun completeIfPossible(uri: Uri, client: SupabaseClient, context: Context): Completion? {
         if (!isAuthCallback(uri)) return null
-        val verifier = pending?.codeVerifier
-            ?: throw MarviApiException("Google sign-in expired. Try again.")
-        clearPending()
+        val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val role = pending?.role ?: stored.getString(KEY_ROLE, null)
 
         val error = uri.getQueryParameter("error_description")
             ?: uri.getQueryParameter("error")
         if (!error.isNullOrBlank()) {
+            clearPending(context)
             throw MarviApiException(error.replace('+', ' '))
         }
 
         val access = uri.getQueryParameter("access_token")
         if (!access.isNullOrBlank()) {
             val refresh = uri.getQueryParameter("refresh_token")
+            clearPending(context)
             client.setSession(access, refresh)
-            return AuthSession(accessToken = access, refreshToken = refresh, userId = client.currentUserId())
+            return Completion(
+                session = AuthSession(accessToken = access, refreshToken = refresh, userId = client.currentUserId()),
+                role = role
+            )
+        }
+
+        val startedAt = pending?.startedAtMs
+            ?: stored.getLong(KEY_STARTED_AT, 0L)
+        val verifier = pending?.codeVerifier
+            ?: stored.getString(KEY_VERIFIER, null)
+        clearPending(context)
+        if (verifier.isNullOrBlank() || startedAt <= 0L || System.currentTimeMillis() - startedAt > MAX_AGE_MS) {
+            throw MarviApiException("Google sign-in expired. Try again.")
         }
 
         val code = uri.getQueryParameter("code")
             ?: throw MarviApiException("Google sign-in did not return a session.")
-        return client.exchangeAuthCode(code, verifier)
+        return Completion(client.exchangeAuthCode(code, verifier), role)
     }
 
     private fun buildAuthorizeUrl(challenge: String): String {
