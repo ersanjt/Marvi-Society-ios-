@@ -5,10 +5,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,11 +51,30 @@ import com.marvisociety.app.ui.components.PrimaryActionButton
 import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.components.StatusPill
 import com.marvisociety.app.ui.theme.MarviColor
+import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
 @Composable
 fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
     var rateBooking by remember { mutableStateOf<Booking?>(null) }
+    var selectedBucket by remember { mutableStateOf(BookingBucket.REQUESTS) }
+
+    val pendingRequests = viewModel.pendingCollaborationRequests.filter { it.isPendingCreator }
+    val counts = mapOf(
+        BookingBucket.REQUESTS to pendingRequests.size + viewModel.bookings.count { it.stage == BookingStage.INVITED },
+        BookingBucket.TO_CONFIRM to viewModel.bookings.count { it.stage == BookingStage.CONFIRMED },
+        BookingBucket.TO_REVIEW to viewModel.bookings.count { it.stage == BookingStage.PROOF_DUE },
+        BookingBucket.TO_VISIT to viewModel.bookings.count { it.stage == BookingStage.CHECKED_IN }
+    )
+    val requests = if (selectedBucket == BookingBucket.REQUESTS) pendingRequests else emptyList()
+    val bookings = viewModel.bookings.filter { booking ->
+        when (selectedBucket) {
+            BookingBucket.REQUESTS -> booking.stage == BookingStage.INVITED
+            BookingBucket.TO_CONFIRM -> booking.stage == BookingStage.CONFIRMED
+            BookingBucket.TO_REVIEW -> booking.stage == BookingStage.PROOF_DUE
+            BookingBucket.TO_VISIT -> booking.stage == BookingStage.CHECKED_IN
+        }
+    }
 
     MarviScreen {
         Column(
@@ -66,7 +88,7 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         viewModel.t(MarviL10n.Key.MY_EVENTS_TITLE),
-                        style = MaterialTheme.typography.displayLarge,
+                        style = MaterialTheme.typography.displaySmall,
                         color = MarviColor.Ink
                     )
                     Text(
@@ -85,8 +107,12 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                 }
             }
 
-            val requests = viewModel.pendingCollaborationRequests.filter { it.isPendingCreator }
-            val bookings = viewModel.bookings
+            BookingStatusGrid(
+                selected = selectedBucket,
+                counts = counts,
+                viewModel = viewModel,
+                onSelect = { selectedBucket = it }
+            )
 
             if (requests.isEmpty() && bookings.isEmpty()) {
                 EmptyStateView(
@@ -94,7 +120,10 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                     subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB)
                 )
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
                     if (requests.isNotEmpty()) {
                         item {
                             Text(
@@ -121,6 +150,64 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                 viewModel = viewModel,
                 onDismiss = { rateBooking = null }
             )
+        }
+    }
+}
+
+private enum class BookingBucket { REQUESTS, TO_CONFIRM, TO_REVIEW, TO_VISIT }
+
+@Composable
+private fun BookingStatusGrid(
+    selected: BookingBucket,
+    counts: Map<BookingBucket, Int>,
+    viewModel: AppViewModel,
+    onSelect: (BookingBucket) -> Unit
+) {
+    val items = listOf(
+        Triple(BookingBucket.REQUESTS, MarviL10n.Key.REQUESTS, MarviColor.Rose),
+        Triple(BookingBucket.TO_CONFIRM, MarviL10n.Key.TO_CONFIRM, MarviColor.Aubergine),
+        Triple(BookingBucket.TO_REVIEW, MarviL10n.Key.TO_REVIEW, MarviColor.Gold),
+        Triple(BookingBucket.TO_VISIT, MarviL10n.Key.TO_VISIT, MarviColor.Blue)
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.chunked(2).forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                rowItems.forEach { (bucket, key, tint) ->
+                    val isSelected = selected == bucket
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .then(
+                                if (isSelected) Modifier.background(MarviGradient.Brand)
+                                else Modifier.background(MarviColor.Panel)
+                            )
+                            .then(
+                                if (isSelected) Modifier
+                                else Modifier.border(1.dp, MarviColor.Border, RoundedCornerShape(14.dp))
+                            )
+                            .clickable { onSelect(bucket) }
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            (counts[bucket] ?: 0).toString(),
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = if (isSelected) androidx.compose.ui.graphics.Color.White else tint,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            viewModel.t(key),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (isSelected) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f) else MarviColor.Muted,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
         }
     }
 }

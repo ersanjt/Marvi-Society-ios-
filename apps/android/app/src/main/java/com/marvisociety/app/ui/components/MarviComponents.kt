@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -48,6 +50,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,16 +67,19 @@ fun MarviScreen(content: @Composable () -> Unit) {
             .fillMaxSize()
             .background(MarviColor.Surface)
     ) {
-        // Ambient brand glow (mirrors iOS MarviScreen ellipse blur)
+        // Ambient brand glow: the iOS source uses a translucent Ellipse. Keeping
+        // this clipped avoids the hard purple rectangle previously visible atop
+        // every Android screen.
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .width(480.dp)
                 .height(280.dp)
                 .align(Alignment.TopCenter)
                 .offset(y = (-80).dp)
                 .blur(80.dp)
+                .alpha(0.35f)
+                .clip(CircleShape)
                 .background(MarviGradient.BrandVertical)
-                .background(MarviColor.Surface.copy(alpha = 0.65f))
         )
         content()
         Box(
@@ -99,7 +105,7 @@ fun MarviCard(
             .background(MarviColor.Panel)
             .border(1.dp, MarviColor.Border, RoundedCornerShape(16.dp))
             .padding(contentPadding),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         content = content
     )
 }
@@ -233,13 +239,14 @@ fun PrimaryActionButton(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 50.dp)
             .clip(shape)
             .background(
                 if (enabled) MarviGradient.Brand
                 else Brush.horizontalGradient(listOf(MarviColor.Muted.copy(alpha = 0.4f), MarviColor.Muted.copy(alpha = 0.4f)))
             )
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 13.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -267,11 +274,12 @@ fun SecondaryActionButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
             .clip(shape)
             .background(MarviColor.PanelElevated)
             .border(1.dp, MarviColor.Border, shape)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -300,10 +308,11 @@ fun MarviTextField(
         cursorBrush = SolidColor(MarviColor.Rose),
         modifier = modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 52.dp)
             .clip(shape)
             .background(MarviColor.PanelElevated)
             .border(1.dp, MarviColor.Border, shape)
-            .padding(12.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
         decorationBox = { inner ->
             Box {
                 if (value.isEmpty()) {
@@ -316,13 +325,19 @@ fun MarviTextField(
 }
 
 @Composable
-fun EmptyStateView(title: String, subtitle: String, icon: ImageVector = Icons.Default.AutoAwesome) {
+fun EmptyStateView(
+    title: String,
+    subtitle: String,
+    icon: ImageVector = Icons.Default.AutoAwesome,
+    actionTitle: String? = null,
+    onAction: (() -> Unit)? = null
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Icon(icon, null, tint = MarviColor.Rose, modifier = Modifier.size(32.dp))
         Text(title, style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
@@ -330,8 +345,14 @@ fun EmptyStateView(title: String, subtitle: String, icon: ImageVector = Icons.De
             subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = MarviColor.Muted,
-            modifier = Modifier.padding(horizontal = 24.dp)
+            modifier = Modifier.padding(horizontal = 24.dp),
+            textAlign = TextAlign.Center
         )
+        if (!actionTitle.isNullOrBlank() && onAction != null) {
+            TextButton(onClick = onAction) {
+                Text(actionTitle, color = MarviColor.Rose, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }
 
@@ -473,7 +494,7 @@ fun HomeHeader(
             }
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(greeting, style = MaterialTheme.typography.headlineMedium, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+            Text(greeting, style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MarviColor.Muted)
         }
         trailing?.invoke()
@@ -524,7 +545,7 @@ fun BrandLockup(subtitle: String, modifier: Modifier = Modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 "Marvi Society",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MarviColor.Ink,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1

@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -36,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -46,6 +50,7 @@ import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandMark
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
+import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.theme.NewsreaderFamily
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
@@ -142,8 +147,11 @@ fun OnboardingScreen(viewModel: AppViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             if (step != OnboardingStep.WELCOME) {
@@ -196,8 +204,16 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     onBack = { step = OnboardingStep.WELCOME },
                     onContinue = {
                         localError = ""
-                        if (email.isBlank() || password.length < 8) {
-                            localError = viewModel.t(MarviL10n.Key.ERR_SIGN_IN_REQUIRED)
+                        if (email.isBlank()) {
+                            localError = viewModel.t(MarviL10n.Key.EMAIL_REQUIRED_ERROR)
+                            return@SignInStep
+                        }
+                        if (password.length < 8) {
+                            localError = viewModel.t(MarviL10n.Key.PASSWORD_MIN_ERROR)
+                            return@SignInStep
+                        }
+                        if (isCreatingAccount && fullName.isBlank()) {
+                            localError = viewModel.t(MarviL10n.Key.FULL_NAME_REQUIRED_ERROR)
                             return@SignInStep
                         }
                         if (!viewModel.isRemoteMode) {
@@ -346,6 +362,15 @@ private fun WelcomeStep(
         fontWeight = FontWeight.Bold,
         fontFamily = NewsreaderFamily
     )
+    Text(
+        viewModel.t(MarviL10n.Key.HERO_LINE2),
+        style = TextStyle(
+            brush = MarviGradient.Brand,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = NewsreaderFamily
+        )
+    )
     Text(viewModel.t(MarviL10n.Key.HERO_SUBTITLE), color = MarviColor.Muted)
     Spacer(modifier = Modifier.height(8.dp))
     Text(viewModel.t(MarviL10n.Key.CHOOSE_PATH), color = MarviColor.Graphite, fontWeight = FontWeight.SemiBold)
@@ -473,13 +498,17 @@ private fun SignInStep(
     if (busy) CircularProgressIndicator(color = MarviColor.Rose)
 
     PrimaryButton(
-        title = if (busy) viewModel.t(MarviL10n.Key.SIGNING_IN) else viewModel.t(MarviL10n.Key.GET_STARTED),
+        title = when {
+            busy -> viewModel.t(MarviL10n.Key.SIGNING_IN)
+            isCreatingAccount -> viewModel.t(MarviL10n.Key.SIGN_UP)
+            else -> viewModel.t(MarviL10n.Key.SIGN_IN)
+        },
         enabled = !busy,
         onClick = onContinue
     )
     TextButton(onClick = onToggleMode) {
         Text(
-            if (isCreatingAccount) viewModel.t(MarviL10n.Key.WELCOME_BACK)
+            if (isCreatingAccount) viewModel.t(MarviL10n.Key.ALREADY_MEMBER)
             else viewModel.t(MarviL10n.Key.CREATE_ACCOUNT),
             color = MarviColor.Rose
         )

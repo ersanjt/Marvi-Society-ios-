@@ -34,6 +34,7 @@ import com.marvisociety.app.data.DirectThread
 import com.marvisociety.app.data.MemberActivityItem
 import com.marvisociety.app.data.MemberSearchResult
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.MarviTextField
@@ -81,12 +82,33 @@ fun CommunityScreen(
             )
 
             when (tab) {
-                0 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(viewModel.followingActivity, key = { it.id }) { item ->
-                        ActivityCard(
-                            item = item,
-                            createdLabel = viewModel.localizeServerText(item.createdLabel)
-                        )
+                0 -> {
+                    if (viewModel.followingActivity.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyStateView(
+                                title = viewModel.t(MarviL10n.Key.COMMUNITY_FEED_EMPTY),
+                                subtitle = viewModel.t(MarviL10n.Key.COMMUNITY_FEED_EMPTY_SUB),
+                                actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                                onAction = viewModel::loadFollowingActivity
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(viewModel.followingActivity, key = { it.id }) { item ->
+                                ActivityCard(
+                                    item = item,
+                                    createdLabel = viewModel.localizeServerText(item.createdLabel)
+                                )
+                            }
+                        }
                     }
                 }
                 1 -> {
@@ -98,15 +120,57 @@ fun CommunityScreen(
                         },
                         placeholder = viewModel.t(MarviL10n.Key.COMMUNITY_SEARCH_PROMPT)
                     )
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 8.dp)) {
-                        items(viewModel.memberSearchResults, key = { it.id }) { member ->
-                            MemberCard(member, viewModel) { onOpenMember(member) }
+                    if (viewModel.memberSearchResults.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyStateView(
+                                title = viewModel.t(MarviL10n.Key.COMMUNITY_MEMBERS_EMPTY),
+                                subtitle = viewModel.t(MarviL10n.Key.COMMUNITY_MEMBERS_EMPTY_SUB),
+                                actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                                onAction = { viewModel.searchMembers(search.ifBlank { null }) }
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(top = 8.dp)
+                        ) {
+                            items(viewModel.memberSearchResults, key = { it.id }) { member ->
+                                MemberCard(member, viewModel) { onOpenMember(member) }
+                            }
                         }
                     }
                 }
-                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(viewModel.directThreads, key = { it.id }) { thread ->
-                        ThreadCard(thread) { onOpenThread(thread) }
+                else -> {
+                    if (viewModel.directThreads.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyStateView(
+                                title = viewModel.t(MarviL10n.Key.NO_MESSAGES_YET),
+                                subtitle = viewModel.t(MarviL10n.Key.NO_MESSAGES_YET_SUB),
+                                actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                                onAction = viewModel::loadDirectThreads
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(viewModel.directThreads, key = { it.id }) { thread ->
+                                ThreadCard(thread) { onOpenThread(thread) }
+                            }
+                        }
                     }
                 }
             }
@@ -205,7 +269,9 @@ private fun ThreadCard(thread: DirectThread, onClick: () -> Unit) {
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(thread.peerName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                Text("@${thread.peerHandle}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                if (thread.peerHandle.isNotBlank()) {
+                    Text("@${thread.peerHandle}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                }
                 Text(thread.lastMessage, color = MarviColor.Graphite, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
             }
             if (thread.unreadCount > 0) {

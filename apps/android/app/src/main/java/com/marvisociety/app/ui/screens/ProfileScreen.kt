@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
@@ -153,7 +154,13 @@ fun ProfileScreen(viewModel: AppViewModel) {
                     style = MaterialTheme.typography.displaySmall,
                     color = MarviColor.Ink
                 )
-                Text("@${viewModel.profile.handle} · ${viewModel.profile.city}", color = MarviColor.Muted)
+                val profileSubtitle = listOfNotNull(
+                    viewModel.profile.handle.takeIf { it.isNotBlank() }?.let { "@$it" },
+                    viewModel.profile.city.takeIf { it.isNotBlank() }
+                ).joinToString(" · ")
+                if (profileSubtitle.isNotBlank()) {
+                    Text(profileSubtitle, color = MarviColor.Muted)
+                }
                 StatusPill("${viewModel.t(MarviL10n.Key.SCORE_LABEL)} ${viewModel.profile.score}", MarviColor.Gold)
             }
 
@@ -207,21 +214,19 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                listOf(
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val tabs = listOf(
                     ProfileMainTab.OVERVIEW to MarviL10n.Key.PROFILE_TAB_OVERVIEW,
                     ProfileMainTab.EDIT to MarviL10n.Key.PROFILE_TAB_EDIT,
                     ProfileMainTab.ACCOUNT to MarviL10n.Key.PROFILE_TAB_ACCOUNT,
                     ProfileMainTab.SETTINGS to MarviL10n.Key.PROFILE_TAB_SETTINGS
-                ).forEach { (tab, key) ->
-                    FilterChip(
+                )
+                items(tabs.size) { index ->
+                    val (tab, key) = tabs[index]
+                    FilterChipPill(
+                        label = viewModel.t(key),
                         selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        label = { Text(viewModel.t(key)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                            selectedLabelColor = MarviColor.Rose
-                        )
+                        onClick = { selectedTab = tab }
                     )
                 }
             }
@@ -306,13 +311,10 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3
                         )
-                        Button(
-                            onClick = { viewModel.saveProfileFromEditor() },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                        ) {
-                            Text(viewModel.t(MarviL10n.Key.SAVE_PROFILE))
-                        }
+                        PrimaryActionButton(
+                            title = viewModel.t(MarviL10n.Key.SAVE_PROFILE),
+                            onClick = viewModel::saveProfileFromEditor
+                        )
                     }
 
                     val verification = viewModel.socialVerification
@@ -409,18 +411,23 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
 
                 ProfileMainTab.SETTINGS -> {
-                    Text(viewModel.t(MarviL10n.Key.LANGUAGE_LABEL), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = viewModel.preferredLanguage == AppLanguage.ENGLISH,
-                            onClick = { viewModel.switchLanguage(AppLanguage.ENGLISH) },
-                            label = { Text("English") }
+                    MarviCard {
+                        SectionTitle(
+                            text = viewModel.t(MarviL10n.Key.LANGUAGE_LABEL),
+                            subtitle = viewModel.t(MarviL10n.Key.LANGUAGE_SUBTITLE)
                         )
-                        FilterChip(
-                            selected = viewModel.preferredLanguage == AppLanguage.TURKISH,
-                            onClick = { viewModel.switchLanguage(AppLanguage.TURKISH) },
-                            label = { Text("Türkçe") }
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChipPill(
+                                label = "Türkçe",
+                                selected = viewModel.preferredLanguage == AppLanguage.TURKISH,
+                                onClick = { viewModel.switchLanguage(AppLanguage.TURKISH) }
+                            )
+                            FilterChipPill(
+                                label = "English",
+                                selected = viewModel.preferredLanguage == AppLanguage.ENGLISH,
+                                onClick = { viewModel.switchLanguage(AppLanguage.ENGLISH) }
+                            )
+                        }
                     }
                 }
             }

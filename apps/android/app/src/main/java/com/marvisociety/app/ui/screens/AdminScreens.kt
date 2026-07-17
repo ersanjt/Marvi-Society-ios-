@@ -45,6 +45,7 @@ import com.marvisociety.app.data.AdminTaskStatus
 import com.marvisociety.app.data.CollaborationModel
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandLockup
+import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
@@ -69,7 +70,20 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                 BrandLockup(subtitle = viewModel.t(MarviL10n.Key.ADMIN))
             }
             item {
-                Text(viewModel.t(MarviL10n.Key.ADMIN_TASKS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                AdminSectionHeader(
+                    title = viewModel.t(MarviL10n.Key.ADMIN_TASKS),
+                    count = viewModel.adminTasks.size
+                )
+            }
+            if (viewModel.adminTasks.isEmpty()) {
+                item {
+                    EmptyStateView(
+                        title = viewModel.t(MarviL10n.Key.ADMIN_TASKS_EMPTY),
+                        subtitle = viewModel.t(MarviL10n.Key.ADMIN_TASKS_EMPTY_SUB),
+                        actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                        onAction = viewModel::refreshFromServer
+                    )
+                }
             }
             items(viewModel.adminTasks, key = { it.id }) { task ->
                 MarviCard {
@@ -102,7 +116,10 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(viewModel.t(MarviL10n.Key.INVITE_CODES), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    AdminSectionHeader(
+                        title = viewModel.t(MarviL10n.Key.INVITE_CODES),
+                        count = viewModel.adminInviteCodes.size
+                    )
                     Button(
                         onClick = { showCreateInvite = !showCreateInvite },
                         colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
@@ -156,15 +173,42 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                     }
                 }
             }
+            if (viewModel.adminInviteCodes.isEmpty() && !showCreateInvite) {
+                item {
+                    Text(
+                        viewModel.t(MarviL10n.Key.INVITE_CODES_EMPTY),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
             items(viewModel.adminInviteCodes, key = { it.code }) { code ->
                 MarviCard {
                     Text(code.code, fontWeight = FontWeight.Bold, color = MarviColor.Rose)
-                    Text("${code.useCount}/${code.maxUses} ${viewModel.t(MarviL10n.Key.USES_SUFFIX)} · ${code.ownerType}", color = MarviColor.Muted)
+                    val ownerLabel = if (code.ownerType.equals("venue", ignoreCase = true)) {
+                        viewModel.t(MarviL10n.Key.VENUE_TAG)
+                    } else {
+                        viewModel.t(MarviL10n.Key.CREATOR_TAG)
+                    }
+                    Text("${code.useCount}/${code.maxUses} ${viewModel.t(MarviL10n.Key.USES_SUFFIX)} · $ownerLabel", color = MarviColor.Muted)
                     code.inviteEmail?.let { Text(it, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall) }
                 }
             }
             item {
-                Text(viewModel.t(MarviL10n.Key.ADMIN_USERS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink, modifier = Modifier.padding(top = 8.dp))
+                AdminSectionHeader(
+                    title = viewModel.t(MarviL10n.Key.ADMIN_USERS),
+                    count = viewModel.adminUsers.size,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+            if (viewModel.adminUsers.isEmpty()) {
+                item {
+                    Text(
+                        viewModel.t(MarviL10n.Key.ADMIN_USERS_EMPTY),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
             items(viewModel.adminUsers, key = { it.id }) { user ->
                 MarviCard {
@@ -184,11 +228,17 @@ fun InboxScreen(viewModel: AppViewModel) {
             BrandLockup(subtitle = viewModel.t(MarviL10n.Key.INBOX_TITLE))
             Spacer(Modifier.height(12.dp))
             if (viewModel.inboxMessages.isEmpty()) {
-                MarviCard {
-                    Text(viewModel.t(MarviL10n.Key.INBOX_EMPTY), color = MarviColor.Muted)
-                }
+                EmptyStateView(
+                    title = viewModel.t(MarviL10n.Key.INBOX_EMPTY),
+                    subtitle = viewModel.t(MarviL10n.Key.NO_MESSAGES_YET_SUB),
+                    actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                    onAction = viewModel::refreshFromServer
+                )
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     items(viewModel.inboxMessages, key = { it.id }) { msg ->
                         MarviCard(
                             modifier = Modifier.clickable {
@@ -217,6 +267,18 @@ fun InboxScreen(viewModel: AppViewModel) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AdminSectionHeader(title: String, count: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+        Text(count.toString(), color = MarviColor.Muted, style = MaterialTheme.typography.labelMedium)
     }
 }
 

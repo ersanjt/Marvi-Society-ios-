@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,7 +61,7 @@ import com.marvisociety.app.ui.theme.TabSelected
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
-private data class TabSpec(val route: String, val labelKey: MarviL10n.Key, val icon: @Composable () -> Unit)
+private data class TabSpec(val route: String, val labelKey: MarviL10n.Key, val icon: ImageVector)
 
 @Composable
 fun MarviApp(viewModel: AppViewModel = viewModel()) {
@@ -119,15 +120,15 @@ private fun MainShell(viewModel: AppViewModel) {
                                                 Text(viewModel.eventsTabBadgeCount.toString())
                                             }
                                         }
-                                    }) { tab.icon() }
+                                    }) { Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey)) }
                                     "inbox" -> BadgedBox(badge = {
                                         if (viewModel.unreadInboxCount > 0) {
                                             Badge(containerColor = TabSelected) {
                                                 Text(viewModel.unreadInboxCount.coerceAtMost(99).toString())
                                             }
                                         }
-                                    }) { tab.icon() }
-                                    else -> tab.icon()
+                                    }) { Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey)) }
+                                    else -> Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey))
                                 }
                             },
                             label = {
@@ -266,20 +267,20 @@ private fun MainShell(viewModel: AppViewModel) {
 
 private fun tabsForRole(role: UserRole): List<TabSpec> = when (role) {
     UserRole.CREATOR -> listOf(
-        TabSpec("discover", MarviL10n.Key.EXPLORE) { Icon(Icons.Default.AutoAwesome, null) },
-        TabSpec("community", MarviL10n.Key.COMMUNITY_TAB) { Icon(Icons.Default.Groups, null) },
-        TabSpec("bookings", MarviL10n.Key.MY_EVENTS) { Icon(Icons.Default.CalendarMonth, null) },
-        TabSpec("profile", MarviL10n.Key.PROFILE) { Icon(Icons.Default.Person, null) }
+        TabSpec("discover", MarviL10n.Key.EXPLORE, Icons.Default.AutoAwesome),
+        TabSpec("community", MarviL10n.Key.COMMUNITY_TAB, Icons.Default.Groups),
+        TabSpec("bookings", MarviL10n.Key.MY_EVENTS, Icons.Default.CalendarMonth),
+        TabSpec("profile", MarviL10n.Key.PROFILE, Icons.Default.Person)
     )
     UserRole.VENUE -> listOf(
-        TabSpec("studio", MarviL10n.Key.STUDIO) { Icon(Icons.Default.Storefront, null) },
-        TabSpec("community", MarviL10n.Key.COMMUNITY_TAB) { Icon(Icons.Default.Groups, null) },
-        TabSpec("inbox", MarviL10n.Key.INBOX) { Icon(Icons.Default.Notifications, null) },
-        TabSpec("profile", MarviL10n.Key.ACCOUNT) { Icon(Icons.Default.Person, null) }
+        TabSpec("studio", MarviL10n.Key.STUDIO, Icons.Default.Storefront),
+        TabSpec("community", MarviL10n.Key.COMMUNITY_TAB, Icons.Default.Groups),
+        TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
+        TabSpec("profile", MarviL10n.Key.ACCOUNT, Icons.Default.Person)
     )
     UserRole.ADMIN -> listOf(
-        TabSpec("admin", MarviL10n.Key.ADMIN) { Icon(Icons.Default.Shield, null) },
-        TabSpec("inbox", MarviL10n.Key.INBOX) { Icon(Icons.Default.Notifications, null) },
-        TabSpec("profile", MarviL10n.Key.ACCOUNT) { Icon(Icons.Default.Person, null) }
+        TabSpec("admin", MarviL10n.Key.ADMIN, Icons.Default.Shield),
+        TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
+        TabSpec("profile", MarviL10n.Key.ACCOUNT, Icons.Default.Person)
     )
 }
