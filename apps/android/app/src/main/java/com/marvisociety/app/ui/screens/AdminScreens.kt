@@ -73,9 +73,15 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
             }
             items(viewModel.adminTasks, key = { it.id }) { task ->
                 MarviCard {
-                    Text(task.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                    Text(task.subtitle, color = MarviColor.Muted)
-                    Text("${task.type.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }} · ${task.priority} · ${task.dateLabel}", color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
+                    Text(viewModel.taskTypeLabel(task.type), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                    if (task.subtitle.isNotBlank()) {
+                        Text(task.subtitle, color = MarviColor.Muted)
+                    }
+                    Text(
+                        "${viewModel.priorityLabel(task.priority)} · ${viewModel.localizeServerText(task.dateLabel)}",
+                        color = MarviColor.Graphite,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                     if (task.status == AdminTaskStatus.OPEN) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                             Button(
@@ -198,10 +204,14 @@ fun InboxScreen(viewModel: AppViewModel) {
                                             .background(MarviColor.Rose)
                                     )
                                 }
-                                Text(msg.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                                Text(viewModel.localizeServerText(msg.title), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                             }
-                            Text(msg.body, color = MarviColor.Graphite)
-                            Text(msg.dateLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                            Text(viewModel.localizeServerText(msg.body), color = MarviColor.Graphite)
+                            Text(
+                                viewModel.localizeServerText(msg.dateLabel),
+                                color = MarviColor.Muted,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
                 }
@@ -417,7 +427,11 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
                 MarviCard {
                     Text(campaign.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                     Text("${campaign.venueName} · ${campaign.status}", color = MarviColor.Muted)
-                    Text(campaign.dateLabel, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        viewModel.localizeServerText(campaign.dateLabel),
+                        color = MarviColor.Graphite,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
 

@@ -83,7 +83,10 @@ fun CommunityScreen(
             when (tab) {
                 0 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(viewModel.followingActivity, key = { it.id }) { item ->
-                        ActivityCard(item)
+                        ActivityCard(
+                            item = item,
+                            createdLabel = viewModel.localizeServerText(item.createdLabel)
+                        )
                     }
                 }
                 1 -> {
@@ -112,12 +115,16 @@ fun CommunityScreen(
 }
 
 @Composable
-private fun ActivityCard(item: MemberActivityItem) {
+private fun ActivityCard(item: MemberActivityItem, createdLabel: String) {
     MarviCard {
         Text(item.actorName, fontWeight = FontWeight.Bold, color = MarviColor.Ink, style = MaterialTheme.typography.titleMedium)
         Text(item.title, color = MarviColor.Ink, style = MaterialTheme.typography.bodyMedium)
         if (item.subtitle.isNotBlank()) Text(item.subtitle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
-        Text(item.createdLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        Text(
+            createdLabel,
+            color = MarviColor.Muted,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
@@ -153,7 +160,13 @@ private fun MemberCard(member: MemberSearchResult, viewModel: AppViewModel, onCl
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(member.displayName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                Text("@${member.handle} · ${member.city}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                val memberSubtitle = listOfNotNull(
+                    member.handle.takeIf { it.isNotBlank() }?.let { "@$it" },
+                    member.city.takeIf { it.isNotBlank() }
+                ).joinToString(" · ")
+                if (memberSubtitle.isNotBlank()) {
+                    Text(memberSubtitle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                }
                 Text(
                     if (member.isVenue) viewModel.t(MarviL10n.Key.VENUE_TAG) else viewModel.t(MarviL10n.Key.CREATOR_TAG),
                     color = MarviColor.Rose,

@@ -267,7 +267,11 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             viewModel.strikes.forEach { strike ->
                                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                                     Text(strike.reason, color = MarviColor.Tomato, fontWeight = FontWeight.SemiBold)
-                                    Text(strike.dateLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        viewModel.localizeServerText(strike.dateLabel),
+                                        color = MarviColor.Muted,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                             }
                         }
@@ -524,7 +528,11 @@ private fun CollaborationHistorySection(viewModel: AppViewModel) {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     Text(entry.title.ifBlank { entry.venueName }, color = MarviColor.Ink, fontWeight = FontWeight.SemiBold)
                     Text(
-                        listOf(entry.venueName, entry.area, entry.dateLabel).filter { it.isNotBlank() }.joinToString(" · "),
+                        listOf(
+                            entry.venueName,
+                            entry.area,
+                            viewModel.localizeServerText(entry.dateLabel)
+                        ).filter { it.isNotBlank() }.joinToString(" · "),
                         color = MarviColor.Muted,
                         style = MaterialTheme.typography.bodySmall
                     )

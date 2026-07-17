@@ -159,7 +159,11 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                     ) {
                         Text(offer.venue, style = MaterialTheme.typography.labelMedium, color = MarviColor.Rose, fontWeight = FontWeight.Bold)
                         Text(offer.title, style = MaterialTheme.typography.displaySmall, color = Color.White)
-                        Text("${offer.area} · ${offer.dateLabel}", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                        Text(
+                            "${offer.area} · ${viewModel.localizeServerText(offer.dateLabel)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
                     }
                 }
 
@@ -169,10 +173,18 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.weight(1f)) {
-                            MetricTile(offer.dateLabel.ifBlank { viewModel.t(MarviL10n.Key.VALUE_TBD) }, viewModel.t(MarviL10n.Key.METRIC_DATE), MarviColor.Rose)
+                            MetricTile(
+                                viewModel.localizeServerText(offer.dateLabel).ifBlank { viewModel.t(MarviL10n.Key.VALUE_TBD) },
+                                viewModel.t(MarviL10n.Key.METRIC_DATE),
+                                MarviColor.Rose
+                            )
                         }
                         Box(modifier = Modifier.weight(1f)) {
-                            MetricTile(offer.timeLabel.ifBlank { viewModel.t(MarviL10n.Key.VALUE_FLEXIBLE) }, viewModel.t(MarviL10n.Key.METRIC_TIME), MarviColor.Aubergine)
+                            MetricTile(
+                                viewModel.localizeServerText(offer.timeLabel).ifBlank { viewModel.t(MarviL10n.Key.VALUE_FLEXIBLE) },
+                                viewModel.t(MarviL10n.Key.METRIC_TIME),
+                                MarviColor.Aubergine
+                            )
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {

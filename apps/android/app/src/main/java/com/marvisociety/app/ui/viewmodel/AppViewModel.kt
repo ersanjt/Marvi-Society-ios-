@@ -221,6 +221,15 @@ class AppViewModel(
     fun roleLabel(role: UserRole): String =
         MarviL10n.roleLabel(role, preferredLanguage)
 
+    fun taskTypeLabel(type: com.marvisociety.app.data.AdminTaskType): String =
+        MarviL10n.taskTypeLabel(type, preferredLanguage)
+
+    fun priorityLabel(priority: String): String =
+        MarviL10n.priorityLabel(priority, preferredLanguage)
+
+    fun localizeServerText(text: String): String =
+        MarviL10n.localizeServerText(text, preferredLanguage)
+
     fun setWorkspaceTab(index: Int) {
         workspaceTabIndex = index
     }

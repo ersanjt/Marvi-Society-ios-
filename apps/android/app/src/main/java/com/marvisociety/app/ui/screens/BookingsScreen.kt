@@ -193,7 +193,11 @@ private fun BookingCard(
                 Text("${booking.offer.venue} · ${booking.offer.area}", style = MaterialTheme.typography.bodySmall, color = MarviColor.Muted)
                 StatusPill(viewModel.stageLabel(booking.stage), stageTint(booking.stage))
                 if (booking.proofDeadline.isNotEmpty()) {
-                    Text(booking.proofDeadline, style = MaterialTheme.typography.bodySmall, color = MarviColor.Graphite)
+                    Text(
+                        viewModel.localizeServerText(booking.proofDeadline),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MarviColor.Graphite
+                    )
                 }
             }
         }

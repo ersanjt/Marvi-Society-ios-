@@ -23,6 +23,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -298,8 +299,13 @@ data class AuthSession(
     val userId: String?
 )
 
-fun JsonObject.string(key: String): String? =
-    this[key]?.let { if (it is JsonPrimitive && it.isString) it.content else it.toString().trim('"') }
+fun JsonObject.string(key: String): String? {
+    val el = this[key] ?: return null
+    if (el is JsonNull) return null
+    val value = if (el is JsonPrimitive && el.isString) el.content else el.toString().trim('"')
+    // Guard against JSON/text nulls that would otherwise render as the literal "null".
+    return value.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+}
 
 fun JsonObject.int(key: String): Int? = this[key]?.jsonPrimitive?.content?.toIntOrNull()
 

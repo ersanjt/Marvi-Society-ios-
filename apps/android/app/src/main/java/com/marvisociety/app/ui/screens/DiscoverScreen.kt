@@ -196,6 +196,7 @@ fun DiscoverScreen(viewModel: AppViewModel, onOfferClick: (Offer) -> Unit) {
                         accepted = offer.id in viewModel.acceptedOfferIds,
                         modelLabel = viewModel.modelLabel(offer.collaborationModel),
                         acceptedLabel = viewModel.t(MarviL10n.Key.ACCEPTED_LABEL),
+                        dateLabel = viewModel.localizeServerText(offer.dateLabel),
                         onClick = { onOfferClick(offer) },
                         onToggleSaved = { viewModel.toggleSaved(offer.id) }
                     )
@@ -255,6 +256,7 @@ private fun EventListCard(
     accepted: Boolean,
     modelLabel: String,
     acceptedLabel: String,
+    dateLabel: String,
     onClick: () -> Unit,
     onToggleSaved: () -> Unit
 ) {
@@ -293,7 +295,7 @@ private fun EventListCard(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                "${offer.area} · ${offer.dateLabel}",
+                "${offer.area} · $dateLabel",
                 style = MaterialTheme.typography.bodySmall,
                 color = MarviColor.Muted,
                 maxLines = 1

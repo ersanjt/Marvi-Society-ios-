@@ -63,7 +63,10 @@ object MarviL10n {
         SHARE_THOUGHTS, HOSPITALITY, EXPERIENCE, OPTIONAL_NOTE, SUBMITTING, RATE_VENUE,
         VENUE_INVITE_TITLE, VENUE_INVITE_SUB, ACCEPT_VENUE_INVITE, SAVING, DECLINE,
         PENDING_INVITES_TITLE, ACCEPTANCE_TERMS, USE_NOW,
-        LOADING_WORKSPACE
+        LOADING_WORKSPACE,
+        TASK_CREATOR_APPLICATION, TASK_VENUE_APPLICATION, TASK_CAMPAIGN_REVIEW,
+        TASK_PROOF_REVIEW, TASK_SOCIAL_VERIFICATION,
+        PRIORITY_HIGH, PRIORITY_MEDIUM, PRIORITY_LOW
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -335,7 +338,15 @@ object MarviL10n {
         Key.PENDING_INVITES_TITLE to "Pending invitations",
         Key.ACCEPTANCE_TERMS to "Acceptance terms",
         Key.USE_NOW to "Use now",
-        Key.LOADING_WORKSPACE to "Loading your workspace…"
+        Key.LOADING_WORKSPACE to "Loading your workspace…",
+        Key.TASK_CREATOR_APPLICATION to "New creator application",
+        Key.TASK_VENUE_APPLICATION to "New venue application",
+        Key.TASK_CAMPAIGN_REVIEW to "Campaign review",
+        Key.TASK_PROOF_REVIEW to "Proof review",
+        Key.TASK_SOCIAL_VERIFICATION to "Social verification",
+        Key.PRIORITY_HIGH to "High",
+        Key.PRIORITY_MEDIUM to "Medium",
+        Key.PRIORITY_LOW to "Low"
     )
 
     private val turkish = mapOf(
@@ -558,7 +569,58 @@ object MarviL10n {
         Key.PENDING_INVITES_TITLE to "Bekleyen davetler",
         Key.ACCEPTANCE_TERMS to "Kabul koşulları",
         Key.USE_NOW to "Şimdi kullan",
-        Key.LOADING_WORKSPACE to "Çalışma alanın yükleniyor…"
+        Key.LOADING_WORKSPACE to "Çalışma alanın yükleniyor…",
+        Key.OK to "Tamam",
+        Key.CANCEL to "İptal",
+        Key.CLOSE to "Kapat",
+        Key.RETRY to "Tekrar dene",
+        Key.LOADING to "Yükleniyor…",
+        Key.EMAIL to "E-posta",
+        Key.PASSWORD to "Şifre",
+        Key.SIGN_IN to "Giriş yap",
+        Key.SIGN_UP to "Hesap oluştur",
+        Key.CITY_PLACEHOLDER to "Şehir",
+        Key.FULL_NAME_PLACEHOLDER to "Ad soyad",
+        Key.VALIDATING_INVITE to "Davet doğrulanıyor…",
+        Key.ERR_SESSION_EXPIRED to "Oturum süresi doldu. Tekrar giriş yap.",
+        Key.ERR_SIGN_IN_REQUIRED to "Devam etmek için giriş yap.",
+        Key.SIGN_OUT_TITLE to "Çıkış yapılsın mı?",
+        Key.SIGN_OUT_MESSAGE to "İstediğin zaman tekrar giriş yapabilirsin.",
+        Key.OPEN_ADMIN_CONSOLE to "Admin konsolu",
+        Key.LIVE_OFFERS to "Canlı teklifler",
+        Key.CAMPAIGNS to "Kampanyalar",
+        Key.NEW_CAMPAIGN to "Yeni kampanya",
+        Key.CAMPAIGN_TITLE to "Kampanya başlığı",
+        Key.EVENT_DATE to "Etkinlik tarihi",
+        Key.EVENT_TIME to "Saat (örn. 19:00–22:00)",
+        Key.CREATOR_VALUE to "Creator değeri",
+        Key.CAMPAIGN_DESCRIPTION to "Açıklama",
+        Key.DELIVERABLES_HINT to "Teslimatlar (virgül veya yeni satır)",
+        Key.REQUIREMENTS_HINT to "Gereksinimler (isteğe bağlı)",
+        Key.HOST_NOTE to "Mekân notu (isteğe bağlı)",
+        Key.CREATOR_SLOTS to "Creator kontenjanı",
+        Key.ADD_CAMPAIGN_PHOTO to "Kampanya fotoğrafı ekle",
+        Key.CAMPAIGN_PHOTO_ADDED to "Fotoğraf seçildi · değiştirmek için dokun",
+        Key.SEND_TO_REVIEW to "Admin onayına gönder",
+        Key.STAGE_INVITED to "Davetli",
+        Key.STAGE_CONFIRMED to "Onaylandı",
+        Key.STAGE_CHECKED_IN to "Giriş yapıldı",
+        Key.STAGE_PROOF_DUE to "Kanıt bekleniyor",
+        Key.STAGE_COMPLETED to "Tamamlandı",
+        Key.BACKEND_DEMO to "Demo modu — local.properties dosyasına Supabase anahtarlarını ekleyin",
+        Key.STATUS_UNDER_REVIEW to "İnceleniyor",
+        Key.STATUS_APPROVED to "Onaylandı",
+        Key.STATUS_PAUSED to "Duraklatıldı",
+        Key.INSTAGRAM_PLACEHOLDER to "@instagram",
+        Key.TIKTOK_PLACEHOLDER to "@tiktok",
+        Key.TASK_CREATOR_APPLICATION to "Yeni creator başvurusu",
+        Key.TASK_VENUE_APPLICATION to "Yeni mekan başvurusu",
+        Key.TASK_CAMPAIGN_REVIEW to "Kampanya incelemesi",
+        Key.TASK_PROOF_REVIEW to "Kanıt incelemesi",
+        Key.TASK_SOCIAL_VERIFICATION to "Sosyal hesap doğrulaması",
+        Key.PRIORITY_HIGH to "Yüksek",
+        Key.PRIORITY_MEDIUM to "Orta",
+        Key.PRIORITY_LOW to "Düşük"
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =
@@ -607,4 +669,64 @@ object MarviL10n {
             },
             language
         )
+
+    fun taskTypeLabel(type: com.marvisociety.app.data.AdminTaskType, language: AppLanguage): String =
+        t(
+            when (type) {
+                com.marvisociety.app.data.AdminTaskType.CREATOR_APPLICATION -> Key.TASK_CREATOR_APPLICATION
+                com.marvisociety.app.data.AdminTaskType.VENUE_APPLICATION -> Key.TASK_VENUE_APPLICATION
+                com.marvisociety.app.data.AdminTaskType.CAMPAIGN_REVIEW -> Key.TASK_CAMPAIGN_REVIEW
+                com.marvisociety.app.data.AdminTaskType.PROOF_REVIEW -> Key.TASK_PROOF_REVIEW
+                com.marvisociety.app.data.AdminTaskType.SOCIAL_VERIFICATION -> Key.TASK_SOCIAL_VERIFICATION
+            },
+            language
+        )
+
+    fun priorityLabel(priority: String, language: AppLanguage): String =
+        when (priority.trim().lowercase()) {
+            "high", "yüksek" -> t(Key.PRIORITY_HIGH, language)
+            "medium", "med", "orta" -> t(Key.PRIORITY_MEDIUM, language)
+            "low", "düşük" -> t(Key.PRIORITY_LOW, language)
+            else -> priority
+        }
+
+    // Notifications are inserted by Supabase triggers; some collaboration/booking
+    // templates are hardcoded English (unlike the membership ones which use v_locale).
+    // Translate the known static templates client-side so a Turkish user sees Turkish.
+    private val serverTextTurkish = mapOf(
+        "Request sent" to "İstek gönderildi",
+        "Waiting for the venue to confirm your collaboration." to "Mekanın iş birliğini onaylaması bekleniyor.",
+        "Creator wants to collaborate" to "Creator iş birliği yapmak istiyor",
+        "A creator accepted your offer. Confirm to start chatting." to "Bir creator teklifini kabul etti. Sohbete başlamak için onayla.",
+        "Collaboration confirmed" to "İş birliği onaylandı",
+        "The venue confirmed. You can now chat in Messages." to "Mekan onayladı. Artık Mesajlar'dan sohbet edebilirsin.",
+        "Creator accepted your invite" to "Creator davetini kabul etti",
+        "Collaboration confirmed. Open Messages to chat." to "İş birliği onaylandı. Sohbet için Mesajlar'ı aç.",
+        "Venue invited you" to "Bir mekan seni davet etti",
+        "A venue partner wants to collaborate. Accept to start chatting." to "Bir mekan ortağı iş birliği yapmak istiyor. Sohbete başlamak için kabul et.",
+        "Membership approved" to "Üyeliğin onaylandı",
+        "Your Marvi Society creator application was approved. Explore live events now." to "Marvi Society creator başvurun onaylandı. Canlı etkinlikleri şimdi keşfet."
+    )
+
+    fun localizeServerText(text: String, language: AppLanguage): String =
+        if (language == AppLanguage.TURKISH) serverTextTurkish[text.trim()] ?: localizeDateText(text) else text
+
+    private fun localizeDateText(text: String): String {
+        val words = mapOf(
+            "Now" to "Şimdi", "Today" to "Bugün", "Tomorrow" to "Yarın",
+            "Flexible" to "Esnek", "TBD" to "Belirlenecek",
+            "Monday" to "Pazartesi", "Tuesday" to "Salı", "Wednesday" to "Çarşamba",
+            "Thursday" to "Perşembe", "Friday" to "Cuma", "Saturday" to "Cumartesi", "Sunday" to "Pazar",
+            "Jan" to "Oca", "Feb" to "Şub", "Mar" to "Mar", "Apr" to "Nis",
+            "May" to "May", "Jun" to "Haz", "Jul" to "Tem", "Aug" to "Ağu",
+            "Sep" to "Eyl", "Oct" to "Eki", "Nov" to "Kas", "Dec" to "Ara"
+        )
+        val localized = words.entries.fold(text) { value, (english, turkish) ->
+            value.replace(Regex("\\b${Regex.escape(english)}\\b", RegexOption.IGNORE_CASE), turkish)
+        }
+        return localized
+            .replace(Regex("\\b(\\d+)m ago\\b"), "$1 dk önce")
+            .replace(Regex("\\b(\\d+)h ago\\b"), "$1 sa önce")
+            .replace(Regex("\\b(\\d+)d ago\\b"), "$1 gün önce")
+    }
 }
