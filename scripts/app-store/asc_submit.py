@@ -247,7 +247,10 @@ def submit(token: str, build_version: str, wait: bool, marketing_version: str):
         sub_id = res["data"]["id"]
         print(f"✓ Created review submission {sub_id}")
 
-    # 5. Add the version as an item (ignore if already present)
+    # 5. Add the version as an item.
+    # Important: ASC sometimes returns 409 for empty/broken submissions; do NOT treat
+    # every 409 as "already attached" — verify by checking whether submit succeeds.
+    item_ok = False
     try:
         api(
             "POST",
@@ -264,20 +267,69 @@ def submit(token: str, build_version: str, wait: bool, marketing_version: str):
             },
         )
         print("✓ Version added to submission")
+        item_ok = True
     except SystemExit as e:
-        if "409" in str(e) or "DUPLICATE" in str(e):
+        err = str(e)
+        if "409" in err and ("DUPLICATE" in err.upper() or "ALREADY" in err.upper()):
             print("→ Version already in submission (ok)")
+            item_ok = True
+        elif "409" in err:
+            # Empty/orphan submission — recreate cleanly.
+            print("→ Submission rejected the item (likely empty). Recreating submission…")
+            cancel_submission(token, sub_id)
+            res = api(
+                "POST",
+                "/v1/reviewSubmissions",
+                token,
+                {
+                    "data": {
+                        "type": "reviewSubmissions",
+                        "attributes": {"platform": "IOS"},
+                        "relationships": {"app": {"data": {"type": "apps", "id": app_id}}},
+                    }
+                },
+            )
+            sub_id = res["data"]["id"]
+            print(f"✓ Created review submission {sub_id}")
+            api(
+                "POST",
+                "/v1/reviewSubmissionItems",
+                token,
+                {
+                    "data": {
+                        "type": "reviewSubmissionItems",
+                        "relationships": {
+                            "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub_id}},
+                            "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}},
+                        },
+                    }
+                },
+            )
+            print("✓ Version added to submission")
+            item_ok = True
         else:
             raise
 
-    # 6. Submit
-    api(
-        "PATCH",
-        f"/v1/reviewSubmissions/{sub_id}",
-        token,
-        {"data": {"type": "reviewSubmissions", "id": sub_id, "attributes": {"submitted": True}}},
-    )
-    print("\n✅ Submitted for App Review. Check App Store Connect → App Review.")
+    if not item_ok:
+        raise SystemExit("Could not attach appStoreVersion to review submission")
+
+    # 6. Submit (retry once for transient ASC 500s)
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            api(
+                "PATCH",
+                f"/v1/reviewSubmissions/{sub_id}",
+                token,
+                {"data": {"type": "reviewSubmissions", "id": sub_id, "attributes": {"submitted": True}}},
+            )
+            print("\n✅ Submitted for App Review. Check App Store Connect → App Review.")
+            return
+        except SystemExit as e:
+            last_err = e
+            print(f"… submit attempt {attempt}/3 failed; retrying")
+            time.sleep(6)
+    raise last_err
 
 
 def main():

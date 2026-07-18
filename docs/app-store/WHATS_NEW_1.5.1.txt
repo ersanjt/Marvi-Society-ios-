@@ -1,0 +1,7 @@
+What's New in 1.5.1 (Turkish — App Store Connect):
+
+• Daha kararlı giriş (e-posta / Google) ve net onboarding akışı.
+• Profil, Topluluk, Etkinliklerim ve Admin ekranlarında yapı ve yerelleştirme iyileştirmeleri.
+• Davet kabulü, check-in, kanıt yükleme ve mesajlaşma için daha güvenilir işlemler.
+• Hata, yükleme ve boş durumların daha net gösterimi.
+• Performans ve arayüz cilası.

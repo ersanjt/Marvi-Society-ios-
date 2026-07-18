@@ -1,0 +1,24 @@
+Paste into App Store Connect → App Review Information → Notes:
+
+Marvi Society is a private collaboration club for approved creators and verified venues in Istanbul.
+
+DEMO SIGN-IN (use email only):
+Email: review@marvisociety.com
+Password: MarviReview2026!
+
+This account is pre-approved with:
+• Live Explore / Keşfet offers in Istanbul
+• Booking(s) in My Events / Etkinliklerim
+• Creator + Admin workspaces (switch in Profile → Çalışma alanı)
+• No invite code required for this review account
+
+Review flow:
+1. Sign in with the email/password above
+2. Explore → open an offer → Accept (if slots available)
+3. My Events → check-in / proof flows
+4. Community / Inbox / Profile
+5. Account deletion: Profile or https://marvisociety.com/delete-account
+
+Build: 1.5.1 (50)
+No in-app purchases. No ads. Users must be 18+.
+Production Supabase backend.
