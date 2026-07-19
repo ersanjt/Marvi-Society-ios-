@@ -23,6 +23,11 @@
   },
   "syncLog": [
     {
+      "at": "2026-07-19T12:33:17Z",
+      "status": "ok",
+      "message": "pushed 0fc4180 to origin/main"
+    },
+    {
       "at": "2026-07-19T12:33:13Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260717000001_proof_upload_retry_policy)"
@@ -266,11 +271,6 @@
       "at": "2026-07-14T21:10:01Z",
       "status": "ok",
       "message": "pushed 2a60bc5 to origin/main"
-    },
-    {
-      "at": "2026-07-14T21:09:57Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000024_soften_social_verify_accept_gate)"
     }
   ],
   "releases": [
