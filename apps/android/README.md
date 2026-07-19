@@ -1,14 +1,17 @@
 # Marvi Society — Android
 
-Kotlin + Jetpack Compose app aligned with the iOS Marvi Society client (v1.4.4 / build 35).
+Kotlin + Jetpack Compose app aligned with the iOS Marvi Society client.
+
+**Current:** 1.9.6 (versionCode 52)
 
 ## Stack
 
 - Kotlin 2.1 + Jetpack Compose + Material 3
 - Ktor HTTP client (mirrors iOS lightweight Supabase REST client)
 - DataStore session persistence
-- Coil (images, ready for avatars/showcase)
+- Coil (images / avatars)
 - Navigation Compose with role-based tabs (Creator / Venue / Admin)
+- Default UI language: Turkish (EN available)
 
 ## Setup
 
@@ -25,20 +28,18 @@ cp local.properties.example local.properties
 
 ```bash
 cd apps/android
-export JAVA_HOME="/opt/homebrew/opt/openjdk@17"   # or Android Studio JBR
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew :app:assembleDebug
 ```
 
-Without Supabase keys the app runs in **demo mode** with local sample data (onboarding skip available).
+Without Supabase keys the app runs in **demo mode** with local sample data.
 
 ## Features (parity with iOS)
 
 | Area | Android |
 |------|---------|
-| Multi-step onboarding (welcome → auth → invite → profile/venue → agreement) | ✅ |
-| Hard gates: invite redemption + Instagram/TikTok handles | ✅ |
-| Deep links (`marvisociety://invite`, auth callback `invite_code`) | ✅ |
-| Email auth + invite RPC (no hardcoded codes) | ✅ |
+| Multi-step onboarding (welcome → auth → profile/venue → agreement) | ✅ |
+| Email + Google Sign-In (PKCE persisted across process death) | ✅ |
 | Creator tabs: Explore, Community, Bookings, Profile | ✅ |
 | Venue tabs: Studio, Community, Inbox, Account | ✅ |
 | Admin tabs: Dashboard, Inbox, Account | ✅ |
@@ -46,11 +47,22 @@ Without Supabase keys the app runs in **demo mode** with local sample data (onbo
 | Accept offer, check-in, submit proof | ✅ |
 | Community feed, member search, DMs | ✅ |
 | Public profiles, follow, IG/TikTok links | ✅ |
-| Admin tasks + invite code list | ✅ |
-| TR / EN strings | ✅ (core set) |
-| Dark Marvi theme | ✅ |
+| Venue location registration | ✅ |
+| Booking status (active / completed / cancelled) | ✅ |
+| Deep links (`marvisociety://`, HTTPS auth callback) | ✅ |
+| TR / EN strings (~288 keys) | ✅ |
+| Dark Marvi theme (Inter / Newsreader) | ✅ |
 
-Planned polish: map view, photo upload, push notifications, full admin user provisioning UI.
+## Release
+
+```bash
+npm run build:android
+npm run package:android
+# Manual upload: release/google-play/app-release.aab
+# Or CLI: npm run publish:android  (needs play-service-account.json)
+```
+
+See `docs/google-play/SUBMIT_NOW.md`.
 
 ## Structure
 
@@ -58,13 +70,13 @@ Planned polish: map view, photo upload, push notifications, full admin user prov
 app/src/main/java/com/marvisociety/app/
 ├── MainActivity.kt
 ├── data/              Models, SessionStore, SampleData
-├── network/           SupabaseClient, MarviRepository
+├── network/           SupabaseClient, MarviRepository, GoogleOAuth
 ├── l10n/              MarviL10n TR/EN
 ├── ui/
 │   ├── MarviApp.kt    Role-based tab shell + navigation
-│   ├── components/    MarviCard, MarviScreen, banners
+│   ├── components/    Shared UI
 │   ├── screens/       Onboarding, Discover, Community, Bookings, Profile, Admin, Venue, Chat
-│   ├── theme/         MarviColor dark tokens
+│   ├── theme/         Marvi design tokens
 │   └── viewmodel/     AppViewModel (mirrors iOS AppState)
 ```
 

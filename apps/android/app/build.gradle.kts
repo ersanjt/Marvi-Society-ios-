@@ -35,8 +35,8 @@ android {
         applicationId = "com.marvisociety.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 51
-        versionName = "1.9.5"
+        versionCode = 52
+        versionName = "1.9.6"
 
         buildConfigField("String", "SUPABASE_URL", "\"${prop("MARVI_SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${prop("MARVI_SUPABASE_ANON_KEY")}\"")
