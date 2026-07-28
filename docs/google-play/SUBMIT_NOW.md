@@ -71,15 +71,20 @@ npm run publish:android
 2. Put it in `apps/web/public/.well-known/assetlinks.json` (replace `PLAY_APP_SIGNING_SHA256`)
 3. Deploy web so `https://marvisociety.com/.well-known/assetlinks.json` returns 200
 
-## Step 6 — Production review
+## Step 6 — Closed testing (required before Production on personal accounts)
 
-After internal QA:
+Internal testing alone is **not** enough for public release. See `PUBLISH_PRODUCTION.md`.
+
+1. **Closed testing** → upload same AAB → ≥ **12** opted-in testers for **14 days**
+2. Dashboard → **Apply for production access**
+
+## Step 7 — Production
 
 1. **Release** → **Production** → create release / promote tested bundle
 2. Countries: Turkey + key markets (or all)
 3. **Send for review**
 
-## Step 7 — After live
+## Step 8 — After live
 
 1. Set Vercel env `NEXT_PUBLIC_PLAY_STORE_URL` to the Play Store URL
 2. `npm run web:deploy`
