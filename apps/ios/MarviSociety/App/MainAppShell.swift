@@ -31,7 +31,7 @@ struct MainAppShell: View {
         let lang = appState.preferredLanguage
 
         VStack(spacing: 0) {
-            if let error = appState.lastSyncError {
+            if let error = Self.sanitizedBannerMessage(appState.lastSyncError) {
                 SyncErrorBanner(
                     message: error,
                     retryTitle: appState.t(.retry),
@@ -118,5 +118,17 @@ struct MainAppShell: View {
             }
             .environmentObject(appState)
         }
+    }
+
+    /// Never show raw `MarviAPIError error N` strings in the banner.
+    private static func sanitizedBannerMessage(_ message: String?) -> String? {
+        guard let message, !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        let lower = message.lowercased()
+        if lower.contains("marviapierror") || lower.contains("error 4") {
+            return nil
+        }
+        return message
     }
 }

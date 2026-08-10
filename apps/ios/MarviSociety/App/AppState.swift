@@ -447,42 +447,50 @@ final class AppState: ObservableObject {
 
         isAuthenticated = await api.accessToken != nil
         var syncErrors: [String] = []
+        var hadRealFailure = false
+
+        func noteFailure(_ label: String, error: Error) {
+            if Self.isIgnorableSyncError(error) { return }
+            hadRealFailure = true
+            syncErrors.append(label)
+            if lastSyncError == nil, let message = presentableError(error) {
+                lastSyncError = message
+            }
+        }
 
         // Profile first — offers filter uses creator city.
         do {
             profile = try await api.fetchProfile()
             hasLoadedInitialData = true
         } catch {
-            syncErrors.append("profile")
-            if let message = friendlyErrorMessage(error) {
-                lastSyncError = message
-            }
+            noteFailure("profile", error: error)
         }
 
         do {
             offers = try await api.fetchOffers(city: profile.city.lowercased())
         } catch {
-            syncErrors.append("offers")
-            if lastSyncError == nil, let message = friendlyErrorMessage(error) {
-                lastSyncError = message
-            }
+            noteFailure("offers", error: error)
         }
 
-        if let loadedBookings = try? await api.fetchBookings() { bookings = loadedBookings }
-        else { syncErrors.append("bookings") }
+        do {
+            bookings = try await api.fetchBookings()
+        } catch {
+            noteFailure("bookings", error: error)
+        }
 
         if let loadedInbox = try? await api.fetchNotifications() { inboxMessages = loadedInbox }
-        if let loadedSaved = try? await api.fetchSavedOfferIDs() { savedOfferIDs = loadedSaved }
-        else { syncErrors.append("saved offers") }
+
+        do {
+            savedOfferIDs = try await api.fetchSavedOfferIDs()
+        } catch {
+            noteFailure("saved offers", error: error)
+        }
 
         if allowedRoles.contains(.admin) {
             do {
                 adminTasks = try await api.fetchAdminTasks()
             } catch {
-                syncErrors.append("admin queue")
-                if lastSyncError == nil, let message = friendlyErrorMessage(error) {
-                    lastSyncError = message
-                }
+                noteFailure("admin queue", error: error)
             }
             if let loadedUsers = try? await api.fetchAdminUsers(search: nil, status: nil) {
                 adminUsers = loadedUsers
@@ -496,20 +504,13 @@ final class AppState: ObservableObject {
         do {
             collaborationHistory = try await api.fetchMyCollaborationHistory()
         } catch {
-            syncErrors.append("collaboration")
-            // Secondary profile data — keep My Events usable; only surface if nothing else failed.
-            if lastSyncError == nil, let message = friendlyErrorMessage(error) {
-                lastSyncError = message
-            }
+            noteFailure("collaboration", error: error)
         }
         if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
         do {
             showcaseItems = try await api.fetchMyShowcase()
         } catch {
-            syncErrors.append("showcase")
-            if lastSyncError == nil, let message = friendlyErrorMessage(error) {
-                lastSyncError = message
-            }
+            noteFailure("showcase", error: error)
         }
         if isAuthenticated, accountRole != .admin {
             if let verification = try? await api.ensureSocialVerificationCode() {
@@ -523,13 +524,27 @@ final class AppState: ObservableObject {
 
         await syncAllowedRoles()
 
-        if allowedRoles.contains(.venue), let venues = try? await api.fetchMyVenues() {
-            myVenues = venues
+        if allowedRoles.contains(.venue) {
+            do {
+                myVenues = try await api.fetchMyVenues()
+            } catch {
+                noteFailure("venues", error: error)
+            }
         }
-        if let loadedCampaigns = try? await api.fetchCampaigns() { campaigns = loadedCampaigns }
-        if allowedRoles.contains(.venue), let reviews = try? await api.fetchVenueReviewQueue() {
-            venueReviewQueue = reviews
+        do {
+            campaigns = try await api.fetchCampaigns()
+        } catch {
+            noteFailure("campaigns", error: error)
         }
+        if allowedRoles.contains(.venue) {
+            do {
+                venueReviewQueue = try await api.fetchVenueReviewQueue()
+            } catch {
+                noteFailure("venue reviews", error: error)
+            }
+        }
+
+        if Task.isCancelled { return }
 
         if syncErrors.contains("profile"), retryOnUnauthorized {
             do {
@@ -537,16 +552,27 @@ final class AppState: ObservableObject {
                 lastSyncError = nil
                 await refreshFromServer(retryOnUnauthorized: false)
             } catch {
-                markSessionExpired(message: presentableError(error) ?? t(.errSessionExpired))
+                if !Self.isIgnorableSyncError(error) {
+                    markSessionExpired(message: presentableError(error) ?? t(.errSessionExpired))
+                }
             }
             return
         }
 
-        if !syncErrors.isEmpty {
+        if hadRealFailure {
             lastSyncError = lastSyncError ?? t(.errSomeDataRefresh)
         } else {
             lastSyncError = nil
         }
+    }
+
+    private static func isIgnorableSyncError(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if case MarviAPIError.cancelled = error { return true }
+        let ns = error as NSError
+        if ns.domain == MarviAPIError.errorDomain, ns.code == 4 { return true }
+        let lower = ns.localizedDescription.lowercased()
+        return lower.contains("cancelled") || lower.contains("marviapierror error 4")
     }
 
     func syncAllowedRoles() async {
