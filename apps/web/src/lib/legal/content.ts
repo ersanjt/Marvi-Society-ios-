@@ -308,7 +308,7 @@ const termsTr: LegalDocument = {
 
 const guidelinesEn: LegalDocument = {
   title: "Community Guidelines",
-  subtitle: "Last updated: 10 June 2026",
+  subtitle: "Last updated: 10 August 2026",
   intro:
     "Marvi Society is a trust-based club. These guidelines apply to all creators, venues, and operators. Violations may result in strikes, paused membership, or removal.",
   sections: [
@@ -319,6 +319,20 @@ const guidelinesEn: LegalDocument = {
         "Treat venues, staff, and fellow creators with respect.",
         "No harassment, discrimination, or threats.",
         "Report safety concerns immediately to support@marvisociety.com.",
+      ],
+    },
+    {
+      id: "child-safety",
+      title: "Child safety and CSAE prohibition",
+      paragraphs: [
+        "Marvi Society is for adults 18+. We have a zero-tolerance policy against child sexual abuse and exploitation (CSAE) and child sexual abuse material (CSAM).",
+        "Any content, account, or conduct that involves the sexualization, exploitation, or endangerment of minors is prohibited and will result in immediate removal and reporting to the appropriate authorities (including NCMEC or the relevant regional authority where required by law).",
+      ],
+      bullets: [
+        "Do not upload, share, request, or solicit CSAM or any sexual content involving minors.",
+        "Do not attempt to contact, groom, or exploit minors through the Service.",
+        "We remove CSAM and CSAE-related material promptly after obtaining actual knowledge of it.",
+        "Child safety point of contact: support@marvisociety.com (subject: “Child safety / CSAE”).",
       ],
     },
     {
@@ -341,18 +355,18 @@ const guidelinesEn: LegalDocument = {
     },
     {
       id: "reporting",
-      title: "Reporting",
+      title: "Reporting and in-app feedback",
       paragraphs: [
-        "To report a member or campaign, email support@marvisociety.com with subject “Safety report” and include relevant booking details. We review reports within 2 business days.",
+        "Users can report safety concerns in the Marvi Society app (Profile → Support / report flows) and by emailing support@marvisociety.com with subject “Safety report”, including relevant booking details. We review reports within 2 business days and take enforcement action consistent with these standards and applicable law.",
       ],
     },
   ],
-  contactNote: "Report issues: support@marvisociety.com",
+  contactNote: "Report issues / child safety: support@marvisociety.com",
 };
 
 const guidelinesTr: LegalDocument = {
   title: "Topluluk Kuralları",
-  subtitle: "Son güncelleme: 10 Haziran 2026",
+  subtitle: "Son güncelleme: 10 Ağustos 2026",
   intro: "Güvene dayalı bir topluluğuz. Bu kurallar tüm üyeler için geçerlidir.",
   sections: [
     {
@@ -361,17 +375,33 @@ const guidelinesTr: LegalDocument = {
       bullets: ["Mekan personeline ve diğer üyelere saygılı davranın.", "Taciz veya tehdit yasaktır."],
     },
     {
+      id: "child-safety",
+      title: "Çocuk güvenliği ve CSAE yasağı",
+      paragraphs: [
+        "Marvi Society yalnızca 18+ kullanıcılar içindir. Çocuk cinsel istismarı ve sömürüsü (CSAE) ile çocuk cinsel istismar materyaline (CSAM) karşı sıfır tolerans politikamız vardır.",
+        "Küçükleri cinsel içerikle ilişkilendiren, sömüren veya tehlikeye atan her türlü içerik, hesap veya davranış yasaktır; derhal kaldırma ve yetkili mercilere bildirim uygulanır.",
+      ],
+      bullets: [
+        "CSAM yüklemeyin, paylaşmayın, talep etmeyin.",
+        "Hizmet üzerinden küçüklerle iletişim kurmaya veya onları sömürmeye çalışmayın.",
+        "CSAM/CSAE içeriği öğrenildiğinde derhal kaldırılır.",
+        "Çocuk güvenliği iletişim noktası: support@marvisociety.com (konu: “Child safety / CSAE”).",
+      ],
+    },
+    {
       id: "authenticity",
       title: "Özgünlük",
       bullets: ["Gerçek hesaplarınızı kullanın.", "Kanıtlar gerçek ziyaretleri yansıtmalıdır."],
     },
     {
       id: "reporting",
-      title: "Şikayet",
-      paragraphs: ["support@marvisociety.com adresine “Safety report” konulu e-posta gönderin."],
+      title: "Şikayet ve uygulama içi bildirim",
+      paragraphs: [
+        "Uygulama içinden (Profil → Destek / rapor) veya support@marvisociety.com adresine “Safety report” konulu e-posta ile bildirim yapabilirsiniz.",
+      ],
     },
   ],
-  contactNote: "Şikayet: support@marvisociety.com",
+  contactNote: "Şikayet / çocuk güvenliği: support@marvisociety.com",
 };
 
 export const legalDocuments = {
