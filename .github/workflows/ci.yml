@@ -83,6 +83,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare non-production iOS configuration
+        run: cp apps/ios/Config/Secrets.xcconfig.example apps/ios/Config/Secrets.xcconfig
+
       - name: Build iOS app
         run: |
           xcodebuild \
