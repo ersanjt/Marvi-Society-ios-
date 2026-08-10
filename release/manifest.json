@@ -23,6 +23,11 @@
   },
   "syncLog": [
     {
+      "at": "2026-08-10T23:07:04Z",
+      "status": "ok",
+      "message": "pushed a1fa100 to origin/main"
+    },
+    {
       "at": "2026-08-10T23:07:00Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
@@ -266,11 +271,6 @@
       "at": "2026-07-15T09:47:12Z",
       "status": "ok",
       "message": "pushed 11b764a to origin/main"
-    },
-    {
-      "at": "2026-07-15T09:47:07Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000026_campaign_media_and_fields)"
     }
   ],
   "releases": [
