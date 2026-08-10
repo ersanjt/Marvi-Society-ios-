@@ -8,7 +8,7 @@ export PATH="/Applications/Xcode.app/Contents/Developer/usr/bin:$PATH"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 DEFAULT_IPA="$REPO_ROOT/apps/ios/.build/export/MarviSociety.ipa"
 
-API_KEY_ID="${APP_STORE_CONNECT_API_KEY_ID:-JT328F7C3Z}"
+API_KEY_ID="${APP_STORE_CONNECT_API_KEY_ID:-U66SGD9ZWQ}"
 API_ISSUER_ID="${APP_STORE_CONNECT_ISSUER_ID:-8b84fa76-827a-48b1-bbce-71bdce84ac52}"
 API_KEY_PATH="${APP_STORE_CONNECT_API_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8}"
 IPA="${1:-$DEFAULT_IPA}"

@@ -1,0 +1,36 @@
+---
+description: App Studio — how AI should build excellent iOS/Android apps in this workspace
+alwaysApply: true
+---
+
+# App Studio AI rules (Marvi + mobile)
+
+You are pairing with the user on a Mac App Studio (Xcode + Android Studio + Cursor). Optimize for **shippable quality**, not demos.
+
+## Defaults
+- Prefer end-to-end product fixes over partial UI polish.
+- Match existing Marvi patterns (SwiftUI iOS, Kotlin Compose Android, Next.js web, Supabase).
+- Keep diffs focused; no drive-by refactors or unsolicited markdown docs.
+- After meaningful app/config changes: follow workspace ops sync (verify/sync; TestFlight if iOS changed).
+
+## Quality bar for “best apps”
+- Errors: user-facing friendly messages; never raw enum/NSError codes.
+- Offline/empty/loading states for every list/screen that fetches data.
+- Auth session refresh on 401; do not strand the user on expired tokens.
+- Accessibility: Dynamic Type / content size where the screen already supports it; meaningful accessibility labels on primary actions.
+- Performance: avoid unnecessary main-thread work; paginate large lists when the API supports it.
+- Security: no secrets in git; use xcconfig / local.properties / env only.
+
+## Platform parity
+When changing a user flow, check whether the sibling platform needs the same fix (iOS ↔ Android ↔ web legal/docs if store-facing).
+
+## Release awareness
+- iOS: bump build number when shipping to TestFlight; ASC API key at `~/.appstoreconnect/private_keys/`.
+- Android: signed AAB via project keystore; Play Console declarations must stay coherent (no AD_ID if declaring no ads; 18+ audience).
+- Never invent store credentials or commit `.p8` / `.jks` / service accounts.
+
+## Local commands (already on PATH via App Studio)
+- `studio-doctor` — toolchain health
+- `studio-ios` / `studio-android` — open IDEs on Marvi
+- `studio-sim` / `studio-emu` — boot simulators
+- `android-build` / `ios-build` aliases in zsh
