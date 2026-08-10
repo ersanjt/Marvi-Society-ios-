@@ -1736,7 +1736,7 @@ private struct BookingRPCRow: Decodable {
     let id: UUID
     let offer_id: UUID
     let stage: String
-    let check_in_code: String
+    let check_in_code: String?
     let guest_name: String?
     let proof_deadline_label: String?
     let proof_status: String?
@@ -1754,7 +1754,7 @@ private struct BookingRPCRow: Decodable {
                 "Upload story, post, or review links"
             ],
             proofStatus: ProofStatus.fromAPI(proof_status),
-            checkInCode: check_in_code,
+            checkInCode: check_in_code ?? "",
             guestName: guest_name ?? "",
             proofLinks: proof_links ?? []
         )
@@ -1846,7 +1846,7 @@ private struct BookingJoinRow: Decodable {
     let id: UUID
     let offer_id: UUID?
     let stage: String
-    let check_in_code: String
+    let check_in_code: String?
     let guest_name: String?
     let proof_deadline_label: String?
     let proof_status: String?
@@ -1908,7 +1908,7 @@ private struct BookingJoinRow: Decodable {
                 "Upload story, post, or review links"
             ],
             proofStatus: ProofStatus.fromAPI(proof_status),
-            checkInCode: check_in_code,
+            checkInCode: check_in_code ?? "",
             guestName: guest_name ?? "",
             proofLinks: proof_links ?? []
         )
