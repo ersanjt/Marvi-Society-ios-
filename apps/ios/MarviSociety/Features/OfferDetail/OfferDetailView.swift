@@ -20,7 +20,7 @@ struct OfferDetailView: View {
     private var isUnderReview: Bool { appState.profile.status == .underReview }
     private var canAccept: Bool {
         !isPending && !isFull && !isPaused && !isUnderReview && appState.isAuthenticated
-            && !appState.needsSocialProfileCompletion
+            && appState.canAcceptOffers
     }
 
     var body: some View {
@@ -214,11 +214,6 @@ struct OfferDetailView: View {
         if isUnderReview { return appState.t(.awaitingApproval) }
         if isPaused { return appState.t(.membershipPaused) }
         if isFull { return appState.t(.fullyBooked) }
-        if appState.needsSocialProfileCompletion {
-            return appState.needsSocialHandlesEntry
-                ? appState.t(.socialSetupTitle)
-                : appState.t(.acceptNeedsSocialVerify)
-        }
         switch offer.collaborationModel {
         case .instant: return appState.t(.useNow)
         case .event: return appState.t(.rsvpEvent)
@@ -229,8 +224,12 @@ struct OfferDetailView: View {
 
     private var acceptBlockedHint: String? {
         guard !isAccepted, !isPending, !isFull else { return nil }
-        if isUnderReview || isPaused { return nil }
-        return appState.acceptBlockedReason
+        if let reason = appState.acceptBlockedReason { return reason }
+        // Soft nudge only — Instagram DM verify is not required to accept.
+        if appState.needsSocialVerification {
+            return appState.t(.acceptNeedsSocialVerify)
+        }
+        return nil
     }
 
     private var primaryActionIcon: String {

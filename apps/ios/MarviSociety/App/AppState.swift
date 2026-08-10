@@ -188,24 +188,20 @@ final class AppState: ObservableObject {
     var canAcceptOffers: Bool {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return true }
-        return !needsAdminApproval
+        return profile.status == .approved && !needsAdminApproval
     }
 
     /// Explains why Accept is disabled (shown under CTAs). Nil when accept is allowed.
     var acceptBlockedReason: String? {
         guard isAuthenticated, hasCompletedOnboarding else { return t(.signInToAccept) }
         if accountRole == .admin { return nil }
-        if needsAdminApproval {
-            switch profile.status {
-            case .paused: return t(.membershipPaused)
-            case .underReview: return t(.awaitingApproval)
-            default: return t(.awaitingApproval)
-            }
-        }
         switch profile.status {
-        case .underReview: return nil
-        case .paused: return t(.membershipPaused)
-        case .approved: return nil
+        case .paused:
+            return t(.membershipPaused)
+        case .underReview:
+            return t(.awaitingApproval)
+        case .approved:
+            return nil
         }
     }
 
@@ -2219,6 +2215,9 @@ final class AppState: ObservableObject {
             || lower.contains("email address is already")
             || lower.contains("user already exists") {
             return t(.errAccountExists)
+        }
+        if lower.contains("membership not approved") {
+            return t(.awaitingApproval)
         }
         if lower.contains("no slots") || lower.contains("remaining_slots") {
             return t(.errInvitationFull)
