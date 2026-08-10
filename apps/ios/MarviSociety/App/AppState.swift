@@ -2280,6 +2280,12 @@ final class AppState: ObservableObject {
         if lower.contains("invalid api key") || lower.contains("invalid jwt") {
             return t(.errServerConfig)
         }
+        if lower.contains("update did not apply") {
+            return t(.profileSaveFailed)
+        }
+        if lower.contains("photo url missing") {
+            return t(.photoUploadFailed)
+        }
         if lower.contains("couldn't be read")
             || lower.contains("could not be read")
             || lower.contains("data couldn") {

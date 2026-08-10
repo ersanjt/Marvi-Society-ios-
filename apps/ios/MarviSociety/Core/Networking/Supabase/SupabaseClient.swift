@@ -345,15 +345,23 @@ actor SupabaseClient {
         return sub
     }
 
-    func patch(table: String, id: UUID, body: [String: Any]) async throws {
+    func patch(table: String, id: UUID, body: [String: Any], requireRows: Bool = true) async throws {
         try await patch(
             table: table,
             query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString)")],
-            body: body
+            body: body,
+            requireRows: requireRows
         )
     }
 
-    func patch(table: String, query: [URLQueryItem], body: [String: Any]) async throws {
+    /// Updates matching rows. When `requireRows` is true (default), throws if PostgREST
+    /// matched zero rows — otherwise PATCH appears to succeed while nothing persisted.
+    func patch(
+        table: String,
+        query: [URLQueryItem],
+        body: [String: Any],
+        requireRows: Bool = true
+    ) async throws {
         var components = URLComponents(
             url: baseURL.appending(path: "rest/v1/\(table)"),
             resolvingAgainstBaseURL: false
@@ -364,12 +372,28 @@ actor SupabaseClient {
             throw MarviAPIError.invalidResponse
         }
 
-        _ = try await authenticatedData {
+        let data = try await authenticatedData {
             var request = URLRequest(url: url)
             request.httpMethod = "PATCH"
             applyHeaders(&request, authenticated: true)
+            // Force PostgREST to return updated rows so zero-match updates fail loudly.
+            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
             return request
+        }
+
+        guard requireRows else { return }
+
+        if data.isEmpty {
+            throw MarviAPIError.server(message: "Update did not apply. Pull to refresh and try again.")
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data)
+        if let rows = json as? [[String: Any]], rows.isEmpty {
+            throw MarviAPIError.server(message: "Update did not apply. Pull to refresh and try again.")
+        }
+        if let rows = json as? [Any], rows.isEmpty {
+            throw MarviAPIError.server(message: "Update did not apply. Pull to refresh and try again.")
         }
     }
 

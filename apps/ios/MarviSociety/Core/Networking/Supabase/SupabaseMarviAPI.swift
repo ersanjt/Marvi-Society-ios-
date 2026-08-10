@@ -193,26 +193,31 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             throw MarviAPIError.notAuthenticated
         }
 
-        // Ensure a row exists — PATCH on zero rows succeeds silently in PostgREST.
+        // Ensure a row exists — PATCH on zero rows used to succeed silently in PostgREST.
         let _: CreatorProfileHealRow = try await client.rpc(
             function: "ensure_creator_profile",
             body: [:]
         )
 
+        var body: [String: Any] = [
+            "instagram_handle": profile.handle,
+            "tiktok_handle": profile.tiktokHandle,
+            "city": profile.city.lowercased(),
+            "full_name": profile.name,
+            "bio": profile.bio,
+            "niches": profile.niches,
+            "languages": profile.languages
+        ]
+        // Never wipe existing media with empty strings (matches Android).
+        let avatar = profile.avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cover = profile.coverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !avatar.isEmpty { body["avatar_url"] = avatar }
+        if !cover.isEmpty { body["cover_url"] = cover }
+
         try await client.patch(
             table: "creator_profiles",
             query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
-            body: [
-                "instagram_handle": profile.handle,
-                "tiktok_handle": profile.tiktokHandle,
-                "city": profile.city.lowercased(),
-                "full_name": profile.name,
-                "bio": profile.bio,
-                "niches": profile.niches,
-                "languages": profile.languages,
-                "avatar_url": profile.avatarURL,
-                "cover_url": profile.coverURL
-            ]
+            body: body
         )
 
         let locale: String = {
@@ -224,10 +229,12 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             return "en"
         }()
 
-        try await client.patch(
+        // Locale is best-effort; missing public.profiles row must not undo creator save.
+        try? await client.patch(
             table: "profiles",
             query: [URLQueryItem(name: "id", value: "eq.\(userID)")],
-            body: ["preferred_locale": locale]
+            body: ["preferred_locale": locale],
+            requireRows: false
         )
     }
 
@@ -863,7 +870,12 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             throw MarviAPIError.notAuthenticated
         }
 
-        // Ensure a row exists — PATCH on zero rows succeeds silently in PostgREST.
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw MarviAPIError.server(message: "Photo URL missing after upload.")
+        }
+
+        // Ensure a row exists before writing the media column.
         let _: CreatorProfileHealRow = try await client.rpc(
             function: "ensure_creator_profile",
             body: [:]
@@ -873,7 +885,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         try await client.patch(
             table: "creator_profiles",
             query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
-            body: [column: url]
+            body: [column: trimmed]
         )
     }
 
