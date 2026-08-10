@@ -54,13 +54,12 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Web build
-        working-directory: apps/web
         run: |
-          npm install
-          npm run build
+          npm ci
+          npm run web:build
 
       - name: Check migrations combined
         run: |

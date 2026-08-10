@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
+import android.annotation.SuppressLint
 import androidx.browser.customtabs.CustomTabsIntent
 import com.marvisociety.app.BuildConfig
 import java.security.MessageDigest
@@ -50,15 +51,17 @@ object GoogleOAuth {
             ?.apply()
     }
 
+    @SuppressLint("ApplySharedPref")
     fun start(context: Context, role: String = "CREATOR") {
         val verifier = generateCodeVerifier()
         pending = Pending(codeVerifier = verifier, role = role)
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val persisted = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_VERIFIER, verifier)
             .putLong(KEY_STARTED_AT, pending?.startedAtMs ?: System.currentTimeMillis())
             .putString(KEY_ROLE, role)
             .commit()
+        check(persisted) { "Could not persist the OAuth verifier" }
         val challenge = codeChallenge(verifier)
         val url = buildAuthorizeUrl(challenge)
         CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))

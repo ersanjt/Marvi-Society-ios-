@@ -118,7 +118,7 @@ IMPORTANT — Use EMAIL sign-in only (not Sign in with Apple).
 
 Test account:
 Email: review@marvisociety.com
-Password: MarviReview2026!
+Password: provided in the dedicated App Store Connect password field
 
 Account includes admin + approved creator + venue profiles with live Explore content (9+ offers).
 Profile → workspace switcher: Creator, Venue, Admin.

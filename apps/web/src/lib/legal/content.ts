@@ -10,7 +10,7 @@ const privacyEn: LegalDocument = {
       id: "controller",
       title: "Data controller",
       paragraphs: [
-        "Marvi Society is the data controller for personal data processed through the Marvi Society iOS app, website (marvisociety.com), and related services.",
+        "Marvi Society is the data controller for personal data processed through the Marvi Society iOS and Android apps, website (marvisociety.com), and related services.",
         "Contact: support@marvisociety.com",
       ],
     },
@@ -18,7 +18,7 @@ const privacyEn: LegalDocument = {
       id: "data-collected",
       title: "Personal data we collect",
       bullets: [
-        "Account data: email address, name, Apple identifier when you use Sign in with Apple, authentication tokens.",
+        "Account data: email address, name, Apple or Google identifiers when you use those sign-in methods, authentication tokens.",
         "Creator profile: Instagram/TikTok handles, city, audience metrics, niches, languages, membership status, collaboration history.",
         "Venue profile (if applicable): venue name, area, campaign details, owner contact information.",
         "Location data: approximate device location when you use map or nearby features (only while the app is in use and permission is granted).",
@@ -32,7 +32,7 @@ const privacyEn: LegalDocument = {
       title: "Data we do not collect",
       bullets: [
         "We do not sell your personal data.",
-        "We do not use third-party advertising trackers in the iOS app.",
+        "We do not use third-party advertising trackers in the iOS or Android apps.",
         "We do not collect precise background location.",
         "We do not require access to your contacts or microphone for core features.",
       ],
@@ -85,7 +85,7 @@ const privacyEn: LegalDocument = {
       title: "Your rights",
       paragraphs: [
         "Depending on your jurisdiction, you may request access, correction, portability, restriction, objection, or deletion of your personal data.",
-        "Delete your account at https://marvisociety.com/delete-account or email support@marvisociety.com.",
+        "Delete your account in the iOS or Android app (Profile), at https://marvisociety.com/delete-account, or email support@marvisociety.com.",
       ],
     },
     {
@@ -122,13 +122,13 @@ const privacyTr: LegalDocument = {
     {
       id: "controller",
       title: "Veri sorumlusu",
-      paragraphs: ["Marvi Society, uygulama ve web sitesi üzerinden işlenen kişisel verilerin sorumlusudur.", "İletişim: support@marvisociety.com"],
+      paragraphs: ["Marvi Society, iOS ve Android uygulamaları ile web sitesi üzerinden işlenen kişisel verilerin sorumlusudur.", "İletişim: support@marvisociety.com"],
     },
     {
       id: "data-collected",
       title: "Toplanan veriler",
       bullets: [
-        "Hesap: e-posta, ad, Apple ile Giriş tanımlayıcısı.",
+        "Hesap: e-posta, ad, Apple veya Google ile giriş tanımlayıcıları.",
         "Üretici profili: Instagram/TikTok, şehir, kitle metrikleri, nişler, üyelik durumu.",
         "Konum: yalnızca uygulama kullanımı sırasında ve izin verildiğinde yaklaşık konum.",
         "İş birliği: rezervasyonlar, check-in kodları, kanıt linkleri, ekran görüntüleri.",
@@ -177,7 +177,7 @@ const termsEn: LegalDocument = {
   title: "Terms of Service",
   subtitle: "Last updated: 10 June 2026",
   intro:
-    "These Terms of Service (“Terms”) govern your access to Marvi Society’s iOS application, website, and related services (collectively, the “Service”). By creating an account or using the Service, you agree to these Terms and our Privacy Policy.",
+    "These Terms of Service (“Terms”) govern your access to Marvi Society’s iOS and Android applications, website, and related services (collectively, the “Service”). By creating an account or using the Service, you agree to these Terms and our Privacy Policy.",
   sections: [
     {
       id: "service",

@@ -4,12 +4,17 @@
 set -euo pipefail
 
 REVIEW_EMAIL="${REVIEW_EMAIL:-review@marvisociety.com}"
-REVIEW_PASSWORD="${REVIEW_PASSWORD:-MarviReview2026!}"
+REVIEW_PASSWORD="${REVIEW_PASSWORD:-}"
 SB_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://gaswjuvyzliislqrljof.supabase.co}"
 SB_SERVICE="${SUPABASE_SERVICE_ROLE_KEY:-}"
 
 if [[ -z "$SB_SERVICE" ]]; then
   echo "✗ Set SUPABASE_SERVICE_ROLE_KEY" >&2
+  exit 1
+fi
+
+if [[ -z "$REVIEW_PASSWORD" ]]; then
+  echo "✗ Set REVIEW_PASSWORD in the secure runtime environment" >&2
   exit 1
 fi
 
@@ -56,5 +61,5 @@ echo "Next: run infra/supabase/setup-review-account.sql in Supabase SQL Editor"
 echo ""
 echo "Apple Review Notes:"
 echo "  Email: $REVIEW_EMAIL"
-echo "  Password: $REVIEW_PASSWORD"
+echo "  Password: stored securely in App Store Connect"
 echo "  Invite code: MARVI-IST"

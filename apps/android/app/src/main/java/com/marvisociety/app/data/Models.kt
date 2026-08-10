@@ -53,6 +53,87 @@ enum class OfferCategory(val api: String) {
     }
 }
 
+data class BusinessCategoryOption(
+    val key: String,
+    val english: String,
+    val turkish: String,
+    val offerCategory: OfferCategory
+) {
+    fun label(language: AppLanguage): String = if (language == AppLanguage.TURKISH) turkish else english
+}
+
+object BusinessCategoryCatalog {
+    val all = listOf(
+        BusinessCategoryOption("restaurant", "Restaurant", "Restoran", OfferCategory.DINING),
+        BusinessCategoryOption("cafe", "Cafe", "Kafe", OfferCategory.DINING),
+        BusinessCategoryOption("coffee-shop", "Coffee shop", "Kahve dükkanı", OfferCategory.DINING),
+        BusinessCategoryOption("bakery", "Bakery", "Fırın", OfferCategory.DINING),
+        BusinessCategoryOption("patisserie", "Patisserie", "Pastane", OfferCategory.DINING),
+        BusinessCategoryOption("dessert", "Dessert shop", "Tatlıcı", OfferCategory.DINING),
+        BusinessCategoryOption("fast-food", "Fast food", "Fast food", OfferCategory.DINING),
+        BusinessCategoryOption("catering", "Catering", "Catering", OfferCategory.DINING),
+        BusinessCategoryOption("bar-pub", "Bar / Pub", "Bar / Pub", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("lounge", "Lounge", "Lounge", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("nightclub", "Nightclub", "Gece kulübü", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("live-music", "Live music venue", "Canlı müzik mekanı", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("hotel", "Hotel", "Otel", OfferCategory.WELLNESS),
+        BusinessCategoryOption("resort", "Resort", "Tatil köyü", OfferCategory.WELLNESS),
+        BusinessCategoryOption("spa", "Spa", "Spa", OfferCategory.WELLNESS),
+        BusinessCategoryOption("wellness", "Wellness center", "Wellness merkezi", OfferCategory.WELLNESS),
+        BusinessCategoryOption("yoga-pilates", "Yoga / Pilates studio", "Yoga / Pilates stüdyosu", OfferCategory.WELLNESS),
+        BusinessCategoryOption("gym", "Gym / Fitness center", "Spor salonu", OfferCategory.FITNESS),
+        BusinessCategoryOption("sports-club", "Sports club", "Spor kulübü", OfferCategory.FITNESS),
+        BusinessCategoryOption("dance-studio", "Dance studio", "Dans stüdyosu", OfferCategory.FITNESS),
+        BusinessCategoryOption("beauty-salon", "Beauty salon", "Güzellik salonu", OfferCategory.BEAUTY),
+        BusinessCategoryOption("hair-salon", "Hair salon / Barber", "Kuaför / Berber", OfferCategory.BEAUTY),
+        BusinessCategoryOption("nail-studio", "Nail studio", "Tırnak stüdyosu", OfferCategory.BEAUTY),
+        BusinessCategoryOption("cosmetics", "Cosmetics", "Kozmetik", OfferCategory.BEAUTY),
+        BusinessCategoryOption("clinic", "Clinic", "Klinik", OfferCategory.WELLNESS),
+        BusinessCategoryOption("dentist", "Dentist", "Diş kliniği", OfferCategory.WELLNESS),
+        BusinessCategoryOption("pharmacy", "Pharmacy", "Eczane", OfferCategory.WELLNESS),
+        BusinessCategoryOption("fashion", "Fashion / Clothing", "Moda / Giyim", OfferCategory.RETAIL),
+        BusinessCategoryOption("accessories", "Shoes / Accessories", "Ayakkabı / Aksesuar", OfferCategory.RETAIL),
+        BusinessCategoryOption("jewelry", "Jewelry", "Mücevher", OfferCategory.RETAIL),
+        BusinessCategoryOption("home-decor", "Home decor / Furniture", "Ev dekorasyonu / Mobilya", OfferCategory.RETAIL),
+        BusinessCategoryOption("electronics", "Electronics", "Elektronik", OfferCategory.RETAIL),
+        BusinessCategoryOption("grocery", "Grocery / Market", "Market", OfferCategory.RETAIL),
+        BusinessCategoryOption("bookstore", "Bookstore", "Kitapçı", OfferCategory.RETAIL),
+        BusinessCategoryOption("ecommerce", "E-commerce / Online store", "E-ticaret / Online mağaza", OfferCategory.RETAIL),
+        BusinessCategoryOption("cinema-theater", "Cinema / Theater", "Sinema / Tiyatro", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("museum-gallery", "Museum / Art gallery", "Müze / Sanat galerisi", OfferCategory.RETAIL),
+        BusinessCategoryOption("entertainment", "Entertainment center", "Eğlence merkezi", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("event-venue", "Event venue", "Etkinlik mekanı", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("event-planner", "Event planner", "Etkinlik organizasyonu", OfferCategory.RETAIL),
+        BusinessCategoryOption("photo-video", "Photography / Video studio", "Fotoğraf / Video stüdyosu", OfferCategory.RETAIL),
+        BusinessCategoryOption("education", "Education / Training", "Eğitim / Kurs", OfferCategory.RETAIL),
+        BusinessCategoryOption("coworking", "Coworking space", "Ortak çalışma alanı", OfferCategory.RETAIL),
+        BusinessCategoryOption("professional", "Professional services", "Profesyonel hizmetler", OfferCategory.RETAIL),
+        BusinessCategoryOption("real-estate", "Real estate", "Gayrimenkul", OfferCategory.RETAIL),
+        BusinessCategoryOption("travel", "Travel / Tourism", "Seyahat / Turizm", OfferCategory.WELLNESS),
+        BusinessCategoryOption("automotive", "Car dealer / Rental", "Otomotiv / Araç kiralama", OfferCategory.RETAIL),
+        BusinessCategoryOption("pet-services", "Pet shop / Pet services", "Evcil hayvan hizmetleri", OfferCategory.RETAIL),
+        BusinessCategoryOption("kids-family", "Kids / Family services", "Çocuk / Aile hizmetleri", OfferCategory.RETAIL),
+        BusinessCategoryOption("home-services", "Home services", "Ev hizmetleri", OfferCategory.RETAIL),
+        BusinessCategoryOption("technology", "Digital / Technology", "Dijital / Teknoloji", OfferCategory.RETAIL),
+        BusinessCategoryOption("community", "Nonprofit / Community", "STK / Topluluk", OfferCategory.RETAIL)
+    )
+
+    fun offerCategoryFor(label: String): OfferCategory {
+        val normalized = label.trim().lowercase()
+        all.firstOrNull {
+            it.key == normalized || it.english.lowercase() == normalized || it.turkish.lowercase() == normalized
+        }?.let { return it.offerCategory }
+        return when {
+            Regex("restaurant|cafe|coffee|food|bakery|kafe|yemek").containsMatchIn(normalized) -> OfferCategory.DINING
+            Regex("bar|pub|club|lounge|night|music|event|gece|etkinlik").containsMatchIn(normalized) -> OfferCategory.NIGHTLIFE
+            Regex("gym|fitness|sport|yoga|pilates|spor").containsMatchIn(normalized) -> OfferCategory.FITNESS
+            Regex("beauty|salon|hair|nail|cosmetic|güzellik|kuaför").containsMatchIn(normalized) -> OfferCategory.BEAUTY
+            Regex("spa|wellness|hotel|resort|clinic|health|otel|sağlık").containsMatchIn(normalized) -> OfferCategory.WELLNESS
+            else -> OfferCategory.RETAIL
+        }
+    }
+}
+
 enum class BookingStage {
     INVITED, CONFIRMED, CHECKED_IN, PROOF_DUE, COMPLETED, CANCELLED;
 
@@ -191,6 +272,20 @@ data class VenueSummary(
     val area: String,
     val category: OfferCategory,
     val isActive: Boolean = false
+)
+
+data class BrandSummary(
+    val organizationId: String,
+    val organizationName: String,
+    val brandId: String,
+    val brandName: String
+)
+
+data class OrganizationBrandCreated(
+    val organizationId: String,
+    val organizationName: String,
+    val brandId: String,
+    val brandName: String
 )
 
 data class Campaign(

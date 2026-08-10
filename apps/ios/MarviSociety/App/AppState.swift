@@ -155,11 +155,11 @@ final class AppState: ObservableObject {
     /// Invite codes are no longer required for membership (kept for admin tooling only).
     var needsInviteRedemption: Bool { false }
 
-    /// Hard gate: membership must be admin-approved before using the app.
+    /// Only paused accounts are blocked. New members can enter and request collaborations immediately.
     var needsAdminApproval: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return false }
-        return profile.status != .approved
+        return profile.status == .paused
     }
 
     /// Soft nudge: Instagram DM verify recommended for trust (profile health), not a hard accept gate.
@@ -177,15 +177,9 @@ final class AppState: ObservableObject {
         needsSocialHandlesEntry || needsSocialVerification
     }
 
-    /// Hard gate: creator must enter Instagram or TikTok before using the main app.
+    /// Social handles are optional profile enrichment and never block normal members.
     var needsSocialHandlesEntry: Bool {
-        guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
-        if accountRole == .admin { return false }
-        if allowedRoles.contains(.venue), selectedRole == .venue { return false }
-        // Don't block approval wait on handles for venues; creators need handles first.
-        let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        return handle.isEmpty && tiktok.isEmpty
+        false
     }
 
     /// Whether the signed-in creator may accept live offers (client-side gate; server also enforces).
@@ -193,8 +187,6 @@ final class AppState: ObservableObject {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return true }
         return !needsAdminApproval
-            && !needsSocialHandlesEntry
-            && profile.status == .approved
     }
 
     /// Explains why Accept is disabled (shown under CTAs). Nil when accept is allowed.
@@ -208,12 +200,10 @@ final class AppState: ObservableObject {
             default: return t(.awaitingApproval)
             }
         }
-        if needsSocialHandlesEntry { return t(.socialSetupSub) }
         switch profile.status {
-        case .underReview: return t(.awaitingApproval)
+        case .underReview: return nil
         case .paused: return t(.membershipPaused)
         case .approved: return nil
-        default: return t(.completeProfileToAccept)
         }
     }
 
@@ -747,10 +737,139 @@ final class AppState: ObservableObject {
         }
     }
 
+    func fetchMyBrands() async -> [BrandSummary] {
+        guard isRemoteMode, isAuthenticated else { return [] }
+        do {
+            return try await api.fetchMyBrands()
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return []
+        }
+    }
+
+    func createOrganizationWithBrand(organizationName: String, brandName: String) async -> BrandSummary? {
+        guard isRemoteMode, isAuthenticated else { return nil }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+        do {
+            let result = try await api.createOrganizationWithBrand(
+                organizationName: organizationName,
+                brandName: brandName
+            )
+            return result.asBrandSummary
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    func createEstablishmentDraft(brandID: UUID, establishmentName: String) async -> UUID? {
+        guard isRemoteMode, isAuthenticated else { return nil }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+        do {
+            let venueID = try await api.createEstablishmentDraft(
+                brandID: brandID,
+                establishmentName: establishmentName
+            )
+            myVenues = try await api.fetchMyVenues()
+            return venueID
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+        do {
+            try await api.upsertEstablishmentDetails(venueID: venueID, input: input)
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func upsertEstablishmentAddress(venueID: UUID, input: EstablishmentAddressInput) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+        do {
+            try await api.upsertEstablishmentAddress(venueID: venueID, input: input)
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func upsertEstablishmentPhotos(venueID: UUID, logoData: Data, galleryData: [Data]) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+        do {
+            guard let preparedLogo = ImageUploadPreprocessor.prepare(logoData, profile: .avatar) else {
+                throw MarviAPIError.server(message: "Could not process logo image")
+            }
+            let logoURL = try await api.uploadEstablishmentMedia(
+                data: preparedLogo,
+                fileName: "logo.jpg",
+                venueID: venueID
+            )
+            var galleryURLs: [String] = []
+            for (index, data) in galleryData.enumerated() {
+                guard let prepared = ImageUploadPreprocessor.prepare(data, profile: .cover) else {
+                    throw MarviAPIError.server(message: "Could not process gallery image")
+                }
+                let url = try await api.uploadEstablishmentMedia(
+                    data: prepared,
+                    fileName: "gallery-\(index + 1).jpg",
+                    venueID: venueID
+                )
+                galleryURLs.append(url)
+            }
+            try await api.upsertEstablishmentPhotos(
+                venueID: venueID,
+                logoURL: logoURL,
+                galleryURLs: galleryURLs
+            )
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
+    func submitEstablishmentForReview(venueID: UUID) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        isSyncing = true
+        lastSyncError = nil
+        defer { isSyncing = false }
+        do {
+            try await api.submitEstablishmentForReview(venueID: venueID)
+            myVenues = try await api.fetchMyVenues()
+            await syncAllowedRoles()
+            await refreshFromServer()
+            return true
+        } catch {
+            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            return false
+        }
+    }
+
     func registerVenue(
         name: String,
         area: String,
         category: OfferCategory,
+        categoryLabel: String? = nil,
         address: String = "",
         contactName: String = "",
         contactPhone: String = ""
@@ -760,10 +879,15 @@ final class AppState: ObservableObject {
         lastSyncError = nil
         defer { isSyncing = false }
 
+        let trimmedCategoryLabel = categoryLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedCategoryLabel = trimmedCategoryLabel?.isEmpty == false
+            ? trimmedCategoryLabel ?? category.apiValue
+            : category.apiValue
         let input = RegisterVenueInput(
             venueName: name,
             area: area,
             category: category,
+            categoryLabel: resolvedCategoryLabel,
             address: address,
             contactName: contactName.isEmpty ? profile.displayName : contactName,
             contactPhone: contactPhone
@@ -1126,6 +1250,11 @@ final class AppState: ObservableObject {
             }
             lastSyncError = nil
             return true
+        } catch MarviAPIError.cancelled {
+            // A picker dismissal or a system URLSession cancellation is not a
+            // server failure and must never become the global red error banner.
+            lastSyncError = nil
+            return false
         } catch {
             lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
             return false

@@ -649,6 +649,8 @@ struct ProofSubmissionSheet: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        let attachScreenshotTitle = appState.t(.attachScreenshot)
+
         NavigationStack {
             MarviScreen {
                 ScrollView {
@@ -665,7 +667,7 @@ struct ProofSubmissionSheet: View {
                         )
 
                         PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                            Label(appState.t(.attachScreenshot), systemImage: "photo")
+                            Label(attachScreenshotTitle, systemImage: "photo")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)

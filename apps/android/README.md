@@ -2,7 +2,7 @@
 
 Kotlin + Jetpack Compose app aligned with the iOS Marvi Society client.
 
-**Current:** 1.9.6 (versionCode 52)
+**Current:** 1.9.7 (versionCode 53)
 
 ## Stack
 

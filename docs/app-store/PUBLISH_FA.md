@@ -69,7 +69,7 @@ Email, Name, User ID, Photos, Location — **Not for tracking**
 ### Review Notes
 ```
 Email: review@marvisociety.com
-Password: MarviReview2026!
+Password: provided in the dedicated App Store Connect password field
 Invite code: MARVI-IST
 
 Sign in → Explore → Accept an offer.

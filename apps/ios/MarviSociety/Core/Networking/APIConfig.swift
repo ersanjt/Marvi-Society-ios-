@@ -53,12 +53,18 @@ enum APIConfig {
         mode == .supabase && supabaseURL != nil && supabaseAnonKey != nil
     }
 
-    /// Sign in with Apple requires Supabase Apple provider + Services ID. Off by default for App Store safety.
+    /// Sign in with Apple. When Google Sign-In is enabled, Apple is required (App Store 4.8)
+    /// unless explicitly disabled with MARVI_APPLE_SIGN_IN_ENABLED=NO after Google is off.
     static var appleSignInEnabled: Bool {
-        guard let raw = stringValue(for: "MARVI_APPLE_SIGN_IN_ENABLED")?.lowercased() else {
-            return false
+        if let raw = stringValue(for: "MARVI_APPLE_SIGN_IN_ENABLED")?.lowercased() {
+            let explicit = raw == "1" || raw == "true" || raw == "yes"
+            if raw == "0" || raw == "false" || raw == "no" {
+                return false
+            }
+            if explicit { return true }
         }
-        return raw == "1" || raw == "true" || raw == "yes"
+        // App Store Guideline 4.8: offer Apple whenever a third-party login is offered.
+        return googleSignInEnabled
     }
 
     /// Google (Gmail) OAuth via Supabase. Requires Google provider in Supabase Dashboard.
@@ -143,6 +149,14 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchMyVenues() async throws -> [VenueSummary] { throw notConfigured() }
     func setActiveVenue(_ venueID: UUID) async throws { throw notConfigured() }
     func registerVenueLocation(_ input: RegisterVenueInput) async throws -> VenueSummary { throw notConfigured() }
+    func fetchMyBrands() async throws -> [BrandSummary] { throw notConfigured() }
+    func createOrganizationWithBrand(organizationName: String, brandName: String) async throws -> OrganizationBrandResult { throw notConfigured() }
+    func createEstablishmentDraft(brandID: UUID, establishmentName: String) async throws -> UUID { throw notConfigured() }
+    func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async throws { throw notConfigured() }
+    func upsertEstablishmentAddress(venueID: UUID, input: EstablishmentAddressInput) async throws { throw notConfigured() }
+    func upsertEstablishmentPhotos(venueID: UUID, logoURL: String, galleryURLs: [String]) async throws { throw notConfigured() }
+    func submitEstablishmentForReview(venueID: UUID) async throws { throw notConfigured() }
+    func uploadEstablishmentMedia(data: Data, fileName: String, venueID: UUID) async throws -> String { throw notConfigured() }
     func fetchCampaigns() async throws -> [Campaign] { throw notConfigured() }
     func createCampaign(_ input: CreateCampaignInput, venueID: UUID?) async throws -> Campaign { throw notConfigured() }
     func uploadVenueCampaignImage(data: Data, fileName: String, venueID: UUID) async throws -> String { throw notConfigured() }

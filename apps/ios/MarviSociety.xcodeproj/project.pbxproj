@@ -16,6 +16,7 @@
 		1A2B3C4D5E6F700000000108 /* BookingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000008 /* BookingsView.swift */; };
 		1A2B3C4D5E6F700000000109 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000009 /* ProfileView.swift */; };
 		1A2B3C4D5E6F700000000110 /* VenueStudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000010 /* VenueStudioView.swift */; };
+		1A2B3C4D5E6F7000000001F1 /* EstablishmentWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001F0 /* EstablishmentWizardView.swift */; };
 		1A2B3C4D5E6F700000000111 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000020 /* Assets.xcassets */; };
 		1A2B3C4D5E6F700000000112 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000011 /* AppState.swift */; };
 		1A2B3C4D5E6F700000000113 /* MainAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000012 /* MainAppShell.swift */; };
@@ -67,6 +68,7 @@
 		1A2B3C4D5E6F700000000008 /* BookingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookingsView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000009 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000010 /* VenueStudioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VenueStudioView.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7000000001F0 /* EstablishmentWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EstablishmentWizardView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000011 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000012 /* MainAppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppShell.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000013 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -229,6 +231,7 @@
 				1A2B3C4D5E6F700000000418 /* Onboarding */,
 				1A2B3C4D5E6F700000000419 /* Profile */,
 				1A2B3C4D5E6F700000000420 /* VenueStudio */,
+				1A2B3C4D5E6F7000000001F2 /* VenueOnboarding */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -368,6 +371,14 @@
 			path = VenueStudio;
 			sourceTree = "<group>";
 		};
+		1A2B3C4D5E6F7000000001F2 /* VenueOnboarding */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F7000000001F0 /* EstablishmentWizardView.swift */,
+			);
+			path = VenueOnboarding;
+			sourceTree = "<group>";
+		};
 		1A2B3C4D5E6F700000000426 /* Networking */ = {
 			isa = PBXGroup;
 			children = (
@@ -487,6 +498,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		1A2B3C4D5E6F700000000702 /* Inject Supabase Secrets */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -516,6 +528,7 @@
 				1A2B3C4D5E6F700000000109 /* ProfileView.swift in Sources */,
 				1A2B3C4D5E6F7000000001D1 /* SocialVerificationCard.swift in Sources */,
 				1A2B3C4D5E6F700000000110 /* VenueStudioView.swift in Sources */,
+				1A2B3C4D5E6F7000000001F1 /* EstablishmentWizardView.swift in Sources */,
 				1A2B3C4D5E6F700000000112 /* AppState.swift in Sources */,
 				1A2B3C4D5E6F700000000113 /* MainAppShell.swift in Sources */,
 				1A2B3C4D5E6F700000000114 /* OnboardingView.swift in Sources */,
@@ -688,7 +701,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "MarviSociety/MarviSociety-Device.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 50;
+				CURRENT_PROJECT_VERSION = 53;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -709,7 +722,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.5.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marvisociety.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -726,7 +739,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MarviSociety/MarviSociety.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 50;
+				CURRENT_PROJECT_VERSION = 53;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -747,7 +760,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.5.1;
+				MARKETING_VERSION = 1.5.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.marvisociety.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

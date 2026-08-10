@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Apple App Review account — RUN IN SUPABASE SQL EDITOR ONLY
 -- Email: review@marvisociety.com
--- Password: MarviReview2026!
+-- Password: set session variable `marvi.review_password` before running.
 -- Role: admin (Creator + Venue + Admin workspaces in Profile)
 -- Pre-filled: 9+ live offers, approved creator, demo venue profile
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -11,9 +11,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 DO $$
 DECLARE
     v_email TEXT := 'review@marvisociety.com';
-    v_password TEXT := 'MarviReview2026!';
+    v_password TEXT := current_setting('marvi.review_password', true);
     v_user_id UUID;
 BEGIN
+    IF coalesce(v_password, '') = '' THEN
+        RAISE EXCEPTION 'Set marvi.review_password for this session before provisioning';
+    END IF;
+
     SELECT id INTO v_user_id
     FROM auth.users
     WHERE lower(email) = lower(v_email);

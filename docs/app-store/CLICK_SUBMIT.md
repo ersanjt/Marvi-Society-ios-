@@ -27,7 +27,7 @@ From `docs/app-store/LISTING.md`:
 ## Click 4 — Review Notes (paste)
 ```
 Email: review@marvisociety.com
-Password: MarviReview2026!
+Password: provided in the dedicated App Store Connect password field
 Invite code: MARVI-IST
 Sign in with Email. Explore → Accept offer.
 Delete account: Profile → Delete Account.

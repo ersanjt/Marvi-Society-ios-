@@ -55,7 +55,7 @@ npm run upload:ios
 
 1. Wait for **Processing** in TestFlight (build number appears, e.g. **1.0 (11)**)
 2. App Store Connect → **App Review Information**:
-   - `review@marvisociety.com` / `MarviReview2026!`
+   - `review@marvisociety.com` / secure value stored in App Store Connect
 3. Paste notes from `docs/app-store/CONNECT_PASTE.txt`
 4. Select the new build → **Resubmit to App Review**
 

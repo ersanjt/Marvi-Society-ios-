@@ -76,7 +76,7 @@ private enum SignupIntent: String, CaseIterable {
     func title(for language: AppLanguage) -> String {
         switch self {
         case .creator:
-            language == .turkish ? "Creator olarak katıl" : "Sign up as a Creator"
+            language == .turkish ? "Üye olarak katıl" : "Sign up as a Member"
         case .business:
             language == .turkish ? "Business olarak katıl" : "Sign up as a Business"
         }
@@ -85,7 +85,7 @@ private enum SignupIntent: String, CaseIterable {
     func subtitle(for language: AppLanguage) -> String {
         switch self {
         case .creator:
-            language == .turkish ? "Davetleri keşfet, kabul et ve kanıt gönder." : "Explore curated invites, accept, and submit proof."
+            language == .turkish ? "İşletmeleri keşfet ve kolayca iş birliği talebi gönder." : "Discover businesses and easily send collaboration requests."
         case .business:
             language == .turkish ? "Mekânını ekle, kampanya oluştur ve creator seç." : "Add venues, create campaigns, and swipe creators."
         }
@@ -124,7 +124,8 @@ struct OnboardingView: View {
     @State private var pendingSignupOnboarding = false
     @State private var venueName = ""
     @State private var venueArea = ""
-    @State private var venueCategory: OfferCategory = .dining
+    @State private var venueCategoryLabel = "Restaurant"
+    @State private var customBusinessCategory = ""
     @State private var showLaunchIntro = true
     @State private var welcomeReveal = WelcomeRevealPhase.hidden
 
@@ -597,26 +598,39 @@ struct OnboardingView: View {
                             .textCase(.uppercase)
                             .foregroundStyle(MarviColor.muted)
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(OfferCategory.allCases) { item in
-                                    Button { venueCategory = item } label: {
-                                        Label(item.label(for: appState.preferredLanguage), systemImage: item.icon)
-                                            .font(.caption.weight(.bold))
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                            .foregroundStyle(venueCategory == item ? .white : MarviColor.ink)
-                                            .background(
-                                                venueCategory == item
-                                                    ? AnyShapeStyle(MarviGradient.brand)
-                                                    : AnyShapeStyle(MarviColor.panelElevated)
-                                            )
-                                            .clipShape(Capsule())
-                                    }
-                                    .buttonStyle(.plain)
-                                }
+                        Picker(appState.t(.locationTypeLabel), selection: $venueCategoryLabel) {
+                            ForEach(BusinessCategoryCatalog.all) { item in
+                                Text(item.label(for: appState.preferredLanguage)).tag(item.english)
+                            }
+                            if !customBusinessCategory.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Text(customBusinessCategory.trimmingCharacters(in: .whitespacesAndNewlines))
+                                    .tag(customBusinessCategory.trimmingCharacters(in: .whitespacesAndNewlines))
                             }
                         }
+                        .pickerStyle(.menu)
+                        .tint(MarviColor.rose)
+
+                        MarviTextField(
+                            placeholder: appState.preferredLanguage == .turkish
+                                ? "Kategori yoksa buraya yazın"
+                                : "Can't find it? Add your category",
+                            text: $customBusinessCategory,
+                            autocapitalization: .words
+                        )
+
+                        Button {
+                            let custom = customBusinessCategory.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if custom.count >= 2 { venueCategoryLabel = custom }
+                        } label: {
+                            Label(
+                                appState.preferredLanguage == .turkish ? "Bu kategoriyi kullan" : "Use this category",
+                                systemImage: "plus.circle.fill"
+                            )
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(MarviColor.rose)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(customBusinessCategory.trimmingCharacters(in: .whitespacesAndNewlines).count < 2)
                     }
                 }
             }
@@ -709,6 +723,7 @@ struct OnboardingView: View {
         case .venueSetup:
             return !venueName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && !venueArea.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !venueCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && !isBusy
         case .agreement:
             return confirmedAge18 && acceptedTerms && !isBusy
@@ -726,9 +741,7 @@ struct OnboardingView: View {
     }
 
     private var isProfileValid: Bool {
-        let hasSocial = !instagramHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || !tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return hasSocial && !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // MARK: - Actions
@@ -993,7 +1006,8 @@ struct OnboardingView: View {
             let registered = await appState.registerVenue(
                 name: trimmedName,
                 area: trimmedArea,
-                category: venueCategory,
+                category: BusinessCategoryCatalog.offerCategory(for: venueCategoryLabel),
+                categoryLabel: venueCategoryLabel,
                 contactName: fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     ? appState.profile.name
                     : fullName.trimmingCharacters(in: .whitespacesAndNewlines)

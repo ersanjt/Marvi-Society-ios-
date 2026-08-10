@@ -218,7 +218,7 @@ struct VenueStudioView: View {
                     .environmentObject(appState)
             }
             .sheet(isPresented: $isShowingAddVenue) {
-                AddVenueSheet()
+                EstablishmentWizardView()
                     .environmentObject(appState)
             }
             .fullScreenCover(isPresented: $isShowingSwipe) {
@@ -705,6 +705,8 @@ private struct CampaignBuilderSheet: View {
     @State private var photoPreview: UIImage?
 
     var body: some View {
+        let addCampaignPhotoTitle = appState.t(.addCampaignPhoto)
+
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -725,7 +727,7 @@ private struct CampaignBuilderSheet: View {
                                             .scaledToFill()
                                     } else {
                                         MarviColor.panelElevated
-                                        Label(appState.t(.addCampaignPhoto), systemImage: "photo.on.rectangle")
+                                        Label(addCampaignPhotoTitle, systemImage: "photo.on.rectangle")
                                             .font(.subheadline.weight(.semibold))
                                             .foregroundStyle(MarviColor.rose)
                                     }

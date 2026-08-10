@@ -86,6 +86,9 @@ struct ProfileView: View {
     }
 
     var body: some View {
+        let changeAvatarTitle = appState.t(.changeAvatar)
+        let changeCoverTitle = appState.t(.changeCover)
+
         NavigationStack {
             MarviScreen {
                 ScrollViewReader { proxy in
@@ -292,7 +295,7 @@ struct ProfileView: View {
 
                                 HStack(spacing: 10) {
                                     PhotosPicker(selection: $avatarPickerItem, matching: .images) {
-                                        Label(appState.t(.changeAvatar), systemImage: "person.crop.circle")
+                                        Label(changeAvatarTitle, systemImage: "person.crop.circle")
                                             .font(.caption.weight(.bold))
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 10)
@@ -304,7 +307,7 @@ struct ProfileView: View {
                                     .disabled(isUploadingPhoto)
 
                                     PhotosPicker(selection: $coverPickerItem, matching: .images) {
-                                        Label(appState.t(.changeCover), systemImage: "photo")
+                                        Label(changeCoverTitle, systemImage: "photo")
                                             .font(.caption.weight(.bold))
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 10)
@@ -1293,6 +1296,8 @@ private struct ShowcaseEditorCard: View {
     private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
     var body: some View {
+        let uploadPhotoTitle = appState.t(.showcaseUploadPhoto)
+
         MarviCard {
             VStack(alignment: .leading, spacing: 14) {
                 SectionTitle(title: appState.t(.showcaseTitle), subtitle: appState.t(.showcaseSubtitle))
@@ -1340,7 +1345,7 @@ private struct ShowcaseEditorCard: View {
                         .disabled(isBusy || linkText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                         PhotosPicker(selection: $photoItem, matching: .images) {
-                            Label(appState.t(.showcaseUploadPhoto), systemImage: "photo.on.rectangle")
+                            Label(uploadPhotoTitle, systemImage: "photo.on.rectangle")
                                 .font(.caption.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)

@@ -14,7 +14,7 @@ Global private collaboration marketplace for creators and venues — benchmarked
 marvi-society/
 ├── apps/
 │   ├── ios/              # SwiftUI creator app (map, proof, admin)
-│   ├── android/          # Kotlin Compose scaffold
+│   ├── android/          # Kotlin Compose (parity with iOS)
 │   └── web/              # Next.js marketing + portal + admin
 ├── packages/
 │   └── api-contract/     # OpenAPI 3.1
@@ -29,10 +29,12 @@ marvi-society/
 
 | Platform | Status |
 |----------|--------|
-| **iOS** | MVP + Supabase sync, map, 4 models, proof upload, strikes |
+| **iOS** | Production App Store client — Supabase sync, map, bookings, proof, venue wizard, admin |
+| **Android** | First-class Compose client — same Supabase backend; Play track packaging ready |
 | **Web** | Marketing site, portal auth, admin queue, EN/TR, API routes |
-| **Android** | Compose scaffold (Discover, Nearby, Bookings, Profile) |
-| **Backend** | Supabase schema ready — deploy project manually |
+| **Backend** | Supabase project `gaswjuvyzliislqrljof` — push migrations via ops scripts |
+
+See [docs/STATUS.md](docs/STATUS.md) for the live parity table.
 
 Deploy guide: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) · **راهنمای فارسی:** [docs/DEPLOY_WALKTHROUGH_FA.md](docs/DEPLOY_WALKTHROUGH_FA.md) · **Operations:** [docs/OPERATIONS.md](docs/OPERATIONS.md)
 

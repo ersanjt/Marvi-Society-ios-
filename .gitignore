@@ -21,6 +21,7 @@ GoogleService-Info.plist
 # Xcode
 apps/ios/**/DerivedData/
 apps/ios/**/.derivedData/
+apps/ios/.derivedData*/
 apps/ios/**/build/
 apps/ios/**/*.xcuserstate
 apps/ios/**/xcuserdata/
@@ -35,8 +36,10 @@ apps/ios/**/*.dSYM
 .swiftpm/
 Package.resolved
 
-# Android (future)
+# Android
 apps/android/.gradle/
+apps/android/.gradle-user-home/
+apps/android/.android-user-home/
 apps/android/**/build/
 apps/android/.idea/
 apps/android/local.properties
@@ -50,17 +53,16 @@ apps/android/**/*.aab
 release/google-play/*.aab
 apps/android/.cxx/
 
-# Node / Web (future)
+# Node / Web
 apps/web/node_modules/
 apps/web/.next/
+/.next/
 apps/web/.deploy/
 apps/web/out/
 apps/web/.vercel/
 apps/web/dist/
 node_modules/
 pnpm-lock.yaml
-package-lock.json
-!apps/web/package-lock.json
 yarn.lock
 
 # Supabase
@@ -84,7 +86,13 @@ coverage/
 # Misc
 *.orig
 .cache/
+.npm-cache/
+**/.npm-cache/
 
 # Ops local logs (manifest syncLog in release/manifest.json is committed)
 release/logs/
 .marvi/local.json
+
+# Local toolchains
+.tools/
+release/android-debug/

@@ -72,6 +72,10 @@ class AppViewModel(
         private set
     var myVenues by mutableStateOf<List<VenueSummary>>(emptyList())
         private set
+    var myBrands by mutableStateOf<List<BrandSummary>>(emptyList())
+        private set
+    var isEstablishmentBusy by mutableStateOf(false)
+        private set
     var campaigns by mutableStateOf<List<Campaign>>(emptyList())
         private set
     var swipeCandidates by mutableStateOf<List<InfluencerCandidate>>(emptyList())
@@ -119,18 +123,15 @@ class AppViewModel(
     /** Invite codes are no longer required for membership. */
     val needsInviteRedemption: Boolean get() = false
 
-    /** Hard gate: admin must approve membership before the main app unlocks. */
+    /** Only paused accounts are blocked; new members can use the app immediately. */
     val needsAdminApproval: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             accountRole != UserRole.ADMIN &&
-            profile.status != MembershipStatus.APPROVED
+            profile.status == MembershipStatus.PAUSED
 
-    /** Hard gate: Instagram or TikTok handle (matches iOS needsSocialHandlesEntry). */
+    /** Social handles are optional profile enrichment. */
     val needsSocialHandlesEntry: Boolean
-        get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
-            accountRole != UserRole.ADMIN &&
-            !(allowedRoles.contains(UserRole.VENUE) && selectedRole == UserRole.VENUE) &&
-            profile.handle.isBlank() && profile.tiktokHandle.isBlank()
+        get() = false
 
     /** Soft nudge only: DM verify recommended for trust, not a hard accept gate. */
     val needsSocialVerification: Boolean
@@ -155,9 +156,8 @@ class AppViewModel(
                     else -> t(MarviL10n.Key.AWAITING_APPROVAL)
                 }
             }
-            if (needsSocialHandlesEntry) return t(MarviL10n.Key.NEEDS_SOCIAL)
             return when (profile.status) {
-                MembershipStatus.UNDER_REVIEW -> t(MarviL10n.Key.AWAITING_APPROVAL)
+                MembershipStatus.UNDER_REVIEW -> null
                 MembershipStatus.PAUSED -> t(MarviL10n.Key.MEMBERSHIP_PAUSED)
                 MembershipStatus.APPROVED -> null
                 else -> t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
@@ -168,8 +168,7 @@ class AppViewModel(
         get() {
             if (!isAuthenticated || !hasCompletedOnboarding) return false
             if (accountRole == UserRole.ADMIN) return true
-            return !needsAdminApproval && !needsSocialHandlesEntry &&
-                profile.status == MembershipStatus.APPROVED
+            return !needsAdminApproval
         }
 
     val pendingInviteBookingsCount: Int
@@ -185,6 +184,9 @@ class AppViewModel(
         get() = offers.filter { savedOfferIds.contains(it.id) && !acceptedOfferIds.contains(it.id) }
 
     init {
+        repository.setSessionObserver { access, refresh ->
+            sessionStore.saveTokens(access, refresh)
+        }
         viewModelScope.launch {
             val snapshot = sessionStore.loadSnapshot()
             hasCompletedOnboarding = snapshot.hasCompletedOnboarding
@@ -263,7 +265,11 @@ class AppViewModel(
         isBootstrapping = true
         authError = null
         runCatching {
-            refreshFromServer()
+            runCatching {
+                repository.refreshSession()
+                sessionStore.saveTokens(repository.accessToken(), repository.refreshToken())
+            }
+            refreshFromServerInternal()
         }.onFailure { error ->
             if (error is MarviApiException && error.code == 401) {
                 isAuthenticated = false
@@ -280,6 +286,27 @@ class AppViewModel(
             isSyncing = true
             lastSyncError = null
             runCatching {
+                refreshFromServerInternal()
+            }.onFailure { error ->
+                if (error is MarviApiException && error.code == 401) {
+                    runCatching {
+                        repository.refreshSession()
+                        sessionStore.saveTokens(repository.accessToken(), repository.refreshToken())
+                        refreshFromServerInternal()
+                    }.onFailure {
+                        isAuthenticated = false
+                        sessionStore.saveTokens(null, null)
+                        lastSyncError = it.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                    }
+                } else {
+                    lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                }
+            }
+            isSyncing = false
+        }
+    }
+
+    private suspend fun refreshFromServerInternal() {
                 if (repository.usesRemoteBackend && repository.isAuthenticated) {
                     val context = repository.fetchAccountContext()
                     accountRole = context.role
@@ -300,7 +327,10 @@ class AppViewModel(
                         } ?: profile.status
                     )
                     offers = repository.fetchOffers(profile.city)
-                    bookings = repository.fetchBookings()
+                    bookings = repository.fetchBookings().map { booking ->
+                        if (selectedRole == UserRole.VENUE) booking
+                        else booking.copy(checkInCode = "")
+                    }
                     savedOfferIds = repository.fetchSavedOfferIds()
                     inboxMessages = repository.fetchNotifications()
                     followCounts = repository.fetchMyFollowCounts()
@@ -319,6 +349,7 @@ class AppViewModel(
                         }
                         UserRole.VENUE -> {
                             myVenues = repository.fetchMyVenues()
+                            myBrands = runCatching { repository.fetchMyBrands() }.getOrDefault(myBrands)
                             campaigns = repository.fetchCampaigns()
                             swipeCandidates = runCatching { repository.fetchSwipeCandidates(null) }.getOrDefault(swipeCandidates)
                             venueReviewQueue = runCatching { repository.fetchVenueReviewQueue() }.getOrDefault(venueReviewQueue)
@@ -330,11 +361,6 @@ class AppViewModel(
                         }
                     }
                 }
-            }.onFailure { error ->
-                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
-            }
-            isSyncing = false
-        }
     }
 
     fun signIn(email: String, password: String, onSuccess: () -> Unit) {
@@ -788,11 +814,12 @@ class AppViewModel(
         area: String,
         category: OfferCategory,
         contactName: String,
+        categoryLabel: String = category.api,
         onResult: (Boolean) -> Unit
     ) {
         viewModelScope.launch {
             runCatching {
-                repository.registerVenueLocation(name, area, category.api, contactName)
+                repository.registerVenueLocation(name, area, categoryLabel, contactName)
                 myVenues = repository.fetchMyVenues()
                 val context = repository.fetchAccountContext()
                 accountRole = context.role
@@ -803,6 +830,193 @@ class AppViewModel(
                 lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
                 onResult(false)
             }
+        }
+    }
+
+    fun loadMyBrands() {
+        if (!repository.usesRemoteBackend || !isAuthenticated) return
+        viewModelScope.launch {
+            runCatching {
+                myBrands = repository.fetchMyBrands()
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+            }
+        }
+    }
+
+    fun createOrganizationWithBrand(
+        organizationName: String,
+        brandName: String,
+        onResult: (BrandSummary?) -> Unit
+    ) {
+        viewModelScope.launch {
+            isEstablishmentBusy = true
+            runCatching {
+                val created = repository.createOrganizationWithBrand(organizationName, brandName)
+                val brand = BrandSummary(
+                    organizationId = created.organizationId,
+                    organizationName = created.organizationName,
+                    brandId = created.brandId,
+                    brandName = created.brandName
+                )
+                myBrands = myBrands.filterNot { it.brandId == brand.brandId } + brand
+                brand
+            }.onSuccess {
+                onResult(it)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(null)
+            }
+            isEstablishmentBusy = false
+        }
+    }
+
+    fun createEstablishmentDraft(
+        brandId: String,
+        establishmentName: String,
+        onResult: (String?) -> Unit
+    ) {
+        viewModelScope.launch {
+            isEstablishmentBusy = true
+            runCatching {
+                val venueId = repository.createEstablishmentDraft(brandId, establishmentName)
+                myVenues = repository.fetchMyVenues()
+                venueId
+            }.onSuccess {
+                onResult(it)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(null)
+            }
+            isEstablishmentBusy = false
+        }
+    }
+
+    fun saveEstablishmentDetails(
+        venueId: String,
+        instagramHandle: String,
+        description: String,
+        categories: List<String>,
+        contactName: String,
+        contactPhone: String,
+        contactIsSelf: Boolean,
+        offerCategory: OfferCategory,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            isEstablishmentBusy = true
+            runCatching {
+                repository.upsertEstablishmentDetails(
+                    venueId = venueId,
+                    instagramHandle = instagramHandle,
+                    description = description,
+                    categories = categories,
+                    contactName = contactName,
+                    contactPhone = contactPhone,
+                    contactIsSelf = contactIsSelf,
+                    offerCategory = offerCategory.api
+                )
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(false)
+            }
+            isEstablishmentBusy = false
+        }
+    }
+
+    fun saveEstablishmentAddress(
+        venueId: String,
+        isPhysical: Boolean,
+        country: String,
+        city: String,
+        locationLabel: String,
+        addressLine1: String,
+        addressLine2: String,
+        postalCode: String,
+        lat: Double?,
+        lng: Double?,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            isEstablishmentBusy = true
+            runCatching {
+                repository.upsertEstablishmentAddress(
+                    venueId = venueId,
+                    isPhysical = isPhysical,
+                    country = country,
+                    city = city,
+                    locationLabel = locationLabel,
+                    addressLine1 = addressLine1,
+                    addressLine2 = addressLine2,
+                    postalCode = postalCode,
+                    lat = lat,
+                    lng = lng
+                )
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(false)
+            }
+            isEstablishmentBusy = false
+        }
+    }
+
+    fun saveEstablishmentPhotos(
+        venueId: String,
+        logoUri: android.net.Uri,
+        galleryUris: List<android.net.Uri>,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            isEstablishmentBusy = true
+            runCatching {
+                if (galleryUris.size < 3) {
+                    throw MarviApiException(t(MarviL10n.Key.EST_PHOTOS_MIN))
+                }
+                val logoBytes = ImageUploadHelper.prepareJpeg(
+                    getApplication(),
+                    logoUri,
+                    ImageUploadHelper.Profile.AVATAR
+                )
+                val logoUrl = repository.uploadVenueLogo(venueId, logoBytes)
+                val galleryUrls = galleryUris.mapIndexed { index, uri ->
+                    val bytes = ImageUploadHelper.prepareJpeg(
+                        getApplication(),
+                        uri,
+                        ImageUploadHelper.Profile.COVER
+                    )
+                    repository.uploadVenueGalleryImage(venueId, bytes, index)
+                }
+                repository.upsertEstablishmentPhotos(venueId, logoUrl, galleryUrls)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(false)
+            }
+            isEstablishmentBusy = false
+        }
+    }
+
+    fun submitEstablishmentForReview(venueId: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            isEstablishmentBusy = true
+            runCatching {
+                repository.submitEstablishmentForReview(venueId)
+                myVenues = repository.fetchMyVenues()
+                val context = repository.fetchAccountContext()
+                accountRole = context.role
+                allowedRoles = UserRole.allowedWorkspaces(context.role)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(false)
+            }
+            isEstablishmentBusy = false
         }
     }
 
@@ -983,6 +1197,24 @@ class AppViewModel(
                 repository.reactivateOwnAccount()
                 refreshFromServer()
             }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun deleteAccountPermanently(onDone: (String?) -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                repository.deleteOwnAccountPermanently()
+                sessionStore.clearAll()
+                isAuthenticated = false
+                hasCompletedOnboarding = false
+                accountReferralCode = null
+                socialVerification = null
+                loadDemoData()
+                onDone(null)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onDone(error.message)
+            }
         }
     }
 

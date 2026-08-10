@@ -41,6 +41,14 @@ protocol MarviAPI: Sendable {
     func fetchMyVenues() async throws -> [VenueSummary]
     func setActiveVenue(_ venueID: UUID) async throws
     func registerVenueLocation(_ input: RegisterVenueInput) async throws -> VenueSummary
+    func fetchMyBrands() async throws -> [BrandSummary]
+    func createOrganizationWithBrand(organizationName: String, brandName: String) async throws -> OrganizationBrandResult
+    func createEstablishmentDraft(brandID: UUID, establishmentName: String) async throws -> UUID
+    func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async throws
+    func upsertEstablishmentAddress(venueID: UUID, input: EstablishmentAddressInput) async throws
+    func upsertEstablishmentPhotos(venueID: UUID, logoURL: String, galleryURLs: [String]) async throws
+    func submitEstablishmentForReview(venueID: UUID) async throws
+    func uploadEstablishmentMedia(data: Data, fileName: String, venueID: UUID) async throws -> String
     func fetchCampaigns() async throws -> [Campaign]
     func createCampaign(_ input: CreateCampaignInput, venueID: UUID?) async throws -> Campaign
     func uploadVenueCampaignImage(data: Data, fileName: String, venueID: UUID) async throws -> String
@@ -227,6 +235,51 @@ extension MarviAPI {
     func registerVenueLocation(_ input: RegisterVenueInput) async throws -> VenueSummary {
         _ = input
         throw MarviAPIError.server(message: "Venue registration requires Supabase mode")
+    }
+
+    func fetchMyBrands() async throws -> [BrandSummary] { [] }
+
+    func createOrganizationWithBrand(organizationName: String, brandName: String) async throws -> OrganizationBrandResult {
+        _ = organizationName
+        _ = brandName
+        throw MarviAPIError.server(message: "Organization setup requires Supabase mode")
+    }
+
+    func createEstablishmentDraft(brandID: UUID, establishmentName: String) async throws -> UUID {
+        _ = brandID
+        _ = establishmentName
+        throw MarviAPIError.server(message: "Establishment draft requires Supabase mode")
+    }
+
+    func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async throws {
+        _ = venueID
+        _ = input
+        throw MarviAPIError.server(message: "Establishment details require Supabase mode")
+    }
+
+    func upsertEstablishmentAddress(venueID: UUID, input: EstablishmentAddressInput) async throws {
+        _ = venueID
+        _ = input
+        throw MarviAPIError.server(message: "Establishment address requires Supabase mode")
+    }
+
+    func upsertEstablishmentPhotos(venueID: UUID, logoURL: String, galleryURLs: [String]) async throws {
+        _ = venueID
+        _ = logoURL
+        _ = galleryURLs
+        throw MarviAPIError.server(message: "Establishment photos require Supabase mode")
+    }
+
+    func submitEstablishmentForReview(venueID: UUID) async throws {
+        _ = venueID
+        throw MarviAPIError.server(message: "Establishment submit requires Supabase mode")
+    }
+
+    func uploadEstablishmentMedia(data: Data, fileName: String, venueID: UUID) async throws -> String {
+        _ = data
+        _ = fileName
+        _ = venueID
+        throw MarviAPIError.server(message: "Establishment media requires Supabase mode")
     }
 
     func fetchVenueSummary() async throws -> VenueSummary? { nil }
