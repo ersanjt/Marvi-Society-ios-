@@ -23,6 +23,11 @@
   },
   "syncLog": [
     {
+      "at": "2026-08-10T22:09:47Z",
+      "status": "ok",
+      "message": "pushed c2736e6 to origin/main"
+    },
+    {
       "at": "2026-08-10T22:09:44Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
@@ -266,11 +271,6 @@
       "at": "2026-07-15T09:19:59Z",
       "status": "error",
       "message": "supabase db push failed"
-    },
-    {
-      "at": "2026-07-14T21:28:17Z",
-      "status": "ok",
-      "message": "pushed dbd7f82 to origin/main"
     }
   ],
   "releases": [
