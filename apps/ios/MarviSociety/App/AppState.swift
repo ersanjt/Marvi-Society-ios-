@@ -495,6 +495,7 @@ final class AppState: ObservableObject {
             collaborationHistory = try await api.fetchMyCollaborationHistory()
         } catch {
             syncErrors.append("collaboration")
+            // Secondary profile data — keep My Events usable; only surface if nothing else failed.
             if lastSyncError == nil, let message = friendlyErrorMessage(error) {
                 lastSyncError = message
             }
@@ -2101,11 +2102,36 @@ final class AppState: ObservableObject {
     }
 
     private func friendlyErrorMessage(_ error: Error) -> String? {
-        if case MarviAPIError.emailConfirmationRequired = error {
-            return t(.errConfirmEmail)
+        if let apiError = error as? MarviAPIError {
+            switch apiError {
+            case .cancelled:
+                return nil
+            case .emailConfirmationRequired:
+                return t(.errConfirmEmail)
+            case .notAuthenticated:
+                return t(.errNotAuthenticated)
+            case .unauthorized:
+                return t(.errSessionExpired)
+            case .invalidResponse, .decoding, .network:
+                return t(.errSomeDataRefresh)
+            case .notConfigured:
+                return t(.errServerConfig)
+            case .server:
+                break
+            }
         }
 
-        let raw = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        let raw: String = {
+            if case MarviAPIError.server(let message) = error { return message }
+            if let localized = (error as? LocalizedError)?.errorDescription, !localized.isEmpty {
+                return localized
+            }
+            let bridged = (error as NSError).localizedDescription
+            if bridged.lowercased().contains("marviapierror") {
+                return t(.errSomeDataRefresh)
+            }
+            return bridged
+        }()
         let lower = raw.lowercased()
 
         if lower.contains("confirm your account") || lower.contains("confirmation link") {

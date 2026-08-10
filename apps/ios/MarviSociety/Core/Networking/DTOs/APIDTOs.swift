@@ -388,7 +388,7 @@ struct FollowCountsRow: Decodable {
 
 struct ShowcaseRow: Decodable {
     let id: UUID
-    let media_type: String
+    let media_type: String?
     let media_url: String?
     let external_url: String?
     let caption: String?
@@ -396,7 +396,7 @@ struct ShowcaseRow: Decodable {
     func toItem() -> ShowcaseItem {
         ShowcaseItem(
             id: id,
-            mediaType: ShowcaseMediaType(rawValue: media_type) ?? .link,
+            mediaType: ShowcaseMediaType(rawValue: media_type ?? "") ?? .link,
             mediaURL: media_url ?? "",
             externalURL: external_url ?? "",
             caption: caption ?? ""
@@ -408,6 +408,8 @@ struct CollaborationRow: Decodable {
     struct Rating: Decodable {
         let punctuality: Int?
         let presentation: Int?
+        let hospitality: Int?
+        let experience: Int?
         let comment: String?
     }
 
@@ -415,23 +417,29 @@ struct CollaborationRow: Decodable {
     let venue_name: String?
     let area: String?
     let title: String?
-    let date: Date?
+    let date: String?
     let venue_rating: Rating?
     let my_rating: Rating?
 
     func toEntry() -> CollaborationEntry {
         let venueRating: Double?
-        if let rating = venue_rating, let p = rating.punctuality, let pr = rating.presentation {
-            venueRating = (Double(p) + Double(pr)) / 2.0
+        if let rating = venue_rating {
+            let first = rating.punctuality ?? rating.hospitality
+            let second = rating.presentation ?? rating.experience
+            if let first, let second {
+                venueRating = (Double(first) + Double(second)) / 2.0
+            } else {
+                venueRating = nil
+            }
         } else {
             venueRating = nil
         }
 
         let dateLabel: String
-        if let date {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            dateLabel = formatter.string(from: date)
+        if let parsed = APIDTOs.parseISO(date) {
+            dateLabel = APIDTOs.formatDate(parsed)
+        } else if let date, date.count >= 10 {
+            dateLabel = String(date.prefix(10))
         } else {
             dateLabel = ""
         }
