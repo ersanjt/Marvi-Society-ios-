@@ -110,10 +110,31 @@ struct CommunityView: View {
                     subtitle: appState.t(.communityFeedSub)
                 )
 
-                if appState.followingActivity.isEmpty {
-                    Text(appState.t(.communityFeedEmpty))
-                        .font(.subheadline)
-                        .foregroundStyle(MarviColor.muted)
+                if appState.isLoadingFollowingActivity {
+                    HStack {
+                        Spacer()
+                        ProgressView().tint(MarviColor.rose)
+                        Spacer()
+                    }
+                    .padding(.vertical, 28)
+                } else if let feedError = appState.followingActivityError {
+                    EmptyStateView(
+                        title: appState.t(.syncErrorTitle),
+                        subtitle: feedError,
+                        icon: "exclamationmark.triangle",
+                        actionTitle: appState.t(.refresh),
+                        action: { Task { await appState.loadFollowingActivity() } }
+                    )
+                } else if appState.followingActivity.isEmpty {
+                    EmptyStateView(
+                        title: appState.t(.communityFeedEmpty),
+                        subtitle: appState.preferredLanguage == .turkish
+                            ? "Creator takip ettiğinde check-in ve vitrin paylaşımları burada görünür."
+                            : "Follow creators to see their check-ins and showcase posts here.",
+                        icon: "person.2",
+                        actionTitle: appState.t(.refresh),
+                        action: { Task { await appState.loadFollowingActivity() } }
+                    )
                 } else {
                     ForEach(appState.followingActivity) { item in
                         Button {

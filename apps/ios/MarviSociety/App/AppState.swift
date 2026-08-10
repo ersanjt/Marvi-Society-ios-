@@ -64,6 +64,8 @@ final class AppState: ObservableObject {
     @Published var showcaseItems: [ShowcaseItem] = []
     @Published var memberSearchResults: [MemberSearchResult] = []
     @Published var followingActivity: [MemberActivityItem] = []
+    @Published var isLoadingFollowingActivity = false
+    @Published var followingActivityError: String?
     @Published var directThreads: [DirectThread] = []
     @Published var conversations: [ChatConversation] = []
     @Published var adminActivity: [ActivityEventItem] = []
@@ -535,7 +537,7 @@ final class AppState: ObservableObject {
                 lastSyncError = nil
                 await refreshFromServer(retryOnUnauthorized: false)
             } catch {
-                markSessionExpired(message: friendlyErrorMessage(error) ?? error.localizedDescription)
+                markSessionExpired(message: presentableError(error) ?? t(.errSessionExpired))
             }
             return
         }
@@ -568,7 +570,7 @@ final class AppState: ObservableObject {
             accountReferralCode = context.referralCode
             accountPausedBySelf = context.pausedBySelf
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -621,7 +623,7 @@ final class AppState: ObservableObject {
             try await api.resetPassword(trimmed)
             passwordResetMessage = t(.passwordResetDefault)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -645,7 +647,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return nil
         } catch {
-            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            let message = presentableError(error) ?? t(.errSomeDataRefresh)
             lastSyncError = message
             return message
         }
@@ -667,7 +669,7 @@ final class AppState: ObservableObject {
             await syncAllowedRoles()
             return nil
         } catch {
-            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            let message = presentableError(error) ?? t(.errSomeDataRefresh)
             lastSyncError = message
             return message
         }
@@ -692,7 +694,7 @@ final class AppState: ObservableObject {
             persistence.reset()
             return nil
         } catch {
-            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            let message = presentableError(error) ?? t(.errSomeDataRefresh)
             lastSyncError = message
             return message
         }
@@ -718,7 +720,7 @@ final class AppState: ObservableObject {
             }
             return try await api.fetchVenueSummary()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -733,7 +735,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -743,7 +745,7 @@ final class AppState: ObservableObject {
         do {
             return try await api.fetchMyBrands()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return []
         }
     }
@@ -760,7 +762,7 @@ final class AppState: ObservableObject {
             )
             return result.asBrandSummary
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -778,7 +780,7 @@ final class AppState: ObservableObject {
             myVenues = try await api.fetchMyVenues()
             return venueID
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -792,7 +794,7 @@ final class AppState: ObservableObject {
             try await api.upsertEstablishmentDetails(venueID: venueID, input: input)
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -806,7 +808,7 @@ final class AppState: ObservableObject {
             try await api.upsertEstablishmentAddress(venueID: venueID, input: input)
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -844,7 +846,7 @@ final class AppState: ObservableObject {
             )
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -861,7 +863,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -901,7 +903,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -920,7 +922,7 @@ final class AppState: ObservableObject {
             lastSyncError = nil
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -930,7 +932,7 @@ final class AppState: ObservableObject {
         do {
             socialVerification = try await api.ensureSocialVerificationCode()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -944,7 +946,7 @@ final class AppState: ObservableObject {
             socialVerification = try await api.submitSocialVerificationDM()
             return nil
         } catch {
-            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            let message = presentableError(error) ?? t(.errSomeDataRefresh)
             lastSyncError = message
             return message
         }
@@ -963,7 +965,7 @@ final class AppState: ObservableObject {
             }
             return nil
         } catch {
-            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            let message = presentableError(error) ?? t(.errSomeDataRefresh)
             lastSyncError = message
             return message
         }
@@ -983,7 +985,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             await syncAllowedRoles()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1001,7 +1003,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             await syncAllowedRoles()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1026,7 +1028,7 @@ final class AppState: ObservableObject {
         } catch MarviAPIError.cancelled {
             // User dismissed Apple sign-in — no error banner.
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1055,7 +1057,7 @@ final class AppState: ObservableObject {
         } catch MarviAPIError.cancelled {
             // User dismissed Google sign-in — no error banner.
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1123,7 +1125,7 @@ final class AppState: ObservableObject {
                 if saved { savedOfferIDs.insert(offer.id) }
                 else { savedOfferIDs.remove(offer.id) }
             } catch {
-                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+                if let message = presentableError(error) { lastSyncError = message }
             }
         }
     }
@@ -1147,7 +1149,7 @@ final class AppState: ObservableObject {
                 ])
                 await refreshFromServer()
             } catch {
-                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+                if let message = presentableError(error) { lastSyncError = message }
             }
         }
     }
@@ -1161,7 +1163,7 @@ final class AppState: ObservableObject {
         do {
             return try await api.fetchSwipeCandidates(offerID: offerID)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return []
         }
     }
@@ -1171,7 +1173,7 @@ final class AppState: ObservableObject {
         do {
             try await api.shortlistCreator(candidate.id, offerID: offerID)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1180,7 +1182,7 @@ final class AppState: ObservableObject {
         do {
             try await api.passCreator(candidate.id, offerID: offerID)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1203,7 +1205,7 @@ final class AppState: ObservableObject {
             }
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1224,7 +1226,7 @@ final class AppState: ObservableObject {
             )
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1257,7 +1259,7 @@ final class AppState: ObservableObject {
             lastSyncError = nil
             return false
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1275,7 +1277,7 @@ final class AppState: ObservableObject {
                 try await api.issueStrikeForBooking(bookingID: bookingID, reason: reason)
                 await refreshFromServer()
             } catch {
-                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+                if let message = presentableError(error) { lastSyncError = message }
             }
         }
     }
@@ -1289,7 +1291,7 @@ final class AppState: ObservableObject {
                 try await api.cancelOffer(offer.id)
                 await refreshFromServer()
             } catch {
-                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+                if let message = presentableError(error) { lastSyncError = message }
             }
         }
     }
@@ -1304,7 +1306,7 @@ final class AppState: ObservableObject {
             updateBooking(updated.id) { $0 = updated }
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1314,7 +1316,7 @@ final class AppState: ObservableObject {
         do {
             return try await api.validateReferralCode(normalized)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1329,7 +1331,7 @@ final class AppState: ObservableObject {
             await syncAllowedRoles()
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1346,7 +1348,7 @@ final class AppState: ObservableObject {
             _ = try await api.sendCreatorInvite(email: trimmed)
             return nil
         } catch {
-            let message = friendlyErrorMessage(error) ?? error.localizedDescription
+            let message = presentableError(error) ?? t(.errSomeDataRefresh)
             lastSyncError = message
             return message
         }
@@ -1364,7 +1366,7 @@ final class AppState: ObservableObject {
                 fileName: fileName
             )
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -1386,7 +1388,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1450,7 +1452,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1464,7 +1466,7 @@ final class AppState: ObservableObject {
                 try await api.approveTask(task.id)
                 await refreshFromServer()
             } catch {
-                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+                if let message = presentableError(error) { lastSyncError = message }
             }
         }
     }
@@ -1478,7 +1480,22 @@ final class AppState: ObservableObject {
                 try await api.rejectTask(task.id)
                 await refreshFromServer()
             } catch {
-                lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+                if let message = presentableError(error) { lastSyncError = message }
+            }
+        }
+    }
+
+
+    func adminSetCampaignStatus(_ campaign: Campaign, status: CampaignStatus) {
+        guard allowedRoles.contains(.admin) || allowedRoles.contains(.venue) else { return }
+        processingAdminTaskID = campaign.id
+        Task {
+            defer { processingAdminTaskID = nil }
+            do {
+                try await api.adminSetOfferStatus(offerID: campaign.id, status: status)
+                await refreshFromServer()
+            } catch {
+                if let message = presentableError(error) { lastSyncError = message }
             }
         }
     }
@@ -1491,7 +1508,7 @@ final class AppState: ObservableObject {
                 status: status
             )
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1500,7 +1517,7 @@ final class AppState: ObservableObject {
         do {
             return try await api.fetchAdminUserDetail(userID: userID)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -1514,7 +1531,7 @@ final class AppState: ObservableObject {
             await loadAdminUsers()
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1526,7 +1543,7 @@ final class AppState: ObservableObject {
             try await api.adminSendNotification(userID: userID, title: title, body: body)
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1538,7 +1555,7 @@ final class AppState: ObservableObject {
             try await api.adminSendEmail(userID: userID, subject: subject, body: body)
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1547,7 +1564,7 @@ final class AppState: ObservableObject {
         do {
             adminInviteCodes = try await api.fetchAdminInviteCodes()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1580,7 +1597,7 @@ final class AppState: ObservableObject {
             }
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1593,7 +1610,7 @@ final class AppState: ObservableObject {
             await loadAdminInviteCodes()
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1607,7 +1624,7 @@ final class AppState: ObservableObject {
             lastInviteActionSummary = "\(result.inviteCode) → \(result.email)"
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1632,7 +1649,7 @@ final class AppState: ObservableObject {
             await loadAdminUsers()
             return (result, nil)
         } catch {
-            return (nil, friendlyErrorMessage(error) ?? error.localizedDescription)
+            return (nil, presentableError(error) ?? t(.errSomeDataRefresh))
         }
     }
 
@@ -1659,7 +1676,7 @@ final class AppState: ObservableObject {
             }
             return tf(.errSentToUsers, count, Int(radiusKm))
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -1735,7 +1752,7 @@ final class AppState: ObservableObject {
                 )
             }
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -1774,6 +1791,8 @@ final class AppState: ObservableObject {
         showcaseItems = []
         memberSearchResults = []
         followingActivity = []
+        followingActivityError = nil
+        isLoadingFollowingActivity = false
         directThreads = []
         socialVerification = nil
     }
@@ -1794,7 +1813,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1809,7 +1828,7 @@ final class AppState: ObservableObject {
             await refreshFromServer()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1823,7 +1842,7 @@ final class AppState: ObservableObject {
             await loadConversations()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1873,7 +1892,7 @@ final class AppState: ObservableObject {
             showcaseItems.insert(item, at: 0)
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1896,7 +1915,7 @@ final class AppState: ObservableObject {
             showcaseItems.insert(item, at: 0)
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -1907,7 +1926,7 @@ final class AppState: ObservableObject {
             try await api.deleteShowcaseItem(item.id)
             showcaseItems.removeAll { $0.id == item.id }
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1916,7 +1935,7 @@ final class AppState: ObservableObject {
         do {
             return try await api.fetchCreatorPublicProfile(creatorID: creatorID)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -1950,7 +1969,7 @@ final class AppState: ObservableObject {
             if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
             await loadFollowingActivity()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1967,7 +1986,7 @@ final class AppState: ObservableObject {
             }
             await loadFollowingActivity()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -1977,16 +1996,22 @@ final class AppState: ObservableObject {
             let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
             memberSearchResults = try await api.searchMembers(query: trimmed.isEmpty ? nil : trimmed)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
     func loadFollowingActivity() async {
         guard isRemoteMode, isAuthenticated else { return }
+        isLoadingFollowingActivity = true
+        followingActivityError = nil
+        defer { isLoadingFollowingActivity = false }
         do {
             followingActivity = try await api.fetchFollowingActivity(limit: 40)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) {
+                followingActivityError = message
+                lastSyncError = message
+            }
         }
     }
 
@@ -2010,7 +2035,7 @@ final class AppState: ObservableObject {
         do {
             directThreads = try await api.fetchDirectThreads()
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
         }
     }
 
@@ -2028,7 +2053,7 @@ final class AppState: ObservableObject {
             await loadDirectThreads()
             return directThreads.first(where: { $0.peerUserID == peerUserID })
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -2038,7 +2063,7 @@ final class AppState: ObservableObject {
         do {
             return try await api.fetchDirectMessages(threadID: threadID)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return []
         }
     }
@@ -2052,7 +2077,7 @@ final class AppState: ObservableObject {
             await loadDirectThreads()
             return true
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return false
         }
     }
@@ -2074,7 +2099,7 @@ final class AppState: ObservableObject {
             try await api.addProfileComment(targetUserID: targetUserID, body: trimmed)
             return nil
         } catch {
-            return friendlyErrorMessage(error) ?? error.localizedDescription
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -2083,7 +2108,7 @@ final class AppState: ObservableObject {
         do {
             return try await api.fetchVenuePublicProfile(venueID: venueID)
         } catch {
-            lastSyncError = friendlyErrorMessage(error) ?? error.localizedDescription
+            if let message = presentableError(error) { lastSyncError = message }
             return nil
         }
     }
@@ -2101,7 +2126,19 @@ final class AppState: ObservableObject {
         }()
     }
 
+    /// Banner/alert text. `nil` means cancel/noise — do not show raw NSError codes.
+    private func presentableError(_ error: Error) -> String? {
+        friendlyErrorMessage(error)
+    }
+
     private func friendlyErrorMessage(_ error: Error) -> String? {
+        if error is CancellationError { return nil }
+
+        let nsError = error as NSError
+        if nsError.domain == MarviAPIError.errorDomain, nsError.code == 4 {
+            return nil
+        }
+
         if let apiError = error as? MarviAPIError {
             switch apiError {
             case .cancelled:
@@ -2126,8 +2163,12 @@ final class AppState: ObservableObject {
             if let localized = (error as? LocalizedError)?.errorDescription, !localized.isEmpty {
                 return localized
             }
-            let bridged = (error as NSError).localizedDescription
-            if bridged.lowercased().contains("marviapierror") {
+            let bridged = nsError.localizedDescription
+            let lower = bridged.lowercased()
+            if lower.contains("marviapierror") {
+                if lower.contains("error 4") || lower.contains("cancelled") {
+                    return ""
+                }
                 return t(.errSomeDataRefresh)
             }
             return bridged

@@ -749,6 +749,14 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func adminSetOfferStatus(offerID: UUID, status: CampaignStatus) async throws {
+        try await client.patch(
+            table: "offers",
+            id: offerID,
+            body: ["status": status.apiValue]
+        )
+    }
+
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate] {
         var body: [String: Any] = [:]
         if let offerID {

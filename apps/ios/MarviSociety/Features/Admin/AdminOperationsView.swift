@@ -3,6 +3,7 @@ import SwiftUI
 
 enum AdminConsoleTab: String, CaseIterable, Identifiable {
     case queue
+    case campaigns
     case users
     case map
     case broadcast
@@ -13,6 +14,7 @@ enum AdminConsoleTab: String, CaseIterable, Identifiable {
     func title(for language: AppLanguage) -> String {
         switch self {
         case .queue: MarviL10n.t(.adminTabQueue, language: language)
+        case .campaigns: language == .turkish ? "Kampanya" : "Campaigns"
         case .users: MarviL10n.t(.adminTabUsers, language: language)
         case .map: MarviL10n.t(.adminTabMap, language: language)
         case .broadcast: MarviL10n.t(.adminTabBroadcast, language: language)
@@ -23,6 +25,7 @@ enum AdminConsoleTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .queue: "tray.full"
+        case .campaigns: "megaphone.fill"
         case .users: "person.3"
         case .map: "map"
         case .broadcast: "megaphone"
@@ -820,5 +823,110 @@ struct AdminActivityTab: View {
         }
         .refreshable { await appState.loadAdminActivity() }
         .task { await appState.loadAdminActivity() }
+    }
+}
+
+struct AdminCampaignsTab: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var pendingCampaign: Campaign?
+    @State private var pendingStatus: CampaignStatus?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionTitle(
+                    title: appState.preferredLanguage == .turkish ? "Kampanya yönetimi" : "Campaign management",
+                    subtitle: appState.preferredLanguage == .turkish
+                        ? "Canlı kampanyaları yayından kaldır, taslağa al veya tamamlandı işaretle."
+                        : "Unpublish live campaigns, move to draft, or mark completed."
+                )
+
+                if appState.campaigns.isEmpty {
+                    MarviCard {
+                        EmptyStateView(
+                            title: appState.preferredLanguage == .turkish ? "Kampanya yok" : "No campaigns",
+                            subtitle: appState.preferredLanguage == .turkish
+                                ? "Yenile’ye dokun. Kampanyalar burada listelenir."
+                                : "Tap refresh. Campaigns appear here for admin control.",
+                            icon: "megaphone",
+                            actionTitle: appState.t(.refresh),
+                            action: { Task { await appState.refreshFromServer() } }
+                        )
+                    }
+                } else {
+                    ForEach(appState.campaigns) { campaign in
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(campaign.title)
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(MarviColor.ink)
+                                        Text("\(campaign.venueName) · \(campaign.area)")
+                                            .font(.caption)
+                                            .foregroundStyle(MarviColor.muted)
+                                        Text(campaign.status.rawValue)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(MarviColor.aubergine)
+                                    }
+                                    Spacer()
+                                }
+
+                                HStack(spacing: 8) {
+                                    if campaign.status != .live {
+                                        Button(appState.preferredLanguage == .turkish ? "Yayınla" : "Publish") {
+                                            pendingCampaign = campaign
+                                            pendingStatus = .live
+                                        }
+                                        .buttonStyle(.borderedProminent)
+                                        .tint(MarviColor.emerald)
+                                    }
+                                    if campaign.status == .live {
+                                        Button(appState.preferredLanguage == .turkish ? "Yayından kaldır" : "Unpublish") {
+                                            pendingCampaign = campaign
+                                            pendingStatus = .draft
+                                        }
+                                        .buttonStyle(.bordered)
+                                    }
+                                    Button(appState.preferredLanguage == .turkish ? "Tamamla" : "Complete") {
+                                        pendingCampaign = campaign
+                                        pendingStatus = .completed
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(campaign.status == .completed)
+                                }
+                                .font(.caption.weight(.semibold))
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .refreshable { await appState.refreshFromServer() }
+        .confirmationDialog(
+            appState.preferredLanguage == .turkish ? "Kampanya durumu güncellensin mi?" : "Update campaign status?",
+            isPresented: Binding(
+                get: { pendingCampaign != nil && pendingStatus != nil },
+                set: { if !$0 { pendingCampaign = nil; pendingStatus = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(appState.t(.confirm)) {
+                if let campaign = pendingCampaign, let status = pendingStatus {
+                    appState.adminSetCampaignStatus(campaign, status: status)
+                }
+                pendingCampaign = nil
+                pendingStatus = nil
+            }
+            Button(appState.t(.cancel), role: .cancel) {
+                pendingCampaign = nil
+                pendingStatus = nil
+            }
+        } message: {
+            if let campaign = pendingCampaign, let status = pendingStatus {
+                Text("\(campaign.title) → \(status.rawValue)")
+            }
+        }
     }
 }

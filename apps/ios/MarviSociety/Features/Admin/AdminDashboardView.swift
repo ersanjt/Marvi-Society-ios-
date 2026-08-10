@@ -25,6 +25,8 @@ struct AdminDashboardView: View {
                     switch tab {
                     case .queue:
                         adminQueueContent
+                    case .campaigns:
+                        AdminCampaignsTab()
                     case .users:
                         AdminUsersTab()
                     case .map:

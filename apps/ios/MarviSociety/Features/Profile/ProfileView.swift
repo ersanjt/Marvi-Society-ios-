@@ -101,9 +101,15 @@ struct ProfileView: View {
                             coverPickerItem: $coverPickerItem,
                             isUploadingPhoto: isUploadingPhoto,
                             onManagement: {
-                                withAnimation {
-                                    selectedMainTab = .overview
-                                    proxy.scrollTo("workspace-section", anchor: .center)
+                                if appState.allowedRoles.contains(.admin) {
+                                    Task { await appState.openAdminConsole() }
+                                } else if appState.allowedRoles.contains(.venue) {
+                                    appState.switchWorkspace(to: .venue)
+                                } else {
+                                    withAnimation {
+                                        selectedMainTab = .overview
+                                        proxy.scrollTo("workspace-section", anchor: .center)
+                                    }
                                 }
                             }
                         )

@@ -224,8 +224,15 @@ struct BookingsView: View {
             }
             .onAppear {
                 if selectedBucketID == nil {
-                    selectedBucketID = statusBadges.first?.id
+                    selectedBucketID = statusBadges.first(where: { $0.count > 0 })?.id
+                        ?? statusBadges.first?.id
                 }
+            }
+            .onChange(of: appState.bookings.count) { _, _ in
+                reselectBucketIfEmptySelection()
+            }
+            .onChange(of: appState.pendingInviteBookings.count) { _, _ in
+                reselectBucketIfEmptySelection()
             }
         }
     }
@@ -340,12 +347,35 @@ struct BookingsView: View {
     }
 
     private var emptySubtitle: String {
+        let otherHint = otherBucketsHint
+        let base: String
         switch activeBucket {
-        case .requests, .none: appState.t(.emptyRequestsSub)
-        case .toConfirm: appState.t(.emptyConfirmSub)
-        case .toReview: appState.t(.emptyReviewSub)
-        case .toVisit: appState.t(.emptyVisitSub)
+        case .requests, .none: base = appState.t(.emptyRequestsSub)
+        case .toConfirm: base = appState.t(.emptyConfirmSub)
+        case .toReview: base = appState.t(.emptyReviewSub)
+        case .toVisit: base = appState.t(.emptyVisitSub)
         }
+        if otherHint.isEmpty { return base }
+        return "\(base)\n\n\(otherHint)"
+    }
+
+    private var otherBucketsHint: String {
+        let lang = appState.preferredLanguage
+        let hints = statusBadges.compactMap { badge -> String? in
+            guard badge.id != selectedBucketID, badge.count > 0 else { return nil }
+            return "\(badge.count) · \(badge.title)"
+        }
+        guard !hints.isEmpty else { return "" }
+        if lang == .turkish {
+            return "Diğer durumlar: " + hints.joined(separator: " · ") + ". Üstteki kutuya dokun."
+        }
+        return "Other buckets: " + hints.joined(separator: " · ") + ". Tap a card above."
+    }
+
+    private func reselectBucketIfEmptySelection() {
+        guard selectedBucketID == nil else { return }
+        selectedBucketID = statusBadges.first(where: { $0.count > 0 })?.id
+            ?? statusBadges.first?.id
     }
 }
 

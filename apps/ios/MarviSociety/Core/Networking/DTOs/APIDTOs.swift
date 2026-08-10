@@ -356,6 +356,15 @@ extension CampaignStatus {
         default: .review
         }
     }
+
+    var apiValue: String {
+        switch self {
+        case .draft: "draft"
+        case .review: "review"
+        case .live: "live"
+        case .completed: "completed"
+        }
+    }
 }
 
 extension AdminTaskType {
