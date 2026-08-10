@@ -4,7 +4,7 @@ Marvi Society is a private collaboration club for approved creators and verified
 
 DEMO SIGN-IN (use email only):
 Email: review@marvisociety.com
-Password: MarviReview2026!
+Password: provided in the dedicated App Store Connect password field
 
 This account is pre-approved with:
 • Live Explore / Keşfet offers in Istanbul

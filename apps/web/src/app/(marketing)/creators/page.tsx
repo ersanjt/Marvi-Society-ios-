@@ -58,9 +58,11 @@ export default async function CreatorsPage() {
               <a href={SITE.appStoreUrl} className="marvi-btn-primary" target="_blank" rel="noopener noreferrer">
                 {dict.creators.appStore}
               </a>
-              <a href={SITE.playStoreUrl} className="marvi-btn-secondary" target="_blank" rel="noopener noreferrer">
-                {dict.creators.playStore}
-              </a>
+              {SITE.playStoreUrl ? (
+                <a href={SITE.playStoreUrl} className="marvi-btn-secondary" target="_blank" rel="noopener noreferrer">
+                  {dict.creators.playStore}
+                </a>
+              ) : null}
               <Link href="/faq" className="marvi-btn-secondary">
                 {dict.creators.faq}
               </Link>
@@ -119,9 +121,11 @@ export default async function CreatorsPage() {
               <a href={SITE.appStoreUrl} className="marvi-btn-secondary">
                 {dict.creators.appStore}
               </a>
-              <a href={SITE.playStoreUrl} className="marvi-btn-secondary">
-                {dict.creators.playStore}
-              </a>
+              {SITE.playStoreUrl ? (
+                <a href={SITE.playStoreUrl} className="marvi-btn-secondary">
+                  {dict.creators.playStore}
+                </a>
+              ) : null}
               <Link
                 href="/faq"
                 className="inline-flex items-center rounded-marvi border border-white/30 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"

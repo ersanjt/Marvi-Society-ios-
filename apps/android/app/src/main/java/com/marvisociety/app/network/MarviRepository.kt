@@ -14,6 +14,8 @@ import java.util.Locale
 import java.util.UUID
 
 class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
+    fun setSessionObserver(observer: suspend (String?, String?) -> Unit) =
+        client.setSessionObserver(observer)
     val usesRemoteBackend: Boolean get() = client.usesRemoteBackend
     val isAuthenticated: Boolean get() = client.isAuthenticated
 
@@ -28,7 +30,19 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     suspend fun signOut() = client.signOut()
     suspend fun refreshSession() = client.refreshSession()
     fun currentUserId(): String? = client.currentUserId()
+    fun accessToken(): String? = client.accessToken
+    fun refreshToken(): String? = client.refreshToken
     fun supabaseClient(): SupabaseClient = client
+
+    suspend fun <T> withAuthRetry(block: suspend () -> T): T = client.withAuthRetry(block)
+
+    suspend fun deleteOwnAccountPermanently() {
+        client.invokeFunction(
+            "delete-own-account",
+            buildJsonObject { put("confirm", "DELETE") }
+        )
+        client.clearSession()
+    }
 
     suspend fun completeGoogleOAuth(uri: android.net.Uri, context: android.content.Context): GoogleOAuth.Completion =
         GoogleOAuth.completeIfPossible(uri, client, context)
@@ -145,7 +159,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
 
     /** Uploads campaign cover to public `venue-media` and returns a cache-busted public URL. */
     suspend fun uploadVenueCampaignImage(venueId: String, imageData: ByteArray, fileName: String): String {
-        val path = "$venueId/campaigns/${System.currentTimeMillis()}-$fileName"
+        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+        val path = "$userId/$venueId/campaigns/${System.currentTimeMillis()}-$fileName"
         client.uploadObject(
             bucket = "venue-media",
             path = path,
@@ -481,6 +496,157 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             ?: result.asObjectOrNull()?.string("venue_id")
             ?: result.toString().trim('"').takeIf { it.isNotBlank() && it != "null" }
             ?: throw MarviApiException("Venue registration returned empty id")
+    }
+
+    suspend fun fetchMyBrands(): List<BrandSummary> {
+        val rows = client.rpcJson("fetch_my_brands", buildJsonObject { }).asArrayOrEmpty()
+        return rows.mapNotNull { row ->
+            val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            BrandSummary(
+                organizationId = obj.string("organization_id") ?: return@mapNotNull null,
+                organizationName = obj.string("organization_name") ?: "",
+                brandId = obj.string("brand_id") ?: return@mapNotNull null,
+                brandName = obj.string("brand_name") ?: ""
+            )
+        }
+    }
+
+    suspend fun createOrganizationWithBrand(
+        organizationName: String,
+        brandName: String
+    ): OrganizationBrandCreated {
+        val row = client.rpcJson(
+            "create_organization_with_brand",
+            buildJsonObject {
+                put("p_organization_name", organizationName.trim())
+                put("p_brand_name", brandName.trim())
+            }
+        )
+        val obj = row.asObjectOrNull() ?: throw MarviApiException("Invalid organization/brand response")
+        return OrganizationBrandCreated(
+            organizationId = obj.string("organization_id")
+                ?: throw MarviApiException("Missing organization_id"),
+            organizationName = obj.string("organization_name") ?: organizationName.trim(),
+            brandId = obj.string("brand_id")
+                ?: throw MarviApiException("Missing brand_id"),
+            brandName = obj.string("brand_name") ?: brandName.trim()
+        )
+    }
+
+    suspend fun createEstablishmentDraft(brandId: String, establishmentName: String): String {
+        val result = client.rpcJson(
+            "create_establishment_draft",
+            buildJsonObject {
+                put("p_brand_id", brandId)
+                put("p_establishment_name", establishmentName.trim())
+            }
+        )
+        return result.asObjectOrNull()?.string("id")
+            ?: result.asObjectOrNull()?.string("venue_id")
+            ?: result.toString().trim('"').takeIf { it.isNotBlank() && it != "null" }
+            ?: throw MarviApiException("Establishment draft returned empty id")
+    }
+
+    suspend fun upsertEstablishmentDetails(
+        venueId: String,
+        instagramHandle: String,
+        description: String,
+        categories: List<String>,
+        contactName: String,
+        contactPhone: String,
+        contactIsSelf: Boolean,
+        offerCategory: String
+    ) {
+        client.rpcVoid(
+            "upsert_establishment_details",
+            buildJsonObject {
+                put("p_venue_id", venueId)
+                put("p_instagram_handle", instagramHandle.trim().removePrefix("@"))
+                put("p_description", description.trim())
+                putJsonArray("p_categories") { categories.forEach { add(it) } }
+                put("p_contact_name", contactName.trim())
+                put("p_contact_phone", contactPhone.trim())
+                put("p_contact_is_self", contactIsSelf)
+                put("p_offer_category", offerCategory)
+            }
+        )
+    }
+
+    suspend fun upsertEstablishmentAddress(
+        venueId: String,
+        isPhysical: Boolean,
+        country: String,
+        city: String,
+        locationLabel: String,
+        addressLine1: String,
+        addressLine2: String = "",
+        postalCode: String = "",
+        lat: Double? = null,
+        lng: Double? = null
+    ) {
+        client.rpcVoid(
+            "upsert_establishment_address",
+            buildJsonObject {
+                put("p_venue_id", venueId)
+                put("p_is_physical", isPhysical)
+                put("p_country", country.trim())
+                put("p_city", city.trim())
+                put("p_location_label", locationLabel.trim())
+                put("p_address_line1", addressLine1.trim())
+                put("p_address_line2", addressLine2.trim())
+                put("p_postal_code", postalCode.trim())
+                if (lat != null) put("p_lat", lat)
+                if (lng != null) put("p_lng", lng)
+            }
+        )
+    }
+
+    suspend fun upsertEstablishmentPhotos(
+        venueId: String,
+        logoUrl: String,
+        galleryUrls: List<String>
+    ) {
+        client.rpcVoid(
+            "upsert_establishment_photos",
+            buildJsonObject {
+                put("p_venue_id", venueId)
+                put("p_logo_url", logoUrl.trim())
+                putJsonArray("p_gallery_urls") { galleryUrls.forEach { add(it) } }
+            }
+        )
+    }
+
+    suspend fun submitEstablishmentForReview(venueId: String) {
+        client.rpcVoid(
+            "submit_establishment_for_review",
+            buildJsonObject { put("p_venue_id", venueId) }
+        )
+    }
+
+    /** Uploads establishment logo to `venue-media/{userId}/{venueId}/logo.jpg`. */
+    suspend fun uploadVenueLogo(venueId: String, imageData: ByteArray): String {
+        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+        val path = "$userId/$venueId/logo.jpg"
+        client.uploadObject(
+            bucket = "venue-media",
+            path = path,
+            data = imageData,
+            contentType = "image/jpeg"
+        )
+        return client.publicStorageUrl("venue-media", path)
+    }
+
+    /** Uploads gallery photo to `venue-media/{userId}/{venueId}/gallery-{index}.jpg`. */
+    suspend fun uploadVenueGalleryImage(venueId: String, imageData: ByteArray, index: Int): String {
+        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+        val path = "$userId/$venueId/gallery-$index.jpg"
+        client.uploadObject(
+            bucket = "venue-media",
+            path = path,
+            data = imageData,
+            contentType = "image/jpeg"
+        )
+        return client.publicStorageUrl("venue-media", path)
     }
 
     suspend fun fetchCampaigns(): List<Campaign> {

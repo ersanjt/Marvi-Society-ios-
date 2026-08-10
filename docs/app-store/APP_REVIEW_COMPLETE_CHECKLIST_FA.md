@@ -71,7 +71,7 @@ bash scripts/app-store/build-ios-release.sh
 |------|--------|
 | Sign-in required | **Yes** |
 | Username | `review@marvisociety.com` |
-| Password | `MarviReview2026!` |
+| Password | از فیلد امن App Store Connect استفاده شود؛ در مخزن ذخیره نشود. |
 
 **Notes + Reply:** کپی از `docs/app-store/CONNECT_PASTE.txt`
 

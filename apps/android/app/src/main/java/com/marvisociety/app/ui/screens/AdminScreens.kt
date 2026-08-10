@@ -309,7 +309,10 @@ private fun AdminSectionHeader(title: String, count: Int, modifier: Modifier = M
 }
 
 @Composable
-fun VenueStudioScreen(viewModel: AppViewModel) {
+fun VenueStudioScreen(
+    viewModel: AppViewModel,
+    onAddEstablishment: () -> Unit = {}
+) {
     var showCreate by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
     var valueLabel by remember { mutableStateOf("") }
@@ -329,6 +332,7 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
     LaunchedEffect(Unit) {
         viewModel.loadSwipeCandidates()
         viewModel.loadVenueReviewQueue()
+        viewModel.loadMyBrands()
     }
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -343,11 +347,35 @@ fun VenueStudioScreen(viewModel: AppViewModel) {
             item {
                 Text(viewModel.t(MarviL10n.Key.STUDIO), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
             }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(viewModel.t(MarviL10n.Key.MY_ESTABLISHMENTS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    Button(
+                        onClick = onAddEstablishment,
+                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                    ) {
+                        Text(viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT))
+                    }
+                }
+            }
             items(viewModel.myVenues, key = { it.id }) { venue ->
                 MarviCard {
                     Text(venue.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                     Text("${venue.area} · ${viewModel.categoryLabel(venue.category)}", color = MarviColor.Muted)
                     if (venue.isActive) Text(viewModel.t(MarviL10n.Key.VENUE_ACTIVE), color = MarviColor.Emerald)
+                }
+            }
+            if (viewModel.myVenues.isEmpty()) {
+                item {
+                    Text(
+                        viewModel.t(MarviL10n.Key.EST_HUB_SUB),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
             item {

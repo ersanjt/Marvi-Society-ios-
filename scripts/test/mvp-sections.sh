@@ -14,7 +14,7 @@ fi
 SB_URL="${SB_URL:-https://gaswjuvyzliislqrljof.supabase.co}"
 SB_KEY="${SB_KEY:-sb_publishable_SA0BDjBy4ow7haaZzX7Zlg_t0wFvO0Y}"
 REVIEW_EMAIL="${REVIEW_EMAIL:-review@marvisociety.com}"
-REVIEW_PASSWORD="${REVIEW_PASSWORD:-MarviReview2026!}"
+REVIEW_PASSWORD="${REVIEW_PASSWORD:-}"
 DEBUG_EMAIL="marvi-mvp-$(date +%Y%m%d)-$(openssl rand -hex 3)@mailinator.com"
 DEBUG_PASS="MarviDebug2026!Aa"
 
@@ -22,6 +22,11 @@ echo ""
 echo "Marvi Society — MVP Section Test"
 echo "================================="
 echo ""
+
+if [[ -z "$REVIEW_PASSWORD" ]]; then
+  echo "✗ Set REVIEW_PASSWORD in the secure runtime environment" >&2
+  exit 1
+fi
 
 pass=0
 fail=0

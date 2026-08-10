@@ -151,7 +151,12 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 URLQueryItem(name: "order", value: "created_at.desc")
             ]
         )
-        return rows.compactMap { $0.toBooking() }
+        return rows.compactMap { row in
+            guard var booking = row.toBooking() else { return nil }
+            // Creators must enter the venue-issued code; never trust client-held secrets.
+            booking.checkInCode = ""
+            return booking
+        }
     }
 
     func fetchProfile() async throws -> CreatorProfile {
@@ -382,7 +387,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func uploadVenueCampaignImage(data: Data, fileName: String, venueID: UUID) async throws -> String {
-        let path = "\(venueID.uuidString)/campaigns/\(UUID().uuidString)-\(fileName)"
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
+        // venue-media RLS scopes writes to the signed-in user's top-level folder.
+        let path = "\(userID)/\(venueID.uuidString)/campaigns/\(UUID().uuidString)-\(fileName)"
         _ = try await client.uploadObject(
             bucket: "venue-media",
             path: path,
@@ -452,7 +461,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 body: [
                     "p_venue_name": input.venueName,
                     "p_area": input.area,
-                    "p_category": input.category.apiValue,
+                    "p_category": input.categoryLabel,
                     "p_address": input.address,
                     "p_contact_name": input.contactName,
                     "p_contact_phone": input.contactPhone
@@ -481,6 +490,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                     "venue_name": input.venueName,
                     "area": input.area,
                     "category": input.category.apiValue,
+                    "categories": [input.categoryLabel],
                     "address": input.address,
                     "contact_name": input.contactName,
                     "contact_phone": input.contactPhone,
@@ -505,6 +515,118 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             }
             return venue
         }
+    }
+
+    func fetchMyBrands() async throws -> [BrandSummary] {
+        let rows: [BrandRPCRow] = try await client.rpc(
+            function: "fetch_my_brands",
+            body: [:]
+        )
+        return rows.map { $0.toSummary() }
+    }
+
+    func createOrganizationWithBrand(organizationName: String, brandName: String) async throws -> OrganizationBrandResult {
+        let row: OrgBrandCreateRPCRow = try await client.rpc(
+            function: "create_organization_with_brand",
+            body: [
+                "p_organization_name": organizationName,
+                "p_brand_name": brandName
+            ]
+        )
+        return row.toResult()
+    }
+
+    func createEstablishmentDraft(brandID: UUID, establishmentName: String) async throws -> UUID {
+        try await client.rpc(
+            function: "create_establishment_draft",
+            body: [
+                "p_brand_id": brandID.uuidString,
+                "p_establishment_name": establishmentName
+            ]
+        )
+    }
+
+    func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async throws {
+        try await client.rpcVoid(
+            function: "upsert_establishment_details",
+            body: [
+                "p_venue_id": venueID.uuidString,
+                "p_instagram_handle": input.instagramHandle,
+                "p_description": input.description,
+                "p_categories": input.categories,
+                "p_contact_name": input.contactName,
+                "p_contact_phone": input.contactPhone,
+                "p_contact_is_self": input.contactIsSelf,
+                "p_offer_category": input.offerCategory.apiValue
+            ]
+        )
+    }
+
+    func upsertEstablishmentAddress(venueID: UUID, input: EstablishmentAddressInput) async throws {
+        var body: [String: Any] = [
+            "p_venue_id": venueID.uuidString,
+            "p_is_physical": input.isPhysical,
+            "p_country": input.country,
+            "p_city": input.city,
+            "p_location_label": input.locationLabel,
+            "p_address_line1": input.addressLine1,
+            "p_address_line2": input.addressLine2,
+            "p_postal_code": input.postalCode
+        ]
+        if let lat = input.lat {
+            body["p_lat"] = lat
+        } else {
+            body["p_lat"] = NSNull()
+        }
+        if let lng = input.lng {
+            body["p_lng"] = lng
+        } else {
+            body["p_lng"] = NSNull()
+        }
+        try await client.rpcVoid(function: "upsert_establishment_address", body: body)
+    }
+
+    func upsertEstablishmentPhotos(venueID: UUID, logoURL: String, galleryURLs: [String]) async throws {
+        try await client.rpcVoid(
+            function: "upsert_establishment_photos",
+            body: [
+                "p_venue_id": venueID.uuidString,
+                "p_logo_url": logoURL,
+                "p_gallery_urls": galleryURLs
+            ]
+        )
+    }
+
+    func submitEstablishmentForReview(venueID: UUID) async throws {
+        try await client.rpcVoid(
+            function: "submit_establishment_for_review",
+            body: ["p_venue_id": venueID.uuidString]
+        )
+    }
+
+    func uploadEstablishmentMedia(data: Data, fileName: String, venueID: UUID) async throws -> String {
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
+        let path = "\(userID)/\(venueID.uuidString)/\(UUID().uuidString)-\(fileName)"
+        _ = try await client.uploadObject(
+            bucket: "venue-media",
+            path: path,
+            data: data,
+            contentType: "image/jpeg"
+        )
+        guard let base = APIConfig.supabaseURL else { return path }
+        var components = URLComponents(
+            url: base
+                .appending(path: "storage/v1/object/public/venue-media")
+                .appending(path: path),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "v", value: String(Int(Date().timeIntervalSince1970)))]
+        return components?.url?.absoluteString ?? base
+            .appending(path: "storage/v1/object/public/venue-media")
+            .appending(path: path)
+            .absoluteString
     }
 
     func fetchVenueSummary() async throws -> VenueSummary? {
@@ -1868,6 +1990,38 @@ private struct SocialVerificationRow: Decodable {
             marviInstagramHandle: marvi_instagram ?? "marvisociety",
             submittedAt: APIDTOs.parseISO(submitted_at),
             verifiedAt: APIDTOs.parseISO(verified_at)
+        )
+    }
+}
+
+private struct BrandRPCRow: Decodable {
+    let organization_id: UUID
+    let organization_name: String
+    let brand_id: UUID
+    let brand_name: String
+
+    func toSummary() -> BrandSummary {
+        BrandSummary(
+            organizationID: organization_id,
+            organizationName: organization_name,
+            brandID: brand_id,
+            brandName: brand_name
+        )
+    }
+}
+
+private struct OrgBrandCreateRPCRow: Decodable {
+    let organization_id: UUID
+    let organization_name: String
+    let brand_id: UUID
+    let brand_name: String
+
+    func toResult() -> OrganizationBrandResult {
+        OrganizationBrandResult(
+            organizationID: organization_id,
+            organizationName: organization_name,
+            brandID: brand_id,
+            brandName: brand_name
         )
     }
 }

@@ -5,20 +5,20 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.1",
-      "buildNumber": 50,
+      "buildNumber": 51,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
       "version": "0.2.0"
     },
     "android": {
-      "marketingVersion": "1.9.6",
-      "versionCode": 52,
+      "marketingVersion": "1.9.7",
+      "versionCode": 53,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260717000001_proof_upload_retry_policy",
-      "migrationCount": 47
+      "migrationHead": "20260809000002_org_brand_establishment",
+      "migrationCount": 49
     }
   },
   "syncLog": [

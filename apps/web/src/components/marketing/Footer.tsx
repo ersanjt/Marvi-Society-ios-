@@ -20,9 +20,11 @@ export function Footer({ locale }: { locale: Locale }) {
             <a href={SITE.appStoreUrl} className="marvi-btn-secondary text-xs" target="_blank" rel="noopener noreferrer">
               App Store
             </a>
-            <a href={SITE.playStoreUrl} className="marvi-btn-secondary text-xs" target="_blank" rel="noopener noreferrer">
-              Google Play
-            </a>
+            {SITE.playStoreUrl ? (
+              <a href={SITE.playStoreUrl} className="marvi-btn-secondary text-xs" target="_blank" rel="noopener noreferrer">
+                Google Play
+              </a>
+            ) : null}
             <Image src="/app-icon.png" alt="" width={40} height={40} className="rounded-marvi" />
           </div>
         </div>

@@ -31,6 +31,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class MarviApiException(message: String, val code: Int? = null) : Exception(message)
 
@@ -38,6 +40,8 @@ class SupabaseClient(
     private val baseUrl: String = BuildConfig.SUPABASE_URL.trimEnd('/'),
     private val anonKey: String = BuildConfig.SUPABASE_ANON_KEY
 ) {
+    private var sessionObserver: (suspend (String?, String?) -> Unit)? = null
+    private val refreshMutex = Mutex()
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -62,6 +66,10 @@ class SupabaseClient(
     fun setSession(access: String, refresh: String? = null) {
         accessToken = access
         refreshToken = refresh
+    }
+
+    fun setSessionObserver(observer: suspend (String?, String?) -> Unit) {
+        sessionObserver = observer
     }
 
     fun clearSession() {
@@ -124,6 +132,32 @@ class SupabaseClient(
         parseAuthResponse(response)
     }
 
+    /** Call edge functions under /functions/v1/{name}. */
+    suspend fun invokeFunction(name: String, body: JsonObject): String {
+        val response = authenticatedRequest {
+            client.post("$baseUrl/functions/v1/$name") {
+                applyHeaders(authenticated = true)
+                setBody(body)
+            }
+        }
+        validate(response)
+        return response.bodyAsText()
+    }
+
+    /**
+     * Runs [block]; on 401 refreshes the session once and retries.
+     * Caller should persist tokens after success via [accessToken]/[refreshToken].
+     */
+    suspend fun <T> withAuthRetry(block: suspend () -> T): T {
+        return try {
+            block()
+        } catch (error: MarviApiException) {
+            if (error.code != 401 || refreshToken.isNullOrBlank()) throw error
+            refreshSession()
+            block()
+        }
+    }
+
     /** PKCE exchange after Google (or other OAuth) redirect — mirrors iOS GoogleSignInService. */
     suspend fun exchangeAuthCode(code: String, codeVerifier: String): AuthSession {
         val response = client.post("$baseUrl/auth/v1/token?grant_type=pkce") {
@@ -148,16 +182,20 @@ class SupabaseClient(
             append("$baseUrl/rest/v1/$table")
             if (queryString.isNotEmpty()) append("?$queryString")
         }
-        val response = client.get(url) { applyHeaders(authenticated = true) }
+        val response = authenticatedRequest {
+            client.get(url) { applyHeaders(authenticated = true) }
+        }
         validate(response)
         return decode(response.body())
     }
 
     suspend fun rpcBool(function: String, body: JsonObject): Boolean {
-        val response = client.post("$baseUrl/rest/v1/rpc/$function") {
-            applyHeaders(authenticated = true)
-            header("Prefer", "return=representation")
-            setBody(body)
+        val response = authenticatedRequest {
+            client.post("$baseUrl/rest/v1/rpc/$function") {
+                applyHeaders(authenticated = true)
+                header("Prefer", "return=representation")
+                setBody(body)
+            }
         }
         validate(response)
         val text = response.bodyAsText().trim()
@@ -167,28 +205,34 @@ class SupabaseClient(
     }
 
     suspend fun rpcVoid(function: String, body: JsonObject) {
-        val response = client.post("$baseUrl/rest/v1/rpc/$function") {
-            applyHeaders(authenticated = true)
-            setBody(body)
+        val response = authenticatedRequest {
+            client.post("$baseUrl/rest/v1/rpc/$function") {
+                applyHeaders(authenticated = true)
+                setBody(body)
+            }
         }
         validate(response)
     }
 
     suspend fun rpcJson(function: String, body: JsonObject): JsonElement {
-        val response = client.post("$baseUrl/rest/v1/rpc/$function") {
-            applyHeaders(authenticated = true)
-            header("Prefer", "return=representation")
-            setBody(body)
+        val response = authenticatedRequest {
+            client.post("$baseUrl/rest/v1/rpc/$function") {
+                applyHeaders(authenticated = true)
+                header("Prefer", "return=representation")
+                setBody(body)
+            }
         }
         validate(response)
         return response.body()
     }
 
     suspend fun insert(table: String, body: JsonObject) {
-        val response = client.post("$baseUrl/rest/v1/$table") {
-            applyHeaders(authenticated = true)
-            header("Prefer", "return=minimal")
-            setBody(body)
+        val response = authenticatedRequest {
+            client.post("$baseUrl/rest/v1/$table") {
+                applyHeaders(authenticated = true)
+                header("Prefer", "return=minimal")
+                setBody(body)
+            }
         }
         validate(response)
     }
@@ -197,9 +241,11 @@ class SupabaseClient(
         val query = filters.entries.joinToString("&") { (k, v) ->
             "$k=${java.net.URLEncoder.encode(v, Charsets.UTF_8.name())}"
         }
-        val response = client.patch("$baseUrl/rest/v1/$table?$query") {
-            applyHeaders(authenticated = true)
-            setBody(body)
+        val response = authenticatedRequest {
+            client.patch("$baseUrl/rest/v1/$table?$query") {
+                applyHeaders(authenticated = true)
+                setBody(body)
+            }
         }
         validate(response)
     }
@@ -208,8 +254,10 @@ class SupabaseClient(
         val query = filters.entries.joinToString("&") { (k, v) ->
             "$k=${java.net.URLEncoder.encode(v, Charsets.UTF_8.name())}"
         }
-        val response = client.delete("$baseUrl/rest/v1/$table?$query") {
-            applyHeaders(authenticated = true)
+        val response = authenticatedRequest {
+            client.delete("$baseUrl/rest/v1/$table?$query") {
+                applyHeaders(authenticated = true)
+            }
         }
         validate(response)
     }
@@ -226,14 +274,16 @@ class SupabaseClient(
     ): String {
         val cleanPath = path.trimStart('/')
         val url = "$baseUrl/storage/v1/object/$bucket/$cleanPath"
-        val response = client.post(url) {
-            header("apikey", anonKey)
-            header(
-                "Authorization",
-                if (!accessToken.isNullOrBlank()) "Bearer $accessToken" else "Bearer $anonKey"
-            )
-            header("x-upsert", "true")
-            setBody(ByteArrayContent(data, ContentType.parse(contentType)))
+        val response = authenticatedRequest {
+            client.post(url) {
+                header("apikey", anonKey)
+                header(
+                    "Authorization",
+                    if (!accessToken.isNullOrBlank()) "Bearer $accessToken" else "Bearer $anonKey"
+                )
+                header("x-upsert", "true")
+                setBody(ByteArrayContent(data, ContentType.parse(contentType)))
+            }
         }
         validate(response)
         return cleanPath
@@ -254,7 +304,21 @@ class SupabaseClient(
             )
         val refresh = obj.string("refresh_token")
         setSession(access, refresh)
+        sessionObserver?.invoke(access, refresh)
         return AuthSession(accessToken = access, refreshToken = refresh, userId = userIdFromJwt(access))
+    }
+
+    private suspend fun authenticatedRequest(block: suspend () -> HttpResponse): HttpResponse {
+        val tokenUsed = accessToken
+        val response = block()
+        if (response.status != HttpStatusCode.Unauthorized || refreshToken.isNullOrBlank()) {
+            return response
+        }
+        response.bodyAsText()
+        refreshMutex.withLock {
+            if (accessToken == tokenUsed) refreshSession()
+        }
+        return block()
     }
 
     private fun io.ktor.client.request.HttpRequestBuilder.applyHeaders(authenticated: Boolean) {

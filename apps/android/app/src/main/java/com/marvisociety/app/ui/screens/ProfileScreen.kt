@@ -417,6 +417,42 @@ fun ProfileScreen(viewModel: AppViewModel) {
                     TextButton(onClick = { viewModel.signOut() }, modifier = Modifier.fillMaxWidth()) {
                         Text(viewModel.t(MarviL10n.Key.SIGN_OUT), color = MarviColor.Tomato)
                     }
+
+                    var showDeleteConfirm by remember { mutableStateOf(false) }
+                    var deleteConfirmText by remember { mutableStateOf("") }
+                    TextButton(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(viewModel.t(MarviL10n.Key.DELETE_ACCOUNT), color = MarviColor.Tomato)
+                    }
+                    if (showDeleteConfirm) {
+                        MarviCard {
+                            Text(viewModel.t(MarviL10n.Key.DELETE_ACCOUNT_SUB), color = MarviColor.Muted)
+                            OutlinedTextField(
+                                value = deleteConfirmText,
+                                onValueChange = { deleteConfirmText = it },
+                                label = { Text(viewModel.t(MarviL10n.Key.DELETE_ACCOUNT_CONFIRM)) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { showDeleteConfirm = false }) {
+                                    Text(viewModel.t(MarviL10n.Key.CANCEL))
+                                }
+                                TextButton(
+                                    enabled = deleteConfirmText.trim().equals("DELETE", ignoreCase = true),
+                                    onClick = {
+                                        viewModel.deleteAccountPermanently {
+                                            showDeleteConfirm = false
+                                            deleteConfirmText = ""
+                                        }
+                                    }
+                                ) {
+                                    Text(viewModel.t(MarviL10n.Key.DELETE_ACCOUNT), color = MarviColor.Tomato)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 ProfileMainTab.SETTINGS -> {

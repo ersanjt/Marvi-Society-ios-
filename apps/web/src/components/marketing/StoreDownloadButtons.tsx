@@ -25,14 +25,16 @@ export function StoreDownloadButtons({
       >
         {appStoreLabel}
       </a>
-      <a
-        href={SITE.playStoreUrl}
-        className={primaryAppStore ? "marvi-btn-secondary" : "marvi-btn-primary"}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {playStoreLabel}
-      </a>
+      {SITE.playStoreUrl ? (
+        <a
+          href={SITE.playStoreUrl}
+          className={primaryAppStore ? "marvi-btn-secondary" : "marvi-btn-primary"}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {playStoreLabel}
+        </a>
+      ) : null}
     </div>
   );
 }

@@ -85,20 +85,22 @@ Run locally: `cd apps/web && npm install && npm run dev`
 
 ---
 
-## Phase 4 — Android + scale (Week 15–20) 🔄 scaffold ready
+## Phase 4 — Android + scale (Week 15–20) ✅ client complete (Play public pending)
 
 **Goal:** Play Store launch; second city (Dubai or Izmir).
 
 | Workstream | Deliverables | Status |
 |------------|--------------|--------|
-| **Android** | Kotlin Compose app, feature parity with iOS | ✅ scaffold |
-| **Android Supabase** | Retrofit/SDK sync | ⏳ |
+| **Android** | Kotlin Compose app, feature parity with iOS | ✅ |
+| **Android Supabase** | REST/RPC sync + establishment wizard | ✅ |
 | **Shared QA** | Detox / Maestro E2E on critical flows | ⏳ |
 | **Analytics** | PostHog funnels, venue ROI dashboard | ⏳ |
-| **Referral** | Creator + venue referral codes | ✅ iOS + schema |
+| **Referral** | Creator + venue referral codes | ✅ iOS + Android + schema |
 | **Performance** | Feed pagination, image CDN, API caching | ⏳ |
 
 **Exit criteria:** iOS + Android in stores; 100+ approved creators; 20+ live venues.
+
+See [STATUS.md](./STATUS.md).
 
 ---
 

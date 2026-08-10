@@ -42,7 +42,7 @@ Expected: `role = admin`, `status = approved`, venue row, `offers_live` ≥ 1
 |-------|--------|
 | Sign-in required | **Yes** |
 | User name | `review@marvisociety.com` |
-| Password | `MarviReview2026!` |
+| Password | Use the secure value stored in App Store Connect; never commit it. |
 
 **Notes (paste from `docs/app-store/CONNECT_PASTE.txt`):**
 

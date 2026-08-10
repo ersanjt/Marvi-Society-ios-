@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.marvisociety.app",
+      "sha256_cert_fingerprints": [
+        "8F:9A:38:A5:69:9B:84:15:04:A5:79:8A:EE:D9:61:B9:6E:39:94:19:97:39:98:5F:24:66:87:6D:A2:83:AB:99"
+      ]
+    }
+  }
+]

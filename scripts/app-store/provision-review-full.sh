@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 REVIEW_EMAIL="${REVIEW_EMAIL:-review@marvisociety.com}"
-REVIEW_PASSWORD="${REVIEW_PASSWORD:-MarviReview2026!}"
+REVIEW_PASSWORD="${REVIEW_PASSWORD:-}"
 SB_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://gaswjuvyzliislqrljof.supabase.co}"
 
 if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" && -f "$REPO_ROOT/apps/web/.env.local" ]]; then
@@ -17,6 +17,11 @@ if [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
   echo "✗ SUPABASE_SERVICE_ROLE_KEY missing."
   echo "  Paste service_role key into apps/web/.env.local then re-run."
   echo "  Supabase → Project Settings → API → service_role (secret)"
+  exit 1
+fi
+
+if [[ -z "$REVIEW_PASSWORD" ]]; then
+  echo "✗ REVIEW_PASSWORD missing from the secure runtime environment."
   exit 1
 fi
 

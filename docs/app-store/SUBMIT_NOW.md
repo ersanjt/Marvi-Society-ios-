@@ -27,7 +27,7 @@ Credentials for Apple Review Notes:
 | Field | Value |
 |-------|--------|
 | Email | `review@marvisociety.com` |
-| Password | `MarviReview2026!` |
+| Password | Secure value stored in App Store Connect (never commit it) |
 | Invite code | `MARVI-IST` (only if app asks on first launch) |
 
 ### Optional: WHM Terminal (not SQL Editor)
@@ -117,7 +117,7 @@ Marvi Society is an invite-only creator × venue marketplace for Istanbul.
 
 Test account:
 Email: review@marvisociety.com
-Password: MarviReview2026!
+Password: provided in the dedicated App Store Connect password field
 Invite code (if prompted on first launch): MARVI-IST
 
 Flow: Sign in → Explore tab shows live venue offers → tap offer → Accept → appears in My Events.

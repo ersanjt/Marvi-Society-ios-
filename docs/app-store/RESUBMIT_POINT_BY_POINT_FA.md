@@ -67,7 +67,7 @@ IPA: `apps/ios/.build/export/MarviSociety.ipa`
 
 1. **App Review Information**
    - Username: `review@marvisociety.com`
-   - Password: `MarviReview2026!`
+   - Password: مقدار امن ثبت‌شده در App Store Connect؛ هرگز داخل مخزن قرار نگیرد.
    - Notes: از `docs/app-store/CONNECT_PASTE.txt`
 
 2. بیلد **1.0 (6)** را انتخاب کنید (نه 1 یا 5)

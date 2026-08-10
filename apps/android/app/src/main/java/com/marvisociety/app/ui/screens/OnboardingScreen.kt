@@ -48,6 +48,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marvisociety.app.data.OfferCategory
+import com.marvisociety.app.data.BusinessCategoryCatalog
+import com.marvisociety.app.data.BusinessCategoryOption
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandMark
@@ -78,6 +80,8 @@ fun OnboardingScreen(viewModel: AppViewModel) {
     var venueName by remember { mutableStateOf("") }
     var venueArea by remember { mutableStateOf("Istanbul") }
     var venueCategory by remember { mutableStateOf(OfferCategory.DINING) }
+    var venueCategoryLabel by remember { mutableStateOf("Restaurant") }
+    var customBusinessCategory by remember { mutableStateOf("") }
     var ageConfirmed by remember { mutableStateOf(false) }
     var termsAccepted by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf("") }
@@ -281,8 +285,8 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     onCity = { city = it },
                     onBack = { step = OnboardingStep.SIGN_IN },
                     onContinue = {
-                        if ((instagram.isBlank() && tiktok.isBlank()) || city.isBlank()) {
-                            localError = viewModel.t(MarviL10n.Key.NEEDS_SOCIAL)
+                        if (city.isBlank()) {
+                            localError = viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER)
                             return@ProfileStep
                         }
                         localError = ""
@@ -308,11 +312,22 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     viewModel = viewModel,
                     venueName = venueName,
                     venueArea = venueArea,
-                    venueCategory = venueCategory,
+                    venueCategoryLabel = venueCategoryLabel,
+                    customBusinessCategory = customBusinessCategory,
                     localError = localError,
                     onName = { venueName = it },
                     onArea = { venueArea = it },
-                    onCategory = { venueCategory = it },
+                    onCategory = {
+                        venueCategory = it.offerCategory
+                        venueCategoryLabel = it.label(viewModel.preferredLanguage)
+                    },
+                    onCustomCategory = {
+                        customBusinessCategory = it
+                        if (it.trim().length >= 2) {
+                            venueCategoryLabel = it.trim()
+                            venueCategory = BusinessCategoryCatalog.offerCategoryFor(it)
+                        }
+                    },
                     onBack = { step = OnboardingStep.SIGN_IN },
                     onContinue = {
                         if (venueName.isBlank() || venueArea.isBlank()) {
@@ -350,6 +365,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                                 name = venueName,
                                 area = venueArea,
                                 category = venueCategory,
+                                categoryLabel = venueCategoryLabel,
                                 contactName = fullName.ifBlank { email.substringBefore("@") }
                             ) { succeeded ->
                                 busy = false
@@ -627,11 +643,13 @@ private fun VenueStep(
     viewModel: AppViewModel,
     venueName: String,
     venueArea: String,
-    venueCategory: OfferCategory,
+    venueCategoryLabel: String,
+    customBusinessCategory: String,
     localError: String,
     onName: (String) -> Unit,
     onArea: (String) -> Unit,
-    onCategory: (OfferCategory) -> Unit,
+    onCategory: (BusinessCategoryOption) -> Unit,
+    onCustomCategory: (String) -> Unit,
     onBack: () -> Unit,
     onContinue: () -> Unit
 ) {
@@ -643,13 +661,33 @@ private fun VenueStep(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OfferCategory.entries.forEach { category ->
+        BusinessCategoryCatalog.all.forEach { category ->
             FilterChip(
-                selected = venueCategory == category,
+                selected = venueCategoryLabel.equals(category.label(viewModel.preferredLanguage), ignoreCase = true),
                 onClick = { onCategory(category) },
-                label = { Text(viewModel.categoryLabel(category)) }
+                label = { Text(category.label(viewModel.preferredLanguage)) }
             )
         }
+    }
+    MarviField(
+        customBusinessCategory,
+        onCustomCategory,
+        if (viewModel.preferredLanguage == com.marvisociety.app.data.AppLanguage.TURKISH) {
+            "Kategori yoksa buraya yazın"
+        } else {
+            "Can't find it? Add your category"
+        }
+    )
+    if (customBusinessCategory.trim().length >= 2) {
+        Text(
+            if (viewModel.preferredLanguage == com.marvisociety.app.data.AppLanguage.TURKISH) {
+                "Seçilen kategori: ${customBusinessCategory.trim()}"
+            } else {
+                "Selected category: ${customBusinessCategory.trim()}"
+            },
+            color = MarviColor.Rose,
+            fontWeight = FontWeight.SemiBold
+        )
     }
     if (localError.isNotEmpty()) Text(localError, color = MarviColor.Tomato)
     PrimaryButton(title = viewModel.t(MarviL10n.Key.CONTINUE), onClick = onContinue)

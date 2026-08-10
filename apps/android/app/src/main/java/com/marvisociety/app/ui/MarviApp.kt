@@ -48,6 +48,7 @@ import com.marvisociety.app.ui.screens.CommunityScreen
 import com.marvisociety.app.ui.screens.ConfigurationRequiredScreen
 import com.marvisociety.app.ui.screens.DirectChatScreen
 import com.marvisociety.app.ui.screens.DiscoverScreen
+import com.marvisociety.app.ui.screens.EstablishmentWizardScreen
 import com.marvisociety.app.ui.screens.InboxScreen
 import com.marvisociety.app.ui.screens.MemberProfileScreen
 import com.marvisociety.app.ui.screens.OfferDetailScreen
@@ -95,7 +96,8 @@ private fun MainShell(viewModel: AppViewModel) {
     val hideBottomBar = currentRoute.startsWith("offer/") ||
         currentRoute.startsWith("member/") ||
         currentRoute.startsWith("chat/") ||
-        currentRoute.startsWith("collab")
+        currentRoute.startsWith("collab") ||
+        currentRoute == "establishment_wizard"
 
     Scaffold(
         containerColor = MarviColor.Surface,
@@ -241,7 +243,22 @@ private fun MainShell(viewModel: AppViewModel) {
                     CollaborationThreadScreen(conversationId, title, viewModel) { navController.popBackStack() }
                 }
                 composable("profile") { ProfileScreen(viewModel) }
-                composable("studio") { VenueStudioScreen(viewModel) }
+                composable("studio") {
+                    VenueStudioScreen(
+                        viewModel = viewModel,
+                        onAddEstablishment = { navController.navigate("establishment_wizard") }
+                    )
+                }
+                composable("establishment_wizard") {
+                    EstablishmentWizardScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                        onSubmitted = {
+                            viewModel.refreshFromServer()
+                            navController.popBackStack()
+                        }
+                    )
+                }
                 composable("inbox") { InboxScreen(viewModel) }
                 composable("admin") { AdminDashboardScreen(viewModel) }
                 composable(

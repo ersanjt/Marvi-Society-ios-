@@ -602,28 +602,32 @@ struct AdminUserDetailSheet: View {
 
 struct AdminMapTab: View {
     @EnvironmentObject private var appState: AppState
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 41.015, longitude: 28.979),
-        span: MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
+    @State private var position: MapCameraPosition = .region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 41.015, longitude: 28.979),
+            span: MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
+        )
     )
 
     var body: some View {
         ZStack(alignment: .top) {
-            Map(coordinateRegion: $region, annotationItems: mapPins) { pin in
-                MapAnnotation(coordinate: pin.coordinate) {
-                    VStack(spacing: 2) {
-                        Image(systemName: pin.icon)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(6)
-                            .background(pin.tint)
-                            .clipShape(Circle())
-                        Text(pin.label)
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(MarviColor.panel)
-                            .clipShape(Capsule())
+            Map(position: $position) {
+                ForEach(mapPins) { pin in
+                    Annotation(pin.label, coordinate: pin.coordinate) {
+                        VStack(spacing: 2) {
+                            Image(systemName: pin.icon)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(6)
+                                .background(pin.tint)
+                                .clipShape(Circle())
+                            Text(pin.label)
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(MarviColor.panel)
+                                .clipShape(Capsule())
+                        }
                     }
                 }
             }

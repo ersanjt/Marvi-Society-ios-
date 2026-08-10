@@ -30,9 +30,9 @@ fi
 
 if [[ "$SKIP_WEB" != "1" ]]; then
   marvi_info "Building web..."
-  cd "$REPO_ROOT/apps/web"
-  npm install --silent 2>/dev/null || npm install
-  npm run build
+  cd "$REPO_ROOT"
+  npm ci
+  npm run web:build
   marvi_ok "Web build passed"
 fi
 

@@ -190,13 +190,13 @@ actor SupabaseClient {
             throw MarviAPIError.invalidResponse
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        applyHeaders(&request, authenticated: true)
-        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
+        let data = try await authenticatedData {
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            applyHeaders(&request, authenticated: true)
+            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+            return request
+        }
         do {
             return try JSONDecoder().decode([T].self, from: data)
         } catch {
@@ -206,25 +206,24 @@ actor SupabaseClient {
 
     func rpcVoid(function: String, body: [String: Any]) async throws {
         let url = baseURL.appending(path: "rest/v1/rpc/\(function)")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        applyHeaders(&request, authenticated: true)
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
+        _ = try await authenticatedData {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            applyHeaders(&request, authenticated: true)
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return request
+        }
     }
 
     func invokeFunction(name: String, body: [String: Any]) async throws -> Data {
         let url = baseURL.appending(path: "functions/v1/\(name)")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        applyHeaders(&request, authenticated: true)
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
-        return data
+        return try await authenticatedData {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            applyHeaders(&request, authenticated: true)
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return request
+        }
     }
 
     func rpc<T: Decodable>(
@@ -234,14 +233,14 @@ actor SupabaseClient {
         decoder: JSONDecoder = JSONDecoder()
     ) async throws -> T {
         let url = baseURL.appending(path: "rest/v1/rpc/\(function)")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        applyHeaders(&request, authenticated: true)
-        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
+        let data = try await authenticatedData {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            applyHeaders(&request, authenticated: true)
+            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return request
+        }
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
@@ -251,14 +250,14 @@ actor SupabaseClient {
 
     func insert(table: String, body: [String: Any]) async throws {
         let url = baseURL.appending(path: "rest/v1/\(table)")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        applyHeaders(&request, authenticated: true)
-        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
+        _ = try await authenticatedData {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            applyHeaders(&request, authenticated: true)
+            request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return request
+        }
     }
 
     func insertReturning<T: Decodable>(
@@ -267,14 +266,14 @@ actor SupabaseClient {
         type: T.Type = T.self
     ) async throws -> T {
         let url = baseURL.appending(path: "rest/v1/\(table)")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        applyHeaders(&request, authenticated: true)
-        request.setValue("return=representation", forHTTPHeaderField: "Prefer")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
+        let data = try await authenticatedData {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            applyHeaders(&request, authenticated: true)
+            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return request
+        }
         do {
             let rows = try JSONDecoder().decode([T].self, from: data)
             guard let first = rows.first else {
@@ -294,15 +293,16 @@ actor SupabaseClient {
         for component in path.split(separator: "/") {
             url.append(path: String(component))
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        applyHeaders(&request, authenticated: true)
-        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
-        request.setValue("true", forHTTPHeaderField: "x-upsert")
-        request.httpBody = data
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
+        _ = try await authenticatedData(retryTransientCancellation: true) {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            applyHeaders(&request, authenticated: true)
+            request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+            request.setValue("true", forHTTPHeaderField: "x-upsert")
+            request.httpBody = data
+            request.timeoutInterval = 90
+            return request
+        }
         return path
     }
 
@@ -364,13 +364,13 @@ actor SupabaseClient {
             throw MarviAPIError.invalidResponse
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        applyHeaders(&request, authenticated: true)
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validate(response: response, data: data)
+        _ = try await authenticatedData {
+            var request = URLRequest(url: url)
+            request.httpMethod = "PATCH"
+            applyHeaders(&request, authenticated: true)
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return request
+        }
     }
 
     // MARK: - Private
@@ -382,6 +382,45 @@ actor SupabaseClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         } else {
             request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        }
+    }
+
+    /// Runs an authenticated request with one session refresh on 401. Storage
+    /// uploads also get a single retry when URLSession reports a transient
+    /// cancellation while the surrounding Swift task is still active.
+    private func authenticatedData(
+        retryTransientCancellation: Bool = false,
+        request makeRequest: () throws -> URLRequest
+    ) async throws -> Data {
+        func execute() async throws -> Data {
+            var retriedCancellation = false
+            while true {
+                do {
+                    let request = try makeRequest()
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    try validate(response: response, data: data)
+                    return data
+                } catch is CancellationError {
+                    throw MarviAPIError.cancelled
+                } catch let error as URLError where error.code == .cancelled {
+                    if retryTransientCancellation, !Task.isCancelled, !retriedCancellation {
+                        retriedCancellation = true
+                        continue
+                    }
+                    throw MarviAPIError.cancelled
+                } catch let error as MarviAPIError {
+                    throw error
+                } catch {
+                    throw MarviAPIError.network(error)
+                }
+            }
+        }
+
+        do {
+            return try await execute()
+        } catch MarviAPIError.unauthorized {
+            try await refreshSession()
+            return try await execute()
         }
     }
 

@@ -3,7 +3,7 @@ Paste into App Store Connect → App Review Information → Notes:
 IMPORTANT — Please use EMAIL sign-in only (not Apple or Google).
 
 Email: review@marvisociety.com
-Password: MarviReview2026!
+Password: provided in the dedicated App Store Connect password field
 
 Pre-approved admin demo account with:
 • Approved creator profile + live Istanbul offers in Explore (Kesfet)
@@ -36,7 +36,7 @@ We addressed both issues in build 1.0 (14):
 
 Demo credentials:
 Email: review@marvisociety.com
-Password: MarviReview2026!
+Password: provided in the dedicated App Store Connect password field
 
 After email sign-in, Explore shows live campaigns. Profile → workspace switcher opens Creator, Venue, and Admin tools.
 
