@@ -23,6 +23,11 @@
   },
   "syncLog": [
     {
+      "at": "2026-08-10T12:51:30Z",
+      "status": "partial",
+      "message": "migrations combined; CLI not linked"
+    },
+    {
       "at": "2026-07-19T12:33:17Z",
       "status": "ok",
       "message": "pushed 0fc4180 to origin/main"
@@ -266,11 +271,6 @@
       "at": "2026-07-14T21:28:13Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260630000024_soften_social_verify_accept_gate)"
-    },
-    {
-      "at": "2026-07-14T21:10:01Z",
-      "status": "ok",
-      "message": "pushed 2a60bc5 to origin/main"
     }
   ],
   "releases": [
