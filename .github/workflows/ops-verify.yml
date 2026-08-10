@@ -34,7 +34,7 @@ jobs:
           python3 -c "
           import json
           m = json.load(open('release/manifest.json'))
-          count = len(__import__('pathlib').Path('infra/supabase/migrations').glob('*.sql'))
+          count = sum(1 for _ in __import__('pathlib').Path('infra/supabase/migrations').glob('*.sql'))
           assert m['components']['database']['migrationCount'] == count, 'manifest migration count drift'
           "
 

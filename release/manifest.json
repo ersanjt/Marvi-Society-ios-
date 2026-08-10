@@ -1,11 +1,11 @@
 {
   "version": "0.3.0",
   "codename": "platform-completion",
-  "releasedAt": "2026-06-11T00:00:00Z",
+  "releasedAt": "2026-08-10T00:00:00Z",
   "components": {
     "ios": {
-      "marketingVersion": "1.5.1",
-      "buildNumber": 51,
+      "marketingVersion": "1.5.2",
+      "buildNumber": 53,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,8 +17,8 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260809000002_org_brand_establishment",
-      "migrationCount": 49
+      "migrationHead": "20260810000001_account_deletion_task_cleanup",
+      "migrationCount": 52
     }
   },
   "syncLog": [
