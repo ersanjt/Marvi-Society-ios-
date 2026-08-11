@@ -189,36 +189,57 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func updateProfile(_ profile: CreatorProfile) async throws {
-        guard let userID = await client.currentUserID() else {
+        guard await client.currentUserID() != nil else {
             throw MarviAPIError.notAuthenticated
         }
 
-        // Ensure a row exists — PATCH on zero rows used to succeed silently in PostgREST.
         let _: CreatorProfileHealRow = try await client.rpc(
             function: "ensure_creator_profile",
             body: [:]
         )
 
         var body: [String: Any] = [
-            "instagram_handle": profile.handle,
-            "tiktok_handle": profile.tiktokHandle,
-            "city": profile.city.lowercased(),
-            "full_name": profile.name,
-            "bio": profile.bio,
-            "niches": profile.niches,
-            "languages": profile.languages
+            "p_full_name": profile.name,
+            "p_instagram_handle": profile.handle,
+            "p_tiktok_handle": profile.tiktokHandle,
+            "p_city": profile.city.lowercased(),
+            "p_bio": profile.bio,
+            "p_niches": profile.niches,
+            "p_languages": profile.languages
         ]
-        // Never wipe existing media with empty strings (matches Android).
         let avatar = profile.avatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let cover = profile.coverURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !avatar.isEmpty { body["avatar_url"] = avatar }
-        if !cover.isEmpty { body["cover_url"] = cover }
+        if !avatar.isEmpty { body["p_avatar_url"] = avatar }
+        if !cover.isEmpty { body["p_cover_url"] = cover }
 
-        try await client.patch(
-            table: "creator_profiles",
-            query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
-            body: body
-        )
+        // Prefer SECURITY DEFINER upsert so writes always stick and return the saved row.
+        do {
+            let _: CreatorProfileRow = try await client.rpc(
+                function: "upsert_my_creator_profile",
+                body: body
+            )
+        } catch {
+            // Fallback for environments that have not applied the latest migration yet.
+            var patchBody: [String: Any] = [
+                "instagram_handle": profile.handle,
+                "tiktok_handle": profile.tiktokHandle,
+                "city": profile.city.lowercased(),
+                "full_name": profile.name,
+                "bio": profile.bio,
+                "niches": profile.niches,
+                "languages": profile.languages
+            ]
+            if !avatar.isEmpty { patchBody["avatar_url"] = avatar }
+            if !cover.isEmpty { patchBody["cover_url"] = cover }
+            guard let userID = await client.currentUserID() else {
+                throw MarviAPIError.notAuthenticated
+            }
+            try await client.patch(
+                table: "creator_profiles",
+                query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
+                body: patchBody
+            )
+        }
 
         let locale: String = {
             if profile.languages.contains(where: { $0.lowercased().contains("turk") }) { return "tr" }
@@ -229,13 +250,14 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             return "en"
         }()
 
-        // Locale is best-effort; missing public.profiles row must not undo creator save.
-        try? await client.patch(
-            table: "profiles",
-            query: [URLQueryItem(name: "id", value: "eq.\(userID)")],
-            body: ["preferred_locale": locale],
-            requireRows: false
-        )
+        if let userID = await client.currentUserID() {
+            try? await client.patch(
+                table: "profiles",
+                query: [URLQueryItem(name: "id", value: "eq.\(userID)")],
+                body: ["preferred_locale": locale],
+                requireRows: false
+            )
+        }
     }
 
     func fetchNotifications() async throws -> [InboxMessage] {
@@ -866,7 +888,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     /// profile form. Keeps photo uploads reliable even if other fields are
     /// mid-edit or invalid.
     func updateProfileImageURL(_ url: String, kind: ProfileImageKind) async throws {
-        guard let userID = await client.currentUserID() else {
+        guard await client.currentUserID() != nil else {
             throw MarviAPIError.notAuthenticated
         }
 
@@ -875,18 +897,31 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             throw MarviAPIError.server(message: "Photo URL missing after upload.")
         }
 
-        // Ensure a row exists before writing the media column.
         let _: CreatorProfileHealRow = try await client.rpc(
             function: "ensure_creator_profile",
             body: [:]
         )
 
-        let column = kind == .avatar ? "avatar_url" : "cover_url"
-        try await client.patch(
-            table: "creator_profiles",
-            query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
-            body: [column: trimmed]
-        )
+        do {
+            let _: CreatorProfileRow = try await client.rpc(
+                function: "set_my_profile_image",
+                body: [
+                    "p_kind": kind.rawValue,
+                    "p_url": trimmed
+                ]
+            )
+        } catch {
+            // Fallback when migration is not applied yet.
+            guard let userID = await client.currentUserID() else {
+                throw MarviAPIError.notAuthenticated
+            }
+            let column = kind == .avatar ? "avatar_url" : "cover_url"
+            try await client.patch(
+                table: "creator_profiles",
+                query: [URLQueryItem(name: "user_id", value: "eq.\(userID)")],
+                body: [column: trimmed]
+            )
+        }
     }
 
     func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String {

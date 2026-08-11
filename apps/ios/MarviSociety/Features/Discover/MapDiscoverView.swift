@@ -85,7 +85,15 @@ struct MapDiscoverView: View {
                                 distanceLabel: appState.distanceLabel(for: selected),
                                 isAccepted: appState.isAccepted(selected),
                                 open: { navigationOffer = selected },
-                                accept: { appState.accept(selected) }
+                                accept: {
+                                    switch selected.collaborationModel {
+                                    case .event, .gift:
+                                        // Collect RSVP / shipping on the detail screen.
+                                        navigationOffer = selected
+                                    default:
+                                        appState.accept(selected)
+                                    }
+                                }
                             )
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                         } else if !nearbyOffers.isEmpty {

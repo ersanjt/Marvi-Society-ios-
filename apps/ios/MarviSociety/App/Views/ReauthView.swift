@@ -89,6 +89,18 @@ struct ReauthView: View {
                             }
                             .buttonStyle(.plain)
                             .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBusy)
+
+                            Button {
+                                appState.beginCreateAccountFlow()
+                            } label: {
+                                Text(appState.t(.newMemberCreate))
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(MarviColor.rose)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.top, 4)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isBusy)
                         }
                     }
                     .padding(.horizontal, 16)

@@ -164,31 +164,36 @@ final class AppState: ObservableObject {
         return profile.status == .paused
     }
 
+    /// Soft profile enrichment only — does not block entering the main app.
+    var needsSocialHandlesEntry: Bool { false }
+
+    /// Server `accept_offer` requires Instagram OR TikTok before accepting.
+    var missingSocialHandlesForAccept: Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        if accountRole == .admin { return false }
+        let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return handle.isEmpty && tiktok.isEmpty
+    }
+
     /// Soft nudge: Instagram DM verify recommended for trust (profile health), not a hard accept gate.
     var needsSocialVerification: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return false }
         if allowedRoles.contains(.venue), selectedRole == .venue { return false }
-        let handle = profile.handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let tiktok = profile.tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if handle.isEmpty && tiktok.isEmpty { return false }
+        if missingSocialHandlesForAccept { return false }
         return socialVerification?.isVerified != true
     }
 
     var needsSocialProfileCompletion: Bool {
-        needsSocialHandlesEntry || needsSocialVerification
-    }
-
-    /// Social handles are optional profile enrichment and never block normal members.
-    var needsSocialHandlesEntry: Bool {
-        false
+        missingSocialHandlesForAccept || needsSocialVerification
     }
 
     /// Whether the signed-in creator may accept live offers (client-side gate; server also enforces).
     var canAcceptOffers: Bool {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return true }
-        return profile.status == .approved && !needsAdminApproval
+        return profile.status == .approved && !needsAdminApproval && !missingSocialHandlesForAccept
     }
 
     /// Explains why Accept is disabled (shown under CTAs). Nil when accept is allowed.
@@ -201,8 +206,12 @@ final class AppState: ObservableObject {
         case .underReview:
             return t(.awaitingApproval)
         case .approved:
-            return nil
+            break
         }
+        if missingSocialHandlesForAccept {
+            return t(.completeProfileToAccept)
+        }
+        return nil
     }
 
     static func inferredSystemLanguage() -> AppLanguage {
@@ -606,6 +615,23 @@ final class AppState: ObservableObject {
         accountRole = .creator
         selectedRole = .creator
         SessionKeychain.clear()
+    }
+
+    /// Leaves the re-auth gate and opens onboarding signup for a new member.
+    func beginCreateAccountFlow() {
+        Task {
+            try? await api.signOut()
+            clearServerState()
+            hasLoadedInitialData = false
+            isAuthenticated = false
+            allowedRoles = [.creator]
+            accountRole = .creator
+            selectedRole = .creator
+            SessionKeychain.clear()
+            needsReauthentication = false
+            hasCompletedOnboarding = false
+            lastSyncError = nil
+        }
     }
 
     /// True when the signed-in user already finished onboarding on the server.
@@ -2216,8 +2242,14 @@ final class AppState: ObservableObject {
             || lower.contains("user already exists") {
             return t(.errAccountExists)
         }
-        if lower.contains("membership not approved") {
-            return t(.awaitingApproval)
+        if lower.contains("instagram or tiktok handle required") {
+            return t(.completeProfileToAccept)
+        }
+        if lower.contains("rsvp guest count required") {
+            return t(.extrasRequiredSub)
+        }
+        if lower.contains("shipping address required") {
+            return t(.extrasRequiredSub)
         }
         if lower.contains("no slots") || lower.contains("remaining_slots") {
             return t(.errInvitationFull)
