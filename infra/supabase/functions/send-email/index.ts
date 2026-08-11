@@ -7,7 +7,12 @@ type Template =
   | "admin_message"
   | "invite_code"
   | "contact_form"
-  | "demo_request";
+  | "demo_request"
+  | "booking_requested"
+  | "booking_confirmed"
+  | "collaboration_request_venue"
+  | "account_deleted"
+  | "admin_ops_alert";
 
 type DeliveryMethod =
   | "resend"
@@ -84,22 +89,22 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
   if (template === "welcome_application") {
     if (locale === "tr") {
       return {
-        subject: "Marvi Society — başvurunuz alındı",
+        subject: "Marvi Society — hoş geldin",
         html: wrap(
           `Merhaba ${name},`,
-          `<p>Başvurunuz bize ulaştı. Ekibimiz profilinizi inceleyecek ve onaylandığında size e-posta göndereceğiz.</p>
+          `<p>Marvi Society hesabın hazır. Artık işletmeleri keşfedebilir, iş birliği talebi gönderebilirsin.</p>
            <p>Şehir: <strong>${esc(vars.city ?? "İstanbul")}</strong></p>
-           <p>Bu arada <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a> üzerinden topluluğumuzu keşfedebilirsiniz.</p>`,
+           <p>Uygulamayı açıp <strong>Keşfet</strong> sekmesinden başla.</p>`,
         ),
       };
     }
     return {
-      subject: "Marvi Society — your application was received",
+      subject: "Marvi Society — welcome",
       html: wrap(
         `Hi ${name},`,
-        `<p>We received your creator application. Our team will review your profile and email you once you are approved.</p>
+        `<p>Your Marvi Society account is ready. Discover businesses and send collaboration requests.</p>
          <p>City: <strong>${esc(vars.city ?? "Istanbul")}</strong></p>
-         <p>In the meantime, explore our community at <a href="${site}/creators" style="color:#ff2f77;">marvisociety.com</a>.</p>`,
+         <p>Open the app and start from <strong>Explore</strong>.</p>`,
       ),
     };
   }
@@ -200,6 +205,112 @@ function buildEmail(template: Template, locale: Locale, vars: Record<string, str
     };
   }
 
+  if (template === "booking_requested") {
+    const offer = esc(vars.offer_title ?? "Collaboration");
+    const venue = esc(vars.venue_name ?? "Business");
+    if (locale === "tr") {
+      return {
+        subject: "Marvi Society — talebin alındı",
+        html: wrap(
+          `Merhaba ${name},`,
+          `<p><strong>${offer}</strong> için iş birliği talebin gönderildi.</p>
+           <p>İşletme: <strong>${venue}</strong></p>
+           <p>Onaylandığında sana e-posta ve uygulama bildirimi gelecek.</p>`,
+        ),
+      };
+    }
+    return {
+      subject: "Marvi Society — request received",
+      html: wrap(
+        `Hi ${name},`,
+        `<p>Your collaboration request for <strong>${offer}</strong> was sent.</p>
+         <p>Business: <strong>${venue}</strong></p>
+         <p>We'll email you when it's confirmed.</p>`,
+      ),
+    };
+  }
+
+  if (template === "booking_confirmed") {
+    const offer = esc(vars.offer_title ?? "Collaboration");
+    const venue = esc(vars.venue_name ?? "Business");
+    if (locale === "tr") {
+      return {
+        subject: "Marvi Society — iş birliği onaylandı",
+        html: wrap(
+          `Harika haber ${name}!`,
+          `<p><strong>${venue}</strong> iş birliğini onayladı: <strong>${offer}</strong>.</p>
+           <p>Uygulamada <strong>Etkinliklerim</strong> ve Mesajlar'dan devam edebilirsin.</p>`,
+        ),
+      };
+    }
+    return {
+      subject: "Marvi Society — collaboration confirmed",
+      html: wrap(
+        `Great news ${name}!`,
+        `<p><strong>${venue}</strong> confirmed your collaboration: <strong>${offer}</strong>.</p>
+         <p>Continue in the app under <strong>My Events</strong> and Messages.</p>`,
+      ),
+    };
+  }
+
+  if (template === "collaboration_request_venue") {
+    const offer = esc(vars.offer_title ?? "Campaign");
+    const creator = esc(vars.creator_name ?? "Creator");
+    if (locale === "tr") {
+      return {
+        subject: "Marvi Society — yeni iş birliği talebi",
+        html: wrap(
+          `Merhaba ${name},`,
+          `<p><strong>${creator}</strong>, <strong>${offer}</strong> kampanyan için iş birliği istedi.</p>
+           <p>Uygulama veya portal üzerinden talebi incele ve onayla.</p>`,
+        ),
+      };
+    }
+    return {
+      subject: "Marvi Society — new collaboration request",
+      html: wrap(
+        `Hi ${name},`,
+        `<p><strong>${creator}</strong> requested to collaborate on <strong>${offer}</strong>.</p>
+         <p>Review and confirm in the app or portal.</p>`,
+      ),
+    };
+  }
+
+  if (template === "account_deleted") {
+    if (locale === "tr") {
+      return {
+        subject: "Marvi Society — hesabın silindi",
+        html: wrap(
+          `Merhaba ${name},`,
+          `<p>Marvi Society hesabın silindi. Artık bu e-posta ile giriş yapılamaz.</p>
+           <p>Bu işlemi sen talep etmediysen hemen <a href="mailto:support@marvisociety.com" style="color:#ff2f77;">support@marvisociety.com</a> adresine yaz.</p>`,
+        ),
+      };
+    }
+    return {
+      subject: "Marvi Society — account deleted",
+      html: wrap(
+        `Hi ${name},`,
+        `<p>Your Marvi Society account has been deleted. You can no longer sign in with this email.</p>
+         <p>If you did not request this, contact <a href="mailto:support@marvisociety.com" style="color:#ff2f77;">support@marvisociety.com</a> immediately.</p>`,
+      ),
+    };
+  }
+
+  if (template === "admin_ops_alert") {
+    const event = esc(vars.event ?? "System event");
+    const detail = esc(vars.detail ?? "").replace(/\n/g, "<br/>");
+    return {
+      subject: `[Ops] ${vars.event ?? "Marvi alert"}`,
+      html: wrap(
+        "Operations alert",
+        `<p><strong>Event:</strong> ${event}</p>
+         <p><strong>Detail:</strong><br/>${detail || "—"}</p>
+         <p><a href="${site}/admin" style="color:#ff2f77;">Open admin console</a></p>`,
+      ),
+    };
+  }
+
   throw new Error(`Unknown template: ${template}`);
 }
 
@@ -213,15 +324,15 @@ function authNoticeCopy(
   if (template === "welcome_application") {
     return locale === "tr"
       ? {
-        title: "Başvurunuz alındı",
+        title: "Hoş geldin",
         body:
-          `Merhaba ${name}, başvurunuz bize ulaştı. Ekibimiz profilinizi inceleyecek. Şehir: ${vars.city ?? "İstanbul"}.`,
+          `Merhaba ${name}, Marvi Society hesabın hazır. Şehir: ${vars.city ?? "İstanbul"}. Keşfet sekmesinden başla.`,
         cta: "Marvi Society'yi aç",
       }
       : {
-        title: "Application received",
+        title: "Welcome",
         body:
-          `Hi ${name}, we received your application. Our team will review your profile. City: ${vars.city ?? "Istanbul"}.`,
+          `Hi ${name}, your Marvi Society account is ready. City: ${vars.city ?? "Istanbul"}. Start from Explore.`,
         cta: "Open Marvi Society",
       };
   }
@@ -286,7 +397,7 @@ function authNoticeCopy(
 
 function resolveAuthRecipient(template: Template, toEmail: string, vars: Record<string, string>): string {
   // Internal ops templates go to support inbox when Resend is unavailable.
-  if (template === "contact_form" || template === "demo_request") {
+  if (template === "contact_form" || template === "demo_request" || template === "admin_ops_alert") {
     return REPLY_TO;
   }
   return toEmail;

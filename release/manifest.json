@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260811143001_marvi_db_integrity_check",
-      "migrationCount": 55
+      "migrationHead": "20260811150001_lifecycle_emails_and_ops_monitoring",
+      "migrationCount": 56
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-11T11:32:37Z",
+      "status": "partial",
+      "message": "migrations combined; CLI not linked"
+    },
+    {
+      "at": "2026-08-11T11:18:19Z",
+      "status": "ok",
+      "message": "pushed e30f972 to origin/main"
+    },
     {
       "at": "2026-08-11T11:18:16Z",
       "status": "partial",
@@ -261,16 +271,6 @@
       "at": "2026-07-15T11:24:10Z",
       "status": "ok",
       "message": "pushed e340d61 to origin/main"
-    },
-    {
-      "at": "2026-07-15T11:24:05Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000026_campaign_media_and_fields)"
-    },
-    {
-      "at": "2026-07-15T11:08:13Z",
-      "status": "ok",
-      "message": "pushed 614b696 to origin/main"
     }
   ],
   "releases": [
