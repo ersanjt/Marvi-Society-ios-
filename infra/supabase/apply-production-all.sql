@@ -1,5 +1,5 @@
 -- Marvi Society — production patches (idempotent)
--- Generated: 2026-06-23T20:22:23Z
+-- Generated: 2026-08-11T12:26:42Z
 -- Run in Supabase SQL Editor on EXISTING projects (schema already deployed).
 -- Safe to re-run. Do not use on empty DB — use ALL_MIGRATIONS_COMBINED.sql instead.
 

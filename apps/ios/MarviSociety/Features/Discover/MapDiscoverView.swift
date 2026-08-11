@@ -24,8 +24,7 @@ struct MapDiscoverView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .top) {
+        ZStack(alignment: .top) {
                 Map(position: $cameraPosition, selection: $mapSelectedOffer) {
                     if let user = appState.userCoordinate {
                         Annotation("You", coordinate: CLLocationCoordinate2D(latitude: user.lat, longitude: user.lng)) {
@@ -109,8 +108,10 @@ struct MapDiscoverView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(item: $navigationOffer) { offer in
-                OfferDetailView(offer: offer)
+            .sheet(item: $navigationOffer) { offer in
+                NavigationStack {
+                    OfferDetailView(offer: offer)
+                }
             }
             .onAppear {
                 appState.refreshLocation()
@@ -119,7 +120,6 @@ struct MapDiscoverView: View {
             .onChange(of: appState.userCoordinate?.lat) { _, _ in
                 centerOnUserOrIstanbul()
             }
-        }
     }
 
     private func centerOnUserOrIstanbul() {

@@ -41,10 +41,9 @@ type EmailRow = {
 
 type ActivityRow = {
   id: string;
-  event_name?: string;
-  name?: string;
-  entity_type?: string;
-  entity_id?: string;
+  action?: string;
+  subject_type?: string;
+  subject_id?: string | null;
   created_at: string;
   actor_user_id?: string | null;
 };
@@ -124,9 +123,9 @@ export default async function AdminOpsPage() {
             <ul className="divide-y divide-border">
               {activity.map((row) => (
                 <li key={row.id} className="grid gap-1 px-4 py-3 text-sm md:grid-cols-[1.4fr_1fr_0.8fr]">
-                  <span className="font-medium text-ink">{row.event_name || row.name || "event"}</span>
+                  <span className="font-medium text-ink">{row.action || "event"}</span>
                   <span className="text-graphite">
-                    {[row.entity_type, row.entity_id].filter(Boolean).join(" · ") || "—"}
+                    {[row.subject_type, row.subject_id].filter(Boolean).join(" · ") || "—"}
                   </span>
                   <span className="text-muted">{new Date(row.created_at).toLocaleString(locale === "tr" ? "tr-TR" : "en-GB")}</span>
                 </li>

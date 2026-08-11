@@ -334,18 +334,13 @@ BEGIN
     END IF;
 
     SELECT * INTO v_offer FROM public.offers WHERE id = v_booking.offer_id FOR UPDATE;
-    IF v_offer.remaining_slots <= 0 THEN
-        RAISE EXCEPTION 'No slots remaining';
-    END IF;
+    -- Slot was already reserved at accept_offer (invited). remaining_slots may be 0;
+    -- do not re-check capacity or decrement again.
 
     UPDATE public.bookings
     SET stage = 'confirmed', updated_at = now()
     WHERE id = p_booking_id
     RETURNING * INTO v_booking;
-
-    UPDATE public.offers
-    SET remaining_slots = remaining_slots - 1
-    WHERE id = v_booking.offer_id;
 
     UPDATE public.collaboration_requests
     SET status = 'matched',
@@ -575,3 +570,77 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_list_email_outbox(INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_system_health() TO authenticated;
+
+-- Cancel must restore slots held at accept (invited) as well as confirmed+.
+CREATE OR REPLACE FUNCTION public.cancel_booking(p_booking_id UUID)
+RETURNS public.bookings
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_booking public.bookings;
+    v_prev public.booking_stage;
+    v_is_venue BOOLEAN := false;
+BEGIN
+    PERFORM set_config('marvi.allow_booking_mutation', '1', true);
+
+    SELECT * INTO v_booking
+    FROM public.bookings
+    WHERE id = p_booking_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Booking not found';
+    END IF;
+
+    IF v_booking.creator_id = public.current_creator_id() THEN
+        NULL;
+    ELSIF EXISTS (
+        SELECT 1
+        FROM public.offers o
+        JOIN public.venue_profiles v ON v.id = o.venue_id
+        WHERE o.id = v_booking.offer_id AND v.owner_user_id = auth.uid()
+    ) THEN
+        v_is_venue := true;
+    ELSIF public.is_admin() THEN
+        NULL;
+    ELSE
+        RAISE EXCEPTION 'Booking not found';
+    END IF;
+
+    IF v_booking.stage = 'cancelled' THEN
+        RETURN v_booking;
+    END IF;
+
+    v_prev := v_booking.stage;
+
+    UPDATE public.bookings
+    SET stage = 'cancelled', updated_at = now()
+    WHERE id = p_booking_id
+    RETURNING * INTO v_booking;
+
+    IF v_prev IN ('invited', 'confirmed', 'checked_in', 'proof_due', 'completed') THEN
+        UPDATE public.offers
+        SET remaining_slots = LEAST(remaining_slots + 1, capacity)
+        WHERE id = v_booking.offer_id;
+    END IF;
+
+    RETURN v_booking;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.cancel_booking(UUID) TO authenticated;
+
+-- Repair capacity counters from non-cancelled bookings.
+UPDATE public.offers o
+SET remaining_slots = greatest(
+        o.capacity - (
+            SELECT count(*)::INTEGER
+            FROM public.bookings b
+            WHERE b.offer_id = o.id AND b.stage <> 'cancelled'
+        ),
+        0
+    ),
+    updated_at = now();
+

@@ -52,6 +52,15 @@ class SupabaseClient(
         install(ContentNegotiation) { json(json) }
     }
 
+    /** Empty base URL becomes relative `/…` → Android resolves `http://localhost` and blocks cleartext. */
+    private fun requireConfiguredUrl() {
+        if (baseUrl.isBlank()) {
+            throw MarviApiException(
+                "Supabase is not configured. Add MARVI_SUPABASE_URL to apps/android/local.properties and rebuild."
+            )
+        }
+    }
+
     @Volatile
     var accessToken: String? = null
         private set
@@ -322,6 +331,7 @@ class SupabaseClient(
     }
 
     private fun io.ktor.client.request.HttpRequestBuilder.applyHeaders(authenticated: Boolean) {
+        requireConfiguredUrl()
         contentType(ContentType.Application.Json)
         header("apikey", anonKey)
         header(

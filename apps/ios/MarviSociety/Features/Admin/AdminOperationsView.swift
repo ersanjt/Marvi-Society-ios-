@@ -1,4 +1,5 @@
 import MapKit
+import PhotosUI
 import SwiftUI
 
 enum AdminConsoleTab: String, CaseIterable, Identifiable {
@@ -38,6 +39,7 @@ struct AdminUsersTab: View {
     @EnvironmentObject private var appState: AppState
     @State private var searchText = ""
     @State private var selectedUser: AdminUserSummary?
+    @State private var statusFilter: String? = nil
     @State private var inviteEmail = ""
     @State private var inviteCode = ""
     @State private var inviteMaxUses = "1"
@@ -51,114 +53,137 @@ struct AdminUsersTab: View {
     @State private var createCity = "istanbul"
     @State private var createPassword = ""
     @State private var actionMessage = ""
+    @State private var showTools = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 SectionTitle(
-                    title: "User directory",
-                    subtitle: "Search members, block accounts, send email or in-app notifications."
+                    title: appState.t(.adminUsersDirectoryTitle),
+                    subtitle: appState.t(.adminUsersDirectorySub)
                 )
 
-                inviteCodesSection
+                statusFilterBar
 
-                MarviCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(appState.t(.createAccountDirect))
-                            .font(.caption.weight(.bold))
-                            .textCase(.uppercase)
-                            .foregroundStyle(MarviColor.muted)
-
-                        MarviTextField(placeholder: "Email", text: $createEmail, autocapitalization: .never)
-                        MarviTextField(placeholder: "Full name", text: $createName)
-                        MarviTextField(placeholder: "City", text: $createCity)
-                        MarviTextField(placeholder: "Password (optional)", text: $createPassword, autocapitalization: .never)
-
-                        Button {
-                            Task {
-                                actionMessage = ""
-                                let outcome = await appState.adminCreateUserAccount(
-                                    email: createEmail,
-                                    password: createPassword.isEmpty ? nil : createPassword,
-                                    fullName: createName,
-                                    city: createCity
-                                )
-                                if let error = outcome.error {
-                                    actionMessage = error
-                                } else if let result = outcome.result {
-                                    if let temp = result.temporaryPassword, !temp.isEmpty {
-                                        actionMessage = "Created \(result.email). Temp password: \(temp)"
-                                    } else {
-                                        actionMessage = "Created \(result.email)."
-                                    }
-                                    createEmail = ""
-                                    createPassword = ""
-                                }
-                            }
-                        } label: {
-                            Label("Create & approve", systemImage: "person.badge.plus")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white)
-                        .background(MarviColor.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .disabled(createEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                HStack {
+                    Text("\(filteredUsers.count) \(appState.t(.adminUsersCountLabel))")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(MarviColor.muted)
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { showTools.toggle() }
+                    } label: {
+                        Label(
+                            showTools ? appState.t(.adminHideTools) : appState.t(.adminShowTools),
+                            systemImage: showTools ? "chevron.up" : "slider.horizontal.3"
+                        )
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(MarviColor.rose)
                     }
+                    .buttonStyle(.plain)
                 }
 
-                MarviCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Send invite email")
-                            .font(.caption.weight(.bold))
-                            .textCase(.uppercase)
-                            .foregroundStyle(MarviColor.muted)
+                if showTools {
+                    inviteCodesSection
 
-                        MarviTextField(placeholder: "Email", text: $inviteEmail, autocapitalization: .never)
-                        MarviTextField(
-                            placeholder: appState.t(.adminInviteCodeLabel) + " (optional)",
-                            text: $inviteCode,
-                            autocapitalization: .never
-                        )
-                        MarviTextField(
-                            placeholder: appState.t(.adminInviteQuotaPh),
-                            text: $inviteMaxUses,
-                            autocapitalization: .never
-                        )
+                    MarviCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(appState.t(.createAccountDirect))
+                                .font(.caption.weight(.bold))
+                                .textCase(.uppercase)
+                                .foregroundStyle(MarviColor.muted)
 
-                        Button {
-                            Task {
-                                actionMessage = ""
-                                let maxUses = Int(inviteMaxUses.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 1
-                                if let error = await appState.adminSendInviteEmail(
-                                    email: inviteEmail,
-                                    inviteCode: inviteCode.isEmpty ? nil : inviteCode,
-                                    maxUses: maxUses
-                                ) {
-                                    actionMessage = error
-                                } else {
-                                    if let summary = appState.lastInviteActionSummary {
-                                        actionMessage = "\(appState.t(.inviteEmailQueued)): \(summary)"
-                                    } else {
-                                        actionMessage = appState.t(.inviteEmailQueued)
+                            MarviTextField(placeholder: "Email", text: $createEmail, autocapitalization: .never)
+                            MarviTextField(placeholder: "Full name", text: $createName)
+                            MarviTextField(placeholder: "City", text: $createCity)
+                            MarviTextField(placeholder: "Password (optional)", text: $createPassword, autocapitalization: .never)
+
+                            Button {
+                                Task {
+                                    actionMessage = ""
+                                    let outcome = await appState.adminCreateUserAccount(
+                                        email: createEmail,
+                                        password: createPassword.isEmpty ? nil : createPassword,
+                                        fullName: createName,
+                                        city: createCity
+                                    )
+                                    if let error = outcome.error {
+                                        actionMessage = error
+                                    } else if let result = outcome.result {
+                                        if let temp = result.temporaryPassword, !temp.isEmpty {
+                                            actionMessage = "Created \(result.email). Temp password: \(temp)"
+                                        } else {
+                                            actionMessage = "Created \(result.email)."
+                                        }
+                                        createEmail = ""
+                                        createPassword = ""
                                     }
-                                    inviteEmail = ""
-                                    inviteCode = ""
                                 }
+                            } label: {
+                                Label("Create & approve", systemImage: "person.badge.plus")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
                             }
-                        } label: {
-                            Label(appState.t(.sendInviteEmail), systemImage: "envelope.badge")
-                                .font(.subheadline.weight(.bold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.white)
+                            .background(MarviColor.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .disabled(createEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white)
-                        .background(MarviGradient.brand)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .disabled(inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+
+                    MarviCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(appState.t(.sendInviteEmail))
+                                .font(.caption.weight(.bold))
+                                .textCase(.uppercase)
+                                .foregroundStyle(MarviColor.muted)
+
+                            MarviTextField(placeholder: "Email", text: $inviteEmail, autocapitalization: .never)
+                            MarviTextField(
+                                placeholder: appState.t(.adminInviteCodeLabel) + " (optional)",
+                                text: $inviteCode,
+                                autocapitalization: .never
+                            )
+                            MarviTextField(
+                                placeholder: appState.t(.adminInviteQuotaPh),
+                                text: $inviteMaxUses,
+                                autocapitalization: .never
+                            )
+
+                            Button {
+                                Task {
+                                    actionMessage = ""
+                                    let maxUses = Int(inviteMaxUses.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 1
+                                    if let error = await appState.adminSendInviteEmail(
+                                        email: inviteEmail,
+                                        inviteCode: inviteCode.isEmpty ? nil : inviteCode,
+                                        maxUses: maxUses
+                                    ) {
+                                        actionMessage = error
+                                    } else {
+                                        if let summary = appState.lastInviteActionSummary {
+                                            actionMessage = "\(appState.t(.inviteEmailQueued)): \(summary)"
+                                        } else {
+                                            actionMessage = appState.t(.inviteEmailQueued)
+                                        }
+                                        inviteEmail = ""
+                                        inviteCode = ""
+                                    }
+                                }
+                            } label: {
+                                Label(appState.t(.sendInviteEmail), systemImage: "envelope.badge")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.white)
+                            .background(MarviGradient.brand)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .disabled(inviteEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
                     }
                 }
 
@@ -175,7 +200,21 @@ struct AdminUsersTab: View {
                             subtitle: appState.t(.noUsersLoadedSub),
                             icon: "person.3",
                             actionTitle: appState.t(.refresh),
-                            action: { Task { await appState.loadAdminUsers(search: searchText) } }
+                            action: { Task { await appState.loadAdminUsers(search: searchText, status: statusFilter) } }
+                        )
+                    }
+                } else if filteredUsers.isEmpty {
+                    MarviCard {
+                        EmptyStateView(
+                            title: appState.t(.adminUsersFilterEmpty),
+                            subtitle: appState.t(.adminUsersFilterEmptySub),
+                            icon: "line.3.horizontal.decrease.circle",
+                            actionTitle: appState.t(.adminClearFilters),
+                            action: {
+                                searchText = ""
+                                statusFilter = nil
+                                Task { await appState.loadAdminUsers() }
+                            }
                         )
                     }
                 } else {
@@ -193,10 +232,10 @@ struct AdminUsersTab: View {
         }
         .searchable(text: $searchText, prompt: appState.t(.searchUsersPrompt))
         .onSubmit(of: .search) {
-            Task { await appState.loadAdminUsers(search: searchText) }
+            Task { await appState.loadAdminUsers(search: searchText, status: statusFilter) }
         }
         .refreshable {
-            await appState.loadAdminUsers(search: searchText)
+            await appState.loadAdminUsers(search: searchText, status: statusFilter)
             await appState.loadAdminInviteCodes()
         }
         .task {
@@ -211,6 +250,34 @@ struct AdminUsersTab: View {
             AdminUserDetailSheet(user: user)
                 .environmentObject(appState)
         }
+    }
+
+    private var statusFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterChip(title: appState.t(.adminFilterAll), value: nil)
+                filterChip(title: "approved", value: "approved")
+                filterChip(title: "under_review", value: "under_review")
+                filterChip(title: "paused", value: "paused")
+            }
+        }
+    }
+
+    private func filterChip(title: String, value: String?) -> some View {
+        let selected = statusFilter == value
+        return Button {
+            statusFilter = value
+            Task { await appState.loadAdminUsers(search: searchText, status: statusFilter) }
+        } label: {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .foregroundStyle(selected ? Color.white : MarviColor.ink)
+                .background(selected ? MarviColor.rose : MarviColor.panelElevated)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     private var inviteCodesSection: some View {
@@ -357,6 +424,7 @@ struct AdminUsersTab: View {
         )
     }
 
+
     private var filteredUsers: [AdminUserSummary] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !query.isEmpty else { return appState.adminUsers }
@@ -376,13 +444,17 @@ private struct AdminUserRow: View {
     var body: some View {
         MarviCard {
             HStack(spacing: 12) {
+                AdminAvatarView(urlString: user.avatarURL, initials: user.initials, size: 52)
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(user.displayName)
                         .font(.headline.weight(.bold))
                         .foregroundStyle(MarviColor.ink)
+                        .lineLimit(1)
                     Text(user.email ?? appState.t(.noEmail))
                         .font(.caption)
                         .foregroundStyle(MarviColor.muted)
+                        .lineLimit(1)
                     HStack(spacing: 8) {
                         StatusPill(text: user.status ?? "unknown", tint: statusTint, systemImage: "circle.fill")
                         if let city = user.city, !city.isEmpty {
@@ -393,7 +465,7 @@ private struct AdminUserRow: View {
                         }
                     }
                 }
-                Spacer()
+                Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
                     .foregroundStyle(MarviColor.muted)
             }
@@ -409,6 +481,38 @@ private struct AdminUserRow: View {
     }
 }
 
+private struct AdminAvatarView: View {
+    let urlString: String?
+    let initials: String
+    var size: CGFloat = 48
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(MarviColor.panelElevated)
+            if let urlString, let url = URL(string: urlString), !urlString.isEmpty {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        Text(initials).font(.caption.weight(.bold)).foregroundStyle(MarviColor.muted)
+                    default:
+                        ProgressView().scaleEffect(0.7)
+                    }
+                }
+            } else {
+                Text(initials)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(MarviColor.muted)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(MarviColor.panel, lineWidth: 1))
+    }
+}
+
 struct AdminUserDetailSheet: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -421,6 +525,16 @@ struct AdminUserDetailSheet: View {
     @State private var emailSubject = ""
     @State private var emailBody = ""
     @State private var feedback = ""
+    @State private var avatarPickerItem: PhotosPickerItem?
+    @State private var coverPickerItem: PhotosPickerItem?
+    @State private var isBusy = false
+    @State private var openedThread: DirectThread?
+    @State private var showPublicProfile = false
+    @State private var isOpeningMessage = false
+
+    private var avatarURL: String? { detail?.avatarURL ?? user.avatarURL }
+    private var coverURL: String? { detail?.coverURL ?? user.coverURL }
+    private var creatorID: UUID? { detail?.creatorID ?? user.creatorID }
 
     var body: some View {
         NavigationStack {
@@ -428,6 +542,9 @@ struct AdminUserDetailSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if let detail {
+                            mediaHero
+                            quickActions
+                            photoAdminSection
                             detailSection(detail)
                             actionSection
                             if !detail.bookingSummaries.isEmpty {
@@ -441,6 +558,13 @@ struct AdminUserDetailSheet: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.top, 40)
                         }
+
+                        if !feedback.isEmpty {
+                            Text(feedback)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.emerald)
+                                .padding(.horizontal, 4)
+                        }
                     }
                     .padding(16)
                 }
@@ -453,6 +577,202 @@ struct AdminUserDetailSheet: View {
             }
             .task {
                 detail = await appState.loadAdminUserDetail(userID: user.userID)
+            }
+            .onChange(of: avatarPickerItem) { _, item in
+                guard let item else { return }
+                Task { await handlePhoto(item: item, kind: .avatar) }
+            }
+            .onChange(of: coverPickerItem) { _, item in
+                guard let item else { return }
+                Task { await handlePhoto(item: item, kind: .cover) }
+            }
+            .sheet(item: $openedThread) { thread in
+                DirectChatThreadView(thread: thread)
+                    .environmentObject(appState)
+            }
+            .sheet(isPresented: $showPublicProfile) {
+                if let creatorID {
+                    CreatorPublicProfileView(creatorID: creatorID, fallbackName: user.displayName)
+                        .environmentObject(appState)
+                }
+            }
+        }
+    }
+
+    private var mediaHero: some View {
+        MarviCard {
+            VStack(spacing: 0) {
+                ZStack(alignment: .bottomLeading) {
+                    Group {
+                        if let coverURL, let url = URL(string: coverURL), !coverURL.isEmpty {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image.resizable().scaledToFill()
+                                default:
+                                    MarviGradient.brand.opacity(0.35)
+                                }
+                            }
+                        } else {
+                            MarviGradient.brand.opacity(0.35)
+                        }
+                    }
+                    .frame(height: 140)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+
+                    AdminAvatarView(urlString: avatarURL, initials: user.initials, size: 72)
+                        .overlay(Circle().stroke(MarviColor.panel, lineWidth: 3))
+                        .offset(x: 16, y: 28)
+                }
+                .padding(.bottom, 36)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(user.displayName)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                    Text(user.email ?? appState.t(.noEmail))
+                        .font(.subheadline)
+                        .foregroundStyle(MarviColor.muted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+            }
+            .padding(0)
+        }
+    }
+
+    private var quickActions: some View {
+        HStack(spacing: 10) {
+            quickButton(appState.t(.sendMessageBtn), icon: "paperplane.fill", tint: MarviColor.rose) {
+                isOpeningMessage = true
+                openedThread = await appState.openDirectThread(with: user.userID)
+                isOpeningMessage = false
+                if openedThread == nil {
+                    feedback = appState.t(.errSomeDataRefresh)
+                }
+            }
+            .disabled(isOpeningMessage)
+
+            quickButton(appState.t(.adminEmailPhotoHint), icon: "envelope.fill", tint: MarviColor.blue) {
+                emailSubject = appState.t(.adminPhotoEmailSubject)
+                emailBody = appState.t(.adminPhotoEmailBody)
+            }
+
+            quickButton(appState.t(.adminViewPublicProfile), icon: "person.crop.circle", tint: MarviColor.aubergine) {
+                if creatorID != nil {
+                    showPublicProfile = true
+                } else {
+                    feedback = appState.t(.adminNoCreatorProfile)
+                }
+            }
+        }
+    }
+
+    private func quickButton(_ title: String, icon: String, tint: Color, action: @escaping () async -> Void) -> some View {
+        Button {
+            Task { await action() }
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.body.weight(.bold))
+                Text(title)
+                    .font(.caption2.weight(.bold))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .foregroundStyle(tint)
+            .background(tint.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var photoAdminSection: some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(appState.t(.adminPhotoToolsTitle))
+                    .font(.caption.weight(.bold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(MarviColor.muted)
+
+                HStack(spacing: 10) {
+                    PhotosPicker(selection: $avatarPickerItem, matching: .images) {
+                        Label(appState.t(.adminChangeAvatar), systemImage: "person.crop.circle.badge.plus")
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(MarviColor.ink)
+                    .background(MarviColor.panelElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .disabled(isBusy)
+
+                    Button {
+                        Task {
+                            isBusy = true
+                            if let error = await appState.adminClearUserPhoto(userID: user.userID, kind: .avatar) {
+                                feedback = error
+                            } else {
+                                feedback = appState.t(.adminPhotoCleared)
+                                detail = await appState.loadAdminUserDetail(userID: user.userID)
+                            }
+                            isBusy = false
+                        }
+                    } label: {
+                        Label(appState.t(.adminDeleteAvatar), systemImage: "trash")
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(MarviColor.tomato)
+                    .background(MarviColor.tomato.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .disabled(isBusy)
+                }
+
+                HStack(spacing: 10) {
+                    PhotosPicker(selection: $coverPickerItem, matching: .images) {
+                        Label(appState.t(.adminChangeCover), systemImage: "photo.on.rectangle.angled")
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(MarviColor.ink)
+                    .background(MarviColor.panelElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .disabled(isBusy)
+
+                    Button {
+                        Task {
+                            isBusy = true
+                            if let error = await appState.adminClearUserPhoto(userID: user.userID, kind: .cover) {
+                                feedback = error
+                            } else {
+                                feedback = appState.t(.adminPhotoCleared)
+                                detail = await appState.loadAdminUserDetail(userID: user.userID)
+                            }
+                            isBusy = false
+                        }
+                    } label: {
+                        Label(appState.t(.adminDeleteCover), systemImage: "trash")
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(MarviColor.tomato)
+                    .background(MarviColor.tomato.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .disabled(isBusy)
+                }
             }
         }
     }
@@ -548,12 +868,6 @@ struct AdminUserDetailSheet: View {
                         feedback = appState.t(.emailQueued)
                     }
                 }
-
-                if !feedback.isEmpty {
-                    Text(feedback)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(MarviColor.emerald)
-                }
             }
         }
     }
@@ -600,6 +914,28 @@ struct AdminUserDetailSheet: View {
         .foregroundStyle(tint == MarviColor.emerald || tint == MarviColor.rose ? .white : MarviColor.ink)
         .background(tint.opacity(tint == MarviColor.emerald || tint == MarviColor.rose ? 1 : 0.12))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func handlePhoto(item: PhotosPickerItem, kind: ProfileImageKind) async {
+        isBusy = true
+        defer {
+            isBusy = false
+            if kind == .avatar { avatarPickerItem = nil } else { coverPickerItem = nil }
+        }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                feedback = appState.t(.errPhotoTooLarge)
+                return
+            }
+            if let error = await appState.adminUploadUserPhoto(userID: user.userID, data: data, kind: kind) {
+                feedback = error
+            } else {
+                feedback = appState.t(.adminPhotoUpdated)
+                detail = await appState.loadAdminUserDetail(userID: user.userID)
+            }
+        } catch {
+            feedback = appState.t(.errPhotoTooLarge)
+        }
     }
 }
 

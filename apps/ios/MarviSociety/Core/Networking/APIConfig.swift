@@ -184,6 +184,15 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String {
         throw notConfigured()
     }
+    func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind, forUserID: UUID) async throws -> String {
+        throw notConfigured()
+    }
+    func updateProfileImageURL(_ url: String, kind: ProfileImageKind) async throws {
+        throw notConfigured()
+    }
+    func adminSetUserProfileImage(userID: UUID, kind: ProfileImageKind, url: String?) async throws {
+        throw notConfigured()
+    }
     func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String { throw notConfigured() }
     func fetchMyShowcase() async throws -> [ShowcaseItem] { [] }
     func fetchShowcase(userID: UUID) async throws -> [ShowcaseItem] { [] }

@@ -114,22 +114,41 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     suspend fun updateProfile(profile: CreatorProfile) {
-        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
-        client.patch(
-            table = "creator_profiles",
-            filters = mapOf("user_id" to "eq.$userId"),
-            body = buildJsonObject {
-                put("full_name", profile.name)
-                put("instagram_handle", profile.handle.removePrefix("@"))
-                put("tiktok_handle", profile.tiktokHandle.removePrefix("@"))
-                put("city", profile.city.lowercase())
-                put("bio", profile.bio)
-                put("niches", JsonArray(profile.niches.map { kotlinx.serialization.json.JsonPrimitive(it) }))
-                put("languages", JsonArray(profile.languages.map { kotlinx.serialization.json.JsonPrimitive(it) }))
-                if (profile.avatarUrl.isNotBlank()) put("avatar_url", profile.avatarUrl)
-                if (profile.coverUrl.isNotBlank()) put("cover_url", profile.coverUrl)
-            }
-        )
+        client.currentUserId() ?: throw MarviApiException("Not authenticated")
+        try {
+            client.rpcJson(
+                "upsert_my_creator_profile",
+                buildJsonObject {
+                    put("p_full_name", profile.name)
+                    put("p_instagram_handle", profile.handle.removePrefix("@"))
+                    put("p_tiktok_handle", profile.tiktokHandle.removePrefix("@"))
+                    put("p_city", profile.city.lowercase())
+                    put("p_bio", profile.bio)
+                    putJsonArray("p_niches") { profile.niches.forEach { add(it) } }
+                    putJsonArray("p_languages") { profile.languages.forEach { add(it) } }
+                    if (profile.avatarUrl.isNotBlank()) put("p_avatar_url", profile.avatarUrl)
+                    if (profile.coverUrl.isNotBlank()) put("p_cover_url", profile.coverUrl)
+                }
+            )
+        } catch (first: Exception) {
+            // Fallback when migration is not applied yet.
+            val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+            client.patch(
+                table = "creator_profiles",
+                filters = mapOf("user_id" to "eq.$userId"),
+                body = buildJsonObject {
+                    put("full_name", profile.name)
+                    put("instagram_handle", profile.handle.removePrefix("@"))
+                    put("tiktok_handle", profile.tiktokHandle.removePrefix("@"))
+                    put("city", profile.city.lowercase())
+                    put("bio", profile.bio)
+                    put("niches", JsonArray(profile.niches.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+                    put("languages", JsonArray(profile.languages.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+                    if (profile.avatarUrl.isNotBlank()) put("avatar_url", profile.avatarUrl)
+                    if (profile.coverUrl.isNotBlank()) put("cover_url", profile.coverUrl)
+                }
+            )
+        }
     }
 
     /** Uploads to private `proof-uploads` and returns the relative storage path for `p_links`. */

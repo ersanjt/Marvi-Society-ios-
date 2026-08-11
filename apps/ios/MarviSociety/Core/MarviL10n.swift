@@ -127,7 +127,7 @@ enum MarviL10n {
         case acceptanceTerms, termAttendance, termAttendanceVal, termContent, termContentVal
         case termPolicy, termPolicyVal, cancelInvitationQ, keepBtn, venueNotifiedCancel
         case pleaseWait, confirmedStatus, matchPercent, slotsLeft, extrasRequiredSub
-        case featuredEvent, featuredEvents, sortEvents, loadingEvents, noEventsYet
+        case featuredEvent, featuredEvents, sortEvents, loadingEvents, noEventsYet, clearFilters, filtersHidResults
         case fetchingLive, newVenueInvites, searchVenuePrompt
         // Map & misc UI
         case now, details, eventsFound, loadingWorkspace, configurationRequired, configurationSub
@@ -142,6 +142,13 @@ enum MarviL10n {
         case operationsCommand, adminControl, adminControlSub
         case usersLabel, bookingsLabel, strikesLabel, reviewQueue, reviewQueueSub
         case adminTabQueue, adminTabUsers, adminTabMap, adminTabBroadcast, adminTabActivity
+        case adminUsersDirectoryTitle, adminUsersDirectorySub, adminUsersCountLabel
+        case adminShowTools, adminHideTools, adminFilterAll, adminClearFilters
+        case adminUsersFilterEmpty, adminUsersFilterEmptySub
+        case adminEmailPhotoHint, adminPhotoEmailSubject, adminPhotoEmailBody
+        case adminViewPublicProfile, adminNoCreatorProfile, adminPhotoToolsTitle
+        case adminChangeAvatar, adminDeleteAvatar, adminChangeCover, adminDeleteCover
+        case adminPhotoCleared, adminPhotoUpdated
         case messagesTitle, noMessagesYet, noMessagesYetSub, messagePlaceholder
         case pendingVenueConfirm, pendingVenueConfirmSub, confirmCollaboration
         case venueInviteTitle, venueInviteSub, acceptVenueInvite
@@ -475,6 +482,7 @@ enum MarviL10n {
         .extrasRequiredSub: "Required before confirming this collaboration.",
         .featuredEvent: "Featured Event", .featuredEvents: "Featured Events",
         .sortEvents: "Sort events", .loadingEvents: "Loading events…", .noEventsYet: "No events yet",
+        .clearFilters: "Clear filters", .filtersHidResults: "No events match your filters.",
         .fetchingLive: "Fetching live campaigns from the server.",
         .newVenueInvites: "New venue invitations appear here when published for %@. Pull down to refresh.",
         .searchVenuePrompt: "Venue, area, category",
@@ -503,6 +511,27 @@ enum MarviL10n {
         .reviewQueue: "Review queue", .reviewQueueSub: "Approve or reject items before they go live.",
         .adminTabQueue: "Queue", .adminTabUsers: "Users", .adminTabMap: "Map", .adminTabBroadcast: "Broadcast",
         .adminTabActivity: "Activity",
+        .adminUsersDirectoryTitle: "Members",
+        .adminUsersDirectorySub: "See photos, message or email members, and fix profile media.",
+        .adminUsersCountLabel: "members",
+        .adminShowTools: "Invite tools",
+        .adminHideTools: "Hide tools",
+        .adminFilterAll: "All",
+        .adminClearFilters: "Clear filters",
+        .adminUsersFilterEmpty: "No matching members",
+        .adminUsersFilterEmptySub: "Try another status or clear the search.",
+        .adminEmailPhotoHint: "Photo email",
+        .adminPhotoEmailSubject: "Please update your Marvi profile photo",
+        .adminPhotoEmailBody: "Merhaba,\n\nProfil veya kapak fotoğrafınız net / uygun görünmüyor. Lütfen uygulamadan güncelleyin.\n\nMarvi Operasyon",
+        .adminViewPublicProfile: "Public profile",
+        .adminNoCreatorProfile: "This member has no creator profile yet.",
+        .adminPhotoToolsTitle: "Profile photos",
+        .adminChangeAvatar: "Change avatar",
+        .adminDeleteAvatar: "Delete avatar",
+        .adminChangeCover: "Change cover",
+        .adminDeleteCover: "Delete cover",
+        .adminPhotoCleared: "Photo removed.",
+        .adminPhotoUpdated: "Photo updated.",
         .messagesTitle: "Messages", .noMessagesYet: "No messages yet", .noMessagesYetSub: "When a collaboration is confirmed, you can chat here.",
         .messagePlaceholder: "Write a message…",
         .pendingVenueConfirm: "Pending confirmations", .pendingVenueConfirmSub: "Creators accepted your offer — confirm to open chat.",
@@ -941,6 +970,7 @@ enum MarviL10n {
         .extrasRequiredSub: "Bu iş birliğini onaylamadan önce gerekli.",
         .featuredEvent: "Öne çıkan etkinlik", .featuredEvents: "Öne çıkan etkinlikler",
         .sortEvents: "Etkinlikleri sırala", .loadingEvents: "Etkinlikler yükleniyor…", .noEventsYet: "Henüz etkinlik yok",
+        .clearFilters: "Filtreleri temizle", .filtersHidResults: "Filtrelere uygun etkinlik yok.",
         .fetchingLive: "Sunucudan canlı kampanyalar alınıyor.",
         .newVenueInvites: "%@ için yeni mekân davetleri yayınlandığında burada görünür. Yenilemek için aşağı çek.",
         .searchVenuePrompt: "Mekân, bölge, kategori",
@@ -969,6 +999,27 @@ enum MarviL10n {
         .reviewQueue: "İnceleme kuyruğu", .reviewQueueSub: "Yayınlanmadan önce öğeleri onayla veya reddet.",
         .adminTabQueue: "Kuyruk", .adminTabUsers: "Kullanıcılar", .adminTabMap: "Harita", .adminTabBroadcast: "Yayın",
         .adminTabActivity: "Aktivite",
+        .adminUsersDirectoryTitle: "Üyeler",
+        .adminUsersDirectorySub: "Fotoğrafları görün, mesaj veya e-posta gönderin, profil medyasını düzeltin.",
+        .adminUsersCountLabel: "üye",
+        .adminShowTools: "Davet araçları",
+        .adminHideTools: "Araçları gizle",
+        .adminFilterAll: "Tümü",
+        .adminClearFilters: "Filtreleri temizle",
+        .adminUsersFilterEmpty: "Eşleşen üye yok",
+        .adminUsersFilterEmptySub: "Başka bir durum deneyin veya aramayı temizleyin.",
+        .adminEmailPhotoHint: "Foto e-posta",
+        .adminPhotoEmailSubject: "Lütfen Marvi profil fotoğrafınızı güncelleyin",
+        .adminPhotoEmailBody: "Merhaba,\n\nProfil veya kapak fotoğrafınız net / uygun görünmüyor. Lütfen uygulamadan güncelleyin.\n\nMarvi Operasyon",
+        .adminViewPublicProfile: "Herkese açık profil",
+        .adminNoCreatorProfile: "Bu üyenin henüz içerik üreticisi profili yok.",
+        .adminPhotoToolsTitle: "Profil fotoğrafları",
+        .adminChangeAvatar: "Avatar değiştir",
+        .adminDeleteAvatar: "Avatar sil",
+        .adminChangeCover: "Kapak değiştir",
+        .adminDeleteCover: "Kapak sil",
+        .adminPhotoCleared: "Fotoğraf kaldırıldı.",
+        .adminPhotoUpdated: "Fotoğraf güncellendi.",
         .messagesTitle: "Mesajlar", .noMessagesYet: "Henüz mesaj yok", .noMessagesYetSub: "İş birliği onaylandığında buradan sohbet edebilirsiniz.",
         .messagePlaceholder: "Mesaj yaz…",
         .pendingVenueConfirm: "Onay bekleyenler", .pendingVenueConfirmSub: "Creator teklifinizi kabul etti — sohbet için onaylayın.",

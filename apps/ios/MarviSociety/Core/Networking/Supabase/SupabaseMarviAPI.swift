@@ -247,7 +247,8 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             if city.contains("istanbul") || ["kadıköy", "kadikoy", "beşiktaş", "besiktas"].contains(city) {
                 return "tr"
             }
-            return "en"
+            // Product default is Istanbul Turkish.
+            return "tr"
         }()
 
         if let userID = await client.currentUserID() {
@@ -857,10 +858,14 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind) async throws -> String {
-        guard let userID = await client.currentUserID() else {
+        guard let userID = await client.currentUserID(), let uuid = UUID(uuidString: userID) else {
             throw MarviAPIError.notAuthenticated
         }
-        let path = "\(userID)/\(kind.rawValue)/\(fileName)"
+        return try await uploadProfileImage(data: data, fileName: fileName, kind: kind, forUserID: uuid)
+    }
+
+    func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind, forUserID: UUID) async throws -> String {
+        let path = "\(forUserID)/\(kind.rawValue)/\(fileName)"
         _ = try await client.uploadObject(
             bucket: "profile-media",
             path: path,
@@ -876,7 +881,6 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 .appending(path: path),
             resolvingAgainstBaseURL: false
         )
-        // Cache-busting token so AsyncImage reloads after re-uploading to the same path.
         components?.queryItems = [URLQueryItem(name: "v", value: String(Int(Date().timeIntervalSince1970)))]
         return components?.url?.absoluteString ?? base
             .appending(path: "storage/v1/object/public/profile-media")
@@ -922,6 +926,18 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
                 body: [column: trimmed]
             )
         }
+    }
+
+    func adminSetUserProfileImage(userID: UUID, kind: ProfileImageKind, url: String?) async throws {
+        let trimmed = url?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let _: CreatorProfileRow = try await client.rpc(
+            function: "admin_set_user_profile_image",
+            body: [
+                "p_user_id": userID.uuidString,
+                "p_kind": kind.rawValue,
+                "p_url": trimmed
+            ]
+        )
     }
 
     func uploadShowcaseMedia(data: Data, fileName: String, contentType: String) async throws -> String {

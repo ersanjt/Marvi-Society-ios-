@@ -1030,6 +1030,9 @@ struct AdminUserSummary: Identifiable, Hashable, Codable {
     var lastLat: Double?
     var lastLng: Double?
     var lastSeenAt: Date?
+    var creatorID: UUID?
+    var avatarURL: String?
+    var coverURL: String?
 
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
@@ -1042,6 +1045,9 @@ struct AdminUserSummary: Identifiable, Hashable, Codable {
         case lastLat = "last_lat"
         case lastLng = "last_lng"
         case lastSeenAt = "last_seen_at"
+        case creatorID = "creator_id"
+        case avatarURL = "avatar_url"
+        case coverURL = "cover_url"
     }
 
     var displayName: String {
@@ -1053,6 +1059,12 @@ struct AdminUserSummary: Identifiable, Hashable, Codable {
     var hasLiveLocation: Bool {
         lastLat != nil && lastLng != nil
     }
+
+    var initials: String {
+        let parts = displayName.split(separator: " ").prefix(2)
+        let letters = parts.compactMap { $0.first.map(String.init) }
+        return letters.isEmpty ? "?" : letters.joined().uppercased()
+    }
 }
 
 struct AdminUserDetail: Codable {
@@ -1062,9 +1074,12 @@ struct AdminUserDetail: Codable {
     var status: String?
     var referralCode: String?
     var phone: String?
+    var creatorID: UUID?
     var creatorCity: String?
     var creatorHandle: String?
     var creatorScore: Int?
+    var avatarURL: String?
+    var coverURL: String?
     var locationLat: Double?
     var locationLng: Double?
     var locationUpdatedAt: Date?
@@ -1091,16 +1106,22 @@ struct AdminUserDetail: Codable {
         phone = try container.decodeIfPresent(String.self, forKey: .phone)
 
         if let creator = try container.decodeIfPresent([String: JSONValue].self, forKey: .creator) {
+            creatorID = creator["id"]?.uuidValue
             creatorCity = creator["city"]?.stringValue
             creatorHandle = creator["instagram_handle"]?.stringValue
             creatorScore = creator["score"]?.intValue
+            avatarURL = creator["avatar_url"]?.stringValue
+            coverURL = creator["cover_url"]?.stringValue
             socialVerificationCode = creator["social_verification_code"]?.stringValue
             socialVerificationSubmittedAt = creator["social_verification_submitted_at"]?.dateValue
             socialVerificationVerifiedAt = creator["social_verification_verified_at"]?.dateValue
         } else {
+            creatorID = nil
             creatorCity = nil
             creatorHandle = nil
             creatorScore = nil
+            avatarURL = nil
+            coverURL = nil
             socialVerificationCode = nil
             socialVerificationSubmittedAt = nil
             socialVerificationVerifiedAt = nil
@@ -1167,6 +1188,11 @@ private enum JSONValue: Decodable {
     var stringValue: String? {
         if case .string(let value) = self { return value }
         return nil
+    }
+
+    var uuidValue: UUID? {
+        guard let stringValue else { return nil }
+        return UUID(uuidString: stringValue)
     }
 
     var doubleValue: Double? {

@@ -43,6 +43,28 @@ struct DiscoverView: View {
         OfferCategory.allCases.map { $0.label(for: appState.preferredLanguage) }
     }
 
+    private var hasActiveFilters: Bool {
+        selectedCategory != nil
+            || selectedModel != nil
+            || selectedFilter != .all
+            || selectedWhen != nil
+            || selectedWhere != nil
+            || selectedEventType != nil
+            || selectedCalendarDay != nil
+            || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func clearAllFilters() {
+        selectedCategory = nil
+        selectedModel = nil
+        selectedFilter = .all
+        selectedWhen = nil
+        selectedWhere = nil
+        selectedEventType = nil
+        selectedCalendarDay = nil
+        searchText = ""
+    }
+
     private var cityLabel: String {
         let city = appState.profile.city.trimmingCharacters(in: .whitespacesAndNewlines)
         return city.isEmpty ? appState.t(.yourCity) : city
@@ -216,8 +238,16 @@ struct DiscoverView: View {
                                 selectedFilter = selectedFilter == .all ? .saved : .all
                             },
                             onSort: { isShowingSortMenu = true },
-                            onLocation: { selectedWhere = whereOptions.first },
-                            onDate: { selectedCalendarDay = 0 }
+                            onLocation: {
+                                if selectedWhere == whereOptions.first {
+                                    selectedWhere = nil
+                                } else {
+                                    selectedWhere = whereOptions.first
+                                }
+                            },
+                            onDate: {
+                                selectedCalendarDay = selectedCalendarDay == 0 ? nil : 0
+                            }
                         )
                         .confirmationDialog(appState.t(.sortEvents), isPresented: $isShowingSortMenu, titleVisibility: .visible) {
                             Button(appState.t(.sortNewest)) { sortMode = .newest }
@@ -279,13 +309,31 @@ struct DiscoverView: View {
                         } else if filteredOffers.isEmpty {
                             MarviCard {
                                 EmptyStateView(
-                                    title: appState.isSyncing ? appState.t(.loadingEvents) : appState.t(.noEventsYet),
+                                    title: appState.isSyncing
+                                        ? appState.t(.loadingEvents)
+                                        : (hasActiveFilters && !appState.offers.isEmpty
+                                           ? appState.t(.filtersHidResults)
+                                           : appState.t(.noEventsYet)),
                                     subtitle: appState.isSyncing
                                         ? appState.t(.fetchingLive)
-                                        : String(format: appState.t(.newVenueInvites), cityLabel),
+                                        : (hasActiveFilters && !appState.offers.isEmpty
+                                           ? appState.t(.clearFilters)
+                                           : String(format: appState.t(.newVenueInvites), cityLabel)),
                                     icon: "calendar.badge.clock",
-                                    actionTitle: appState.isSyncing ? nil : appState.t(.refresh),
-                                    action: appState.isSyncing ? nil : { Task { await appState.refreshFromServer() } }
+                                    actionTitle: appState.isSyncing
+                                        ? nil
+                                        : (hasActiveFilters && !appState.offers.isEmpty
+                                           ? appState.t(.clearFilters)
+                                           : appState.t(.refresh)),
+                                    action: appState.isSyncing
+                                        ? nil
+                                        : {
+                                            if hasActiveFilters && !appState.offers.isEmpty {
+                                                clearAllFilters()
+                                            } else {
+                                                Task { await appState.refreshFromServer() }
+                                            }
+                                        }
                                 )
                             }
                         } else {

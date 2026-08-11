@@ -554,17 +554,28 @@ private struct AdminTaskCard: View {
     }
 
     private var taskActionHint: String {
+        let tr = appState.preferredLanguage == .turkish
         switch task.type {
         case .creatorApplication:
-            "Approve activates creator membership and Explore access."
+            return tr
+                ? "Onay, içerik üreticisi üyeliğini ve Keşfet erişimini açar."
+                : "Approve activates creator membership and Explore access."
         case .venueApplication:
-            "Approve enables venue Studio workspace."
+            return tr
+                ? "Onay, Mekân Stüdyo çalışma alanını açar."
+                : "Approve enables the venue Studio workspace."
         case .campaignReview:
-            "Approve publishes this campaign live on Explore."
+            return tr
+                ? "Onay, kampanyayı Keşfet'te canlı yayınlar."
+                : "Approve publishes this campaign live on Explore."
         case .proofReview:
-            "Approve marks proof as delivered; reject flags for follow-up."
+            return tr
+                ? "Onay kanıtı teslim edilmiş sayar; red takip için işaretler."
+                : "Approve marks proof as delivered; reject flags for follow-up."
         case .socialVerification:
-            "Approve confirms Instagram DM ownership for the listed handles."
+            return tr
+                ? "Onay, listelenen hesaplar için Instagram DM sahipliğini doğrular."
+                : "Approve confirms Instagram DM ownership for the listed handles."
         }
     }
 }

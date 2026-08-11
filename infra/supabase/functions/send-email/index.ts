@@ -388,6 +388,65 @@ function authNoticeCopy(
       cta: "Open dashboard",
     };
   }
+  if (template === "booking_requested") {
+    return locale === "tr"
+      ? {
+        title: "Talebin alındı",
+        body: `Merhaba ${name}, ${vars.offer_title ?? "iş birliği"} talebin gönderildi (${vars.venue_name ?? "işletme"}).`,
+        cta: "Uygulamayı aç",
+      }
+      : {
+        title: "Request received",
+        body: `Hi ${name}, your request for ${vars.offer_title ?? "collaboration"} was sent (${vars.venue_name ?? "business"}).`,
+        cta: "Open app",
+      };
+  }
+  if (template === "booking_confirmed") {
+    return locale === "tr"
+      ? {
+        title: "İş birliği onaylandı",
+        body: `Merhaba ${name}, ${vars.venue_name ?? "işletme"} talebini onayladı: ${vars.offer_title ?? "iş birliği"}.`,
+        cta: "Etkinliklerim",
+      }
+      : {
+        title: "Collaboration confirmed",
+        body: `Hi ${name}, ${vars.venue_name ?? "the business"} confirmed: ${vars.offer_title ?? "collaboration"}.`,
+        cta: "My Events",
+      };
+  }
+  if (template === "collaboration_request_venue") {
+    return locale === "tr"
+      ? {
+        title: "Yeni iş birliği talebi",
+        body: `${vars.creator_name ?? "Bir creator"} ${vars.offer_title ?? "kampanyan"} için talep gönderdi.`,
+        cta: "İncele",
+      }
+      : {
+        title: "New collaboration request",
+        body: `${vars.creator_name ?? "A creator"} requested ${vars.offer_title ?? "your campaign"}.`,
+        cta: "Review",
+      };
+  }
+  if (template === "account_deleted") {
+    return locale === "tr"
+      ? {
+        title: "Hesabın silindi",
+        body: `Merhaba ${name}, Marvi Society hesabın silindi.`,
+        cta: "Destek",
+      }
+      : {
+        title: "Account deleted",
+        body: `Hi ${name}, your Marvi Society account was deleted.`,
+        cta: "Support",
+      };
+  }
+  if (template === "admin_ops_alert") {
+    return {
+      title: `[Ops] ${vars.event ?? "Alert"}`,
+      body: String(vars.detail ?? vars.event ?? "System event").slice(0, 1500),
+      cta: "Open admin",
+    };
+  }
   return {
     title: "Marvi Society",
     body: locale === "tr" ? "Yeni bir bildiriminiz var." : "You have a new notice.",

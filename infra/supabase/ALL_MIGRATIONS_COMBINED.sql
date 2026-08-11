@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-08-11T11:32:36Z
+-- Generated: 2026-08-11T12:41:04Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
@@ -11742,18 +11742,13 @@ BEGIN
     END IF;
 
     SELECT * INTO v_offer FROM public.offers WHERE id = v_booking.offer_id FOR UPDATE;
-    IF v_offer.remaining_slots <= 0 THEN
-        RAISE EXCEPTION 'No slots remaining';
-    END IF;
+    -- Slot was already reserved at accept_offer (invited). remaining_slots may be 0;
+    -- do not re-check capacity or decrement again.
 
     UPDATE public.bookings
     SET stage = 'confirmed', updated_at = now()
     WHERE id = p_booking_id
     RETURNING * INTO v_booking;
-
-    UPDATE public.offers
-    SET remaining_slots = remaining_slots - 1
-    WHERE id = v_booking.offer_id;
 
     UPDATE public.collaboration_requests
     SET status = 'matched',
@@ -11983,5 +11978,226 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_list_email_outbox(INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_system_health() TO authenticated;
+
+-- Cancel must restore slots held at accept (invited) as well as confirmed+.
+CREATE OR REPLACE FUNCTION public.cancel_booking(p_booking_id UUID)
+RETURNS public.bookings
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_booking public.bookings;
+    v_prev public.booking_stage;
+    v_is_venue BOOLEAN := false;
+BEGIN
+    PERFORM set_config('marvi.allow_booking_mutation', '1', true);
+
+    SELECT * INTO v_booking
+    FROM public.bookings
+    WHERE id = p_booking_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Booking not found';
+    END IF;
+
+    IF v_booking.creator_id = public.current_creator_id() THEN
+        NULL;
+    ELSIF EXISTS (
+        SELECT 1
+        FROM public.offers o
+        JOIN public.venue_profiles v ON v.id = o.venue_id
+        WHERE o.id = v_booking.offer_id AND v.owner_user_id = auth.uid()
+    ) THEN
+        v_is_venue := true;
+    ELSIF public.is_admin() THEN
+        NULL;
+    ELSE
+        RAISE EXCEPTION 'Booking not found';
+    END IF;
+
+    IF v_booking.stage = 'cancelled' THEN
+        RETURN v_booking;
+    END IF;
+
+    v_prev := v_booking.stage;
+
+    UPDATE public.bookings
+    SET stage = 'cancelled', updated_at = now()
+    WHERE id = p_booking_id
+    RETURNING * INTO v_booking;
+
+    IF v_prev IN ('invited', 'confirmed', 'checked_in', 'proof_due', 'completed') THEN
+        UPDATE public.offers
+        SET remaining_slots = LEAST(remaining_slots + 1, capacity)
+        WHERE id = v_booking.offer_id;
+    END IF;
+
+    RETURN v_booking;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.cancel_booking(UUID) TO authenticated;
+
+-- Repair capacity counters from non-cancelled bookings.
+UPDATE public.offers o
+SET remaining_slots = greatest(
+        o.capacity - (
+            SELECT count(*)::INTEGER
+            FROM public.bookings b
+            WHERE b.offer_id = o.id AND b.stage <> 'cancelled'
+        ),
+        0
+    ),
+    updated_at = now();
+
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260811160001_admin_user_media_and_directory.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Admin user directory: avatars/covers in list + admin photo set/clear + storage write for admins.
+
+DROP FUNCTION IF EXISTS public.admin_list_users(TEXT, TEXT, INTEGER);
+
+CREATE OR REPLACE FUNCTION public.admin_list_users(
+    p_search TEXT DEFAULT NULL,
+    p_status TEXT DEFAULT NULL,
+    p_limit INTEGER DEFAULT 100
+)
+RETURNS TABLE (
+    user_id UUID,
+    email TEXT,
+    role public.user_role,
+    status public.membership_status,
+    full_name TEXT,
+    instagram_handle TEXT,
+    city TEXT,
+    strike_count BIGINT,
+    booking_count BIGINT,
+    last_lat DOUBLE PRECISION,
+    last_lng DOUBLE PRECISION,
+    last_seen_at TIMESTAMPTZ,
+    creator_id UUID,
+    avatar_url TEXT,
+    cover_url TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Admin only';
+    END IF;
+
+    RETURN QUERY
+    SELECT
+        p.id,
+        coalesce(p.email, u.email),
+        p.role,
+        p.status,
+        cp.full_name,
+        cp.instagram_handle,
+        cp.city,
+        (SELECT count(*) FROM public.strikes s JOIN public.creator_profiles c ON c.id = s.creator_id WHERE c.user_id = p.id),
+        (SELECT count(*) FROM public.bookings b JOIN public.creator_profiles c ON c.id = b.creator_id WHERE c.user_id = p.id),
+        loc.lat,
+        loc.lng,
+        loc.updated_at,
+        cp.id,
+        cp.avatar_url,
+        cp.cover_url
+    FROM public.profiles p
+    LEFT JOIN auth.users u ON u.id = p.id
+    LEFT JOIN public.creator_profiles cp ON cp.user_id = p.id
+    LEFT JOIN public.user_location_snapshots loc ON loc.user_id = p.id
+    WHERE (
+        p_search IS NULL OR trim(p_search) = ''
+        OR lower(coalesce(p.email, u.email, '')) LIKE '%' || lower(trim(p_search)) || '%'
+        OR lower(coalesce(cp.full_name, '')) LIKE '%' || lower(trim(p_search)) || '%'
+        OR lower(coalesce(cp.instagram_handle, '')) LIKE '%' || lower(trim(p_search)) || '%'
+        OR lower(coalesce(cp.city, '')) LIKE '%' || lower(trim(p_search)) || '%'
+    )
+    AND (
+        p_status IS NULL OR trim(p_status) = ''
+        OR p.status::TEXT = lower(trim(p_status))
+    )
+    ORDER BY p.updated_at DESC NULLS LAST, p.created_at DESC
+    LIMIT greatest(1, least(coalesce(p_limit, 100), 200));
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_list_users(TEXT, TEXT, INTEGER) TO authenticated;
+
+-- Empty/null p_url clears the photo. Non-empty sets it.
+CREATE OR REPLACE FUNCTION public.admin_set_user_profile_image(
+    p_user_id UUID,
+    p_kind TEXT,
+    p_url TEXT DEFAULT NULL
+)
+RETURNS public.creator_profiles
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_profile public.creator_profiles;
+    v_url TEXT := nullif(trim(COALESCE(p_url, '')), '');
+    v_kind TEXT := lower(trim(COALESCE(p_kind, '')));
+BEGIN
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Admin only';
+    END IF;
+    IF p_user_id IS NULL THEN
+        RAISE EXCEPTION 'User required';
+    END IF;
+    IF v_kind NOT IN ('avatar', 'cover') THEN
+        RAISE EXCEPTION 'Invalid image kind';
+    END IF;
+
+    -- Ensure a creator row exists so admin can manage media for any member.
+    INSERT INTO public.creator_profiles (user_id, full_name, city)
+    SELECT p.id, coalesce(nullif(trim(p.email), ''), 'Member'), 'istanbul'
+    FROM public.profiles p
+    WHERE p.id = p_user_id
+    ON CONFLICT (user_id) DO NOTHING;
+
+    IF v_kind = 'avatar' THEN
+        UPDATE public.creator_profiles
+        SET avatar_url = v_url, updated_at = now()
+        WHERE user_id = p_user_id
+        RETURNING * INTO v_profile;
+    ELSE
+        UPDATE public.creator_profiles
+        SET cover_url = v_url, updated_at = now()
+        WHERE user_id = p_user_id
+        RETURNING * INTO v_profile;
+    END IF;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Creator profile not found';
+    END IF;
+
+    PERFORM public.log_activity_event(
+        'admin_set_profile_image',
+        'user',
+        p_user_id,
+        jsonb_build_object('kind', v_kind, 'cleared', v_url IS NULL)
+    );
+
+    RETURN v_profile;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_set_user_profile_image(UUID, TEXT, TEXT) TO authenticated;
+
+-- Admins may upload/replace/delete any object under profile-media.
+DROP POLICY IF EXISTS profile_media_admin_write ON storage.objects;
+CREATE POLICY profile_media_admin_write ON storage.objects
+    FOR ALL
+    USING (bucket_id = 'profile-media' AND public.is_admin())
+    WITH CHECK (bucket_id = 'profile-media' AND public.is_admin());
 
 

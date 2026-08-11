@@ -80,6 +80,7 @@ final class AppState: ObservableObject {
 
     private var lastNotifiedInstantOfferID: UUID?
     private var lastLocationUploadAt: Date?
+    private var authFlowGeneration = 0
 
     let locationService = LocationService()
     var isRemoteMode: Bool { APIConfig.isSupabaseConfigured }
@@ -167,7 +168,7 @@ final class AppState: ObservableObject {
     /// Soft profile enrichment only — does not block entering the main app.
     var needsSocialHandlesEntry: Bool { false }
 
-    /// Server `accept_offer` requires Instagram OR TikTok before accepting.
+    /// Soft profile nudge only — server accept_offer only hard-blocks paused accounts.
     var missingSocialHandlesForAccept: Bool {
         guard isRemoteMode, isAuthenticated else { return false }
         if accountRole == .admin { return false }
@@ -193,23 +194,15 @@ final class AppState: ObservableObject {
     var canAcceptOffers: Bool {
         guard isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return true }
-        return profile.status == .approved && !needsAdminApproval && !missingSocialHandlesForAccept
+        return !needsAdminApproval
     }
 
     /// Explains why Accept is disabled (shown under CTAs). Nil when accept is allowed.
     var acceptBlockedReason: String? {
         guard isAuthenticated, hasCompletedOnboarding else { return t(.signInToAccept) }
         if accountRole == .admin { return nil }
-        switch profile.status {
-        case .paused:
+        if needsAdminApproval || profile.status == .paused {
             return t(.membershipPaused)
-        case .underReview:
-            return t(.awaitingApproval)
-        case .approved:
-            break
-        }
-        if missingSocialHandlesForAccept {
-            return t(.completeProfileToAccept)
         }
         return nil
     }
@@ -619,8 +612,14 @@ final class AppState: ObservableObject {
 
     /// Leaves the re-auth gate and opens onboarding signup for a new member.
     func beginCreateAccountFlow() {
+        authFlowGeneration += 1
+        let generation = authFlowGeneration
+        needsReauthentication = false
+        hasCompletedOnboarding = false
+        lastSyncError = nil
         Task {
             try? await api.signOut()
+            guard generation == authFlowGeneration else { return }
             clearServerState()
             hasLoadedInitialData = false
             isAuthenticated = false
@@ -630,7 +629,6 @@ final class AppState: ObservableObject {
             SessionKeychain.clear()
             needsReauthentication = false
             hasCompletedOnboarding = false
-            lastSyncError = nil
         }
     }
 
@@ -1028,6 +1026,7 @@ final class AppState: ObservableObject {
 
         do {
             try await api.signInWithEmail(email, password: password, metadata: metadata)
+            authFlowGeneration += 1
             isAuthenticated = true
             needsReauthentication = false
             await refreshFromServer()
@@ -1046,6 +1045,7 @@ final class AppState: ObservableObject {
 
         do {
             try await api.signUpWithEmail(email, password: password, metadata: metadata)
+            authFlowGeneration += 1
             isAuthenticated = true
             needsReauthentication = false
             await refreshFromServer()
@@ -1069,6 +1069,7 @@ final class AppState: ObservableObject {
                 nonce: tokens.nonce,
                 metadata: metadata
             )
+            authFlowGeneration += 1
             isAuthenticated = true
             needsReauthentication = false
             await refreshFromServer()
@@ -1098,6 +1099,7 @@ final class AppState: ObservableObject {
                 refreshToken: tokens.refreshToken,
                 metadata: metadata
             )
+            authFlowGeneration += 1
             isAuthenticated = true
             needsReauthentication = false
             await refreshFromServer()
@@ -1180,8 +1182,8 @@ final class AppState: ObservableObject {
 
     func accept(_ offer: Offer, options: AcceptOfferOptions = AcceptOfferOptions()) {
         guard isAuthenticated, !isAccepted(offer), offer.remaining > 0 else { return }
-        if needsAdminApproval || needsSocialHandlesEntry || profile.status != .approved {
-            lastSyncError = acceptBlockedReason ?? t(.completeProfileToAccept)
+        if needsAdminApproval {
+            lastSyncError = acceptBlockedReason ?? t(.membershipPaused)
             return
         }
         pendingOfferIDs.insert(offer.id)
@@ -1601,6 +1603,42 @@ final class AppState: ObservableObject {
         }
         do {
             try await api.adminSendEmail(userID: userID, subject: subject, body: body)
+            return nil
+        } catch {
+            return presentableError(error) ?? t(.errSomeDataRefresh)
+        }
+    }
+
+    func adminUploadUserPhoto(userID: UUID, data: Data, kind: ProfileImageKind) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        let uploadProfile: ImageUploadProfile = kind == .avatar ? .avatar : .cover
+        guard let prepared = ImageUploadPreprocessor.prepare(data, profile: uploadProfile) else {
+            return t(.errPhotoTooLarge)
+        }
+        do {
+            let url = try await api.uploadProfileImage(
+                data: prepared,
+                fileName: "\(kind.rawValue).jpg",
+                kind: kind,
+                forUserID: userID
+            )
+            try await api.adminSetUserProfileImage(userID: userID, kind: kind, url: url)
+            await loadAdminUsers()
+            return nil
+        } catch {
+            return presentableError(error) ?? t(.errSomeDataRefresh)
+        }
+    }
+
+    func adminClearUserPhoto(userID: UUID, kind: ProfileImageKind) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminSetUserProfileImage(userID: userID, kind: kind, url: nil)
+            await loadAdminUsers()
             return nil
         } catch {
             return presentableError(error) ?? t(.errSomeDataRefresh)
