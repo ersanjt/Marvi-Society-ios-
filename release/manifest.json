@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260811140001_business_category_sort_hotel_first",
-      "migrationCount": 54
+      "migrationHead": "20260811143001_marvi_db_integrity_check",
+      "migrationCount": 55
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-11T11:11:32Z",
+      "status": "partial",
+      "message": "migrations combined; CLI not linked"
+    },
+    {
+      "at": "2026-08-11T10:44:03Z",
+      "status": "ok",
+      "message": "pushed 309ad5c to origin/main"
+    },
     {
       "at": "2026-08-11T10:43:59Z",
       "status": "partial",
@@ -261,16 +271,6 @@
       "at": "2026-07-15T10:44:20Z",
       "status": "ok",
       "message": "pushed 860549c to origin/main"
-    },
-    {
-      "at": "2026-07-15T10:44:15Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000026_campaign_media_and_fields)"
-    },
-    {
-      "at": "2026-07-15T10:21:29Z",
-      "status": "ok",
-      "message": "pushed f1a13d6 to origin/main"
     }
   ],
   "releases": [

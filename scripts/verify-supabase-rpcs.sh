@@ -51,6 +51,25 @@ echo ""
 
 FAIL=0
 
+echo "Profile persistence RPCs:"
+check_rpc_exists "upsert_my_creator_profile" '{"p_full_name":"Probe"}' || FAIL=1
+check_rpc_exists "set_my_profile_image" '{"p_kind":"avatar","p_url":"https://example.com/a.jpg"}' || FAIL=1
+
+echo ""
+echo "Business category schema:"
+sort_resp=$(api_get "business_categories?select=sort_order&limit=0")
+sort_code=$(echo "$sort_resp" | tail -1)
+sort_body=$(echo "$sort_resp" | sed '$d')
+if echo "$sort_body" | grep -qi "sort_order.*does not exist\|42703"; then
+  echo "  ✗ sort_order column missing — run APPLY_20260811_DB_INTEGRITY.sql"
+  FAIL=1
+elif [[ "$sort_code" == "200" ]]; then
+  echo "  ✓ sort_order column present"
+else
+  echo "  ? sort_order probe HTTP $sort_code"
+fi
+
+echo ""
 echo "Core RPCs:"
 check_rpc_exists "fetch_account_context" || FAIL=1
 check_rpc_exists "ensure_creator_profile" || FAIL=1
@@ -104,9 +123,14 @@ echo ""
 if [[ "$FAIL" -eq 0 ]]; then
   echo "Status: ALL CHECKS PASSED"
 else
-  echo "Status: SOME CHECKS FAILED — run missing apply-*.sql in Supabase SQL Editor"
+  echo "Status: SOME CHECKS FAILED — run missing apply SQL in Supabase SQL Editor"
   echo ""
-  echo "Recommended order:"
+  echo "Recommended (current gap):"
+  echo "  infra/supabase/APPLY_20260811_DB_INTEGRITY.sql"
+  echo "Then verify:"
+  echo "  SELECT * FROM public.marvi_db_integrity_check();"
+  echo ""
+  echo "Older packs (only if still missing):"
   echo "  1. infra/supabase/apply-referral-fix.sql"
   echo "  2. infra/supabase/apply-admin-operations.sql"
   echo "  3. infra/supabase/apply-push-outbox.sql"
