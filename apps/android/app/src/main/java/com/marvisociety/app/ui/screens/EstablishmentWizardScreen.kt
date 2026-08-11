@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.marvisociety.app.data.BrandSummary
 import com.marvisociety.app.data.BusinessCategoryCatalog
+import com.marvisociety.app.data.AppLanguage
 import com.marvisociety.app.data.OfferCategory
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.MarviCard
@@ -57,7 +58,8 @@ import com.marvisociety.app.ui.viewmodel.AppViewModel
 
 private enum class WizardStep { BRAND, HUB, DETAILS, ADDRESS, PHOTOS }
 
-private val EstablishmentCategoryOptions = BusinessCategoryCatalog.all.map { it.english }
+private fun establishmentCategoryOptions(language: AppLanguage) =
+    BusinessCategoryCatalog.all.map { it.label(language) }
 
 @Composable
 fun EstablishmentWizardScreen(
@@ -611,7 +613,7 @@ private fun DetailsStep(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            EstablishmentCategoryOptions.forEach { label ->
+            establishmentCategoryOptions(viewModel.preferredLanguage).forEach { label ->
                 FilterChip(
                     selected = selectedCategories.contains(label),
                     onClick = { onToggleCategory(label) },

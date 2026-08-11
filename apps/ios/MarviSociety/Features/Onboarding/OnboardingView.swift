@@ -76,18 +76,22 @@ private enum SignupIntent: String, CaseIterable {
     func title(for language: AppLanguage) -> String {
         switch self {
         case .creator:
-            language == .turkish ? "Üye olarak katıl" : "Sign up as a Member"
+            language == .turkish ? "İçerik üreticisi olarak katıl" : "Sign up as a Creator"
         case .business:
-            language == .turkish ? "Business olarak katıl" : "Sign up as a Business"
+            language == .turkish ? "İşletme olarak katıl" : "Sign up as a Business"
         }
     }
 
     func subtitle(for language: AppLanguage) -> String {
         switch self {
         case .creator:
-            language == .turkish ? "İşletmeleri keşfet ve kolayca iş birliği talebi gönder." : "Discover businesses and easily send collaboration requests."
+            language == .turkish
+                ? "Markalar ve işletmelerle kolayca iş birliği kur."
+                : "Easily collaborate with brands and venues."
         case .business:
-            language == .turkish ? "Mekânını ekle, kampanya oluştur ve creator seç." : "Add venues, create campaigns, and swipe creators."
+            language == .turkish
+                ? "İşletmeni tanıt, fotoğraf ekle ve creator’larla bağlan."
+                : "Introduce your business, add photos, and connect with creators."
         }
     }
 }
@@ -124,7 +128,7 @@ struct OnboardingView: View {
     @State private var pendingSignupOnboarding = false
     @State private var venueName = ""
     @State private var venueArea = ""
-    @State private var venueCategoryLabel = "Restaurant"
+    @State private var venueCategoryLabel = "Hotel"
     @State private var customBusinessCategory = ""
     @State private var showLaunchIntro = true
     @State private var welcomeReveal = WelcomeRevealPhase.hidden

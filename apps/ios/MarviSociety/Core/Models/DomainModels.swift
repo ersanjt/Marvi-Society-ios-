@@ -134,73 +134,100 @@ struct BusinessCategoryOption: Identifiable, Hashable, Sendable {
 }
 
 enum BusinessCategoryCatalog {
+    /// Product order: Hotel → Restaurant → then hospitality / F&B / nightlife / rest.
+    /// Keys match `public.business_categories.slug` where possible.
     static let all: [BusinessCategoryOption] = [
+        // 1–2 featured
+        .init(key: "hotel", english: "Hotel", turkish: "Otel", offerCategory: .wellness),
         .init(key: "restaurant", english: "Restaurant", turkish: "Restoran", offerCategory: .dining),
+        // Hospitality
+        .init(key: "resort", english: "Resort", turkish: "Tatil köyü", offerCategory: .wellness),
+        .init(key: "hostel", english: "Hostel", turkish: "Hostel", offerCategory: .wellness),
+        // Food & drink
         .init(key: "cafe", english: "Cafe", turkish: "Kafe", offerCategory: .dining),
         .init(key: "coffee-shop", english: "Coffee shop", turkish: "Kahve dükkanı", offerCategory: .dining),
         .init(key: "bakery", english: "Bakery", turkish: "Fırın", offerCategory: .dining),
         .init(key: "patisserie", english: "Patisserie", turkish: "Pastane", offerCategory: .dining),
         .init(key: "dessert-shop", english: "Dessert shop", turkish: "Tatlıcı", offerCategory: .dining),
         .init(key: "fast-food", english: "Fast food", turkish: "Fast food", offerCategory: .dining),
+        .init(key: "food-truck", english: "Food truck", turkish: "Yemek kamyonu", offerCategory: .dining),
         .init(key: "catering", english: "Catering", turkish: "Catering", offerCategory: .dining),
+        // Nightlife
         .init(key: "bar-pub", english: "Bar / Pub", turkish: "Bar / Pub", offerCategory: .nightlife),
         .init(key: "lounge", english: "Lounge", turkish: "Lounge", offerCategory: .nightlife),
         .init(key: "nightclub", english: "Nightclub", turkish: "Gece kulübü", offerCategory: .nightlife),
-        .init(key: "live-music", english: "Live music venue", turkish: "Canlı müzik mekanı", offerCategory: .nightlife),
-        .init(key: "hotel", english: "Hotel", turkish: "Otel", offerCategory: .wellness),
-        .init(key: "resort", english: "Resort", turkish: "Tatil köyü", offerCategory: .wellness),
+        .init(key: "live-music-venue", english: "Live music venue", turkish: "Canlı müzik mekanı", offerCategory: .nightlife),
+        // Wellness & fitness
         .init(key: "spa", english: "Spa", turkish: "Spa", offerCategory: .wellness),
-        .init(key: "wellness", english: "Wellness center", turkish: "Wellness merkezi", offerCategory: .wellness),
+        .init(key: "wellness-center", english: "Wellness center", turkish: "Wellness merkezi", offerCategory: .wellness),
         .init(key: "yoga-pilates", english: "Yoga / Pilates studio", turkish: "Yoga / Pilates stüdyosu", offerCategory: .wellness),
-        .init(key: "gym", english: "Gym / Fitness center", turkish: "Spor salonu", offerCategory: .fitness),
+        .init(key: "gym-fitness", english: "Gym / Fitness center", turkish: "Spor salonu", offerCategory: .fitness),
         .init(key: "sports-club", english: "Sports club", turkish: "Spor kulübü", offerCategory: .fitness),
         .init(key: "dance-studio", english: "Dance studio", turkish: "Dans stüdyosu", offerCategory: .fitness),
+        // Beauty
         .init(key: "beauty-salon", english: "Beauty salon", turkish: "Güzellik salonu", offerCategory: .beauty),
         .init(key: "hair-salon", english: "Hair salon / Barber", turkish: "Kuaför / Berber", offerCategory: .beauty),
         .init(key: "nail-studio", english: "Nail studio", turkish: "Tırnak stüdyosu", offerCategory: .beauty),
         .init(key: "cosmetics", english: "Cosmetics", turkish: "Kozmetik", offerCategory: .beauty),
+        // Health
         .init(key: "clinic", english: "Clinic", turkish: "Klinik", offerCategory: .wellness),
         .init(key: "dentist", english: "Dentist", turkish: "Diş kliniği", offerCategory: .wellness),
         .init(key: "pharmacy", english: "Pharmacy", turkish: "Eczane", offerCategory: .wellness),
+        // Retail
         .init(key: "fashion", english: "Fashion / Clothing", turkish: "Moda / Giyim", offerCategory: .retail),
-        .init(key: "accessories", english: "Shoes / Accessories", turkish: "Ayakkabı / Aksesuar", offerCategory: .retail),
+        .init(key: "shoes-accessories", english: "Shoes / Accessories", turkish: "Ayakkabı / Aksesuar", offerCategory: .retail),
         .init(key: "jewelry", english: "Jewelry", turkish: "Mücevher", offerCategory: .retail),
         .init(key: "home-decor", english: "Home decor / Furniture", turkish: "Ev dekorasyonu / Mobilya", offerCategory: .retail),
         .init(key: "electronics", english: "Electronics", turkish: "Elektronik", offerCategory: .retail),
-        .init(key: "grocery", english: "Grocery / Market", turkish: "Market", offerCategory: .retail),
+        .init(key: "grocery-market", english: "Grocery / Market", turkish: "Market", offerCategory: .retail),
         .init(key: "bookstore", english: "Bookstore", turkish: "Kitapçı", offerCategory: .retail),
+        .init(key: "concept-store", english: "Concept store", turkish: "Konsept mağaza", offerCategory: .retail),
         .init(key: "ecommerce", english: "E-commerce / Online store", turkish: "E-ticaret / Online mağaza", offerCategory: .retail),
+        // Culture & events
         .init(key: "cinema-theater", english: "Cinema / Theater", turkish: "Sinema / Tiyatro", offerCategory: .nightlife),
         .init(key: "museum-gallery", english: "Museum / Art gallery", turkish: "Müze / Sanat galerisi", offerCategory: .retail),
-        .init(key: "entertainment", english: "Entertainment center", turkish: "Eğlence merkezi", offerCategory: .nightlife),
+        .init(key: "entertainment-center", english: "Entertainment center", turkish: "Eğlence merkezi", offerCategory: .nightlife),
         .init(key: "event-venue", english: "Event venue", turkish: "Etkinlik mekanı", offerCategory: .nightlife),
         .init(key: "event-planner", english: "Event planner", turkish: "Etkinlik organizasyonu", offerCategory: .retail),
-        .init(key: "photo-video", english: "Photography / Video studio", turkish: "Fotoğraf / Video stüdyosu", offerCategory: .retail),
-        .init(key: "education", english: "Education / Training", turkish: "Eğitim / Kurs", offerCategory: .retail),
+        .init(key: "photography-studio", english: "Photography / Video studio", turkish: "Fotoğraf / Video stüdyosu", offerCategory: .retail),
+        // Services
+        .init(key: "education-training", english: "Education / Training", turkish: "Eğitim / Kurs", offerCategory: .retail),
         .init(key: "coworking", english: "Coworking space", turkish: "Ortak çalışma alanı", offerCategory: .retail),
-        .init(key: "professional", english: "Professional services", turkish: "Profesyonel hizmetler", offerCategory: .retail),
+        .init(key: "professional-services", english: "Professional services", turkish: "Profesyonel hizmetler", offerCategory: .retail),
         .init(key: "real-estate", english: "Real estate", turkish: "Gayrimenkul", offerCategory: .retail),
-        .init(key: "travel", english: "Travel / Tourism", turkish: "Seyahat / Turizm", offerCategory: .wellness),
-        .init(key: "automotive", english: "Car dealer / Rental", turkish: "Otomotiv / Araç kiralama", offerCategory: .retail),
+        .init(key: "travel-tourism", english: "Travel / Tourism", turkish: "Seyahat / Turizm", offerCategory: .wellness),
+        .init(key: "car-dealer-rental", english: "Car dealer / Rental", turkish: "Otomotiv / Araç kiralama", offerCategory: .retail),
         .init(key: "pet-services", english: "Pet shop / Pet services", turkish: "Evcil hayvan hizmetleri", offerCategory: .retail),
         .init(key: "kids-family", english: "Kids / Family services", turkish: "Çocuk / Aile hizmetleri", offerCategory: .retail),
         .init(key: "home-services", english: "Home services", turkish: "Ev hizmetleri", offerCategory: .retail),
-        .init(key: "technology", english: "Digital / Technology", turkish: "Dijital / Teknoloji", offerCategory: .retail),
-        .init(key: "community", english: "Nonprofit / Community", turkish: "STK / Topluluk", offerCategory: .retail)
+        .init(key: "digital-technology", english: "Digital / Technology", turkish: "Dijital / Teknoloji", offerCategory: .retail),
+        .init(key: "nonprofit-community", english: "Nonprofit / Community", turkish: "STK / Topluluk", offerCategory: .retail)
     ]
 
     static func offerCategory(for label: String) -> OfferCategory {
         let normalized = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if let match = all.first(where: {
-            $0.key == normalized || $0.english.lowercased() == normalized || $0.turkish.lowercased() == normalized
+            $0.key == normalized
+                || $0.english.lowercased() == normalized
+                || $0.turkish.lowercased() == normalized
         }) {
             return match.offerCategory
         }
-        if normalized.range(of: "restaurant|cafe|coffee|food|bakery|kafe|yemek", options: .regularExpression) != nil { return .dining }
+        // Legacy client keys still resolve.
+        let legacy: [String: OfferCategory] = [
+            "live-music": .nightlife, "wellness": .wellness, "gym": .fitness,
+            "accessories": .retail, "grocery": .retail, "entertainment": .nightlife,
+            "photo-video": .retail, "education": .retail, "professional": .retail,
+            "travel": .wellness, "automotive": .retail, "technology": .retail,
+            "community": .retail, "dessert": .dining
+        ]
+        if let mapped = legacy[normalized] { return mapped }
+        if normalized.range(of: "hotel|otel|resort|hostel", options: .regularExpression) != nil { return .wellness }
+        if normalized.range(of: "restaurant|restoran|cafe|coffee|food|bakery|kafe|yemek", options: .regularExpression) != nil { return .dining }
         if normalized.range(of: "bar|pub|club|lounge|night|music|event|gece|etkinlik", options: .regularExpression) != nil { return .nightlife }
         if normalized.range(of: "gym|fitness|sport|yoga|pilates|spor", options: .regularExpression) != nil { return .fitness }
         if normalized.range(of: "beauty|salon|hair|nail|cosmetic|güzellik|kuaför", options: .regularExpression) != nil { return .beauty }
-        if normalized.range(of: "spa|wellness|hotel|resort|clinic|health|otel|sağlık", options: .regularExpression) != nil { return .wellness }
+        if normalized.range(of: "spa|wellness|clinic|health|sağlık", options: .regularExpression) != nil { return .wellness }
         return .retail
     }
 }

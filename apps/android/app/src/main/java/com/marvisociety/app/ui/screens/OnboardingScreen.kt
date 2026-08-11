@@ -79,8 +79,8 @@ fun OnboardingScreen(viewModel: AppViewModel) {
     var tiktok by remember { mutableStateOf("") }
     var venueName by remember { mutableStateOf("") }
     var venueArea by remember { mutableStateOf("Istanbul") }
-    var venueCategory by remember { mutableStateOf(OfferCategory.DINING) }
-    var venueCategoryLabel by remember { mutableStateOf("Restaurant") }
+    var venueCategory by remember { mutableStateOf(OfferCategory.WELLNESS) }
+    var venueCategoryLabel by remember { mutableStateOf("Hotel") }
     var customBusinessCategory by remember { mutableStateOf("") }
     var ageConfirmed by remember { mutableStateOf(false) }
     var termsAccepted by remember { mutableStateOf(false) }

@@ -63,25 +63,28 @@ data class BusinessCategoryOption(
 }
 
 object BusinessCategoryCatalog {
+    /** Product order: Hotel → Restaurant → then hospitality / F&B / nightlife / rest. */
     val all = listOf(
+        BusinessCategoryOption("hotel", "Hotel", "Otel", OfferCategory.WELLNESS),
         BusinessCategoryOption("restaurant", "Restaurant", "Restoran", OfferCategory.DINING),
+        BusinessCategoryOption("resort", "Resort", "Tatil köyü", OfferCategory.WELLNESS),
+        BusinessCategoryOption("hostel", "Hostel", "Hostel", OfferCategory.WELLNESS),
         BusinessCategoryOption("cafe", "Cafe", "Kafe", OfferCategory.DINING),
         BusinessCategoryOption("coffee-shop", "Coffee shop", "Kahve dükkanı", OfferCategory.DINING),
         BusinessCategoryOption("bakery", "Bakery", "Fırın", OfferCategory.DINING),
         BusinessCategoryOption("patisserie", "Patisserie", "Pastane", OfferCategory.DINING),
-        BusinessCategoryOption("dessert", "Dessert shop", "Tatlıcı", OfferCategory.DINING),
+        BusinessCategoryOption("dessert-shop", "Dessert shop", "Tatlıcı", OfferCategory.DINING),
         BusinessCategoryOption("fast-food", "Fast food", "Fast food", OfferCategory.DINING),
+        BusinessCategoryOption("food-truck", "Food truck", "Yemek kamyonu", OfferCategory.DINING),
         BusinessCategoryOption("catering", "Catering", "Catering", OfferCategory.DINING),
         BusinessCategoryOption("bar-pub", "Bar / Pub", "Bar / Pub", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("lounge", "Lounge", "Lounge", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("nightclub", "Nightclub", "Gece kulübü", OfferCategory.NIGHTLIFE),
-        BusinessCategoryOption("live-music", "Live music venue", "Canlı müzik mekanı", OfferCategory.NIGHTLIFE),
-        BusinessCategoryOption("hotel", "Hotel", "Otel", OfferCategory.WELLNESS),
-        BusinessCategoryOption("resort", "Resort", "Tatil köyü", OfferCategory.WELLNESS),
+        BusinessCategoryOption("live-music-venue", "Live music venue", "Canlı müzik mekanı", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("spa", "Spa", "Spa", OfferCategory.WELLNESS),
-        BusinessCategoryOption("wellness", "Wellness center", "Wellness merkezi", OfferCategory.WELLNESS),
+        BusinessCategoryOption("wellness-center", "Wellness center", "Wellness merkezi", OfferCategory.WELLNESS),
         BusinessCategoryOption("yoga-pilates", "Yoga / Pilates studio", "Yoga / Pilates stüdyosu", OfferCategory.WELLNESS),
-        BusinessCategoryOption("gym", "Gym / Fitness center", "Spor salonu", OfferCategory.FITNESS),
+        BusinessCategoryOption("gym-fitness", "Gym / Fitness center", "Spor salonu", OfferCategory.FITNESS),
         BusinessCategoryOption("sports-club", "Sports club", "Spor kulübü", OfferCategory.FITNESS),
         BusinessCategoryOption("dance-studio", "Dance studio", "Dans stüdyosu", OfferCategory.FITNESS),
         BusinessCategoryOption("beauty-salon", "Beauty salon", "Güzellik salonu", OfferCategory.BEAUTY),
@@ -92,30 +95,31 @@ object BusinessCategoryCatalog {
         BusinessCategoryOption("dentist", "Dentist", "Diş kliniği", OfferCategory.WELLNESS),
         BusinessCategoryOption("pharmacy", "Pharmacy", "Eczane", OfferCategory.WELLNESS),
         BusinessCategoryOption("fashion", "Fashion / Clothing", "Moda / Giyim", OfferCategory.RETAIL),
-        BusinessCategoryOption("accessories", "Shoes / Accessories", "Ayakkabı / Aksesuar", OfferCategory.RETAIL),
+        BusinessCategoryOption("shoes-accessories", "Shoes / Accessories", "Ayakkabı / Aksesuar", OfferCategory.RETAIL),
         BusinessCategoryOption("jewelry", "Jewelry", "Mücevher", OfferCategory.RETAIL),
         BusinessCategoryOption("home-decor", "Home decor / Furniture", "Ev dekorasyonu / Mobilya", OfferCategory.RETAIL),
         BusinessCategoryOption("electronics", "Electronics", "Elektronik", OfferCategory.RETAIL),
-        BusinessCategoryOption("grocery", "Grocery / Market", "Market", OfferCategory.RETAIL),
+        BusinessCategoryOption("grocery-market", "Grocery / Market", "Market", OfferCategory.RETAIL),
         BusinessCategoryOption("bookstore", "Bookstore", "Kitapçı", OfferCategory.RETAIL),
+        BusinessCategoryOption("concept-store", "Concept store", "Konsept mağaza", OfferCategory.RETAIL),
         BusinessCategoryOption("ecommerce", "E-commerce / Online store", "E-ticaret / Online mağaza", OfferCategory.RETAIL),
         BusinessCategoryOption("cinema-theater", "Cinema / Theater", "Sinema / Tiyatro", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("museum-gallery", "Museum / Art gallery", "Müze / Sanat galerisi", OfferCategory.RETAIL),
-        BusinessCategoryOption("entertainment", "Entertainment center", "Eğlence merkezi", OfferCategory.NIGHTLIFE),
+        BusinessCategoryOption("entertainment-center", "Entertainment center", "Eğlence merkezi", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("event-venue", "Event venue", "Etkinlik mekanı", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("event-planner", "Event planner", "Etkinlik organizasyonu", OfferCategory.RETAIL),
-        BusinessCategoryOption("photo-video", "Photography / Video studio", "Fotoğraf / Video stüdyosu", OfferCategory.RETAIL),
-        BusinessCategoryOption("education", "Education / Training", "Eğitim / Kurs", OfferCategory.RETAIL),
+        BusinessCategoryOption("photography-studio", "Photography / Video studio", "Fotoğraf / Video stüdyosu", OfferCategory.RETAIL),
+        BusinessCategoryOption("education-training", "Education / Training", "Eğitim / Kurs", OfferCategory.RETAIL),
         BusinessCategoryOption("coworking", "Coworking space", "Ortak çalışma alanı", OfferCategory.RETAIL),
-        BusinessCategoryOption("professional", "Professional services", "Profesyonel hizmetler", OfferCategory.RETAIL),
+        BusinessCategoryOption("professional-services", "Professional services", "Profesyonel hizmetler", OfferCategory.RETAIL),
         BusinessCategoryOption("real-estate", "Real estate", "Gayrimenkul", OfferCategory.RETAIL),
-        BusinessCategoryOption("travel", "Travel / Tourism", "Seyahat / Turizm", OfferCategory.WELLNESS),
-        BusinessCategoryOption("automotive", "Car dealer / Rental", "Otomotiv / Araç kiralama", OfferCategory.RETAIL),
+        BusinessCategoryOption("travel-tourism", "Travel / Tourism", "Seyahat / Turizm", OfferCategory.WELLNESS),
+        BusinessCategoryOption("car-dealer-rental", "Car dealer / Rental", "Otomotiv / Araç kiralama", OfferCategory.RETAIL),
         BusinessCategoryOption("pet-services", "Pet shop / Pet services", "Evcil hayvan hizmetleri", OfferCategory.RETAIL),
         BusinessCategoryOption("kids-family", "Kids / Family services", "Çocuk / Aile hizmetleri", OfferCategory.RETAIL),
         BusinessCategoryOption("home-services", "Home services", "Ev hizmetleri", OfferCategory.RETAIL),
-        BusinessCategoryOption("technology", "Digital / Technology", "Dijital / Teknoloji", OfferCategory.RETAIL),
-        BusinessCategoryOption("community", "Nonprofit / Community", "STK / Topluluk", OfferCategory.RETAIL)
+        BusinessCategoryOption("digital-technology", "Digital / Technology", "Dijital / Teknoloji", OfferCategory.RETAIL),
+        BusinessCategoryOption("nonprofit-community", "Nonprofit / Community", "STK / Topluluk", OfferCategory.RETAIL)
     )
 
     fun offerCategoryFor(label: String): OfferCategory {
@@ -123,12 +127,30 @@ object BusinessCategoryCatalog {
         all.firstOrNull {
             it.key == normalized || it.english.lowercase() == normalized || it.turkish.lowercase() == normalized
         }?.let { return it.offerCategory }
+        val legacy = mapOf(
+            "live-music" to OfferCategory.NIGHTLIFE,
+            "wellness" to OfferCategory.WELLNESS,
+            "gym" to OfferCategory.FITNESS,
+            "accessories" to OfferCategory.RETAIL,
+            "grocery" to OfferCategory.RETAIL,
+            "entertainment" to OfferCategory.NIGHTLIFE,
+            "photo-video" to OfferCategory.RETAIL,
+            "education" to OfferCategory.RETAIL,
+            "professional" to OfferCategory.RETAIL,
+            "travel" to OfferCategory.WELLNESS,
+            "automotive" to OfferCategory.RETAIL,
+            "technology" to OfferCategory.RETAIL,
+            "community" to OfferCategory.RETAIL,
+            "dessert" to OfferCategory.DINING
+        )
+        legacy[normalized]?.let { return it }
         return when {
-            Regex("restaurant|cafe|coffee|food|bakery|kafe|yemek").containsMatchIn(normalized) -> OfferCategory.DINING
+            Regex("hotel|otel|resort|hostel").containsMatchIn(normalized) -> OfferCategory.WELLNESS
+            Regex("restaurant|restoran|cafe|coffee|food|bakery|kafe|yemek").containsMatchIn(normalized) -> OfferCategory.DINING
             Regex("bar|pub|club|lounge|night|music|event|gece|etkinlik").containsMatchIn(normalized) -> OfferCategory.NIGHTLIFE
             Regex("gym|fitness|sport|yoga|pilates|spor").containsMatchIn(normalized) -> OfferCategory.FITNESS
             Regex("beauty|salon|hair|nail|cosmetic|güzellik|kuaför").containsMatchIn(normalized) -> OfferCategory.BEAUTY
-            Regex("spa|wellness|hotel|resort|clinic|health|otel|sağlık").containsMatchIn(normalized) -> OfferCategory.WELLNESS
+            Regex("spa|wellness|clinic|health|sağlık").containsMatchIn(normalized) -> OfferCategory.WELLNESS
             else -> OfferCategory.RETAIL
         }
     }

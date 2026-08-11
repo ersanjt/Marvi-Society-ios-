@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.3",
-      "buildNumber": 61,
+      "buildNumber": 62,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260811000001_creator_profile_upsert_and_public_media",
-      "migrationCount": 53
+      "migrationHead": "20260811140001_business_category_sort_hotel_first",
+      "migrationCount": 54
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-11T10:43:59Z",
+      "status": "partial",
+      "message": "migrations combined; CLI not linked"
+    },
+    {
+      "at": "2026-08-11T10:34:43Z",
+      "status": "ok",
+      "message": "pushed 1a03b85 to origin/main"
+    },
     {
       "at": "2026-08-11T10:34:40Z",
       "status": "partial",
@@ -261,16 +271,6 @@
       "at": "2026-07-15T10:21:29Z",
       "status": "ok",
       "message": "pushed f1a13d6 to origin/main"
-    },
-    {
-      "at": "2026-07-15T10:21:24Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260630000026_campaign_media_and_fields)"
-    },
-    {
-      "at": "2026-07-15T10:17:30Z",
-      "status": "ok",
-      "message": "pushed a78ab5b to origin/main"
     }
   ],
   "releases": [
