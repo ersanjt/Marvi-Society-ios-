@@ -276,7 +276,9 @@ data class AdminUserSummary(
     val city: String,
     val role: UserRole,
     val status: MembershipStatus?,
-    val createdLabel: String
+    val createdLabel: String,
+    val avatarUrl: String = "",
+    val coverUrl: String = ""
 )
 
 data class AdminInviteCodeItem(

@@ -146,7 +146,31 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                     put("languages", JsonArray(profile.languages.map { kotlinx.serialization.json.JsonPrimitive(it) }))
                     if (profile.avatarUrl.isNotBlank()) put("avatar_url", profile.avatarUrl)
                     if (profile.coverUrl.isNotBlank()) put("cover_url", profile.coverUrl)
+                },
+                requireRows = true
+            )
+        }
+    }
+
+    suspend fun setMyProfileImage(kind: String, url: String) {
+        val trimmed = url.trim()
+        if (trimmed.isEmpty()) throw MarviApiException("Photo URL missing after upload.")
+        try {
+            client.rpcJson(
+                "set_my_profile_image",
+                buildJsonObject {
+                    put("p_kind", kind)
+                    put("p_url", trimmed)
                 }
+            )
+        } catch (first: Exception) {
+            val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+            val column = if (kind == "cover") "cover_url" else "avatar_url"
+            client.patch(
+                table = "creator_profiles",
+                filters = mapOf("user_id" to "eq.$userId"),
+                body = buildJsonObject { put(column, trimmed) },
+                requireRows = true
             )
         }
     }
@@ -1137,13 +1161,15 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     private fun parseAdminUser(el: JsonElement): AdminUserSummary? {
         val obj = el.asObjectOrNull() ?: return null
         return AdminUserSummary(
-            id = obj.string("id") ?: return null,
+            id = obj.string("user_id") ?: obj.string("id") ?: return null,
             email = obj.string("email") ?: "",
             fullName = obj.string("full_name") ?: "",
             city = obj.string("city") ?: "",
             role = UserRole.fromApi(obj.string("role")) ?: UserRole.CREATOR,
-            status = membershipFromApi(obj.string("membership_status")),
-            createdLabel = formatRelative(obj.string("created_at"))
+            status = membershipFromApi(obj.string("status") ?: obj.string("membership_status")),
+            createdLabel = formatRelative(obj.string("last_seen_at") ?: obj.string("created_at")),
+            avatarUrl = obj.string("avatar_url") ?: "",
+            coverUrl = obj.string("cover_url") ?: ""
         )
     }
 

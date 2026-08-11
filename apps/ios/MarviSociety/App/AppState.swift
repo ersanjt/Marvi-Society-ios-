@@ -308,9 +308,15 @@ final class AppState: ObservableObject {
     func openInboxMessage(_ message: InboxMessage) {
         Task {
             if !message.isRead {
-                try? await api.markNotificationRead(message.id)
-                if let index = inboxMessages.firstIndex(where: { $0.id == message.id }) {
-                    inboxMessages[index].isRead = true
+                do {
+                    try await api.markNotificationRead(message.id)
+                    if let index = inboxMessages.firstIndex(where: { $0.id == message.id }) {
+                        inboxMessages[index].isRead = true
+                    }
+                } catch {
+                    if let message = presentableError(error) {
+                        lastSyncError = message
+                    }
                 }
             }
             if let link = message.deepLink {

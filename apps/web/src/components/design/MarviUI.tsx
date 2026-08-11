@@ -239,21 +239,32 @@ export function SkeletonBlock({ className = "" }: { className?: string }) {
 export function AvatarRing({
   initials,
   size = 64,
+  imageUrl,
 }: {
   initials: string;
   size?: number;
+  imageUrl?: string | null;
 }) {
   return (
     <div
-      className="flex items-center justify-center rounded-full bg-brand-gradient p-[2px] font-bold text-white shadow-rose"
+      className="flex items-center justify-center overflow-hidden rounded-full bg-brand-gradient p-[2px] font-bold text-white shadow-rose"
       style={{ width: size, height: size }}
     >
-      <div
-        className="flex h-full w-full items-center justify-center rounded-full bg-panel text-sm font-bold text-ink"
-        style={{ fontSize: size * 0.28 }}
-      >
-        {initials.slice(0, 2).toUpperCase()}
-      </div>
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt=""
+          className="h-full w-full rounded-full object-cover bg-panel"
+        />
+      ) : (
+        <div
+          className="flex h-full w-full items-center justify-center rounded-full bg-panel text-sm font-bold text-ink"
+          style={{ fontSize: size * 0.28 }}
+        >
+          {initials.slice(0, 2).toUpperCase()}
+        </div>
+      )}
     </div>
   );
 }

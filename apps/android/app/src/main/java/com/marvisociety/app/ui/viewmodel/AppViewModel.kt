@@ -795,15 +795,14 @@ class AppViewModel(
                 val bytes = ImageUploadHelper.prepareJpeg(getApplication(), uri, profileKind)
                 val fileName = "$kind.jpg"
                 val url = repository.uploadProfileImage(bytes, fileName, kind)
-                val updated = if (kind == "cover") {
+                if (repository.usesRemoteBackend && isAuthenticated) {
+                    repository.setMyProfileImage(kind, url)
+                }
+                profile = if (kind == "cover") {
                     profile.copy(coverUrl = url)
                 } else {
                     profile.copy(avatarUrl = url)
                 }
-                if (repository.usesRemoteBackend && isAuthenticated) {
-                    repository.updateProfile(updated)
-                }
-                profile = updated
             }.onFailure { error -> lastSyncError = error.message }
             isProfileMediaUploading = false
         }

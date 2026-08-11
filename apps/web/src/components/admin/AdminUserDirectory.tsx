@@ -18,6 +18,8 @@ type AdminUser = {
   booking_count: number | null;
   last_lat: number | null;
   last_lng: number | null;
+  avatar_url?: string | null;
+  cover_url?: string | null;
 };
 
 function initials(user: AdminUser): string {
@@ -146,7 +148,7 @@ export function AdminUserDirectory({
             className="marvi-card flex w-full items-center gap-4 p-4 text-left transition hover:border-rose/30"
             onClick={() => setSelected(user)}
           >
-            <AvatarRing initials={initials(user)} size={48} />
+            <AvatarRing initials={initials(user)} size={48} imageUrl={user.avatar_url} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold text-ink">{user.full_name || user.email || user.user_id.slice(0, 8)}</p>
               <p className="truncate text-sm text-muted">{user.email}</p>
@@ -165,7 +167,7 @@ export function AdminUserDirectory({
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm md:items-center">
           <div className="marvi-card max-h-[85vh] w-full max-w-lg overflow-y-auto p-5">
             <div className="flex items-start gap-4">
-              <AvatarRing initials={initials(selected)} size={56} />
+              <AvatarRing initials={initials(selected)} size={56} imageUrl={selected.avatar_url} />
               <div className="min-w-0 flex-1">
                 <p className="font-serif text-2xl font-bold text-ink">{selected.full_name || selected.email}</p>
                 <p className="text-sm text-muted">{selected.email}</p>

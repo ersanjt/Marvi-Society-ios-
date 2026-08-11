@@ -136,7 +136,7 @@ struct NotificationRow: Decodable {
     let body: String
     let icon: String?
     let tint: String?
-    let is_read: Bool?
+    let read_at: String?
     let type: String?
     let created_at: String?
     let booking_id: UUID?
@@ -150,7 +150,7 @@ struct NotificationRow: Decodable {
             dateLabel: APIDTOs.formatRelative(created_at),
             icon: icon ?? "bell.fill",
             tint: PaletteToken(rawValue: tint ?? "rose") ?? .rose,
-            isRead: is_read ?? false,
+            isRead: read_at != nil && !(read_at?.isEmpty ?? true),
             notificationType: type ?? "general",
             bookingID: booking_id,
             offerID: offer_id
