@@ -238,9 +238,40 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
             }
             items(viewModel.adminUsers, key = { it.id }) { user ->
                 MarviCard {
-                    Text(user.fullName.ifBlank { user.email }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                    Text("${user.email} · ${user.city}", color = MarviColor.Muted)
-                    Text(viewModel.roleLabel(user.role), color = MarviColor.Rose)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (user.avatarUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = user.avatarUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(MarviColor.PanelElevated, CircleShape)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(MarviColor.Rose.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    user.fullName.ifBlank { user.email }.take(2).uppercase(),
+                                    color = MarviColor.Rose,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(user.fullName.ifBlank { user.email }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                            Text("${user.email} · ${user.city}", color = MarviColor.Muted)
+                            Text(viewModel.roleLabel(user.role), color = MarviColor.Rose)
+                        }
+                    }
                 }
             }
         }

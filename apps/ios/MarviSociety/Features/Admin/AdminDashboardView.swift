@@ -5,9 +5,13 @@ struct AdminDashboardView: View {
     @State private var tab: AdminConsoleTab = .queue
     @State private var selectedTask: AdminTask?
     @State private var pendingAction: AdminTaskAction?
+    /// Snapshot used by confirmationDialog so Approve isn't dropped when SwiftUI clears `pendingAction` on dismiss.
+    @State private var dialogAction: AdminTaskAction?
     @State private var strikeReason = "Proof not delivered per campaign terms"
     @State private var showingBookingsSheet = false
     @State private var showingStrikesSheet = false
+    @State private var showingTaskConfirm = false
+    @State private var showingStrikeAlert = false
 
     var body: some View {
         NavigationStack {
@@ -50,54 +54,65 @@ struct AdminDashboardView: View {
             .sheet(item: $selectedTask) { task in
                 AdminTaskDetailSheet(task: task) { action in
                     selectedTask = nil
-                    pendingAction = AdminTaskAction(task: task, kind: action)
+                    queueAction(AdminTaskAction(task: task, kind: action))
                 }
                 .environmentObject(appState)
             }
             .confirmationDialog(
-                pendingAction?.dialogTitle(for: appState.preferredLanguage) ?? appState.t(.confirm),
-                isPresented: Binding(
-                    get: { pendingAction != nil && pendingAction?.kind != .strike },
-                    set: { if !$0 { pendingAction = nil } }
-                ),
+                dialogAction?.dialogTitle(for: appState.preferredLanguage) ?? appState.t(.confirm),
+                isPresented: $showingTaskConfirm,
                 titleVisibility: .visible
             ) {
-                if let pendingAction {
-                    Button(pendingAction.confirmLabel(for: appState.preferredLanguage), role: pendingAction.kind == .reject ? .destructive : nil) {
-                        perform(pendingAction)
+                if let action = dialogAction {
+                    Button(action.confirmLabel(for: appState.preferredLanguage), role: action.kind == .reject ? .destructive : nil) {
+                        perform(action)
                     }
                     Button(appState.t(.cancel), role: .cancel) {
-                        self.pendingAction = nil
+                        clearPendingActions()
                     }
                 }
             } message: {
-                if let pendingAction {
-                    Text(pendingAction.message(for: appState.preferredLanguage))
+                if let action = dialogAction {
+                    Text(action.message(for: appState.preferredLanguage))
                 }
             }
-            .alert(appState.t(.issueStrikeTitle), isPresented: Binding(
-                get: { pendingAction?.kind == .strike },
-                set: { if !$0 { pendingAction = nil } }
-            )) {
+            .alert(appState.t(.issueStrikeTitle), isPresented: $showingStrikeAlert) {
                 TextField(appState.t(.reasonLabel), text: $strikeReason)
                 Button(appState.t(.issueStrike), role: .destructive) {
-                    if let pendingAction {
+                    if let action = dialogAction {
                         appState.issueStrikeForProofTask(
-                            pendingAction.task,
+                            action.task,
                             reason: strikeReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                                 ? appState.t(.strikeDefaultReason)
                                 : strikeReason
                         )
                     }
-                    pendingAction = nil
+                    clearPendingActions()
                 }
                 Button(appState.t(.cancel), role: .cancel) {
-                    pendingAction = nil
+                    clearPendingActions()
                 }
             } message: {
                 Text(appState.t(.strikePolicyMessage))
             }
         }
+    }
+
+    private func queueAction(_ action: AdminTaskAction) {
+        pendingAction = action
+        dialogAction = action
+        if action.kind == .strike {
+            showingStrikeAlert = true
+        } else {
+            showingTaskConfirm = true
+        }
+    }
+
+    private func clearPendingActions() {
+        pendingAction = nil
+        dialogAction = nil
+        showingTaskConfirm = false
+        showingStrikeAlert = false
     }
 
     private func perform(_ action: AdminTaskAction) {
@@ -109,7 +124,7 @@ struct AdminDashboardView: View {
         case .strike:
             break
         }
-        pendingAction = nil
+        clearPendingActions()
     }
 
     private var adminQueueContent: some View {
@@ -184,11 +199,11 @@ struct AdminDashboardView: View {
                                 task: task,
                                 isProcessing: appState.processingAdminTaskID == task.id
                             ) {
-                                pendingAction = AdminTaskAction(task: task, kind: .approve)
+                                queueAction(AdminTaskAction(task: task, kind: .approve))
                             } reject: {
-                                pendingAction = AdminTaskAction(task: task, kind: .reject)
+                                queueAction(AdminTaskAction(task: task, kind: .reject))
                             } strike: {
-                                pendingAction = AdminTaskAction(task: task, kind: .strike)
+                                queueAction(AdminTaskAction(task: task, kind: .strike))
                             } openDetail: {
                                 selectedTask = task
                             }

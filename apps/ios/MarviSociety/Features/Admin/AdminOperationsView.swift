@@ -1166,6 +1166,9 @@ struct AdminCampaignsTab: View {
     @EnvironmentObject private var appState: AppState
     @State private var pendingCampaign: Campaign?
     @State private var pendingStatus: CampaignStatus?
+    @State private var dialogCampaign: Campaign?
+    @State private var dialogStatus: CampaignStatus?
+    @State private var showingStatusConfirm = false
 
     var body: some View {
         ScrollView {
@@ -1211,22 +1214,19 @@ struct AdminCampaignsTab: View {
                                 HStack(spacing: 8) {
                                     if campaign.status != .live {
                                         Button(appState.preferredLanguage == .turkish ? "Yayınla" : "Publish") {
-                                            pendingCampaign = campaign
-                                            pendingStatus = .live
+                                            queueCampaignStatus(campaign, .live)
                                         }
                                         .buttonStyle(.borderedProminent)
                                         .tint(MarviColor.emerald)
                                     }
                                     if campaign.status == .live {
                                         Button(appState.preferredLanguage == .turkish ? "Yayından kaldır" : "Unpublish") {
-                                            pendingCampaign = campaign
-                                            pendingStatus = .draft
+                                            queueCampaignStatus(campaign, .draft)
                                         }
                                         .buttonStyle(.bordered)
                                     }
                                     Button(appState.preferredLanguage == .turkish ? "Tamamla" : "Complete") {
-                                        pendingCampaign = campaign
-                                        pendingStatus = .completed
+                                        queueCampaignStatus(campaign, .completed)
                                     }
                                     .buttonStyle(.bordered)
                                     .disabled(campaign.status == .completed)
@@ -1242,27 +1242,38 @@ struct AdminCampaignsTab: View {
         .refreshable { await appState.refreshFromServer() }
         .confirmationDialog(
             appState.preferredLanguage == .turkish ? "Kampanya durumu güncellensin mi?" : "Update campaign status?",
-            isPresented: Binding(
-                get: { pendingCampaign != nil && pendingStatus != nil },
-                set: { if !$0 { pendingCampaign = nil; pendingStatus = nil } }
-            ),
+            isPresented: $showingStatusConfirm,
             titleVisibility: .visible
         ) {
             Button(appState.t(.confirm)) {
-                if let campaign = pendingCampaign, let status = pendingStatus {
+                if let campaign = dialogCampaign, let status = dialogStatus {
                     appState.adminSetCampaignStatus(campaign, status: status)
                 }
-                pendingCampaign = nil
-                pendingStatus = nil
+                clearCampaignStatusDialog()
             }
             Button(appState.t(.cancel), role: .cancel) {
-                pendingCampaign = nil
-                pendingStatus = nil
+                clearCampaignStatusDialog()
             }
         } message: {
-            if let campaign = pendingCampaign, let status = pendingStatus {
+            if let campaign = dialogCampaign, let status = dialogStatus {
                 Text("\(campaign.title) → \(status.rawValue)")
             }
         }
+    }
+
+    private func queueCampaignStatus(_ campaign: Campaign, _ status: CampaignStatus) {
+        pendingCampaign = campaign
+        pendingStatus = status
+        dialogCampaign = campaign
+        dialogStatus = status
+        showingStatusConfirm = true
+    }
+
+    private func clearCampaignStatusDialog() {
+        pendingCampaign = nil
+        pendingStatus = nil
+        dialogCampaign = nil
+        dialogStatus = nil
+        showingStatusConfirm = false
     }
 }

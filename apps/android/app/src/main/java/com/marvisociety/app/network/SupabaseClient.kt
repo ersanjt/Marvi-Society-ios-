@@ -246,17 +246,36 @@ class SupabaseClient(
         validate(response)
     }
 
-    suspend fun patch(table: String, filters: Map<String, String>, body: JsonObject) {
+    suspend fun patch(
+        table: String,
+        filters: Map<String, String>,
+        body: JsonObject,
+        requireRows: Boolean = false
+    ) {
         val query = filters.entries.joinToString("&") { (k, v) ->
             "$k=${java.net.URLEncoder.encode(v, Charsets.UTF_8.name())}"
         }
         val response = authenticatedRequest {
             client.patch("$baseUrl/rest/v1/$table?$query") {
                 applyHeaders(authenticated = true)
+                if (requireRows) {
+                    header("Prefer", "return=representation")
+                }
                 setBody(body)
             }
         }
         validate(response)
+        if (requireRows) {
+            val payload = response.body<JsonElement>()
+            val rows = when (payload) {
+                is JsonArray -> payload
+                is JsonObject -> JsonArray(listOf(payload))
+                else -> JsonArray(emptyList())
+            }
+            if (rows.isEmpty()) {
+                throw MarviApiException("Update did not change any rows.")
+            }
+        }
     }
 
     suspend fun delete(table: String, filters: Map<String, String>) {

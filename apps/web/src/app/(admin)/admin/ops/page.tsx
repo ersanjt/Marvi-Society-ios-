@@ -89,7 +89,7 @@ export default async function AdminOpsPage() {
 
       {error ? (
         <div className="mt-8">
-          <SyncBanner message={tReplace(o.loadError, { message: error })} />
+          <SyncBanner tone="error" message={tReplace(o.loadError, { message: error })} />
         </div>
       ) : null}
 
