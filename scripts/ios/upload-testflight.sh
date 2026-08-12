@@ -13,6 +13,20 @@ API_ISSUER_ID="${APP_STORE_CONNECT_ISSUER_ID:-8b84fa76-827a-48b1-bbce-71bdce84ac
 API_KEY_PATH="${APP_STORE_CONNECT_API_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8}"
 IPA="${1:-$DEFAULT_IPA}"
 
+# Prefer an on-disk key if the configured path is missing (stale shell env).
+if [[ ! -f "$API_KEY_PATH" ]]; then
+  for candidate in \
+    "$HOME/.appstoreconnect/private_keys/AuthKey_U66SGD9ZWQ.p8" \
+    "$HOME/.appstoreconnect/private_keys"/AuthKey_*.p8
+  do
+    if [[ -f "$candidate" ]]; then
+      API_KEY_PATH="$candidate"
+      API_KEY_ID="$(basename "$candidate" .p8 | sed 's/^AuthKey_//')"
+      break
+    fi
+  done
+fi
+
 if [[ ! -f "$IPA" ]]; then
   echo "✗ IPA not found: $IPA"
   echo "  Run: npm run build:ios"
