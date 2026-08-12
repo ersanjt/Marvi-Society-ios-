@@ -54,6 +54,8 @@ FAIL=0
 echo "Profile persistence RPCs:"
 check_rpc_exists "upsert_my_creator_profile" '{"p_full_name":"Probe"}' || FAIL=1
 check_rpc_exists "set_my_profile_image" '{"p_kind":"avatar","p_url":"https://example.com/a.jpg"}' || FAIL=1
+check_rpc_exists "admin_set_user_profile_image" '{"p_user_id":"00000000-0000-0000-0000-000000000001","p_kind":"avatar","p_url":"https://example.com/a.jpg"}' || FAIL=1
+check_rpc_exists "admin_list_users" '{"p_limit":1}' || FAIL=1
 
 echo ""
 echo "Business category schema:"

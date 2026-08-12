@@ -212,9 +212,9 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         if !avatar.isEmpty { body["p_avatar_url"] = avatar }
         if !cover.isEmpty { body["p_cover_url"] = cover }
 
-        // Prefer SECURITY DEFINER upsert so writes always stick and return the saved row.
+        // Prefer SECURITY DEFINER upsert so writes always stick.
         do {
-            let _: CreatorProfileRow = try await client.rpc(
+            try await client.rpcVoid(
                 function: "upsert_my_creator_profile",
                 body: body
             )
@@ -865,7 +865,13 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func uploadProfileImage(data: Data, fileName: String, kind: ProfileImageKind, forUserID: UUID) async throws -> String {
-        let path = "\(forUserID)/\(kind.rawValue)/\(fileName)"
+        // Unique object keys avoid Storage upsert UPDATE-policy failures when
+        // replacing avatar.jpg / cover.jpg (INSERT-only policies still work).
+        let safeName = fileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "\(kind.rawValue).jpg"
+            : fileName
+        let uniqueName = "\(UUID().uuidString)-\(safeName)"
+        let path = "\(forUserID.uuidString.lowercased())/\(kind.rawValue)/\(uniqueName)"
         _ = try await client.uploadObject(
             bucket: "profile-media",
             path: path,
@@ -907,7 +913,8 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
 
         do {
-            let _: CreatorProfileRow = try await client.rpc(
+            // Prefer void decode so response-shape churn cannot fail a successful write.
+            try await client.rpcVoid(
                 function: "set_my_profile_image",
                 body: [
                     "p_kind": kind.rawValue,
@@ -930,7 +937,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
 
     func adminSetUserProfileImage(userID: UUID, kind: ProfileImageKind, url: String?) async throws {
         let trimmed = url?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let _: CreatorProfileRow = try await client.rpc(
+        try await client.rpcVoid(
             function: "admin_set_user_profile_image",
             body: [
                 "p_user_id": userID.uuidString,

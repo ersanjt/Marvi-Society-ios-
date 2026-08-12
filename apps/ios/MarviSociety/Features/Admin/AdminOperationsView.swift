@@ -525,6 +525,7 @@ struct AdminUserDetailSheet: View {
     @State private var emailSubject = ""
     @State private var emailBody = ""
     @State private var feedback = ""
+    @State private var feedbackIsError = false
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var coverPickerItem: PhotosPickerItem?
     @State private var isBusy = false
@@ -562,11 +563,22 @@ struct AdminUserDetailSheet: View {
                         if !feedback.isEmpty {
                             Text(feedback)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(MarviColor.emerald)
+                                .foregroundStyle(feedbackIsError ? MarviColor.tomato : MarviColor.emerald)
                                 .padding(.horizontal, 4)
                         }
                     }
                     .padding(16)
+                    .overlay {
+                        if isBusy {
+                            ZStack {
+                                Color.black.opacity(0.25)
+                                ProgressView()
+                                    .tint(.white)
+                                    .padding(20)
+                                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle(user.displayName)
@@ -650,6 +662,7 @@ struct AdminUserDetailSheet: View {
                 openedThread = await appState.openDirectThread(with: user.userID)
                 isOpeningMessage = false
                 if openedThread == nil {
+                    feedbackIsError = true
                     feedback = appState.t(.errSomeDataRefresh)
                 }
             }
@@ -664,6 +677,7 @@ struct AdminUserDetailSheet: View {
                 if creatorID != nil {
                     showPublicProfile = true
                 } else {
+                    feedbackIsError = true
                     feedback = appState.t(.adminNoCreatorProfile)
                 }
             }
@@ -717,8 +731,10 @@ struct AdminUserDetailSheet: View {
                         Task {
                             isBusy = true
                             if let error = await appState.adminClearUserPhoto(userID: user.userID, kind: .avatar) {
+                                feedbackIsError = true
                                 feedback = error
                             } else {
+                                feedbackIsError = false
                                 feedback = appState.t(.adminPhotoCleared)
                                 detail = await appState.loadAdminUserDetail(userID: user.userID)
                             }
@@ -754,8 +770,10 @@ struct AdminUserDetailSheet: View {
                         Task {
                             isBusy = true
                             if let error = await appState.adminClearUserPhoto(userID: user.userID, kind: .cover) {
+                                feedbackIsError = true
                                 feedback = error
                             } else {
+                                feedbackIsError = false
                                 feedback = appState.t(.adminPhotoCleared)
                                 detail = await appState.loadAdminUserDetail(userID: user.userID)
                             }
@@ -816,16 +834,20 @@ struct AdminUserDetailSheet: View {
                 HStack(spacing: 10) {
                     adminActionButton(appState.t(.approve), tint: MarviColor.emerald) {
                         if let error = await appState.adminSetUserStatus(userID: user.userID, status: .approved) {
+                            feedbackIsError = true
                             feedback = error
                         } else {
+                            feedbackIsError = false
                             feedback = appState.t(.approvedMsg)
                         }
                         detail = await appState.loadAdminUserDetail(userID: user.userID)
                     }
                     adminActionButton(appState.t(.block), tint: MarviColor.tomato) {
                         if let error = await appState.adminSetUserStatus(userID: user.userID, status: .paused) {
+                            feedbackIsError = true
                             feedback = error
                         } else {
+                            feedbackIsError = false
                             feedback = appState.t(.accountBlocked)
                         }
                         detail = await appState.loadAdminUserDetail(userID: user.userID)
@@ -834,8 +856,10 @@ struct AdminUserDetailSheet: View {
 
                 adminActionButton(appState.t(.socialVerifyConfirmAdmin), tint: MarviColor.emerald) {
                     if let error = await appState.adminVerifySocialDM(userID: user.userID) {
+                        feedbackIsError = true
                         feedback = error
                     } else {
+                        feedbackIsError = false
                         feedback = appState.t(.socialVerifyVerified)
                     }
                     detail = await appState.loadAdminUserDetail(userID: user.userID)
@@ -849,8 +873,10 @@ struct AdminUserDetailSheet: View {
                         title: notifyTitle,
                         body: notifyBody
                     ) {
+                        feedbackIsError = true
                         feedback = error
                     } else {
+                        feedbackIsError = false
                         feedback = appState.t(.notificationSent)
                     }
                 }
@@ -863,8 +889,10 @@ struct AdminUserDetailSheet: View {
                         subject: emailSubject,
                         body: emailBody
                     ) {
+                        feedbackIsError = true
                         feedback = error
                     } else {
+                        feedbackIsError = false
                         feedback = appState.t(.emailQueued)
                     }
                 }
@@ -923,18 +951,22 @@ struct AdminUserDetailSheet: View {
             if kind == .avatar { avatarPickerItem = nil } else { coverPickerItem = nil }
         }
         do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                feedback = appState.t(.errPhotoTooLarge)
-                return
-            }
+            let data = try await PhotosPickerImageLoader.loadData(from: item)
             if let error = await appState.adminUploadUserPhoto(userID: user.userID, data: data, kind: kind) {
+                feedbackIsError = true
                 feedback = error
             } else {
+                feedbackIsError = false
                 feedback = appState.t(.adminPhotoUpdated)
                 detail = await appState.loadAdminUserDetail(userID: user.userID)
             }
         } catch {
-            feedback = appState.t(.errPhotoTooLarge)
+            feedbackIsError = true
+            if case let MarviAPIError.server(message) = error {
+                feedback = message
+            } else {
+                feedback = appState.t(.errPhotoTooLarge)
+            }
         }
     }
 }

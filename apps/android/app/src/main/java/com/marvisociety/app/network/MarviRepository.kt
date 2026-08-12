@@ -190,7 +190,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     /** Uploads to public `profile-media` and returns a cache-busted public URL. */
     suspend fun uploadProfileImage(imageData: ByteArray, fileName: String, kind: String): String {
         val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
-        val path = "$userId/$kind/$fileName"
+        val unique = "${System.currentTimeMillis()}-$fileName"
+        val path = "$userId/$kind/$unique"
         client.uploadObject(
             bucket = "profile-media",
             path = path,

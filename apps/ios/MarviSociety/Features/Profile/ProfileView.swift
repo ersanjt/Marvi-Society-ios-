@@ -796,21 +796,26 @@ struct ProfileView: View {
         isUploadingPhoto = true
         photoUploadMessage = nil
         photoUploadFailed = false
-        defer { isUploadingPhoto = false }
-
-        guard let data = try? await item.loadTransferable(type: Data.self), !data.isEmpty else {
-            photoUploadFailed = true
-            photoUploadMessage = appState.t(.photoUploadFailed)
-            return
+        defer {
+            isUploadingPhoto = false
+            if kind == .avatar { avatarPickerItem = nil } else { coverPickerItem = nil }
         }
 
-        let success = await appState.uploadProfilePhoto(data: data, kind: kind)
-        photoUploadFailed = !success
-        photoUploadMessage = success
-            ? appState.t(.photoUploadSuccess)
-            : (appState.lastSyncError ?? appState.t(.photoUploadFailed))
-
-        if kind == .avatar { avatarPickerItem = nil } else { coverPickerItem = nil }
+        do {
+            let data = try await PhotosPickerImageLoader.loadData(from: item)
+            let success = await appState.uploadProfilePhoto(data: data, kind: kind)
+            photoUploadFailed = !success
+            photoUploadMessage = success
+                ? appState.t(.photoUploadSuccess)
+                : (appState.lastSyncError ?? appState.t(.photoUploadFailed))
+        } catch {
+            photoUploadFailed = true
+            if case let MarviAPIError.server(message) = error {
+                photoUploadMessage = message
+            } else {
+                photoUploadMessage = appState.t(.photoUploadFailed)
+            }
+        }
     }
 }
 
@@ -1403,20 +1408,25 @@ private struct ShowcaseEditorCard: View {
         isBusy = true
         errorMessage = nil
         defer { isBusy = false; photoItem = nil }
-        guard let data = try? await item.loadTransferable(type: Data.self), !data.isEmpty else {
-            errorMessage = appState.t(.photoUploadFailed)
-            return
-        }
-        let prepared = ImageUploadPreprocessor.prepare(data, profile: .showcase)
-        guard let prepared else {
-            errorMessage = appState.t(.errPhotoTooLarge)
-            return
-        }
-        let success = await appState.addShowcasePhoto(data: prepared, caption: captionText)
-        if success {
-            captionText = ""
-        } else {
-            errorMessage = appState.lastSyncError ?? appState.t(.photoUploadFailed)
+        do {
+            let data = try await PhotosPickerImageLoader.loadData(from: item)
+            let prepared = ImageUploadPreprocessor.prepare(data, profile: .showcase)
+            guard let prepared else {
+                errorMessage = appState.t(.errPhotoTooLarge)
+                return
+            }
+            let success = await appState.addShowcasePhoto(data: prepared, caption: captionText)
+            if success {
+                captionText = ""
+            } else {
+                errorMessage = appState.lastSyncError ?? appState.t(.photoUploadFailed)
+            }
+        } catch {
+            if case let MarviAPIError.server(message) = error {
+                errorMessage = message
+            } else {
+                errorMessage = appState.t(.photoUploadFailed)
+            }
         }
     }
 }

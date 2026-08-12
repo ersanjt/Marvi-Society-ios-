@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-08-12T08:38:00Z
+-- Generated: 2026-08-12T16:57:57Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
@@ -12194,6 +12194,52 @@ $$;
 GRANT EXECUTE ON FUNCTION public.admin_set_user_profile_image(UUID, TEXT, TEXT) TO authenticated;
 
 -- Admins may upload/replace/delete any object under profile-media.
+DROP POLICY IF EXISTS profile_media_admin_write ON storage.objects;
+CREATE POLICY profile_media_admin_write ON storage.objects
+    FOR ALL
+    USING (bucket_id = 'profile-media' AND public.is_admin())
+    WITH CHECK (bucket_id = 'profile-media' AND public.is_admin());
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260812120001_profile_media_upsert_policies.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Fix profile-media upsert: UPDATE policies need WITH CHECK for x-upsert replacements.
+-- Also ensure admin write policy exists for managing other members' photos.
+
+DROP POLICY IF EXISTS profile_media_update_own ON storage.objects;
+CREATE POLICY profile_media_update_own ON storage.objects
+    FOR UPDATE
+    USING (
+        bucket_id = 'profile-media'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    )
+    WITH CHECK (
+        bucket_id = 'profile-media'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    );
+
+DROP POLICY IF EXISTS profile_media_upload_own ON storage.objects;
+CREATE POLICY profile_media_upload_own ON storage.objects
+    FOR INSERT
+    WITH CHECK (
+        bucket_id = 'profile-media'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    );
+
+DROP POLICY IF EXISTS profile_media_delete_own ON storage.objects;
+CREATE POLICY profile_media_delete_own ON storage.objects
+    FOR DELETE
+    USING (
+        bucket_id = 'profile-media'
+        AND auth.uid()::TEXT = (storage.foldername(name))[1]
+    );
+
+DROP POLICY IF EXISTS profile_media_public_read ON storage.objects;
+CREATE POLICY profile_media_public_read ON storage.objects
+    FOR SELECT
+    USING (bucket_id = 'profile-media');
+
 DROP POLICY IF EXISTS profile_media_admin_write ON storage.objects;
 CREATE POLICY profile_media_admin_write ON storage.objects
     FOR ALL

@@ -54,6 +54,7 @@
 		1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000168 /* MarviAppDelegate.swift */; };
 		1A2B3C4D5E6F700000000190 /* MarviL10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000191 /* MarviL10n.swift */; };
 		1A2B3C4D5E6F7000000001B1 /* ImageUploadPreprocessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */; };
+		1A2B3C4D5E6F7000000001B7 /* PhotosPickerImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001B6 /* PhotosPickerImageLoader.swift */; };
 		1A2B3C4D5E6F7000000001B3 /* CollaborationChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001B2 /* CollaborationChatView.swift */; };
 		1A2B3C4D5E6F7000000001C1 /* CommunityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F7000000001C0 /* CommunityView.swift */; };
 /* End PBXBuildFile section */
@@ -99,6 +100,7 @@
 		1A2B3C4D5E6F700000000153 /* AppLinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLinks.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000191 /* MarviL10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarviL10n.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageUploadPreprocessor.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F7000000001B6 /* PhotosPickerImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosPickerImageLoader.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7000000001B2 /* CollaborationChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollaborationChatView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F7000000001C0 /* CommunityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityView.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000154 /* Secrets.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig.example; sourceTree = "<group>"; };
@@ -215,6 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F7000000001B0 /* ImageUploadPreprocessor.swift */,
+				1A2B3C4D5E6F7000000001B6 /* PhotosPickerImageLoader.swift */,
 			);
 			path = Media;
 			sourceTree = "<group>";
@@ -562,6 +565,7 @@
 				1A2B3C4D5E6F700000000177 /* SecretSocietyComponents.swift in Sources */,
 				1A2B3C4D5E6F700000000178 /* MarviAppDelegate.swift in Sources */,
 				1A2B3C4D5E6F7000000001B1 /* ImageUploadPreprocessor.swift in Sources */,
+				1A2B3C4D5E6F7000000001B7 /* PhotosPickerImageLoader.swift in Sources */,
 				1A2B3C4D5E6F7000000001B3 /* CollaborationChatView.swift in Sources */,
 				1A2B3C4D5E6F7000000001C1 /* CommunityView.swift in Sources */,
 			);
@@ -701,7 +705,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "MarviSociety/MarviSociety-Device.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
@@ -739,7 +743,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MarviSociety/MarviSociety.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 64;
+				CURRENT_PROJECT_VERSION = 65;
 				DEVELOPMENT_TEAM = GG773SAZP9;
 				DEVELOPMENT_ASSET_PATHS = "\"MarviSociety/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
