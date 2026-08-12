@@ -22,6 +22,10 @@ enum MarviL10n {
         case when, whereAxis, eventTypeAxis
         case featApprovedTitle, featApprovedSub, featVenuesTitle, featVenuesSub
         case featProofTitle, featProofSub
+        case introHome, introSkip
+        case introSlideCreatorsTitle, introSlideCreatorsSub
+        case introSlideBrandTitle, introSlideBrandSub
+        case introSlideAffiliateTitle, introSlideAffiliateSub
         case step1of4, step2of4, step3of4, step4of4
         case createAccount, signInContinue, welcomeBackSignIn, createAccountSub, signInSub
         case orEmail, orAppleSignIn, orContinueWith, newMemberCreate, alreadyMemberToggle, forgotPasswordReset
@@ -226,6 +230,13 @@ enum MarviL10n {
         .choosePathPrompt: "How do you want to join?",
         .joinAsCreator: "Creator", .joinAsBusiness: "Business",
         .when: "When", .whereAxis: "Where", .eventTypeAxis: "Event type",
+        .introHome: "Home", .introSkip: "Skip",
+        .introSlideCreatorsTitle: "Empowering Creators",
+        .introSlideCreatorsSub: "Connect with top brands and monetize your influence effortlessly",
+        .introSlideBrandTitle: "Elevate Your Brand",
+        .introSlideBrandSub: "Find perfect creators and launch high-impact campaigns with ease",
+        .introSlideAffiliateTitle: "Earn as an Affiliate",
+        .introSlideAffiliateSub: "Refer, track, and earn unlimited commissions in real time",
         .featApprovedTitle: "Approved members only",
         .featApprovedSub: "Every creator application is reviewed by our team.",
         .featVenuesTitle: "Premium venue experiences",
@@ -713,6 +724,13 @@ enum MarviL10n {
         .choosePathPrompt: "Nasıl katılmak istiyorsun?",
         .joinAsCreator: "İçerik üreticisi", .joinAsBusiness: "İşletme",
         .when: "Ne zaman", .whereAxis: "Nerede", .eventTypeAxis: "Etkinlik türü",
+        .introHome: "Ana sayfa", .introSkip: "Geç",
+        .introSlideCreatorsTitle: "İçerik Üreticilerini Güçlendir",
+        .introSlideCreatorsSub: "Önde gelen markalarla bağlantı kur ve etkini zahmetsizce paraya dönüştür",
+        .introSlideBrandTitle: "Markanı Yükselt",
+        .introSlideBrandSub: "Doğru creator’ları bul ve yüksek etkili kampanyaları kolayca başlat",
+        .introSlideAffiliateTitle: "Affiliate Olarak Kazan",
+        .introSlideAffiliateSub: "Davet et, takip et ve sınırsız komisyonu gerçek zamanlı kazan",
         .featApprovedTitle: "Sadece onaylı üyeler",
         .featApprovedSub: "Her creator başvurusu ekibimiz tarafından incelenir.",
         .featVenuesTitle: "Seçkin mekân deneyimleri",

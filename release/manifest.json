@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.3",
-      "buildNumber": 66,
+      "buildNumber": 67,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-12T17:39:10Z",
+      "status": "partial",
+      "message": "migrations combined; CLI not linked"
+    },
+    {
+      "at": "2026-08-12T17:22:15Z",
+      "status": "ok",
+      "message": "pushed 4fb0d46 to origin/main"
+    },
     {
       "at": "2026-08-12T17:22:11Z",
       "status": "partial",
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-07-17T14:36:08Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260715000001_repair_venue_reviews)"
-    },
-    {
-      "at": "2026-07-17T14:21:50Z",
-      "status": "ok",
-      "message": "pushed fdcca70 to origin/main"
-    },
-    {
-      "at": "2026-07-17T14:21:45Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260715000001_repair_venue_reviews)"
     }

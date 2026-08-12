@@ -1095,138 +1095,242 @@ private extension View {
     }
 }
 
+private enum LaunchIntroSlide: Int, CaseIterable, Identifiable {
+    case creators = 0
+    case brand = 1
+    case affiliate = 2
+
+    var id: Int { rawValue }
+
+    var iconSystemName: String {
+        switch self {
+        case .creators: "video"
+        case .brand: "briefcase"
+        case .affiliate: "hand.raised"
+        }
+    }
+
+    var titleKey: MarviL10n.Key {
+        switch self {
+        case .creators: .introSlideCreatorsTitle
+        case .brand: .introSlideBrandTitle
+        case .affiliate: .introSlideAffiliateTitle
+        }
+    }
+
+    var subtitleKey: MarviL10n.Key {
+        switch self {
+        case .creators: .introSlideCreatorsSub
+        case .brand: .introSlideBrandSub
+        case .affiliate: .introSlideAffiliateSub
+        }
+    }
+}
+
 private struct OnboardingLaunchIntro: View {
     let onFinished: () -> Void
 
+    @EnvironmentObject private var appState: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var brandScale: CGFloat = 0.55
-    @State private var brandOpacity: Double = 0
-    @State private var glowScale: CGFloat = 0.4
-    @State private var glowOpacity: Double = 0
-    @State private var ringScale: CGFloat = 0.7
-    @State private var ringOpacity: Double = 0
-    @State private var titleOpacity: Double = 0
-    @State private var titleOffset: CGFloat = 16
+
+    @State private var page = 0
     @State private var orbPulse = false
-    @State private var shimmer = false
+    @State private var contentAppeared = false
+
+    private let accent = Color(hex: "#A855F7")
+    private let autoAdvanceSeconds: TimeInterval = 3.2
+
+    private var appVersionLabel: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.5.3"
+        return "v\(version)"
+    }
 
     var body: some View {
         ZStack {
-            MarviColor.surface.ignoresSafeArea()
+            Color(hex: "#0B0E14").ignoresSafeArea()
 
             GeometryReader { geo in
                 Circle()
-                    .fill(MarviColor.rose.opacity(0.28))
-                    .frame(width: geo.size.width * 0.9)
-                    .blur(radius: 80)
-                    .scaleEffect(orbPulse ? 1.12 : 0.88)
-                    .offset(y: -geo.size.height * 0.08)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .fill(accent.opacity(0.34))
+                    .frame(width: geo.size.width * 0.95)
+                    .blur(radius: 90)
+                    .scaleEffect(orbPulse ? 1.08 : 0.92)
+                    .offset(y: -geo.size.height * 0.18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
                 Circle()
-                    .fill(MarviColor.aubergine.opacity(0.22))
-                    .frame(width: geo.size.width * 0.75)
-                    .blur(radius: 70)
-                    .scaleEffect(orbPulse ? 0.95 : 1.1)
-                    .offset(x: geo.size.width * 0.18, y: geo.size.height * 0.28)
+                    .fill(MarviColor.aubergine.opacity(0.18))
+                    .frame(width: geo.size.width * 0.7)
+                    .blur(radius: 80)
+                    .scaleEffect(orbPulse ? 0.95 : 1.08)
+                    .offset(x: geo.size.width * 0.22, y: geo.size.height * 0.42)
             }
             .ignoresSafeArea()
+            .allowsHitTesting(false)
 
-            VStack(spacing: 22) {
-                ZStack {
-                    Circle()
-                        .stroke(
-                            AngularGradient(
-                                colors: [
-                                    MarviColor.rose.opacity(0.0),
-                                    MarviColor.rose,
-                                    MarviColor.aubergine,
-                                    MarviColor.rose.opacity(0.0)
-                                ],
-                                center: .center
-                            ),
-                            lineWidth: 2
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: onFinished) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.body.weight(.semibold))
+                            Text(appState.t(.introHome))
+                                .font(.body.weight(.medium))
+                        }
+                        .foregroundStyle(Color.white.opacity(0.88))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(appState.t(.introHome))
+
+                    Spacer()
+
+                    Button(action: onFinished) {
+                        Text(appState.t(.introSkip))
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(Color.white.opacity(0.72))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(appState.t(.introSkip))
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+                Spacer(minLength: 12)
+
+                TabView(selection: $page) {
+                    ForEach(LaunchIntroSlide.allCases) { slide in
+                        LaunchIntroSlideCard(
+                            slide: slide,
+                            accent: accent,
+                            language: appState.preferredLanguage
                         )
-                        .frame(width: 128, height: 128)
-                        .scaleEffect(ringScale)
-                        .opacity(ringOpacity)
-                        .rotationEffect(.degrees(shimmer ? 180 : 0))
-
-                    Circle()
-                        .fill(MarviColor.rose.opacity(0.22))
-                        .frame(width: 110, height: 110)
-                        .blur(radius: 24)
-                        .scaleEffect(glowScale)
-                        .opacity(glowOpacity)
-
-                    BrandMark(size: 88)
-                        .scaleEffect(brandScale)
-                        .opacity(brandOpacity)
-                        .shadow(color: MarviColor.rose.opacity(0.45), radius: 24, x: 0, y: 8)
+                        .tag(slide.rawValue)
+                    }
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(maxHeight: 360)
+                .opacity(contentAppeared ? 1 : 0)
+                .offset(y: contentAppeared ? 0 : 18)
 
-                VStack(spacing: 8) {
-                    Text("MARVI SOCIETY")
-                        .font(.caption.weight(.bold))
-                        .tracking(3.2)
-                        .foregroundStyle(MarviColor.ink)
+                LaunchIntroPageIndicator(
+                    count: LaunchIntroSlide.allCases.count,
+                    current: page,
+                    accent: accent
+                )
+                .padding(.top, 28)
+                .opacity(contentAppeared ? 1 : 0)
 
-                    Capsule()
-                        .fill(MarviGradient.brand)
-                        .frame(width: shimmer ? 52 : 24, height: 3)
-                        .opacity(titleOpacity)
-                }
-                .opacity(titleOpacity)
-                .offset(y: titleOffset)
+                Spacer(minLength: 12)
+
+                Text(appVersionLabel)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Color.white.opacity(0.28))
+                    .padding(.bottom, 18)
             }
         }
-        .onAppear(perform: play)
+        .onAppear(perform: start)
+        .task(id: reduceMotion) {
+            guard !reduceMotion else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(autoAdvanceSeconds * 1_000_000_000))
+                guard !Task.isCancelled else { break }
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    page = (page + 1) % LaunchIntroSlide.allCases.count
+                }
+            }
+        }
     }
 
-    private func play() {
+    private func start() {
         if reduceMotion {
-            brandScale = 1
-            brandOpacity = 1
-            titleOpacity = 1
-            titleOffset = 0
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                onFinished()
-            }
+            contentAppeared = true
             return
         }
 
-        withAnimation(.easeOut(duration: 1.8).repeatForever(autoreverses: true)) {
+        withAnimation(.easeInOut(duration: 3.4).repeatForever(autoreverses: true)) {
             orbPulse = true
         }
-        withAnimation(.linear(duration: 2.4).repeatForever(autoreverses: false)) {
-            shimmer = true
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.86)) {
+            contentAppeared = true
         }
+    }
+}
 
-        withAnimation(.spring(response: 0.72, dampingFraction: 0.72)) {
-            brandScale = 1
-            brandOpacity = 1
-            glowScale = 1.15
-            glowOpacity = 1
-        }
+private struct LaunchIntroSlideCard: View {
+    let slide: LaunchIntroSlide
+    let accent: Color
+    let language: AppLanguage
 
-        withAnimation(.easeOut(duration: 0.7).delay(0.18)) {
-            ringScale = 1.08
-            ringOpacity = 0.9
-        }
+    var body: some View {
+        VStack(spacing: 22) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color(hex: "#16122A"))
+                    .frame(width: 108, height: 108)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(accent.opacity(0.22), lineWidth: 1)
+                    )
+                    .shadow(color: accent.opacity(0.28), radius: 28, x: 0, y: 10)
 
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.86).delay(0.32)) {
-            titleOpacity = 1
-            titleOffset = 0
-        }
+                Group {
+                    if slide == .affiliate {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "hand.raised")
+                                .font(.system(size: 40, weight: .regular))
+                            HStack(spacing: -6) {
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 10))
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 12))
+                            }
+                            .offset(x: 10, y: -8)
+                        }
+                    } else {
+                        Image(systemName: slide.iconSystemName)
+                            .font(.system(size: 40, weight: .regular))
+                    }
+                }
+                .foregroundStyle(accent)
+                .shadow(color: accent.opacity(0.55), radius: 12, x: 0, y: 0)
+            }
 
-        withAnimation(.easeInOut(duration: 0.55).delay(0.95)) {
-            ringOpacity = 0
-            glowOpacity = 0.35
-        }
+            VStack(spacing: 12) {
+                Text(MarviL10n.t(slide.titleKey, language: language))
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.85)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.55) {
-            onFinished()
+                Text(MarviL10n.t(slide.subtitleKey, language: language))
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.58))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 28)
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct LaunchIntroPageIndicator: View {
+    let count: Int
+    let current: Int
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<count, id: \.self) { index in
+                Capsule()
+                    .fill(index == current ? accent : Color.white.opacity(0.22))
+                    .frame(width: index == current ? 28 : 8, height: 8)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: current)
+            }
+        }
+        .accessibilityLabel("Slide \(current + 1) of \(count)")
     }
 }
 

@@ -15,16 +15,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.PanTool
+import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -41,12 +52,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.marvisociety.app.BuildConfig
 import com.marvisociety.app.data.OfferCategory
 import com.marvisociety.app.data.BusinessCategoryCatalog
 import com.marvisociety.app.data.BusinessCategoryOption
@@ -58,6 +73,7 @@ import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.theme.NewsreaderFamily
 import com.marvisociety.app.ui.viewmodel.AppViewModel
+import kotlinx.coroutines.delay
 
 private enum class OnboardingStep {
     WELCOME, SIGN_IN, INVITE, PROFILE, VENUE, AGREEMENT
@@ -87,6 +103,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
     var localError by remember { mutableStateOf("") }
     var inviteAccepted by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var showLaunchIntro by remember { mutableStateOf(true) }
 
     LaunchedEffect(viewModel.pendingInviteCode) {
         val pending = viewModel.pendingInviteCode
@@ -111,6 +128,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                 isCreatingAccount = true
                 busy = false
                 localError = ""
+                showLaunchIntro = false
                 step = OnboardingStep.PROFILE
                 viewModel.consumePostGoogleAuthDestination()
             }
@@ -119,6 +137,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                 isCreatingAccount = true
                 busy = false
                 localError = ""
+                showLaunchIntro = false
                 step = OnboardingStep.VENUE
                 viewModel.consumePostGoogleAuthDestination()
             }
@@ -152,52 +171,53 @@ fun OnboardingScreen(viewModel: AppViewModel) {
     }
 
     MarviScreen {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (step != OnboardingStep.WELCOME) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = MarviColor.Rose,
-                    trackColor = MarviColor.Border
-                )
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                if (step != OnboardingStep.WELCOME) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp)),
+                        color = MarviColor.Rose,
+                        trackColor = MarviColor.Border
+                    )
+                }
 
-            when (step) {
-                OnboardingStep.WELCOME -> WelcomeStep(
-                    viewModel = viewModel,
-                    onCreator = {
-                        intent = SignupIntent.CREATOR
-                        isCreatingAccount = true
-                        step = OnboardingStep.SIGN_IN
-                    },
-                    onBusiness = {
-                        intent = SignupIntent.BUSINESS
-                        isCreatingAccount = true
-                        step = OnboardingStep.SIGN_IN
-                    },
-                    onMember = {
-                        isCreatingAccount = false
-                        step = OnboardingStep.SIGN_IN
-                    }
-                )
+                when (step) {
+                    OnboardingStep.WELCOME -> WelcomeStep(
+                        viewModel = viewModel,
+                        onCreator = {
+                            intent = SignupIntent.CREATOR
+                            isCreatingAccount = true
+                            step = OnboardingStep.SIGN_IN
+                        },
+                        onBusiness = {
+                            intent = SignupIntent.BUSINESS
+                            isCreatingAccount = true
+                            step = OnboardingStep.SIGN_IN
+                        },
+                        onMember = {
+                            isCreatingAccount = false
+                            step = OnboardingStep.SIGN_IN
+                        }
+                    )
 
-                OnboardingStep.SIGN_IN -> SignInStep(
-                    viewModel = viewModel,
-                    email = email,
-                    password = password,
-                    fullName = fullName,
+                    OnboardingStep.SIGN_IN -> SignInStep(
+                        viewModel = viewModel,
+                        email = email,
+                        password = password,
+                        fullName = fullName,
                     city = city,
                     isCreatingAccount = isCreatingAccount,
                     intent = intent,
@@ -386,9 +406,191 @@ fun OnboardingScreen(viewModel: AppViewModel) {
             if (localError.isNotEmpty() && step == OnboardingStep.AGREEMENT) {
                 Text(localError, color = MarviColor.Tomato)
             }
+            }
+
+            if (showLaunchIntro) {
+                OnboardingLaunchIntro(
+                    viewModel = viewModel,
+                    onFinished = { showLaunchIntro = false }
+                )
+            }
         }
     }
 }
+
+@Composable
+private fun OnboardingLaunchIntro(
+    viewModel: AppViewModel,
+    onFinished: () -> Unit
+) {
+    val accent = Color(0xFFA855F7)
+    val slides = listOf(
+        IntroSlide(
+            icon = Icons.Outlined.Videocam,
+            title = viewModel.t(MarviL10n.Key.INTRO_SLIDE_CREATORS_TITLE),
+            subtitle = viewModel.t(MarviL10n.Key.INTRO_SLIDE_CREATORS_SUB)
+        ),
+        IntroSlide(
+            icon = Icons.Outlined.Work,
+            title = viewModel.t(MarviL10n.Key.INTRO_SLIDE_BRAND_TITLE),
+            subtitle = viewModel.t(MarviL10n.Key.INTRO_SLIDE_BRAND_SUB)
+        ),
+        IntroSlide(
+            icon = Icons.Outlined.PanTool,
+            title = viewModel.t(MarviL10n.Key.INTRO_SLIDE_AFFILIATE_TITLE),
+            subtitle = viewModel.t(MarviL10n.Key.INTRO_SLIDE_AFFILIATE_SUB)
+        )
+    )
+    val pagerState = rememberPagerState(pageCount = { slides.size })
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(3200)
+            val next = (pagerState.currentPage + 1) % slides.size
+            pagerState.animateScrollToPage(next)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0B0E14))
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(320.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(accent.copy(alpha = 0.34f), Color.Transparent)
+                    )
+                )
+        )
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.clickable(onClick = onFinished),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.88f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        viewModel.t(MarviL10n.Key.INTRO_HOME),
+                        color = Color.White.copy(alpha = 0.88f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Text(
+                    viewModel.t(MarviL10n.Key.INTRO_SKIP),
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable(onClick = onFinished)
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(320.dp)
+            ) { page ->
+                val slide = slides[page]
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(108.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(Color(0xFF16122A))
+                            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(28.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = slide.icon,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(44.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(22.dp))
+                    Text(
+                        slide.title,
+                        color = Color.White,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        slide.subtitle,
+                        color = Color.White.copy(alpha = 0.58f),
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 28.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                slides.indices.forEach { index ->
+                    val active = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .height(8.dp)
+                            .width(if (active) 28.dp else 8.dp)
+                            .clip(CircleShape)
+                            .background(if (active) accent else Color.White.copy(alpha = 0.22f))
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = "v${BuildConfig.VERSION_NAME}",
+                color = Color.White.copy(alpha = 0.28f),
+                fontSize = 11.sp,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 18.dp)
+            )
+        }
+    }
+}
+
+private data class IntroSlide(
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String
+)
 
 @Composable
 private fun WelcomeStep(
