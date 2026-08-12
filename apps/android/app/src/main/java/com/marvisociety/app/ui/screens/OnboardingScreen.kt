@@ -27,8 +27,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Business
-import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Button
@@ -445,7 +445,7 @@ private fun OnboardingLaunchIntro(
             subtitle = viewModel.t(MarviL10n.Key.INTRO_SLIDE_BRAND_SUB)
         ),
         IntroSlide(
-            icon = Icons.Outlined.PanTool,
+            icon = Icons.Outlined.Shield,
             title = viewModel.t(MarviL10n.Key.INTRO_SLIDE_AFFILIATE_TITLE),
             subtitle = viewModel.t(MarviL10n.Key.INTRO_SLIDE_AFFILIATE_SUB)
         )

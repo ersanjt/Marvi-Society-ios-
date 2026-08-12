@@ -1482,7 +1482,7 @@ private extension View {
 private enum LaunchIntroSlide: Int, CaseIterable, Identifiable {
     case creators = 0
     case brand = 1
-    case affiliate = 2
+    case collaborations = 2
 
     var id: Int { rawValue }
 
@@ -1490,7 +1490,7 @@ private enum LaunchIntroSlide: Int, CaseIterable, Identifiable {
         switch self {
         case .creators: "video"
         case .brand: "briefcase"
-        case .affiliate: "hand.raised"
+        case .collaborations: "lock.shield"
         }
     }
 
@@ -1498,7 +1498,7 @@ private enum LaunchIntroSlide: Int, CaseIterable, Identifiable {
         switch self {
         case .creators: .introSlideCreatorsTitle
         case .brand: .introSlideBrandTitle
-        case .affiliate: .introSlideAffiliateTitle
+        case .collaborations: .introSlideAffiliateTitle
         }
     }
 
@@ -1506,7 +1506,7 @@ private enum LaunchIntroSlide: Int, CaseIterable, Identifiable {
         switch self {
         case .creators: .introSlideCreatorsSub
         case .brand: .introSlideBrandSub
-        case .affiliate: .introSlideAffiliateSub
+        case .collaborations: .introSlideAffiliateSub
         }
     }
 }
@@ -1658,22 +1658,8 @@ private struct LaunchIntroSlideCard: View {
                     .shadow(color: accent.opacity(0.28), radius: 28, x: 0, y: 10)
 
                 Group {
-                    if slide == .affiliate {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "hand.raised")
-                                .font(.system(size: 40, weight: .regular))
-                            HStack(spacing: -6) {
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 10))
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 12))
-                            }
-                            .offset(x: 10, y: -8)
-                        }
-                    } else {
-                        Image(systemName: slide.iconSystemName)
-                            .font(.system(size: 40, weight: .regular))
-                    }
+                    Image(systemName: slide.iconSystemName)
+                        .font(.system(size: 40, weight: .regular))
                 }
                 .foregroundStyle(accent)
                 .shadow(color: accent.opacity(0.55), radius: 12, x: 0, y: 0)
