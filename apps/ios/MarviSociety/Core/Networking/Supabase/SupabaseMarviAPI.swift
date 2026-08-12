@@ -276,9 +276,14 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     func fetchNotifications() async throws -> [InboxMessage] {
+        // Always scope to the signed-in user (defense in depth vs admin RLS history).
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
         let rows: [NotificationRow] = try await client.select(
             table: "notifications",
             query: [
+                URLQueryItem(name: "user_id", value: "eq.\(userID)"),
                 URLQueryItem(name: "read_at", value: "is.null"),
                 URLQueryItem(name: "order", value: "created_at.desc"),
                 URLQueryItem(name: "limit", value: "100")

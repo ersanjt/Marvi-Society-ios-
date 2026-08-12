@@ -451,6 +451,9 @@ enum MarviDeepLink: Equatable {
     case inbox
     case profile
     case admin
+    case community
+    case venueStudio
+    case bookings
     case offer(UUID)
     case booking(UUID)
 }
@@ -1037,6 +1040,7 @@ struct InboxMessage: Codable, Identifiable {
     var notificationType: String
     var bookingID: UUID?
     var offerID: UUID?
+    var conversationID: UUID?
 
     init(
         id: UUID = UUID(),
@@ -1048,7 +1052,8 @@ struct InboxMessage: Codable, Identifiable {
         isRead: Bool = false,
         notificationType: String = "general",
         bookingID: UUID? = nil,
-        offerID: UUID? = nil
+        offerID: UUID? = nil,
+        conversationID: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -1060,16 +1065,106 @@ struct InboxMessage: Codable, Identifiable {
         self.notificationType = notificationType
         self.bookingID = bookingID
         self.offerID = offerID
+        self.conversationID = conversationID
     }
 
-    var deepLink: MarviDeepLink? {
-        if let bookingID { return .booking(bookingID) }
-        if let offerID { return .offer(offerID) }
+    var section: InboxSection {
+        InboxSection.from(type: notificationType)
+    }
+
+    func deepLink(for role: UserRole) -> MarviDeepLink? {
+        if let conversationID {
+            _ = conversationID
+            return .community
+        }
+        if let bookingID {
+            switch role {
+            case .venue: return .venueStudio
+            case .admin: return .admin
+            case .creator: return .booking(bookingID)
+            }
+        }
+        if let offerID {
+            switch role {
+            case .venue: return .venueStudio
+            case .admin: return .admin
+            case .creator: return .offer(offerID)
+            }
+        }
         switch notificationType.lowercased() {
-        case "membership": return .profile
-        case "admin", "campaign": return .admin
-        case "booking": return .inbox
-        default: return nil
+        case "membership", "social":
+            return .profile
+        case "admin", "campaign", "ops":
+            return role == .admin ? .admin : .inbox
+        case "message":
+            return .community
+        case "collaboration", "shortlist", "booking", "proof":
+            switch role {
+            case .venue: return .venueStudio
+            case .admin: return .admin
+            case .creator: return .bookings
+            }
+        default:
+            return .inbox
+        }
+    }
+}
+
+enum InboxSection: String, CaseIterable, Identifiable {
+    case actionNeeded
+    case bookings
+    case messages
+    case account
+    case ops
+
+    var id: String { rawValue }
+
+    static func from(type: String) -> InboxSection {
+        switch type.lowercased() {
+        case "collaboration", "shortlist":
+            return .actionNeeded
+        case "booking", "proof":
+            return .bookings
+        case "message":
+            return .messages
+        case "membership", "social":
+            return .account
+        case "admin", "campaign", "ops":
+            return .ops
+        default:
+            return .actionNeeded
+        }
+    }
+
+    func title(for role: UserRole, language: AppLanguage) -> String {
+        switch (self, role) {
+        case (.actionNeeded, .venue):
+            return MarviL10n.t(.inboxSectionRequests, language: language)
+        case (.actionNeeded, .admin):
+            return MarviL10n.t(.inboxSectionOps, language: language)
+        case (.actionNeeded, _):
+            return MarviL10n.t(.inboxSectionAction, language: language)
+        case (.bookings, .venue):
+            return MarviL10n.t(.inboxSectionCampaigns, language: language)
+        case (.bookings, _):
+            return MarviL10n.t(.inboxSectionBookings, language: language)
+        case (.messages, _):
+            return MarviL10n.t(.inboxSectionMessages, language: language)
+        case (.account, _):
+            return MarviL10n.t(.inboxSectionAccount, language: language)
+        case (.ops, _):
+            return MarviL10n.t(.inboxSectionOps, language: language)
+        }
+    }
+
+    static func ordered(for role: UserRole) -> [InboxSection] {
+        switch role {
+        case .admin:
+            return [.ops, .actionNeeded, .messages, .account, .bookings]
+        case .venue:
+            return [.actionNeeded, .bookings, .messages, .account, .ops]
+        case .creator:
+            return [.actionNeeded, .bookings, .messages, .account, .ops]
         }
     }
 }

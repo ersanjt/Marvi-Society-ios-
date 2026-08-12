@@ -3,6 +3,26 @@ import SwiftUI
 struct InboxView: View {
     @EnvironmentObject private var appState: AppState
 
+    private var roleSubtitle: String {
+        switch appState.selectedRole {
+        case .creator:
+            return appState.t(.inboxSubCreator)
+        case .venue:
+            return appState.t(.inboxSubBusiness)
+        case .admin:
+            return appState.t(.inboxSubAdmin)
+        }
+    }
+
+    private var sections: [(InboxSection, [InboxMessage])] {
+        let ordered = InboxSection.ordered(for: appState.selectedRole)
+        return ordered.compactMap { section in
+            let items = appState.inboxMessages.filter { $0.section == section }
+            guard !items.isEmpty else { return nil }
+            return (section, items)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             MarviScreen {
@@ -12,7 +32,7 @@ struct InboxView: View {
 
                         SectionTitle(
                             title: appState.t(.inboxTitle),
-                            subtitle: appState.t(.inboxSub)
+                            subtitle: roleSubtitle
                         )
 
                         if !appState.inboxMessages.isEmpty {
@@ -35,24 +55,33 @@ struct InboxView: View {
                                 title: appState.isSyncing ? appState.t(.loading) : appState.t(.inboxEmpty),
                                 subtitle: appState.isSyncing
                                     ? appState.t(.inboxLoading)
-                                    : appState.t(.inboxClearedSub),
+                                    : roleEmptySubtitle,
                                 icon: "bell.slash"
                             )
                             .padding(.top, 24)
                         } else {
-                            LazyVStack(spacing: 12) {
-                                ForEach(appState.inboxMessages) { message in
-                                    InboxMessageRow(
-                                        message: message,
-                                        language: appState.preferredLanguage,
-                                        openLabel: appState.t(.openAction)
-                                    ) {
-                                        appState.openInboxMessage(message)
+                            LazyVStack(alignment: .leading, spacing: 18) {
+                                ForEach(sections, id: \.0.id) { section, messages in
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text(section.title(for: appState.selectedRole, language: appState.preferredLanguage))
+                                            .font(.caption.weight(.bold))
+                                            .textCase(.uppercase)
+                                            .foregroundStyle(MarviColor.muted)
+
+                                        ForEach(messages) { message in
+                                            InboxMessageRow(
+                                                message: message,
+                                                language: appState.preferredLanguage,
+                                                openLabel: appState.t(.openAction)
+                                            ) {
+                                                appState.openInboxMessage(message)
+                                            }
+                                            .transition(.asymmetric(
+                                                insertion: .opacity,
+                                                removal: .move(edge: .trailing).combined(with: .opacity)
+                                            ))
+                                        }
                                     }
-                                    .transition(.asymmetric(
-                                        insertion: .opacity,
-                                        removal: .move(edge: .trailing).combined(with: .opacity)
-                                    ))
                                 }
                             }
                             .animation(.easeInOut(duration: 0.25), value: appState.inboxMessages.map(\.id))
@@ -72,6 +101,14 @@ struct InboxView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var roleEmptySubtitle: String {
+        switch appState.selectedRole {
+        case .creator: return appState.t(.inboxEmptyCreator)
+        case .venue: return appState.t(.inboxEmptyBusiness)
+        case .admin: return appState.t(.inboxEmptyAdmin)
         }
     }
 }

@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.marvisociety.app.data.AdminTaskStatus
 import com.marvisociety.app.data.CollaborationModel
+import com.marvisociety.app.data.InboxMessage
+import com.marvisociety.app.data.InboxSection
 import com.marvisociety.app.data.MembershipStatus
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
@@ -313,10 +315,28 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
 
 @Composable
 fun InboxScreen(viewModel: AppViewModel) {
+    val role = viewModel.selectedRole
+    val subtitle = when (role) {
+        UserRole.CREATOR -> viewModel.t(MarviL10n.Key.INBOX_SUB_CREATOR)
+        UserRole.VENUE -> viewModel.t(MarviL10n.Key.INBOX_SUB_BUSINESS)
+        UserRole.ADMIN -> viewModel.t(MarviL10n.Key.INBOX_SUB_ADMIN)
+    }
+    val emptySub = when (role) {
+        UserRole.CREATOR -> viewModel.t(MarviL10n.Key.INBOX_EMPTY_CREATOR)
+        UserRole.VENUE -> viewModel.t(MarviL10n.Key.INBOX_EMPTY_BUSINESS)
+        UserRole.ADMIN -> viewModel.t(MarviL10n.Key.INBOX_EMPTY_ADMIN)
+    }
+    val sections = InboxSection.ordered(role).mapNotNull { section ->
+        val items = viewModel.inboxMessages.filter { it.section == section }
+        if (items.isEmpty()) null else section to items
+    }
+
     MarviScreen {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             BrandLockup(subtitle = viewModel.t(MarviL10n.Key.INBOX_TITLE))
-            Spacer(modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(subtitle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(12.dp))
             if (viewModel.inboxMessages.isNotEmpty()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -334,12 +354,12 @@ fun InboxScreen(viewModel: AppViewModel) {
                         Text(viewModel.t(MarviL10n.Key.INBOX_MARK_ALL_READ), color = MarviColor.Rose)
                     }
                 }
-                Spacer(modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
             }
             if (viewModel.inboxMessages.isEmpty()) {
                 EmptyStateView(
                     title = viewModel.t(MarviL10n.Key.INBOX_EMPTY),
-                    subtitle = viewModel.t(MarviL10n.Key.INBOX_CLEARED_SUB),
+                    subtitle = emptySub,
                     actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
                     onAction = viewModel::refreshFromServer
                 )
@@ -348,47 +368,79 @@ fun InboxScreen(viewModel: AppViewModel) {
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(viewModel.inboxMessages, key = { it.id }) { msg ->
-                        MarviCard(
-                            modifier = Modifier.clickable {
-                                viewModel.markInboxRead(msg.id)
-                            }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    sections.forEach { (section, messages) ->
+                        item(key = "section-${section.name}") {
+                            Text(
+                                inboxSectionTitle(viewModel, section, role),
+                                color = MarviColor.Muted,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        items(messages, key = { it.id }) { msg ->
+                            MarviCard(
+                                modifier = Modifier.clickable {
+                                    viewModel.openInboxMessage(msg)
+                                }
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(MarviColor.Rose)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(MarviColor.Rose)
+                                    )
+                                    Text(
+                                        viewModel.localizeServerText(msg.title),
+                                        fontWeight = FontWeight.Bold,
+                                        color = MarviColor.Ink,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        viewModel.t(MarviL10n.Key.OPEN_ACTION),
+                                        color = MarviColor.Emerald,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Text(viewModel.localizeServerText(msg.body), color = MarviColor.Graphite)
                                 Text(
-                                    viewModel.localizeServerText(msg.title),
-                                    fontWeight = FontWeight.Bold,
-                                    color = MarviColor.Ink,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    viewModel.t(MarviL10n.Key.CONTINUE),
-                                    color = MarviColor.Emerald,
-                                    fontWeight = FontWeight.Bold,
+                                    viewModel.localizeServerText(msg.dateLabel),
+                                    color = MarviColor.Muted,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
-                            Text(viewModel.localizeServerText(msg.body), color = MarviColor.Graphite)
-                            Text(
-                                viewModel.localizeServerText(msg.dateLabel),
-                                color = MarviColor.Muted,
-                                style = MaterialTheme.typography.bodySmall
-                            )
                         }
                     }
                 }
             }
         }
     }
+}
+
+private fun inboxSectionTitle(
+    viewModel: AppViewModel,
+    section: InboxSection,
+    role: UserRole
+): String {
+    val key = when (section) {
+        InboxSection.ACTION_NEEDED -> when (role) {
+            UserRole.VENUE -> MarviL10n.Key.INBOX_SECTION_REQUESTS
+            UserRole.ADMIN -> MarviL10n.Key.INBOX_SECTION_OPS
+            else -> MarviL10n.Key.INBOX_SECTION_ACTION
+        }
+        InboxSection.BOOKINGS -> when (role) {
+            UserRole.VENUE -> MarviL10n.Key.INBOX_SECTION_CAMPAIGNS
+            else -> MarviL10n.Key.INBOX_SECTION_BOOKINGS
+        }
+        InboxSection.MESSAGES -> MarviL10n.Key.INBOX_SECTION_MESSAGES
+        InboxSection.ACCOUNT -> MarviL10n.Key.INBOX_SECTION_ACCOUNT
+        InboxSection.OPS -> MarviL10n.Key.INBOX_SECTION_OPS
+    }
+    return viewModel.t(key)
 }
 
 @Composable

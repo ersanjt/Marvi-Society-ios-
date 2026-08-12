@@ -291,6 +291,7 @@ private fun tabsForRole(role: UserRole): List<TabSpec> = when (role) {
     UserRole.CREATOR -> listOf(
         TabSpec("discover", MarviL10n.Key.EXPLORE, Icons.Default.AutoAwesome),
         TabSpec("community", MarviL10n.Key.COMMUNITY_TAB, Icons.Default.Groups),
+        TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
         TabSpec("bookings", MarviL10n.Key.MY_EVENTS, Icons.Default.CalendarMonth),
         TabSpec("profile", MarviL10n.Key.PROFILE, Icons.Default.Person)
     )

@@ -274,9 +274,11 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     suspend fun fetchNotifications(): List<InboxMessage> {
+        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
         val rows = client.select(
             "notifications",
             mapOf(
+                "user_id" to "eq.$userId",
                 "read_at" to "is.null",
                 "order" to "created_at.desc",
                 "limit" to "100"
@@ -284,12 +286,19 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         ) { it.asArrayOrEmpty() }
         return rows.mapNotNull { row ->
             val obj = row.asObjectOrNull() ?: return@mapNotNull null
+            val payload = obj["payload"]?.asObjectOrNull()
             InboxMessage(
                 id = obj.string("id") ?: return@mapNotNull null,
                 title = obj.string("title") ?: "",
                 body = obj.string("body") ?: "",
                 dateLabel = formatRelative(obj.string("created_at")),
-                isRead = false
+                isRead = false,
+                notificationType = obj.string("type") ?: "general",
+                icon = obj.string("icon") ?: "bell.fill",
+                tint = obj.string("tint") ?: "rose",
+                bookingId = obj.string("booking_id") ?: payload?.string("booking_id"),
+                offerId = obj.string("offer_id") ?: payload?.string("offer_id"),
+                conversationId = payload?.string("conversation_id")
             )
         }
     }

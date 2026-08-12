@@ -51,16 +51,21 @@ struct MainAppShell: View {
                     .tabItem { Label(MarviL10n.t(.communityTab, language: lang), systemImage: "person.2.fill") }
                     .tag(1)
 
+                InboxView()
+                    .tabItem { Label(MarviL10n.t(.inbox, language: lang), systemImage: "bell") }
+                    .badge(appState.unreadInboxCount > 0 ? appState.unreadInboxCount : 0)
+                    .tag(2)
+
                 BookingsView()
                     .tabItem { Label(MarviL10n.t(.myEvents, language: lang), systemImage: "calendar.badge.clock") }
                     .badge(appState.myEventsTabBadgeCount > 0 ? appState.myEventsTabBadgeCount : 0)
-                    .tag(2)
+                    .tag(3)
 
                 ProfileView()
                     .tabItem {
                         Label(MarviL10n.t(.profile, language: lang), systemImage: "person.crop.circle.fill")
                     }
-                    .tag(3)
+                    .tag(4)
 
             case .venue:
                 VenueStudioView()

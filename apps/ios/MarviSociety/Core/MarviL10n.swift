@@ -80,6 +80,10 @@ enum MarviL10n {
         // Inbox / reauth
         case inboxTitle, inboxEmpty, inboxSub, inboxLoading, openAction
         case inboxMarkAllRead, inboxUnreadCount, inboxClearedSub
+        case inboxSubCreator, inboxSubBusiness, inboxSubAdmin
+        case inboxEmptyCreator, inboxEmptyBusiness, inboxEmptyAdmin
+        case inboxSectionAction, inboxSectionRequests, inboxSectionBookings, inboxSectionCampaigns
+        case inboxSectionMessages, inboxSectionAccount, inboxSectionOps
         case welcomeBack, signInToContinue, forgotPasswordEmail
         // Membership status labels
         case statusUnderReview, statusApproved, statusPaused
@@ -382,6 +386,19 @@ enum MarviL10n {
         .reactivateMyAccount: "Reactivate my account",
         .inboxTitle: "Inbox", .inboxEmpty: "Inbox is clear",
         .inboxSub: "Campaign updates, proof reminders, and admin messages.",
+        .inboxSubCreator: "Collaboration updates, confirmations, and account notices for creators.",
+        .inboxSubBusiness: "Incoming requests, confirmations, and messages for your business.",
+        .inboxSubAdmin: "System notices and messages for your admin account.",
+        .inboxEmptyCreator: "No creator updates yet. New collaboration activity will appear here.",
+        .inboxEmptyBusiness: "No business requests yet. New collaboration requests will appear here.",
+        .inboxEmptyAdmin: "No admin notices yet.",
+        .inboxSectionAction: "Action needed",
+        .inboxSectionRequests: "Requests",
+        .inboxSectionBookings: "Bookings & proof",
+        .inboxSectionCampaigns: "Campaign activity",
+        .inboxSectionMessages: "Messages",
+        .inboxSectionAccount: "Account",
+        .inboxSectionOps: "Operations",
         .inboxLoading: "Fetching your latest notifications.",
         .openAction: "Open",
         .inboxMarkAllRead: "Clear all",
@@ -897,6 +914,19 @@ enum MarviL10n {
         .reactivateMyAccount: "Hesabımı yeniden aç",
         .inboxTitle: "Gelen Kutusu", .inboxEmpty: "Gelen kutusu boş",
         .inboxSub: "Kampanya güncellemeleri, kanıt hatırlatıcıları ve yönetim mesajları.",
+        .inboxSubCreator: "Creator iş birliği güncellemeleri, onaylar ve hesap bildirimleri.",
+        .inboxSubBusiness: "İşletmenize gelen istekler, onaylar ve mesajlar.",
+        .inboxSubAdmin: "Admin hesabınıza ait sistem bildirimleri ve mesajlar.",
+        .inboxEmptyCreator: "Henüz creator güncellemesi yok. Yeni iş birliği aktiviteleri burada görünür.",
+        .inboxEmptyBusiness: "Henüz işletme isteği yok. Yeni iş birliği talepleri burada görünür.",
+        .inboxEmptyAdmin: "Henüz admin bildirimi yok.",
+        .inboxSectionAction: "İşlem gerekli",
+        .inboxSectionRequests: "İstekler",
+        .inboxSectionBookings: "Rezervasyon & kanıt",
+        .inboxSectionCampaigns: "Kampanya aktivitesi",
+        .inboxSectionMessages: "Mesajlar",
+        .inboxSectionAccount: "Hesap",
+        .inboxSectionOps: "Operasyon",
         .inboxLoading: "Son bildirimlerin yükleniyor.",
         .openAction: "Aç",
         .inboxMarkAllRead: "Tümünü temizle",
@@ -1274,11 +1304,15 @@ extension MarviL10n {
         "Request sent": "İstek gönderildi",
         "Waiting for the venue to confirm your collaboration.": "Mekanın iş birliğini onaylaması bekleniyor.",
         "Waiting for the business to confirm your collaboration.": "İşletmenin iş birliğini onaylaması bekleniyor.",
+        "Waiting for the business to confirm your request.": "İşletmenin isteğinizi onaylaması bekleniyor.",
         "Creator wants to collaborate": "Creator iş birliği yapmak istiyor",
         "A creator accepted your offer. Confirm to start chatting.": "Bir creator teklifini kabul etti. Sohbete başlamak için onayla.",
+        "A member wants to collaborate with your business. Review the request to continue.": "Bir üye işletmenizle iş birliği yapmak istiyor. Devam etmek için isteği inceleyin.",
         "Collaboration confirmed": "İş birliği onaylandı",
+        "Collaboration Approved": "İş birliği onaylandı",
         "The venue confirmed. You can now chat in Messages.": "Mekan onayladı. Artık Mesajlar'dan sohbet edebilirsin.",
         "The business confirmed. You can now chat in Messages.": "İşletme onayladı. Artık Mesajlar'dan sohbet edebilirsin.",
+        "Mekan onayladı. Artık Mesajlar'dan sohbet edebilirsin.": "Mekan onayladı. Artık Mesajlar'dan sohbet edebilirsin.",
         "Creator accepted your invite": "Creator davetini kabul etti",
         "Collaboration confirmed. Open Messages to chat.": "İş birliği onaylandı. Sohbet için Mesajlar'ı aç.",
         "Venue invited you": "Bir mekan seni davet etti",
@@ -1286,7 +1320,11 @@ extension MarviL10n {
         "New collaboration request": "Yeni iş birliği isteği",
         "New message": "Yeni mesaj",
         "Membership approved": "Üyeliğin onaylandı",
-        "Your Marvi Society creator application was approved. Explore live events now.": "Marvi Society creator başvurun onaylandı. Canlı etkinlikleri şimdi keşfet."
+        "Your Marvi Society creator application was approved. Explore live events now.": "Marvi Society creator başvurun onaylandı. Canlı etkinlikleri şimdi keşfet.",
+        "Proof submitted": "Kanıt gönderildi",
+        "Your proof was submitted for review.": "Kanıtın incelemeye gönderildi.",
+        "Social verified": "Sosyal hesap doğrulandı",
+        "Your social account was verified.": "Sosyal hesabın doğrulandı."
     ]
 
     static func localizeServerText(_ text: String, language: AppLanguage) -> String {

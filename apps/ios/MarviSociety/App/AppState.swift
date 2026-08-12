@@ -277,18 +277,39 @@ final class AppState: ObservableObject {
     func navigate(to link: MarviDeepLink) {
         switch link {
         case .inbox:
-            switch selectedRole {
-            case .creator, .venue: workspaceTabIndex = 2
-            case .admin: workspaceTabIndex = 1
-            }
+            workspaceTabIndex = inboxTabIndex
         case .profile:
             selectedRole = allowedRoles.contains(.creator) ? .creator : (allowedRoles.first ?? .creator)
             workspaceTabIndex = profileTabIndex
         case .admin:
             Task { await openAdminConsole() }
+        case .community:
+            switch selectedRole {
+            case .creator: workspaceTabIndex = 1
+            case .venue: workspaceTabIndex = 1
+            case .admin: workspaceTabIndex = inboxTabIndex
+            }
+        case .venueStudio:
+            if allowedRoles.contains(.venue) {
+                selectedRole = .venue
+                workspaceTabIndex = 0
+            } else {
+                workspaceTabIndex = inboxTabIndex
+            }
+        case .bookings:
+            if allowedRoles.contains(.creator) {
+                selectedRole = .creator
+                workspaceTabIndex = 3
+            } else if selectedRole == .venue {
+                workspaceTabIndex = 0
+            } else {
+                workspaceTabIndex = inboxTabIndex
+            }
         case .offer(let offerID):
-            selectedRole = .creator
-            workspaceTabIndex = 0
+            if allowedRoles.contains(.creator) {
+                selectedRole = .creator
+                workspaceTabIndex = 0
+            }
             if let offer = offers.first(where: { $0.id == offerID }) {
                 pendingOfferNavigation = offer
             } else {
@@ -300,9 +321,16 @@ final class AppState: ObservableObject {
                 }
             }
         case .booking(let bookingID):
-            selectedRole = .creator
-            workspaceTabIndex = 2
-            highlightedBookingID = bookingID
+            if allowedRoles.contains(.creator) {
+                selectedRole = .creator
+                workspaceTabIndex = 3
+                highlightedBookingID = bookingID
+            } else if selectedRole == .venue {
+                workspaceTabIndex = 0
+                highlightedBookingID = bookingID
+            } else {
+                workspaceTabIndex = inboxTabIndex
+            }
         }
         pendingDeepLink = nil
     }
@@ -331,7 +359,7 @@ final class AppState: ObservableObject {
                 }
             }
             await MainActor.run {
-                if let link = message.deepLink {
+                if let link = message.deepLink(for: selectedRole) {
                     navigate(to: link)
                 }
                 track("inbox_open", properties: ["type": message.notificationType])
@@ -375,13 +403,15 @@ final class AppState: ObservableObject {
     var inboxTabIndex: Int {
         switch selectedRole {
         case .creator: 2
-        case .venue, .admin: 1
+        case .venue: 2
+        case .admin: 1
         }
     }
 
     var profileTabIndex: Int {
         switch selectedRole {
-        case .creator, .venue: 3
+        case .creator: 4
+        case .venue: 3
         case .admin: 2
         }
     }

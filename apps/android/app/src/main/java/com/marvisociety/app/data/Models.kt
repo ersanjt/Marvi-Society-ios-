@@ -270,9 +270,37 @@ data class InboxMessage(
     val body: String,
     val dateLabel: String,
     val isRead: Boolean = false,
+    val notificationType: String = "general",
+    val icon: String = "bell.fill",
+    val tint: String = "rose",
     val bookingId: String? = null,
-    val offerId: String? = null
-)
+    val offerId: String? = null,
+    val conversationId: String? = null
+) {
+    val section: InboxSection
+        get() = InboxSection.from(notificationType)
+}
+
+enum class InboxSection {
+    ACTION_NEEDED, BOOKINGS, MESSAGES, ACCOUNT, OPS;
+
+    companion object {
+        fun from(type: String): InboxSection = when (type.lowercase()) {
+            "collaboration", "shortlist" -> ACTION_NEEDED
+            "booking", "proof" -> BOOKINGS
+            "message" -> MESSAGES
+            "membership", "social" -> ACCOUNT
+            "admin", "campaign", "ops" -> OPS
+            else -> ACTION_NEEDED
+        }
+
+        fun ordered(role: UserRole): List<InboxSection> = when (role) {
+            UserRole.ADMIN -> listOf(OPS, ACTION_NEEDED, MESSAGES, ACCOUNT, BOOKINGS)
+            UserRole.VENUE -> listOf(ACTION_NEEDED, BOOKINGS, MESSAGES, ACCOUNT, OPS)
+            UserRole.CREATOR -> listOf(ACTION_NEEDED, BOOKINGS, MESSAGES, ACCOUNT, OPS)
+        }
+    }
+}
 
 data class AdminTask(
     val id: String,

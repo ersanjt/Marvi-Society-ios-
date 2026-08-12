@@ -160,7 +160,8 @@ struct NotificationRow: Decodable {
             isRead: read_at != nil && !(read_at?.isEmpty ?? true),
             notificationType: type ?? "general",
             bookingID: booking_id ?? payload?.booking_id,
-            offerID: offer_id ?? payload?.offer_id
+            offerID: offer_id ?? payload?.offer_id,
+            conversationID: payload?.conversation_id
         )
     }
 }

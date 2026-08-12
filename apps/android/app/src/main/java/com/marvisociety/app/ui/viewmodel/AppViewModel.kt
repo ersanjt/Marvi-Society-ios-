@@ -1272,6 +1272,36 @@ class AppViewModel(
         }
     }
 
+    fun openInboxMessage(message: InboxMessage) {
+        markInboxRead(message.id)
+        // Role-aware tab jump (parity with iOS deep links).
+        val type = message.notificationType.lowercase()
+        when {
+            type == "message" || !message.conversationId.isNullOrBlank() -> {
+                // Community tab indices: creator/venue = 1
+                if (selectedRole == UserRole.ADMIN) setWorkspaceTab(1) else setWorkspaceTab(1)
+            }
+            type == "membership" || type == "social" -> {
+                val profileIndex = when (selectedRole) {
+                    UserRole.CREATOR -> 4
+                    UserRole.VENUE -> 3
+                    UserRole.ADMIN -> 2
+                }
+                setWorkspaceTab(profileIndex)
+            }
+            type == "collaboration" || type == "shortlist" || type == "booking" || type == "proof" -> {
+                when (selectedRole) {
+                    UserRole.CREATOR -> setWorkspaceTab(3) // bookings
+                    UserRole.VENUE -> setWorkspaceTab(0) // studio
+                    UserRole.ADMIN -> setWorkspaceTab(0) // admin
+                }
+            }
+            type == "admin" || type == "campaign" || type == "ops" -> {
+                if (selectedRole == UserRole.ADMIN) setWorkspaceTab(0)
+            }
+        }
+    }
+
     fun markAllInboxRead() {
         val snapshot = inboxMessages
         inboxMessages = emptyList()
