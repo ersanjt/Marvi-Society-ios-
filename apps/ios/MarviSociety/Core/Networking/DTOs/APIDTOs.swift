@@ -239,6 +239,8 @@ struct CampaignOfferRow: Decodable {
     let remaining_slots: Int?
     let deliverables: [String]?
     let status: String?
+    let deleted_at: String?
+    let admin_block_reason: String?
     let venue_profiles: VenueProfileEmbed?
 
     struct VenueProfileEmbed: Decodable {
@@ -260,7 +262,9 @@ struct CampaignOfferRow: Decodable {
             slots: capacity,
             matchedCreators: max(0, capacity - remaining),
             status: CampaignStatus.fromAPI(status),
-            deliverables: deliverables ?? []
+            deliverables: deliverables ?? [],
+            isDeleted: deleted_at != nil && !(deleted_at?.isEmpty ?? true),
+            adminBlockReason: admin_block_reason
         )
     }
 }

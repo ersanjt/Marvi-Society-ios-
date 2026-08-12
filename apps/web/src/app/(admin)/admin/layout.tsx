@@ -7,6 +7,7 @@ import Link from "next/link";
 
 const ADMIN_NAV_HREFS = [
   { href: "/admin", key: "queue" as const },
+  { href: "/admin/campaigns", key: "campaigns" as const },
   { href: "/admin/users", key: "users" as const },
   { href: "/admin/broadcast", key: "broadcast" as const },
   { href: "/admin/ops", key: "ops" as const },

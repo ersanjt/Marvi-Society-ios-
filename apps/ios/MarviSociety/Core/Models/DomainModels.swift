@@ -893,6 +893,8 @@ struct Campaign: Codable, Identifiable, Hashable {
     var matchedCreators: Int
     var status: CampaignStatus
     var deliverables: [String]
+    var isDeleted: Bool
+    var adminBlockReason: String?
 
     init(
         id: UUID = UUID(),
@@ -905,7 +907,9 @@ struct Campaign: Codable, Identifiable, Hashable {
         slots: Int,
         matchedCreators: Int,
         status: CampaignStatus,
-        deliverables: [String]
+        deliverables: [String],
+        isDeleted: Bool = false,
+        adminBlockReason: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -918,6 +922,8 @@ struct Campaign: Codable, Identifiable, Hashable {
         self.matchedCreators = matchedCreators
         self.status = status
         self.deliverables = deliverables
+        self.isDeleted = isDeleted
+        self.adminBlockReason = adminBlockReason
     }
 }
 

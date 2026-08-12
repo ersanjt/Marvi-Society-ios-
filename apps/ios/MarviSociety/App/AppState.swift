@@ -1542,13 +1542,41 @@ final class AppState: ObservableObject {
     }
 
 
-    func adminSetCampaignStatus(_ campaign: Campaign, status: CampaignStatus) {
+    func adminSetCampaignStatus(_ campaign: Campaign, status: CampaignStatus, reason: String? = nil) {
         guard allowedRoles.contains(.admin) || allowedRoles.contains(.venue) else { return }
         processingAdminTaskID = campaign.id
         Task {
             defer { processingAdminTaskID = nil }
             do {
-                try await api.adminSetOfferStatus(offerID: campaign.id, status: status)
+                try await api.adminSetOfferStatus(offerID: campaign.id, status: status, reason: reason)
+                await refreshFromServer()
+            } catch {
+                if let message = presentableError(error) { lastSyncError = message }
+            }
+        }
+    }
+
+    func adminSoftDeleteCampaign(_ campaign: Campaign, reason: String? = nil) {
+        guard allowedRoles.contains(.admin) else { return }
+        processingAdminTaskID = campaign.id
+        Task {
+            defer { processingAdminTaskID = nil }
+            do {
+                try await api.adminSoftDeleteOffer(offerID: campaign.id, reason: reason)
+                await refreshFromServer()
+            } catch {
+                if let message = presentableError(error) { lastSyncError = message }
+            }
+        }
+    }
+
+    func adminRestoreCampaign(_ campaign: Campaign) {
+        guard allowedRoles.contains(.admin) else { return }
+        processingAdminTaskID = campaign.id
+        Task {
+            defer { processingAdminTaskID = nil }
+            do {
+                try await api.adminRestoreOffer(offerID: campaign.id)
                 await refreshFromServer()
             } catch {
                 if let message = presentableError(error) { lastSyncError = message }

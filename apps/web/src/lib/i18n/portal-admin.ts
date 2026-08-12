@@ -180,6 +180,7 @@ export const portalAdmin = {
       nav: {
         queue: "Queue",
         users: "Users",
+        campaigns: "Campaigns",
         broadcast: "Broadcast",
         ops: "Ops",
         portal: "Portal",
@@ -475,6 +476,7 @@ export const portalAdmin = {
       nav: {
         queue: "Kuyruk",
         users: "Kullanıcılar",
+        campaigns: "Kampanyalar",
         broadcast: "Yayın",
         ops: "Ops",
         portal: "Portal",

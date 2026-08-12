@@ -1195,117 +1195,399 @@ struct AdminActivityTab: View {
 }
 
 struct AdminCampaignsTab: View {
+    private enum CampaignFilter: String, CaseIterable, Identifiable {
+        case all, review, live, draft, completed, deleted
+        var id: String { rawValue }
+
+        func title(turkish: Bool) -> String {
+            switch self {
+            case .all: turkish ? "Tümü" : "All"
+            case .review: turkish ? "İnceleme" : "Review"
+            case .live: turkish ? "Canlı" : "Live"
+            case .draft: turkish ? "Taslak / Blok" : "Draft / Blocked"
+            case .completed: turkish ? "Tamamlandı" : "Completed"
+            case .deleted: turkish ? "Silinen" : "Deleted"
+            }
+        }
+    }
+
+    private enum CampaignAction: Equatable {
+        case setStatus(CampaignStatus)
+        case softDelete
+        case restore
+    }
+
     @EnvironmentObject private var appState: AppState
-    @State private var pendingCampaign: Campaign?
-    @State private var pendingStatus: CampaignStatus?
+    @State private var filter: CampaignFilter = .all
     @State private var dialogCampaign: Campaign?
-    @State private var dialogStatus: CampaignStatus?
+    @State private var dialogAction: CampaignAction?
     @State private var showingStatusConfirm = false
+    @State private var actionFeedback = ""
+
+    private var isTurkish: Bool { appState.preferredLanguage == .turkish }
+
+    private var filteredCampaigns: [Campaign] {
+        let items = appState.campaigns
+        switch filter {
+        case .all:
+            return items.filter { !$0.isDeleted }
+        case .review:
+            return items.filter { !$0.isDeleted && $0.status == .review }
+        case .live:
+            return items.filter { !$0.isDeleted && $0.status == .live }
+        case .draft:
+            return items.filter { !$0.isDeleted && $0.status == .draft }
+        case .completed:
+            return items.filter { !$0.isDeleted && $0.status == .completed }
+        case .deleted:
+            return items.filter(\.isDeleted)
+        }
+    }
+
+    private var counts: [CampaignFilter: Int] {
+        let items = appState.campaigns
+        return [
+            .all: items.filter { !$0.isDeleted }.count,
+            .review: items.filter { !$0.isDeleted && $0.status == .review }.count,
+            .live: items.filter { !$0.isDeleted && $0.status == .live }.count,
+            .draft: items.filter { !$0.isDeleted && $0.status == .draft }.count,
+            .completed: items.filter { !$0.isDeleted && $0.status == .completed }.count,
+            .deleted: items.filter(\.isDeleted).count
+        ]
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 SectionTitle(
-                    title: appState.preferredLanguage == .turkish ? "Kampanya yönetimi" : "Campaign management",
-                    subtitle: appState.preferredLanguage == .turkish
-                        ? "Canlı kampanyaları yayından kaldır, taslağa al veya tamamlandı işaretle."
-                        : "Unpublish live campaigns, move to draft, or mark completed."
+                    title: isTurkish ? "Kampanya yönetimi" : "Campaign management",
+                    subtitle: isTurkish
+                        ? "Onayla ve yayınla, yayından kaldır / engelle, tamamla veya sil. Aktivite sekmesinde izlenir."
+                        : "Approve & publish, unpublish/block, complete, or delete. Tracked in Activity."
                 )
 
-                if appState.campaigns.isEmpty {
+                metricsRow
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(CampaignFilter.allCases) { item in
+                            filterChip(item)
+                        }
+                    }
+                }
+
+                if !actionFeedback.isEmpty {
+                    Text(actionFeedback)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(MarviColor.emerald)
+                }
+
+                if filteredCampaigns.isEmpty {
                     MarviCard {
                         EmptyStateView(
-                            title: appState.preferredLanguage == .turkish ? "Kampanya yok" : "No campaigns",
-                            subtitle: appState.preferredLanguage == .turkish
-                                ? "Yenile’ye dokun. Kampanyalar burada listelenir."
-                                : "Tap refresh. Campaigns appear here for admin control.",
+                            title: isTurkish ? "Kampanya yok" : "No campaigns",
+                            subtitle: isTurkish
+                                ? "Bu filtrede öğe yok. Yenile’ye dokun veya başka bir durum seç."
+                                : "Nothing in this filter. Pull to refresh or pick another status.",
                             icon: "megaphone",
                             actionTitle: appState.t(.refresh),
                             action: { Task { await appState.refreshFromServer() } }
                         )
                     }
                 } else {
-                    ForEach(appState.campaigns) { campaign in
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(campaign.title)
-                                            .font(.headline.weight(.bold))
-                                            .foregroundStyle(MarviColor.ink)
-                                        Text("\(campaign.venueName) · \(campaign.area)")
-                                            .font(.caption)
-                                            .foregroundStyle(MarviColor.muted)
-                                        Text(campaign.status.rawValue)
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(MarviColor.aubergine)
-                                    }
-                                    Spacer()
-                                }
-
-                                HStack(spacing: 8) {
-                                    if campaign.status != .live {
-                                        Button(appState.preferredLanguage == .turkish ? "Yayınla" : "Publish") {
-                                            queueCampaignStatus(campaign, .live)
-                                        }
-                                        .buttonStyle(.borderedProminent)
-                                        .tint(MarviColor.emerald)
-                                    }
-                                    if campaign.status == .live {
-                                        Button(appState.preferredLanguage == .turkish ? "Yayından kaldır" : "Unpublish") {
-                                            queueCampaignStatus(campaign, .draft)
-                                        }
-                                        .buttonStyle(.bordered)
-                                    }
-                                    Button(appState.preferredLanguage == .turkish ? "Tamamla" : "Complete") {
-                                        queueCampaignStatus(campaign, .completed)
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .disabled(campaign.status == .completed)
-                                }
-                                .font(.caption.weight(.semibold))
-                            }
-                        }
+                    ForEach(filteredCampaigns) { campaign in
+                        campaignCard(campaign)
                     }
                 }
             }
             .padding(16)
         }
         .refreshable { await appState.refreshFromServer() }
-        .confirmationDialog(
-            appState.preferredLanguage == .turkish ? "Kampanya durumu güncellensin mi?" : "Update campaign status?",
-            isPresented: $showingStatusConfirm,
-            titleVisibility: .visible
-        ) {
-            Button(appState.t(.confirm)) {
-                if let campaign = dialogCampaign, let status = dialogStatus {
-                    appState.adminSetCampaignStatus(campaign, status: status)
-                }
-                clearCampaignStatusDialog()
+        .confirmationDialog(dialogTitle, isPresented: $showingStatusConfirm, titleVisibility: .visible) {
+            Button(dialogConfirmLabel, role: dialogIsDestructive ? .destructive : nil) {
+                performDialogAction()
             }
             Button(appState.t(.cancel), role: .cancel) {
-                clearCampaignStatusDialog()
+                clearDialog()
             }
         } message: {
-            if let campaign = dialogCampaign, let status = dialogStatus {
-                Text("\(campaign.title) → \(status.rawValue)")
+            Text(dialogMessage)
+        }
+    }
+
+    private var metricsRow: some View {
+        HStack(spacing: 8) {
+            metricPill(isTurkish ? "İnceleme" : "Review", counts[.review, default: 0], MarviColor.gold)
+            metricPill(isTurkish ? "Canlı" : "Live", counts[.live, default: 0], MarviColor.emerald)
+            metricPill(isTurkish ? "Blok" : "Blocked", counts[.draft, default: 0], MarviColor.tomato)
+        }
+    }
+
+    private func metricPill(_ title: String, _ value: Int, _ tint: Color) -> some View {
+        VStack(spacing: 2) {
+            Text("\(value)")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(tint)
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(MarviColor.muted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(tint.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func filterChip(_ item: CampaignFilter) -> some View {
+        let selected = filter == item
+        return Button {
+            filter = item
+        } label: {
+            Text("\(item.title(turkish: isTurkish)) (\(counts[item, default: 0]))")
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .foregroundStyle(selected ? Color.white : MarviColor.ink)
+                .background(selected ? MarviColor.rose : MarviColor.panelElevated)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func campaignCard(_ campaign: Campaign) -> some View {
+        MarviCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(campaign.title)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                        Text("\(campaign.venueName) · \(campaign.area)")
+                            .font(.caption)
+                            .foregroundStyle(MarviColor.muted)
+                        Text("\(campaign.dateLabel) · \(campaign.slots) slot · \(campaign.matchedCreators) matched")
+                            .font(.caption2)
+                            .foregroundStyle(MarviColor.muted)
+                        if let reason = campaign.adminBlockReason, !reason.isEmpty {
+                            Text(reason)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(MarviColor.tomato)
+                        }
+                    }
+                    Spacer()
+                    statusBadge(for: campaign)
+                }
+
+                if appState.processingAdminTaskID == campaign.id {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                FlowActionRow {
+                    if campaign.isDeleted {
+                        actionButton(isTurkish ? "Geri al" : "Restore", tint: MarviColor.emerald) {
+                            queueAction(campaign, .restore)
+                        }
+                    } else {
+                        if campaign.status == .review || campaign.status == .draft {
+                            actionButton(isTurkish ? "Onayla / Yayınla" : "Approve / Publish", tint: MarviColor.emerald) {
+                                queueAction(campaign, .setStatus(.live))
+                            }
+                        }
+                        if campaign.status == .live {
+                            actionButton(isTurkish ? "Yayından kaldır / Engelle" : "Unpublish / Block", tint: MarviColor.tomato) {
+                                queueAction(campaign, .setStatus(.draft))
+                            }
+                        }
+                        if campaign.status == .review {
+                            actionButton(isTurkish ? "Reddet" : "Reject", tint: MarviColor.tomato) {
+                                queueAction(campaign, .setStatus(.draft))
+                            }
+                        }
+                        if campaign.status != .completed {
+                            actionButton(isTurkish ? "Tamamla" : "Complete", tint: MarviColor.blue) {
+                                queueAction(campaign, .setStatus(.completed))
+                            }
+                        }
+                        if campaign.status == .completed {
+                            actionButton(isTurkish ? "Taslağa al" : "To draft", tint: MarviColor.aubergine) {
+                                queueAction(campaign, .setStatus(.draft))
+                            }
+                        }
+                        actionButton(isTurkish ? "Sil" : "Delete", tint: MarviColor.tomato) {
+                            queueAction(campaign, .softDelete)
+                        }
+                    }
+                }
             }
         }
     }
 
-    private func queueCampaignStatus(_ campaign: Campaign, _ status: CampaignStatus) {
-        pendingCampaign = campaign
-        pendingStatus = status
+    private func statusBadge(for campaign: Campaign) -> some View {
+        let text: String
+        let tint: Color
+        if campaign.isDeleted {
+            text = isTurkish ? "Silindi" : "Deleted"
+            tint = MarviColor.tomato
+        } else {
+            switch campaign.status {
+            case .live:
+                text = "Live"
+                tint = MarviColor.emerald
+            case .review:
+                text = isTurkish ? "İnceleme" : "Review"
+                tint = MarviColor.gold
+            case .draft:
+                text = isTurkish ? "Taslak/Blok" : "Draft/Block"
+                tint = MarviColor.aubergine
+            case .completed:
+                text = isTurkish ? "Tamam" : "Done"
+                tint = MarviColor.muted
+            }
+        }
+        return Text(text)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(tint.opacity(0.15))
+            .clipShape(Capsule())
+    }
+
+    private func actionButton(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption2.weight(.bold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .foregroundStyle(tint == MarviColor.emerald || tint == MarviColor.rose ? Color.white : MarviColor.ink)
+                .background(tint.opacity(tint == MarviColor.emerald || tint == MarviColor.rose ? 1 : 0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(appState.processingAdminTaskID != nil)
+    }
+
+    private var dialogTitle: String {
+        guard let action = dialogAction else {
+            return isTurkish ? "Kampanya güncellensin mi?" : "Update campaign?"
+        }
+        switch action {
+        case .setStatus(.live):
+            return isTurkish ? "Yayınlansın mı?" : "Publish campaign?"
+        case .setStatus(.draft):
+            return isTurkish ? "Yayından kaldırılsın / engellensin mi?" : "Unpublish / block?"
+        case .setStatus(.completed):
+            return isTurkish ? "Tamamlandı işaretlensin mi?" : "Mark completed?"
+        case .setStatus(.review):
+            return isTurkish ? "İncelemeye alınsın mı?" : "Send to review?"
+        case .softDelete:
+            return isTurkish ? "Kampanya silinsin mi?" : "Delete campaign?"
+        case .restore:
+            return isTurkish ? "Kampanya geri alınsın mı?" : "Restore campaign?"
+        }
+    }
+
+    private var dialogConfirmLabel: String {
+        guard let action = dialogAction else { return appState.t(.confirm) }
+        switch action {
+        case .softDelete: return isTurkish ? "Sil" : "Delete"
+        case .restore: return isTurkish ? "Geri al" : "Restore"
+        case .setStatus(.live): return isTurkish ? "Yayınla" : "Publish"
+        case .setStatus(.draft): return isTurkish ? "Engelle" : "Block"
+        default: return appState.t(.confirm)
+        }
+    }
+
+    private var dialogIsDestructive: Bool {
+        switch dialogAction {
+        case .softDelete, .setStatus(.draft): true
+        default: false
+        }
+    }
+
+    private var dialogMessage: String {
+        guard let campaign = dialogCampaign, let action = dialogAction else { return "" }
+        switch action {
+        case .setStatus(.live):
+            return isTurkish
+                ? "\(campaign.title) Explore’da canlı yayınlanır ve açık inceleme görevi kapanır."
+                : "\(campaign.title) goes live on Explore and any open review task is closed."
+        case .setStatus(.draft):
+            return isTurkish
+                ? "\(campaign.title) yayından kalkar / engellenir. Yeni başvurular kabul edilmez."
+                : "\(campaign.title) is unpublished/blocked. New accepts stop."
+        case .setStatus(.completed):
+            return isTurkish
+                ? "\(campaign.title) tamamlandı olarak işaretlenir."
+                : "\(campaign.title) is marked completed."
+        case .softDelete:
+            return isTurkish
+                ? "\(campaign.title) Explore’dan kaldırılır, açık rezervasyonlar iptal edilir. Kalıcı silme değil."
+                : "\(campaign.title) is removed from Explore and open bookings are cancelled. Soft delete."
+        case .restore:
+            return isTurkish
+                ? "\(campaign.title) taslak olarak geri gelir."
+                : "\(campaign.title) returns as draft."
+        default:
+            return campaign.title
+        }
+    }
+
+    private func queueAction(_ campaign: Campaign, _ action: CampaignAction) {
         dialogCampaign = campaign
-        dialogStatus = status
+        dialogAction = action
         showingStatusConfirm = true
     }
 
-    private func clearCampaignStatusDialog() {
-        pendingCampaign = nil
-        pendingStatus = nil
+    private func clearDialog() {
         dialogCampaign = nil
-        dialogStatus = nil
+        dialogAction = nil
         showingStatusConfirm = false
+    }
+
+    private func performDialogAction() {
+        guard let campaign = dialogCampaign, let action = dialogAction else {
+            clearDialog()
+            return
+        }
+        switch action {
+        case .setStatus(let status):
+            let reason: String?
+            switch status {
+            case .draft:
+                reason = isTurkish ? "Admin tarafından yayından kaldırıldı / engellendi" : "Unpublished / blocked by admin"
+            case .live:
+                reason = isTurkish ? "Admin onayladı" : "Approved by admin"
+            default:
+                reason = nil
+            }
+            appState.adminSetCampaignStatus(campaign, status: status, reason: reason)
+            actionFeedback = isTurkish ? "Durum güncellendi" : "Status updated"
+        case .softDelete:
+            appState.adminSoftDeleteCampaign(
+                campaign,
+                reason: isTurkish ? "Admin sildi" : "Deleted by admin"
+            )
+            actionFeedback = isTurkish ? "Kampanya silindi" : "Campaign deleted"
+        case .restore:
+            appState.adminRestoreCampaign(campaign)
+            actionFeedback = isTurkish ? "Kampanya geri alındı" : "Campaign restored"
+        }
+        clearDialog()
+    }
+}
+
+/// Simple wrapping row for action chips without introducing a new dependency.
+private struct FlowActionRow<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // LazyVGrid keeps buttons usable on narrow widths.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], alignment: .leading, spacing: 8) {
+                content
+            }
+        }
     }
 }

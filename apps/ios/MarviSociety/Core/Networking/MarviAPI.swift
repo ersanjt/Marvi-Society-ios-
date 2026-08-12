@@ -62,7 +62,9 @@ protocol MarviAPI: Sendable {
     func toggleSavedOffer(_ offerID: UUID) async throws -> Bool
     func approveTask(_ taskID: UUID) async throws
     func rejectTask(_ taskID: UUID) async throws
-    func adminSetOfferStatus(offerID: UUID, status: CampaignStatus) async throws
+    func adminSetOfferStatus(offerID: UUID, status: CampaignStatus, reason: String?) async throws
+    func adminSoftDeleteOffer(offerID: UUID, reason: String?) async throws
+    func adminRestoreOffer(offerID: UUID) async throws
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate]
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws
     func passCreator(_ creatorID: UUID, offerID: UUID?) async throws
@@ -223,10 +225,22 @@ extension MarviAPI {
 
     func fetchCampaigns() async throws -> [Campaign] { [] }
 
-    func adminSetOfferStatus(offerID: UUID, status: CampaignStatus) async throws {
+    func adminSetOfferStatus(offerID: UUID, status: CampaignStatus, reason: String? = nil) async throws {
         _ = offerID
         _ = status
+        _ = reason
         throw MarviAPIError.server(message: "Campaign status updates require Supabase mode")
+    }
+
+    func adminSoftDeleteOffer(offerID: UUID, reason: String?) async throws {
+        _ = offerID
+        _ = reason
+        throw MarviAPIError.server(message: "Campaign delete requires Supabase mode")
+    }
+
+    func adminRestoreOffer(offerID: UUID) async throws {
+        _ = offerID
+        throw MarviAPIError.server(message: "Campaign restore requires Supabase mode")
     }
 
     func createCampaign(_ input: CreateCampaignInput, venueID: UUID?) async throws -> Campaign {

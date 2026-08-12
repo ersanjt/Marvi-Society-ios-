@@ -779,11 +779,38 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
-    func adminSetOfferStatus(offerID: UUID, status: CampaignStatus) async throws {
-        try await client.patch(
-            table: "offers",
-            id: offerID,
-            body: ["status": status.apiValue]
+    func adminSetOfferStatus(offerID: UUID, status: CampaignStatus, reason: String? = nil) async throws {
+        var body: [String: Any] = [
+            "p_offer_id": offerID.uuidString,
+            "p_status": status.apiValue
+        ]
+        if let reason, !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_reason"] = reason
+        }
+        do {
+            try await client.rpcVoid(function: "admin_set_offer_status", body: body)
+        } catch {
+            // Fallback before migration is applied.
+            try await client.patch(
+                table: "offers",
+                id: offerID,
+                body: ["status": status.apiValue]
+            )
+        }
+    }
+
+    func adminSoftDeleteOffer(offerID: UUID, reason: String? = nil) async throws {
+        var body: [String: Any] = ["p_offer_id": offerID.uuidString]
+        if let reason, !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_reason"] = reason
+        }
+        try await client.rpcVoid(function: "admin_soft_delete_offer", body: body)
+    }
+
+    func adminRestoreOffer(offerID: UUID) async throws {
+        try await client.rpcVoid(
+            function: "admin_restore_offer",
+            body: ["p_offer_id": offerID.uuidString]
         )
     }
 
