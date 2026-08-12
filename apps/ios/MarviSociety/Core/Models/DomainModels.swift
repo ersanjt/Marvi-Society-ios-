@@ -47,9 +47,18 @@ enum UserRole: String, CaseIterable, Codable, Identifiable {
     static func fromAPI(_ raw: String?) -> UserRole? {
         switch raw?.lowercased() {
         case "creator": .creator
-        case "venue": .venue
+        case "venue", "business", "brand": .venue
         case "admin": .admin
         default: nil
+        }
+    }
+
+    /// Postgres `user_role` enum value.
+    var apiValue: String {
+        switch self {
+        case .creator: "creator"
+        case .venue: "venue"
+        case .admin: "admin"
         }
     }
 
@@ -547,11 +556,54 @@ struct ChatMessage: Identifiable, Equatable, Sendable {
 }
 
 struct ActivityEventItem: Identifiable, Equatable, Sendable {
+    enum Category: String, CaseIterable, Identifiable, Sendable {
+        case all
+        case bookings
+        case campaigns
+        case admin
+        case messages
+        case social
+        case other
+
+        var id: String { rawValue }
+    }
+
     let id: UUID
     let action: String
     let subjectType: String
+    let subjectID: UUID?
     let createdAt: Date
     let actorLabel: String
+    let actorKind: String
+    let metadata: [String: String]
+
+    var category: Category {
+        let actionKey = action.lowercased()
+        let subject = subjectType.lowercased()
+        if actionKey.hasPrefix("admin_") || (subject == "user" && actionKey.contains("admin")) {
+            return .admin
+        }
+        if subject == "offer" || actionKey.contains("campaign") {
+            return .campaigns
+        }
+        if subject == "booking" || actionKey.contains("booking") || actionKey.contains("offer_requested")
+            || actionKey.contains("offer_accepted") {
+            return .bookings
+        }
+        if subject == "conversation" || actionKey.contains("message") {
+            return .messages
+        }
+        if subject == "creator" || subject == "collaboration_request"
+            || actionKey.contains("shortlist") || actionKey.contains("collaboration") {
+            return .social
+        }
+        return .other
+    }
+
+    func meta(_ key: String) -> String? {
+        let value = metadata[key]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return value.isEmpty ? nil : value
+    }
 }
 
 struct PendingCollaborationRequest: Identifiable, Equatable, Sendable {

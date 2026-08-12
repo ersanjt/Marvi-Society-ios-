@@ -1190,6 +1190,16 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func adminSetUserRole(userID: UUID, role: String) async throws {
+        try await client.rpcVoid(
+            function: "admin_set_user_role",
+            body: [
+                "p_user_id": userID.uuidString,
+                "p_role": role
+            ]
+        )
+    }
+
     func adminSendNotification(userID: UUID, title: String, body: String) async throws {
         try await client.rpcVoid(
             function: "admin_send_notification",
@@ -1518,7 +1528,9 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem] {
         let rows: [ActivityEventRow] = try await client.rpc(
             function: "admin_list_activity",
-            body: ["p_limit": limit]
+            body: ["p_limit": limit],
+            type: [ActivityEventRow].self,
+            decoder: Self.adminDecoder
         )
         return rows.map { $0.toItem() }
     }
@@ -1990,17 +2002,61 @@ private struct ActivityEventRow: Decodable {
     let id: UUID
     let action: String
     let subject_type: String?
+    let subject_id: UUID?
     let actor_user_id: UUID?
-    let created_at: String?
+    let actor_name: String?
+    let actor_kind: String?
+    let metadata: [String: ActivityJSON]?
+    let created_at: Date?
 
     func toItem() -> ActivityEventItem {
-        ActivityEventItem(
+        let fallbackActor = actor_user_id.map { String($0.uuidString.prefix(8)).uppercased() } ?? "system"
+        let name = actor_name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ActivityEventItem(
             id: id,
             action: action,
             subjectType: subject_type ?? "",
-            createdAt: APIDTOs.parseISO(created_at) ?? Date(),
-            actorLabel: actor_user_id?.uuidString.prefix(8).description ?? "system"
+            subjectID: subject_id,
+            createdAt: created_at ?? Date(),
+            actorLabel: (name?.isEmpty == false ? name! : fallbackActor),
+            actorKind: actor_kind ?? "member",
+            metadata: (metadata ?? [:]).mapValues(\.stringValue)
         )
+    }
+}
+
+private enum ActivityJSON: Decodable {
+    case string(String)
+    case number(Double)
+    case bool(Bool)
+    case null
+    case other
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .number(value)
+        } else if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+        } else if let value = try? container.decode(UUID.self) {
+            self = .string(value.uuidString)
+        } else {
+            self = .other
+        }
+    }
+
+    var stringValue: String {
+        switch self {
+        case .string(let value): return value
+        case .number(let value):
+            return value.rounded() == value ? String(Int(value)) : String(value)
+        case .bool(let value): return value ? "true" : "false"
+        case .null, .other: return ""
+        }
     }
 }
 

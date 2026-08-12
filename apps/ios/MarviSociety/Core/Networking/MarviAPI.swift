@@ -92,6 +92,7 @@ protocol MarviAPI: Sendable {
     func fetchAdminUsers(search: String?, status: String?) async throws -> [AdminUserSummary]
     func fetchAdminUserDetail(userID: UUID) async throws -> AdminUserDetail
     func adminSetMembershipStatus(userID: UUID, status: String) async throws
+    func adminSetUserRole(userID: UUID, role: String) async throws
     func adminSendNotification(userID: UUID, title: String, body: String) async throws
     func adminSendEmail(userID: UUID, subject: String, body: String) async throws
     func adminSendInvite(email: String, inviteCode: String?, maxUses: Int) async throws -> AdminInviteResult
@@ -341,6 +342,11 @@ extension MarviAPI {
     func adminSetMembershipStatus(userID: UUID, status: String) async throws {
         _ = userID
         _ = status
+    }
+
+    func adminSetUserRole(userID: UUID, role: String) async throws {
+        _ = userID
+        _ = role
     }
 
     func adminSendNotification(userID: UUID, title: String, body: String) async throws {

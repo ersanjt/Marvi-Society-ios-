@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.marvisociety.app.data.AdminTaskStatus
 import com.marvisociety.app.data.CollaborationModel
+import com.marvisociety.app.data.MembershipStatus
+import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandLockup
 import com.marvisociety.app.ui.components.EmptyStateView
@@ -271,6 +273,36 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                             Text(user.fullName.ifBlank { user.email }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                             Text("${user.email} · ${user.city}", color = MarviColor.Muted)
                             Text(viewModel.roleLabel(user.role), color = MarviColor.Rose)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = {
+                            viewModel.adminSetUserStatus(user.id, MembershipStatus.APPROVED)
+                        }) {
+                            Text(viewModel.t(MarviL10n.Key.APPROVE), color = MarviColor.Emerald)
+                        }
+                        TextButton(onClick = {
+                            viewModel.adminSetUserStatus(user.id, MembershipStatus.PAUSED)
+                        }) {
+                            Text(viewModel.t(MarviL10n.Key.BLOCK), color = MarviColor.Tomato)
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = {
+                            viewModel.adminSetUserRole(user.id, UserRole.CREATOR)
+                        }) {
+                            Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_CREATOR), color = MarviColor.Rose)
+                        }
+                        TextButton(onClick = {
+                            viewModel.adminSetUserRole(user.id, UserRole.VENUE)
+                        }) {
+                            Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_BUSINESS), color = MarviColor.Gold)
+                        }
+                        TextButton(onClick = {
+                            viewModel.adminSetUserRole(user.id, UserRole.ADMIN)
+                        }) {
+                            Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_ADMIN), color = MarviColor.Aubergine)
                         }
                     }
                 }

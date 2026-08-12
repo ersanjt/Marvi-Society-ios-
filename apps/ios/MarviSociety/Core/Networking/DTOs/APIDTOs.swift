@@ -285,6 +285,15 @@ extension MembershipStatus {
         default: nil
         }
     }
+
+    /// Postgres `membership_status` enum value (never send display `rawValue`).
+    var apiValue: String {
+        switch self {
+        case .approved: "approved"
+        case .paused: "paused"
+        case .underReview: "under_review"
+        }
+    }
 }
 
 extension BookingStage {

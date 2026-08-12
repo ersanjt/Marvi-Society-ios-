@@ -509,6 +509,26 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         return rows.mapNotNull { parseAdminUser(it) }
     }
 
+    suspend fun adminSetMembershipStatus(userId: String, status: MembershipStatus) {
+        client.rpcVoid(
+            "admin_set_membership_status",
+            buildJsonObject {
+                put("p_user_id", userId)
+                put("p_status", status.apiValue)
+            }
+        )
+    }
+
+    suspend fun adminSetUserRole(userId: String, role: UserRole) {
+        client.rpcVoid(
+            "admin_set_user_role",
+            buildJsonObject {
+                put("p_user_id", userId)
+                put("p_role", role.apiValue)
+            }
+        )
+    }
+
     suspend fun fetchAdminInviteCodes(): List<AdminInviteCodeItem> {
         val rows = client.rpcJson("admin_list_invite_codes", buildJsonObject { }).asArrayOrEmpty()
         return rows.mapNotNull { row ->

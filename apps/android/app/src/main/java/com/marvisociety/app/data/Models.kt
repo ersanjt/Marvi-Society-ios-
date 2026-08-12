@@ -7,10 +7,17 @@ enum class UserRole(val label: String) {
     VENUE("Venue"),
     ADMIN("Admin");
 
+    val apiValue: String
+        get() = when (this) {
+            CREATOR -> "creator"
+            VENUE -> "venue"
+            ADMIN -> "admin"
+        }
+
     companion object {
         fun fromApi(raw: String?): UserRole? = when (raw?.lowercase()) {
             "creator" -> CREATOR
-            "venue" -> VENUE
+            "venue", "business", "brand" -> VENUE
             "admin" -> ADMIN
             else -> null
         }
@@ -23,7 +30,16 @@ enum class UserRole(val label: String) {
     }
 }
 
-enum class MembershipStatus { UNDER_REVIEW, APPROVED, PAUSED }
+enum class MembershipStatus {
+    UNDER_REVIEW, APPROVED, PAUSED;
+
+    val apiValue: String
+        get() = when (this) {
+            UNDER_REVIEW -> "under_review"
+            APPROVED -> "approved"
+            PAUSED -> "paused"
+        }
+}
 
 enum class CollaborationModel(val api: String) {
     INVITATION("invitation"),

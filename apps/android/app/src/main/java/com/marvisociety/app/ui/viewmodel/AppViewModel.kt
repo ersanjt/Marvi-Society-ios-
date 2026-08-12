@@ -1319,6 +1319,34 @@ class AppViewModel(
         }
     }
 
+    fun adminSetUserStatus(userId: String, status: MembershipStatus, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.adminSetMembershipStatus(userId, status)
+                adminUsers = repository.fetchAdminUsers(null, null)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
+    fun adminSetUserRole(userId: String, role: UserRole, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.adminSetUserRole(userId, role)
+                adminUsers = repository.fetchAdminUsers(null, null)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
     fun rejectTask(taskId: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             runCatching {

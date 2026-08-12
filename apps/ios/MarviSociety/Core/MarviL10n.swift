@@ -182,6 +182,7 @@ enum MarviL10n {
         case inviteEmailQueued, noUsersLoaded, noUsersLoadedSub, searchUsersPrompt
         case noBookingsAdminSub, noStrikesAdminSub
         case approve, block, approvedMsg, accountBlocked
+        case adminRoleActions, adminMakeCreator, adminMakeBusiness, adminMakeAdmin, adminRoleUpdated
         case sendInAppNotification, sendEmailBtn, notificationSent, emailQueued
         case loadingProfile, roleLabel, referralLabel, instagramLabel, lastLocationLabel, notSharedYet
         case statusField, notificationTitlePh, notificationBodyPh, emailSubjectPh, emailBodyPh
@@ -573,7 +574,7 @@ enum MarviL10n {
         .venueInviteTitle: "Venue invitation",
         .venueInviteSub: "Accept to confirm the collaboration and start chatting.",
         .acceptVenueInvite: "Accept invitation",
-        .adminActivitySub: "Everything members do in the app — acceptances, messages, shortlists.",
+        .adminActivitySub: "Live ops ledger — bookings, campaigns, admin actions, and messages.",
         .adminActivityEmpty: "No activity yet", .adminActivityEmptySub: "Actions will appear here as users interact with the platform.",
         .adminInvitesSub: "Create invite codes, set usage limits, and track how many members joined.",
         .adminInvitesEmpty: "No invite codes yet",
@@ -628,6 +629,11 @@ enum MarviL10n {
         .noStrikesAdminSub: "No strikes on record. Pull to refresh from the server.",
         .searchUsersPrompt: "Email, name, city, handle",
         .approve: "Approve", .block: "Block", .approvedMsg: "Approved.", .accountBlocked: "Account blocked.",
+        .adminRoleActions: "Account type",
+        .adminMakeCreator: "Make content creator",
+        .adminMakeBusiness: "Make business owner",
+        .adminMakeAdmin: "Grant admin access",
+        .adminRoleUpdated: "Account type updated.",
         .sendInAppNotification: "Send in-app notification", .sendEmailBtn: "Send email",
         .notificationSent: "Notification sent.", .emailQueued: "Email queued.",
         .loadingProfile: "Loading profile…", .roleLabel: "Role", .referralLabel: "Referral",
@@ -1084,7 +1090,7 @@ enum MarviL10n {
         .venueInviteTitle: "Mekân daveti",
         .venueInviteSub: "Kabul edince iş birliği onaylanır ve sohbet başlar.",
         .acceptVenueInvite: "Daveti kabul et",
-        .adminActivitySub: "Üyelerin uygulamada yaptığı her şey — kabul, mesaj, shortlist.",
+        .adminActivitySub: "Canlı operasyon kaydı — rezervasyon, kampanya, admin ve mesajlar.",
         .adminActivityEmpty: "Henüz aktivite yok", .adminActivityEmptySub: "Kullanıcılar etkileşim kurdukça burada görünür.",
         .adminInvitesSub: "Davet kodu oluşturun, kullanım limitini ayarlayın, kaç kişinin katıldığını görün.",
         .adminInvitesEmpty: "Henüz davet kodu yok",
@@ -1139,6 +1145,11 @@ enum MarviL10n {
         .noStrikesAdminSub: "Kayıtlı uyarı yok. Sunucudan yenilemek için çekin.",
         .searchUsersPrompt: "E-posta, ad, şehir, kullanıcı adı",
         .approve: "Onayla", .block: "Engelle", .approvedMsg: "Onaylandı.", .accountBlocked: "Hesap engellendi.",
+        .adminRoleActions: "Hesap türü",
+        .adminMakeCreator: "İçerik üreticisi yap",
+        .adminMakeBusiness: "İşletme sahibi yap",
+        .adminMakeAdmin: "Admin yetkisi ver",
+        .adminRoleUpdated: "Hesap türü güncellendi.",
         .sendInAppNotification: "Uygulama içi bildirim gönder", .sendEmailBtn: "E-posta gönder",
         .notificationSent: "Bildirim gönderildi.", .emailQueued: "E-posta kuyruğa alındı.",
         .loadingProfile: "Profil yükleniyor…", .roleLabel: "Rol", .referralLabel: "Referans",

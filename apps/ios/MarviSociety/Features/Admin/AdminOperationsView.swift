@@ -854,6 +854,45 @@ struct AdminUserDetailSheet: View {
                     }
                 }
 
+                Text(appState.t(.adminRoleActions))
+                    .font(.caption.weight(.bold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(MarviColor.muted)
+                    .padding(.top, 4)
+
+                VStack(spacing: 10) {
+                    adminActionButton(appState.t(.adminMakeCreator), tint: MarviColor.rose) {
+                        if let error = await appState.adminSetUserRole(userID: user.userID, role: .creator) {
+                            feedbackIsError = true
+                            feedback = error
+                        } else {
+                            feedbackIsError = false
+                            feedback = appState.t(.adminRoleUpdated)
+                        }
+                        detail = await appState.loadAdminUserDetail(userID: user.userID)
+                    }
+                    adminActionButton(appState.t(.adminMakeBusiness), tint: MarviColor.gold) {
+                        if let error = await appState.adminSetUserRole(userID: user.userID, role: .venue) {
+                            feedbackIsError = true
+                            feedback = error
+                        } else {
+                            feedbackIsError = false
+                            feedback = appState.t(.adminRoleUpdated)
+                        }
+                        detail = await appState.loadAdminUserDetail(userID: user.userID)
+                    }
+                    adminActionButton(appState.t(.adminMakeAdmin), tint: MarviColor.aubergine) {
+                        if let error = await appState.adminSetUserRole(userID: user.userID, role: .admin) {
+                            feedbackIsError = true
+                            feedback = error
+                        } else {
+                            feedbackIsError = false
+                            feedback = appState.t(.adminRoleUpdated)
+                        }
+                        detail = await appState.loadAdminUserDetail(userID: user.userID)
+                    }
+                }
+
                 adminActionButton(appState.t(.socialVerifyConfirmAdmin), tint: MarviColor.emerald) {
                     if let error = await appState.adminVerifySocialDM(userID: user.userID) {
                         feedbackIsError = true
@@ -1149,39 +1188,160 @@ struct AdminBroadcastTab: View {
 }
 
 struct AdminActivityTab: View {
+    private enum ActivityFilter: String, CaseIterable, Identifiable {
+        case all, bookings, campaigns, admin, messages, social
+        var id: String { rawValue }
+
+        var category: ActivityEventItem.Category {
+            switch self {
+            case .all: .all
+            case .bookings: .bookings
+            case .campaigns: .campaigns
+            case .admin: .admin
+            case .messages: .messages
+            case .social: .social
+            }
+        }
+
+        func title(turkish: Bool) -> String {
+            switch self {
+            case .all: turkish ? "Tümü" : "All"
+            case .bookings: turkish ? "Rezervasyon" : "Bookings"
+            case .campaigns: turkish ? "Kampanya" : "Campaigns"
+            case .admin: turkish ? "Admin" : "Admin"
+            case .messages: turkish ? "Mesaj" : "Messages"
+            case .social: turkish ? "Sosyal" : "Social"
+            }
+        }
+    }
+
     @EnvironmentObject private var appState: AppState
+    @State private var filter: ActivityFilter = .all
+    @State private var searchText = ""
+
+    private var isTurkish: Bool { appState.preferredLanguage == .turkish }
+
+    private var filteredEvents: [ActivityEventItem] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return appState.adminActivity.filter { event in
+            if filter != .all, event.category != filter.category { return false }
+            if query.isEmpty { return true }
+            let haystack = [
+                event.action,
+                event.actorLabel,
+                event.subjectType,
+                event.meta("title") ?? "",
+                event.meta("reason") ?? "",
+                event.meta("from") ?? "",
+                event.meta("to") ?? ""
+            ].joined(separator: " ").lowercased()
+            return haystack.contains(query)
+        }
+    }
+
+    private var counts: [ActivityFilter: Int] {
+        let items = appState.adminActivity
+        return Dictionary(uniqueKeysWithValues: ActivityFilter.allCases.map { item in
+            let count: Int
+            if item == .all {
+                count = items.count
+            } else {
+                count = items.filter { $0.category == item.category }.count
+            }
+            return (item, count)
+        })
+    }
+
+    private var groupedByDay: [(day: Date, events: [ActivityEventItem])] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: filteredEvents) { event in
+            calendar.startOfDay(for: event.createdAt)
+        }
+        return grouped.keys.sorted(by: >).map { day in
+            (day, grouped[day]!.sorted { $0.createdAt > $1.createdAt })
+        }
+    }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
                 SectionTitle(
                     title: appState.t(.adminTabActivity),
-                    subtitle: appState.t(.adminActivitySub)
+                    subtitle: isTurkish
+                        ? "Canlı operasyon kaydı — rezervasyon, kampanya, admin ve mesajlar."
+                        : "Live ops ledger — bookings, campaigns, admin actions, and messages."
                 )
 
-                if appState.adminActivity.isEmpty {
+                metricsRow
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(ActivityFilter.allCases) { item in
+                            filterChip(item)
+                        }
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(MarviColor.muted)
+                    TextField(
+                        isTurkish ? "Ara (üye, aksiyon, sebep)" : "Search member, action, reason",
+                        text: $searchText
+                    )
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(MarviColor.muted)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(MarviColor.panel)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                if appState.isLoadingAdminActivity && appState.adminActivity.isEmpty {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                } else if let error = appState.adminActivityError, appState.adminActivity.isEmpty {
+                    MarviCard {
+                        EmptyStateView(
+                            title: isTurkish ? "Aktivite yüklenemedi" : "Couldn’t load activity",
+                            subtitle: error,
+                            icon: "exclamationmark.triangle",
+                            actionTitle: appState.t(.retry),
+                            action: { Task { await appState.loadAdminActivity() } }
+                        )
+                    }
+                } else if filteredEvents.isEmpty {
                     MarviCard {
                         EmptyStateView(
                             title: appState.t(.adminActivityEmpty),
-                            subtitle: appState.t(.adminActivityEmptySub),
+                            subtitle: searchText.isEmpty
+                                ? appState.t(.adminActivityEmptySub)
+                                : (isTurkish ? "Bu aramada sonuç yok." : "No results for this search."),
                             icon: "waveform.path.ecg",
                             actionTitle: appState.t(.refresh),
                             action: { Task { await appState.loadAdminActivity() } }
                         )
                     }
                 } else {
-                    ForEach(appState.adminActivity) { event in
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(event.action.replacingOccurrences(of: "_", with: " ").capitalized)
-                                    .font(.subheadline.weight(.bold))
-                                    .foregroundStyle(MarviColor.ink)
-                                Text("\(event.subjectType) · \(event.actorLabel)")
-                                    .font(.caption)
-                                    .foregroundStyle(MarviColor.muted)
-                                Text(event.createdAt, style: .relative)
-                                    .font(.caption2)
-                                    .foregroundStyle(MarviColor.graphite)
+                    ForEach(groupedByDay, id: \.day) { group in
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(dayLabel(for: group.day))
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(MarviColor.muted)
+                                .textCase(.uppercase)
+
+                            ForEach(group.events) { event in
+                                activityRow(event)
                             }
                         }
                     }
@@ -1191,6 +1351,258 @@ struct AdminActivityTab: View {
         }
         .refreshable { await appState.loadAdminActivity() }
         .task { await appState.loadAdminActivity() }
+    }
+
+    private var metricsRow: some View {
+        HStack(spacing: 8) {
+            metricPill(isTurkish ? "Rezervasyon" : "Bookings", counts[.bookings, default: 0], MarviColor.emerald)
+            metricPill(isTurkish ? "Kampanya" : "Campaigns", counts[.campaigns, default: 0], MarviColor.aubergine)
+            metricPill("Admin", counts[.admin, default: 0], MarviColor.tomato)
+        }
+    }
+
+    private func metricPill(_ title: String, _ value: Int, _ tint: Color) -> some View {
+        VStack(spacing: 2) {
+            Text("\(value)")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(tint)
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(MarviColor.muted)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(tint.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func filterChip(_ item: ActivityFilter) -> some View {
+        let selected = filter == item
+        return Button {
+            filter = item
+        } label: {
+            Text("\(item.title(turkish: isTurkish)) (\(counts[item, default: 0]))")
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .foregroundStyle(selected ? Color.white : MarviColor.ink)
+                .background(selected ? MarviColor.rose : MarviColor.panel)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func activityRow(_ event: ActivityEventItem) -> some View {
+        let style = presentation(for: event)
+        return MarviCard {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: style.icon)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(style.tint)
+                    .frame(width: 36, height: 36)
+                    .background(style.tint.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(style.title)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 8)
+                        Text(event.createdAt, style: .time)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(MarviColor.graphite)
+                    }
+
+                    Text(style.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(MarviColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 8) {
+                        Text(style.badge)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(style.tint)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(style.tint.opacity(0.14))
+                            .clipShape(Capsule())
+
+                        Text(actorKindLabel(event.actorKind))
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(MarviColor.graphite)
+
+                        if let ref = subjectRef(event) {
+                            Text(ref)
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(MarviColor.graphite)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func presentation(for event: ActivityEventItem) -> (title: String, subtitle: String, badge: String, icon: String, tint: Color) {
+        let action = event.action.lowercased()
+        let title: String
+        let icon: String
+        let tint: Color
+        let badge: String
+
+        switch action {
+        case "offer_requested":
+            title = isTurkish ? "Teklif talebi" : "Offer requested"
+            icon = "hand.raised.fill"
+            tint = MarviColor.gold
+            badge = isTurkish ? "Rezervasyon" : "Booking"
+        case "offer_accepted_pending":
+            title = isTurkish ? "Kabul — mekân onayı bekleniyor" : "Accepted — awaiting venue"
+            icon = "hourglass"
+            tint = MarviColor.gold
+            badge = isTurkish ? "Rezervasyon" : "Booking"
+        case "venue_confirmed_booking":
+            title = isTurkish ? "Mekân rezervasyonu onayladı" : "Venue confirmed booking"
+            icon = "checkmark.seal.fill"
+            tint = MarviColor.emerald
+            badge = isTurkish ? "Rezervasyon" : "Booking"
+        case "creator_accepted_collaboration":
+            title = isTurkish ? "İşbirliği kabul edildi" : "Collaboration accepted"
+            icon = "person.2.fill"
+            tint = MarviColor.emerald
+            badge = isTurkish ? "Sosyal" : "Social"
+        case "creator_shortlisted":
+            title = isTurkish ? "Creator shortlist’e alındı" : "Creator shortlisted"
+            icon = "star.fill"
+            tint = MarviColor.aubergine
+            badge = isTurkish ? "Sosyal" : "Social"
+        case "message_sent":
+            title = isTurkish ? "Mesaj gönderildi" : "Message sent"
+            icon = "bubble.left.fill"
+            tint = MarviColor.blue
+            badge = isTurkish ? "Mesaj" : "Message"
+        case "admin_campaign_status":
+            let to = event.meta("to") ?? ""
+            title = isTurkish ? "Kampanya durumu güncellendi" : "Campaign status updated"
+            icon = to == "live" ? "megaphone.fill" : "slider.horizontal.3"
+            tint = to == "live" ? MarviColor.emerald : MarviColor.aubergine
+            badge = isTurkish ? "Kampanya" : "Campaign"
+        case "admin_campaign_deleted":
+            title = isTurkish ? "Kampanya silindi" : "Campaign deleted"
+            icon = "trash.fill"
+            tint = MarviColor.tomato
+            badge = isTurkish ? "Kampanya" : "Campaign"
+        case "admin_campaign_restored":
+            title = isTurkish ? "Kampanya geri alındı" : "Campaign restored"
+            icon = "arrow.uturn.backward"
+            tint = MarviColor.emerald
+            badge = isTurkish ? "Kampanya" : "Campaign"
+        case "admin_set_profile_image":
+            title = isTurkish ? "Admin profil görseli güncelledi" : "Admin updated profile media"
+            icon = "photo.fill"
+            tint = MarviColor.rose
+            badge = "Admin"
+        default:
+            title = humanizeAction(event.action)
+            icon = iconForCategory(event.category)
+            tint = tintForCategory(event.category)
+            badge = filterTitle(for: event.category)
+        }
+
+        var parts: [String] = []
+        parts.append(event.actorLabel)
+        if let campaignTitle = event.meta("title") {
+            parts.append(campaignTitle)
+        }
+        if let from = event.meta("from"), let to = event.meta("to") {
+            parts.append("\(from) → \(to)")
+        } else if let to = event.meta("to") {
+            parts.append(to)
+        }
+        if let reason = event.meta("reason") {
+            parts.append(reason)
+        }
+        if parts.count == 1, !event.subjectType.isEmpty {
+            parts.append(event.subjectType)
+        }
+        let subtitle = parts.joined(separator: " · ")
+        return (title, subtitle, badge, icon, tint)
+    }
+
+    private func humanizeAction(_ raw: String) -> String {
+        raw
+            .replacingOccurrences(of: "_", with: " ")
+            .split(separator: " ")
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: " ")
+    }
+
+    private func filterTitle(for category: ActivityEventItem.Category) -> String {
+        switch category {
+        case .all: isTurkish ? "Tümü" : "All"
+        case .bookings: isTurkish ? "Rezervasyon" : "Booking"
+        case .campaigns: isTurkish ? "Kampanya" : "Campaign"
+        case .admin: "Admin"
+        case .messages: isTurkish ? "Mesaj" : "Message"
+        case .social: isTurkish ? "Sosyal" : "Social"
+        case .other: isTurkish ? "Diğer" : "Other"
+        }
+    }
+
+    private func iconForCategory(_ category: ActivityEventItem.Category) -> String {
+        switch category {
+        case .all, .other: "circle.grid.cross"
+        case .bookings: "calendar"
+        case .campaigns: "megaphone"
+        case .admin: "shield.fill"
+        case .messages: "bubble.left"
+        case .social: "person.2"
+        }
+    }
+
+    private func tintForCategory(_ category: ActivityEventItem.Category) -> Color {
+        switch category {
+        case .all, .other: MarviColor.muted
+        case .bookings: MarviColor.emerald
+        case .campaigns: MarviColor.aubergine
+        case .admin: MarviColor.tomato
+        case .messages: MarviColor.blue
+        case .social: MarviColor.gold
+        }
+    }
+
+    private func actorKindLabel(_ kind: String) -> String {
+        switch kind.lowercased() {
+        case "admin": "Admin"
+        case "venue": isTurkish ? "Mekân" : "Venue"
+        case "creator": isTurkish ? "Creator" : "Creator"
+        case "system": "System"
+        default: isTurkish ? "Üye" : "Member"
+        }
+    }
+
+    private func subjectRef(_ event: ActivityEventItem) -> String? {
+        guard let id = event.subjectID else { return nil }
+        let type = event.subjectType.isEmpty ? "item" : event.subjectType
+        return "\(type) · \(String(id.uuidString.prefix(8)).uppercased())"
+    }
+
+    private func dayLabel(for day: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(day) {
+            return isTurkish ? "Bugün" : "Today"
+        }
+        if calendar.isDateInYesterday(day) {
+            return isTurkish ? "Dün" : "Yesterday"
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: isTurkish ? "tr_TR" : "en_US")
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: day)
     }
 }
 

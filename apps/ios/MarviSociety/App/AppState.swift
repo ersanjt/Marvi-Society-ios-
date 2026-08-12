@@ -69,6 +69,8 @@ final class AppState: ObservableObject {
     @Published var directThreads: [DirectThread] = []
     @Published var conversations: [ChatConversation] = []
     @Published var adminActivity: [ActivityEventItem] = []
+    @Published var isLoadingAdminActivity = false
+    @Published var adminActivityError: String?
     @Published var pendingCollaborationRequests: [PendingCollaborationRequest] = []
     @Published var socialVerification: SocialVerificationStatus?
     @Published private(set) var languageManuallySet = false {
@@ -1664,7 +1666,20 @@ final class AppState: ObservableObject {
             return t(.errAdminRequired)
         }
         do {
-            try await api.adminSetMembershipStatus(userID: userID, status: status.rawValue)
+            try await api.adminSetMembershipStatus(userID: userID, status: status.apiValue)
+            await loadAdminUsers()
+            return nil
+        } catch {
+            return presentableError(error) ?? t(.errSomeDataRefresh)
+        }
+    }
+
+    func adminSetUserRole(userID: UUID, role: UserRole) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminSetUserRole(userID: userID, role: role.apiValue)
             await loadAdminUsers()
             return nil
         } catch {
@@ -1951,6 +1966,8 @@ final class AppState: ObservableObject {
         adminUsers = []
         adminInviteCodes = []
         adminActivity = []
+        isLoadingAdminActivity = false
+        adminActivityError = nil
         venueReviewQueue = []
         myVenues = []
         inboxMessages = []
@@ -2029,8 +2046,13 @@ final class AppState: ObservableObject {
 
     func loadAdminActivity() async {
         guard isAuthenticated, allowedRoles.contains(.admin) else { return }
-        if let events = try? await api.fetchAdminActivity(limit: 100) {
-            adminActivity = events
+        isLoadingAdminActivity = true
+        adminActivityError = nil
+        defer { isLoadingAdminActivity = false }
+        do {
+            adminActivity = try await api.fetchAdminActivity(limit: 150)
+        } catch {
+            adminActivityError = presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
