@@ -26,7 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.PanTool
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.Button
@@ -79,7 +81,18 @@ private enum class OnboardingStep {
     WELCOME, SIGN_IN, INVITE, PROFILE, VENUE, AGREEMENT
 }
 
-private enum class SignupIntent { CREATOR, BUSINESS }
+private enum class SignupIntent {
+    CREATOR, BUSINESS;
+
+    val usesVenuePath: Boolean
+        get() = this == BUSINESS
+
+    val serverValue: String
+        get() = when (this) {
+            CREATOR -> "creator"
+            BUSINESS -> "business"
+        }
+}
 
 @Composable
 fun OnboardingScreen(viewModel: AppViewModel) {
@@ -161,7 +174,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
             if (existing) {
                 viewModel.finishOnboarding(role)
             } else {
-                step = if (intent == SignupIntent.BUSINESS) {
+                step = if (intent.usesVenuePath) {
                     OnboardingStep.VENUE
                 } else {
                     OnboardingStep.PROFILE
@@ -197,13 +210,9 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                 when (step) {
                     OnboardingStep.WELCOME -> WelcomeStep(
                         viewModel = viewModel,
-                        onCreator = {
-                            intent = SignupIntent.CREATOR
-                            isCreatingAccount = true
-                            step = OnboardingStep.SIGN_IN
-                        },
-                        onBusiness = {
-                            intent = SignupIntent.BUSINESS
+                        onHome = { showLaunchIntro = true },
+                        onSelectIntent = { selected ->
+                            intent = selected
                             isCreatingAccount = true
                             step = OnboardingStep.SIGN_IN
                         },
@@ -246,7 +255,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                         }
                         if (!viewModel.isRemoteMode) {
                             viewModel.finishOnboarding(
-                                if (intent == SignupIntent.BUSINESS) UserRole.VENUE else UserRole.CREATOR
+                                if (intent.usesVenuePath) UserRole.VENUE else UserRole.CREATOR
                             )
                             return@SignInStep
                         }
@@ -257,7 +266,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                                 password = password,
                                 fullName = fullName,
                                 city = city,
-                                intent = if (intent == SignupIntent.BUSINESS) "business" else "creator",
+                                intent = intent.serverValue,
                                 inviteCode = null
                             ) {
                                 busy = false
@@ -284,7 +293,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                 OnboardingStep.INVITE -> {
                     // Invite codes removed — skip immediately to profile/venue.
                     LaunchedEffect(Unit) {
-                        step = if (intent == SignupIntent.BUSINESS) {
+                        step = if (intent.usesVenuePath) {
                             OnboardingStep.VENUE
                         } else {
                             OnboardingStep.PROFILE
@@ -367,7 +376,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                     onAge = { ageConfirmed = it },
                     onTerms = { termsAccepted = it },
                     onBack = {
-                        step = if (intent == SignupIntent.BUSINESS) {
+                        step = if (intent.usesVenuePath) {
                             OnboardingStep.VENUE
                         } else {
                             OnboardingStep.PROFILE
@@ -379,7 +388,7 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                             return@AgreementStep
                         }
                         localError = ""
-                        if (intent == SignupIntent.BUSINESS) {
+                        if (intent.usesVenuePath) {
                             busy = true
                             viewModel.registerVenue(
                                 name = venueName,
@@ -595,52 +604,253 @@ private data class IntroSlide(
 @Composable
 private fun WelcomeStep(
     viewModel: AppViewModel,
-    onCreator: () -> Unit,
-    onBusiness: () -> Unit,
+    onHome: () -> Unit,
+    onSelectIntent: (SignupIntent) -> Unit,
     onMember: () -> Unit
 ) {
-    Spacer(modifier = Modifier.height(28.dp))
-    BrandMark(size = 64.dp)
-    Spacer(modifier = Modifier.height(20.dp))
-    Text(
-        viewModel.t(MarviL10n.Key.HERO_LINE1),
-        color = MarviColor.Ink,
-        fontSize = 34.sp,
-        fontWeight = FontWeight.Bold,
-        fontFamily = NewsreaderFamily
-    )
-    Text(
-        viewModel.t(MarviL10n.Key.HERO_LINE2),
-        style = TextStyle(
-            brush = MarviGradient.Brand,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = NewsreaderFamily
+    var showPaths by remember { mutableStateOf(false) }
+    val accentStart = Color(0xFFA855F7)
+    val accentEnd = Color(0xFF3B82F6)
+    val landingBrush = Brush.horizontalGradient(listOf(accentStart, accentEnd))
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(if (showPaths) 640.dp else 620.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(280.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(accentStart.copy(alpha = if (showPaths) 0.18f else 0.32f), Color.Transparent)
+                    )
+                )
         )
-    )
-    Text(viewModel.t(MarviL10n.Key.HERO_SUBTITLE), color = MarviColor.Muted)
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(viewModel.t(MarviL10n.Key.CHOOSE_PATH), color = MarviColor.Graphite, fontWeight = FontWeight.SemiBold)
 
-    IntentCard(
-        title = viewModel.t(MarviL10n.Key.JOIN_AS_CREATOR),
-        subtitle = viewModel.t(MarviL10n.Key.JOIN_AS_CREATOR_SUB),
-        accent = MarviColor.Rose,
-        onClick = onCreator
-    )
-    IntentCard(
-        title = viewModel.t(MarviL10n.Key.JOIN_AS_BUSINESS),
-        subtitle = viewModel.t(MarviL10n.Key.JOIN_AS_BUSINESS_SUB),
-        accent = MarviColor.Gold,
-        onClick = onBusiness
-    )
+        if (showPaths) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable { showPaths = false }
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Row {
+                        Text("MARVI", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        Text(
+                            " SOCIETY",
+                            style = TextStyle(brush = landingBrush, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.size(24.dp))
+                }
 
-    TextButton(onClick = onMember, modifier = Modifier.fillMaxWidth()) {
-        Text(viewModel.t(MarviL10n.Key.ALREADY_MEMBER), color = MarviColor.Rose)
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    viewModel.t(MarviL10n.Key.CHOOSE_PATH),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 26.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    viewModel.t(MarviL10n.Key.CHOOSE_PATH_SUBTITLE),
+                    color = Color.White.copy(alpha = 0.55f),
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                RolePathCard(
+                    icon = Icons.Outlined.Person,
+                    title = viewModel.t(MarviL10n.Key.JOIN_AS_CREATOR),
+                    subtitle = viewModel.t(MarviL10n.Key.JOIN_AS_CREATOR_SUB),
+                    onClick = { onSelectIntent(SignupIntent.CREATOR) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                RolePathCard(
+                    icon = Icons.Outlined.Business,
+                    title = viewModel.t(MarviL10n.Key.JOIN_AS_BRAND),
+                    subtitle = viewModel.t(MarviL10n.Key.JOIN_AS_BRAND_SUB),
+                    onClick = { onSelectIntent(SignupIntent.BUSINESS) }
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    color = Color.White.copy(alpha = 0.28f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onHome)
+                        .padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.88f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        viewModel.t(MarviL10n.Key.INTRO_HOME),
+                        color = Color.White.copy(alpha = 0.88f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    BrandMark(size = 92.dp)
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Row {
+                        Text(
+                            "MARVI",
+                            color = Color.White,
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.2.sp
+                        )
+                        Text(
+                            " SOCIETY",
+                            style = TextStyle(
+                                brush = landingBrush,
+                                fontSize = 34.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.2.sp
+                            )
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        viewModel.t(MarviL10n.Key.LANDING_TAGLINE),
+                        color = Color.White.copy(alpha = 0.58f),
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(landingBrush)
+                        .clickable { showPaths = true }
+                        .padding(vertical = 17.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "${viewModel.t(MarviL10n.Key.GET_STARTED)}  →",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(1.2.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(16.dp))
+                        .clickable { onSelectIntent(SignupIntent.CREATOR) }
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        viewModel.t(MarviL10n.Key.DISCOVER_CREATORS),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 17.sp
+                    )
+                }
+                TextButton(onClick = onMember, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        viewModel.t(MarviL10n.Key.ALREADY_MEMBER),
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Text(
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    color = Color.White.copy(alpha = 0.28f),
+                    fontSize = 11.sp,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 8.dp, bottom = 4.dp)
+                )
+            }
+        }
     }
+}
 
-    if (!viewModel.isRemoteMode) {
-        Text(viewModel.t(MarviL10n.Key.BACKEND_DEMO), color = MarviColor.Gold)
+@Composable
+private fun RolePathCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF16122A))
+                .border(1.dp, Color(0xFFA855F7).copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = Color(0xFFA855F7), modifier = Modifier.size(22.dp))
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(subtitle, color = Color.White.copy(alpha = 0.55f), fontSize = 13.sp)
+        }
     }
 }
 
@@ -703,7 +913,7 @@ private fun SignInStep(
     )
     Text(
         viewModel.t(
-            if (intent == SignupIntent.BUSINESS) {
+            if (intent.usesVenuePath) {
                 MarviL10n.Key.VENUE_SETUP_SUB
             } else {
                 MarviL10n.Key.PROFILE_SETUP_SUB
@@ -716,12 +926,12 @@ private fun SignInStep(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IntentChip(
                 selected = intent == SignupIntent.CREATOR,
-                label = viewModel.t(MarviL10n.Key.ROLE_CREATOR),
+                label = viewModel.t(MarviL10n.Key.JOIN_AS_CREATOR),
                 onClick = { onIntent(SignupIntent.CREATOR) }
             )
             IntentChip(
                 selected = intent == SignupIntent.BUSINESS,
-                label = viewModel.t(MarviL10n.Key.ROLE_VENUE),
+                label = viewModel.t(MarviL10n.Key.JOIN_AS_BRAND),
                 onClick = { onIntent(SignupIntent.BUSINESS) }
             )
         }
@@ -736,7 +946,7 @@ private fun SignInStep(
             onClick = {
                 viewModel.startGoogleSignIn(
                     context,
-                    if (intent == SignupIntent.BUSINESS) UserRole.VENUE else UserRole.CREATOR
+                    if (intent.usesVenuePath) UserRole.VENUE else UserRole.CREATOR
                 )
             }
         )

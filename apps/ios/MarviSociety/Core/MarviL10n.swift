@@ -19,6 +19,9 @@ enum MarviL10n {
         // Onboarding
         case heroLine1, heroLine2, heroSubtitle, getStarted, alreadyMemberSignIn
         case choosePathPrompt, joinAsCreator, joinAsBusiness
+        case joinAsBrand, joinAsMarketing
+        case joinAsCreatorDetail, joinAsBrandDetail, joinAsMarketingDetail
+        case choosePathSubtitle
         case when, whereAxis, eventTypeAxis
         case featApprovedTitle, featApprovedSub, featVenuesTitle, featVenuesSub
         case featProofTitle, featProofSub
@@ -26,6 +29,9 @@ enum MarviL10n {
         case introSlideCreatorsTitle, introSlideCreatorsSub
         case introSlideBrandTitle, introSlideBrandSub
         case introSlideAffiliateTitle, introSlideAffiliateSub
+        case landingTagline, discoverCreators
+        case continueAsCreator, continueAsBrand, emailAuthSubtitle
+        case authOrDivider, authLegalFooter, emailExamplePlaceholder
         case step1of4, step2of4, step3of4, step4of4
         case createAccount, signInContinue, welcomeBackSignIn, createAccountSub, signInSub
         case orEmail, orAppleSignIn, orContinueWith, newMemberCreate, alreadyMemberToggle, forgotPasswordReset
@@ -226,9 +232,14 @@ enum MarviL10n {
         .studio: "Studio", .inbox: "Inbox", .account: "Account", .admin: "Admin",
         .heroLine1: "Do what you can't", .heroLine2: "with Marvi Society",
         .heroSubtitle: "A simple private network for creators and businesses to collaborate.",
-        .getStarted: "Get started", .alreadyMemberSignIn: "Already have an account? Sign in",
+        .getStarted: "Get Started", .alreadyMemberSignIn: "Already have an account? Sign in",
         .choosePathPrompt: "How do you want to join?",
+        .choosePathSubtitle: "Select the account that best fits you.",
         .joinAsCreator: "Creator", .joinAsBusiness: "Business",
+        .joinAsBrand: "Brand", .joinAsMarketing: "Marketing",
+        .joinAsCreatorDetail: "For influencers, UGC creators, and models.",
+        .joinAsBrandDetail: "For businesses, agencies, and organizations.",
+        .joinAsMarketingDetail: "For marketing teams running campaigns with creators.",
         .when: "When", .whereAxis: "Where", .eventTypeAxis: "Event type",
         .introHome: "Home", .introSkip: "Skip",
         .introSlideCreatorsTitle: "Empowering Creators",
@@ -237,6 +248,14 @@ enum MarviL10n {
         .introSlideBrandSub: "Find perfect creators and launch high-impact campaigns with ease",
         .introSlideAffiliateTitle: "Earn as an Affiliate",
         .introSlideAffiliateSub: "Refer, track, and earn unlimited commissions in real time",
+        .landingTagline: "The all-in-one platform connecting brands with top creators for impactful campaigns, seamless bookings, and real results.",
+        .discoverCreators: "Discover Creators",
+        .continueAsCreator: "Continue as a Content Creator",
+        .continueAsBrand: "Continue as a Brand",
+        .emailAuthSubtitle: "Enter your email to log in or create an account",
+        .authOrDivider: "OR",
+        .authLegalFooter: "By continuing, you agree to our Terms & Privacy Policy",
+        .emailExamplePlaceholder: "you@example.com",
         .featApprovedTitle: "Approved members only",
         .featApprovedSub: "Every creator application is reviewed by our team.",
         .featVenuesTitle: "Premium venue experiences",
@@ -722,7 +741,12 @@ enum MarviL10n {
         .heroSubtitle: "İçerik üreticileri ve işletmeler için basit, seçkin bir iş birliği ağı.",
         .getStarted: "Başla", .alreadyMemberSignIn: "Zaten hesabın var mı? Giriş yap",
         .choosePathPrompt: "Nasıl katılmak istiyorsun?",
+        .choosePathSubtitle: "Sana en uygun hesabı seç.",
         .joinAsCreator: "İçerik üreticisi", .joinAsBusiness: "İşletme",
+        .joinAsBrand: "Marka", .joinAsMarketing: "Pazarlama",
+        .joinAsCreatorDetail: "Influencer’lar, UGC üreticileri ve modeller için.",
+        .joinAsBrandDetail: "İşletmeler, ajanslar ve kurumlar için.",
+        .joinAsMarketingDetail: "Creator’larla kampanya yürüten pazarlama ekipleri için.",
         .when: "Ne zaman", .whereAxis: "Nerede", .eventTypeAxis: "Etkinlik türü",
         .introHome: "Ana sayfa", .introSkip: "Geç",
         .introSlideCreatorsTitle: "İçerik Üreticilerini Güçlendir",
@@ -731,6 +755,14 @@ enum MarviL10n {
         .introSlideBrandSub: "Doğru creator’ları bul ve yüksek etkili kampanyaları kolayca başlat",
         .introSlideAffiliateTitle: "Affiliate Olarak Kazan",
         .introSlideAffiliateSub: "Davet et, takip et ve sınırsız komisyonu gerçek zamanlı kazan",
+        .landingTagline: "Markaları önde gelen içerik üreticileriyle buluşturan, etkili kampanyalar, sorunsuz rezervasyonlar ve gerçek sonuçlar için hepsi-bir-arada platform.",
+        .discoverCreators: "Creator’ları Keşfet",
+        .continueAsCreator: "İçerik Üreticisi olarak devam et",
+        .continueAsBrand: "Marka olarak devam et",
+        .emailAuthSubtitle: "Giriş yapmak veya hesap oluşturmak için e-postanızı girin",
+        .authOrDivider: "VEYA",
+        .authLegalFooter: "Devam ederek Şartlar ve Gizlilik Politikamızı kabul etmiş olursunuz",
+        .emailExamplePlaceholder: "you@example.com",
         .featApprovedTitle: "Sadece onaylı üyeler",
         .featApprovedSub: "Her creator başvurusu ekibimiz tarafından incelenir.",
         .featVenuesTitle: "Seçkin mekân deneyimleri",

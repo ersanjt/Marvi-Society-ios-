@@ -48,29 +48,37 @@ private enum OnboardingStep: Int, CaseIterable {
     }
 }
 
-private enum SignupIntent: String, CaseIterable {
+private enum SignupIntent: String, CaseIterable, Identifiable {
     case creator
     case business
 
+    var id: String { rawValue }
+
+    var usesVenuePath: Bool {
+        switch self {
+        case .creator: false
+        case .business: true
+        }
+    }
+
+    var serverIntentValue: String { rawValue }
+
     var icon: String {
         switch self {
-        case .creator: "sparkles"
-        case .business: "building.2.fill"
+        case .creator: "person.2"
+        case .business: "building.2"
         }
     }
 
     var accent: Color {
         switch self {
-        case .creator: MarviColor.rose
-        case .business: MarviColor.gold
+        case .creator: Color(hex: "#A855F7")
+        case .business: Color(hex: "#60A5FA")
         }
     }
 
     func shortTitle(for language: AppLanguage) -> String {
-        switch self {
-        case .creator: MarviL10n.t(.joinAsCreator, language: language)
-        case .business: MarviL10n.t(.joinAsBusiness, language: language)
-        }
+        MarviL10n.t(titleKey, language: language)
     }
 
     func title(for language: AppLanguage) -> String {
@@ -78,20 +86,25 @@ private enum SignupIntent: String, CaseIterable {
         case .creator:
             language == .turkish ? "İçerik üreticisi olarak katıl" : "Sign up as a Creator"
         case .business:
-            language == .turkish ? "İşletme olarak katıl" : "Sign up as a Business"
+            language == .turkish ? "Marka olarak katıl" : "Sign up as a Brand"
         }
     }
 
     func subtitle(for language: AppLanguage) -> String {
+        MarviL10n.t(subtitleKey, language: language)
+    }
+
+    var titleKey: MarviL10n.Key {
         switch self {
-        case .creator:
-            language == .turkish
-                ? "Markalar ve işletmelerle kolayca iş birliği kur."
-                : "Easily collaborate with brands and venues."
-        case .business:
-            language == .turkish
-                ? "İşletmeni tanıt, fotoğraf ekle ve creator’larla bağlan."
-                : "Introduce your business, add photos, and connect with creators."
+        case .creator: .joinAsCreator
+        case .business: .joinAsBrand
+        }
+    }
+
+    var subtitleKey: MarviL10n.Key {
+        switch self {
+        case .creator: .joinAsCreatorDetail
+        case .business: .joinAsBrandDetail
         }
     }
 }
@@ -132,19 +145,40 @@ struct OnboardingView: View {
     @State private var customBusinessCategory = ""
     @State private var showLaunchIntro = true
     @State private var welcomeReveal = WelcomeRevealPhase.hidden
+    @State private var showWelcomePaths = false
+    @State private var signInFormPhase: SignInFormPhase = .email
+
+    private enum SignInFormPhase {
+        case email
+        case credentials
+    }
 
     private var lang: AppLanguage { appState.preferredLanguage }
+
+    private var landingGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color(hex: "#A855F7"), Color(hex: "#3B82F6")],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
+    private var appVersionLabel: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.5.3"
+        return "v\(version)"
+    }
 
     var body: some View {
         ZStack {
             OnboardingBackdrop(isAnimated: step == .welcome && !showLaunchIntro)
 
             VStack(spacing: 0) {
-                OnboardingTopBar(
-                    step: step,
-                    onBack: goBack
-                )
-                .opacity(showLaunchIntro ? 0 : 1)
+                if step != .welcome && step != .signIn {
+                    OnboardingTopBar(
+                        step: step,
+                        onBack: goBack
+                    )
+                }
 
                 Group {
                     switch step {
@@ -168,8 +202,8 @@ struct OnboardingView: View {
                     ctaTitle: primaryCTATitle,
                     isBusy: isBusy,
                     isPrimaryDisabled: !canAdvancePrimary,
-                    showsPrimaryCTA: step != .welcome,
-                    errorMessage: displayedError,
+                    showsPrimaryCTA: step != .welcome && step != .signIn,
+                    errorMessage: step == .signIn ? nil : displayedError,
                     onPrimary: { Task { await handlePrimaryAction() } }
                 )
                 .opacity(showLaunchIntro ? 0 : 1)
@@ -221,8 +255,17 @@ struct OnboardingView: View {
     private func finishLaunchIntro() {
         withAnimation(.easeOut(duration: 0.45)) {
             showLaunchIntro = false
+            showWelcomePaths = false
         }
         runWelcomeReveal()
+    }
+
+    private func reopenLaunchIntro() {
+        withAnimation(.easeOut(duration: 0.35)) {
+            showLaunchIntro = true
+            showWelcomePaths = false
+            welcomeReveal = .hidden
+        }
     }
 
     private func runWelcomeReveal() {
@@ -250,203 +293,530 @@ struct OnboardingView: View {
     // MARK: - Steps
 
     private var welcomeStep: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            BrandMark(size: 64)
-                .padding(.bottom, 20)
-                .welcomeReveal(welcomeReveal, threshold: .brand)
+        ZStack {
+            Color(hex: "#0B0E14").ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(appState.t(.heroLine1))
-                    .font(.system(size: 34, weight: .bold, design: .serif))
-                    .foregroundStyle(MarviColor.ink)
-                    .minimumScaleFactor(0.8)
-                    .lineLimit(2)
+            GeometryReader { geo in
+                Circle()
+                    .fill(Color(hex: "#A855F7").opacity(showWelcomePaths ? 0.18 : 0.32))
+                    .frame(width: geo.size.width * 0.9)
+                    .blur(radius: 90)
+                    .offset(y: geo.size.height * (showWelcomePaths ? 0.2 : 0.08))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                Text(appState.t(.heroLine2))
-                    .font(.system(size: 24, weight: .bold, design: .serif))
-                    .foregroundStyle(MarviGradient.brand)
-
-                Text(appState.t(.heroSubtitle))
-                    .font(.subheadline)
-                    .foregroundStyle(MarviColor.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 4)
-            }
-            .welcomeReveal(welcomeReveal, threshold: .hero)
-
-            Spacer(minLength: 28)
-
-            Text(appState.t(.choosePathPrompt))
-                .font(.caption.weight(.bold))
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(MarviColor.muted)
-                .padding(.bottom, 12)
-                .welcomeReveal(welcomeReveal, threshold: .path)
-
-            VStack(spacing: 12) {
-                SignupIntentCard(
-                    intent: .creator,
-                    language: appState.preferredLanguage,
-                    isSelected: signupIntent == .creator
-                ) {
-                    signupIntent = .creator
-                    isCreatingAccount = true
-                    advance(to: .signIn)
+                if showWelcomePaths {
+                    // Soft atmospheric wash — stands in for the photo backdrop.
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "#1A1030").opacity(0.55),
+                            Color(hex: "#0B0E14").opacity(0.2),
+                            Color(hex: "#0B0E14")
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: geo.size.height * 0.55)
                 }
-                .welcomeReveal(welcomeReveal, threshold: .cards, offsetY: 28)
-
-                SignupIntentCard(
-                    intent: .business,
-                    language: appState.preferredLanguage,
-                    isSelected: signupIntent == .business
-                ) {
-                    signupIntent = .business
-                    isCreatingAccount = true
-                    advance(to: .signIn)
-                }
-                .welcomeReveal(welcomeReveal, threshold: .cards, offsetY: 36, delayBoost: true)
             }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
 
-            Spacer(minLength: 24)
-
-            Button {
-                isCreatingAccount = false
-                advance(to: .signIn)
-            } label: {
-                Text(appState.t(.alreadyMemberSignIn))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(MarviColor.rose)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+            if showWelcomePaths {
+                welcomeRoleSelection
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+            } else {
+                welcomeLandingContent
+                    .transition(.opacity)
             }
-            .buttonStyle(.plain)
-            .padding(.bottom, 8)
-            .welcomeReveal(welcomeReveal, threshold: .footer)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
+        .animation(.easeInOut(duration: 0.32), value: showWelcomePaths)
     }
 
-    private var signInStep: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 22) {
-                OnboardingStepHeader(
-                    eyebrow: appState.t(.step1of4),
-                    title: isCreatingAccount ? signupIntent.title(for: appState.preferredLanguage) : appState.t(.signInContinue),
-                    subtitle: isCreatingAccount ? appState.t(.createAccountSub) : appState.t(.signInSub)
-                )
-
-                if isCreatingAccount {
-                    HStack(spacing: 10) {
-                        ForEach(SignupIntent.allCases, id: \.rawValue) { intent in
-                            Button {
-                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                    signupIntent = intent
-                                }
-                            } label: {
-                                Label(intent == .creator ? appState.t(.creator) : appState.t(.joinAsBusiness), systemImage: intent.icon)
-                                    .font(.caption.weight(.bold))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 11)
-                                    .foregroundStyle(signupIntent == intent ? .white : MarviColor.graphite)
-                                    .background(
-                                        signupIntent == intent
-                                            ? AnyShapeStyle(MarviGradient.brand)
-                                            : AnyShapeStyle(MarviColor.panelElevated)
-                                    )
-                                    .clipShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                        }
+    private var welcomeLandingContent: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: reopenLaunchIntro) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                        Text(appState.t(.introHome))
+                            .font(.body.weight(.medium))
                     }
-                }
-
-                VStack(spacing: 12) {
-                    if isCreatingAccount {
-                        MarviTextField(placeholder: appState.t(.fullNamePlaceholder), text: $fullName)
-                    }
-                    MarviTextField(placeholder: appState.t(.email), text: $email, autocapitalization: .never)
-                    OnboardingSecureField(placeholder: appState.t(.password), text: $password)
-                }
-
-                Button {
-                    withAnimation { isCreatingAccount.toggle() }
-                } label: {
-                    Text(isCreatingAccount ? appState.t(.alreadyMemberToggle) : appState.t(.newMemberCreate))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(MarviColor.rose)
-                        .frame(maxWidth: .infinity)
+                    .foregroundStyle(Color.white.opacity(0.88))
                 }
                 .buttonStyle(.plain)
 
-                if !isCreatingAccount {
-                    Button {
-                        Task { await requestPasswordReset() }
-                    } label: {
-                        Text(appState.t(.forgotPasswordReset))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(MarviColor.muted)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBusy)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .welcomeReveal(welcomeReveal, threshold: .brand)
+
+            Spacer(minLength: 24)
+
+            VStack(spacing: 18) {
+                BrandMark(size: 92)
+                    .shadow(color: Color(hex: "#A855F7").opacity(0.45), radius: 28, x: 0, y: 10)
+                    .welcomeReveal(welcomeReveal, threshold: .brand)
+
+                HStack(spacing: 0) {
+                    Text("MARVI")
+                        .foregroundStyle(.white)
+                    Text(" SOCIETY")
+                        .foregroundStyle(landingGradient)
                 }
+                .font(.system(size: 34, weight: .heavy))
+                .tracking(1.2)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+                .welcomeReveal(welcomeReveal, threshold: .hero)
 
-                if AppState.isAccountAlreadyExistsMessage(appState.lastSyncError), isCreatingAccount {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(appState.t(.accountExistsTitle))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(MarviColor.tomato)
-                        Button {
-                            withAnimation {
-                                isCreatingAccount = false
-                                appState.dismissSyncError()
-                            }
-                        } label: {
-                            Text(appState.t(.signInToAccount))
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(MarviColor.emerald)
-                        }
-                        .buttonStyle(.plain)
+                Text(appState.t(.landingTagline))
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.58))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .padding(.horizontal, 28)
+                    .welcomeReveal(welcomeReveal, threshold: .hero)
+            }
+
+            Spacer(minLength: 28)
+
+            VStack(spacing: 12) {
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                        showWelcomePaths = true
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(appState.t(.getStarted))
+                            .font(.system(size: 17, weight: .bold))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 17)
+                    .background(landingGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: Color(hex: "#A855F7").opacity(0.4), radius: 18, x: 0, y: 8)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(appState.t(.getStarted))
 
-                if APIConfig.googleSignInEnabled || APIConfig.appleSignInEnabled {
-                    SocialDivider(label: appState.t(.orContinueWith))
-
-                    if APIConfig.appleSignInEnabled {
-                        AppleSignInButton(
-                            title: appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple),
-                            isLoading: appleSignIn.isSigningIn,
-                            isDisabled: appleSignIn.isSigningIn || isBusy
-                        ) {
-                            Task { await signInWithAppleFlow() }
-                        }
-                    }
-
-                    if APIConfig.googleSignInEnabled {
-                        GoogleSignInButton(
-                            title: googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle),
-                            isLoading: googleSignIn.isSigningIn,
-                            isDisabled: googleSignIn.isSigningIn || isBusy
-                        ) {
-                            Task { await signInWithGoogleFlow() }
-                        }
-                    }
-                } else {
-                    Text(appState.t(.emailSignInRecommended))
-                        .font(.caption2)
-                        .foregroundStyle(MarviColor.muted)
-                        .multilineTextAlignment(.center)
+                Button {
+                    signupIntent = .creator
+                    isCreatingAccount = true
+                    advance(to: .signIn)
+                } label: {
+                    Text(appState.t(.discoverCreators))
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(Color.white.opacity(0.28), lineWidth: 1.2)
+                        )
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(appState.t(.discoverCreators))
+
+                Button {
+                    isCreatingAccount = false
+                    advance(to: .signIn)
+                } label: {
+                    Text(appState.t(.alreadyMemberSignIn))
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                        .padding(.top, 4)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 24)
+            .welcomeReveal(welcomeReveal, threshold: .cards)
+
+            Text(appVersionLabel)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(Color.white.opacity(0.28))
+                .padding(.top, 18)
+                .padding(.bottom, 14)
+                .welcomeReveal(welcomeReveal, threshold: .footer)
         }
+    }
+
+    private var welcomeRoleSelection: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) {
+                        showWelcomePaths = false
+                    }
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                HStack(spacing: 0) {
+                    Text("MARVI")
+                        .foregroundStyle(.white)
+                    Text(" SOCIETY")
+                        .foregroundStyle(landingGradient)
+                }
+                .font(.system(size: 16, weight: .heavy))
+                .tracking(0.8)
+
+                Spacer()
+                Color.clear.frame(width: 40, height: 40)
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+
+            Spacer(minLength: 20)
+
+            VStack(spacing: 10) {
+                Text(appState.t(.choosePathPrompt))
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+
+                Text(appState.t(.choosePathSubtitle))
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 24)
+
+            Spacer(minLength: 28)
+
+            VStack(spacing: 14) {
+                ForEach(SignupIntent.allCases) { intent in
+                    RoleSelectCard(
+                        intent: intent,
+                        language: appState.preferredLanguage,
+                        gradient: landingGradient
+                    ) {
+                        signupIntent = intent
+                        isCreatingAccount = true
+                        advance(to: .signIn)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+
+            Spacer(minLength: 24)
+
+            Text(appVersionLabel)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(Color.white.opacity(0.28))
+                .padding(.bottom, 14)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var signInStep: some View {
+        ZStack {
+            Color(hex: "#0B0E14").ignoresSafeArea()
+
+            GeometryReader { geo in
+                Circle()
+                    .fill(Color(hex: "#A855F7").opacity(0.2))
+                    .frame(width: geo.size.width * 0.85)
+                    .blur(radius: 90)
+                    .offset(y: -geo.size.height * 0.05)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: goBack) {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    HStack(spacing: 0) {
+                        Text("MARVI")
+                            .foregroundStyle(.white)
+                        Text(" SOCIETY")
+                            .foregroundStyle(landingGradient)
+                    }
+                    .font(.system(size: 16, weight: .heavy))
+                    .tracking(0.8)
+
+                    Spacer()
+                    Color.clear.frame(width: 40, height: 40)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 28)
+
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .fill(landingGradient)
+                                .frame(width: 72, height: 72)
+                                .shadow(color: Color(hex: "#A855F7").opacity(0.45), radius: 20, x: 0, y: 8)
+
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.bottom, 22)
+
+                        Text(
+                            isCreatingAccount
+                                ? (signupIntent == .business
+                                    ? appState.t(.continueAsBrand)
+                                    : appState.t(.continueAsCreator))
+                                : appState.t(.welcomeBack)
+                        )
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+
+                        Text(appState.t(.emailAuthSubtitle))
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundStyle(Color.white.opacity(0.55))
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 10)
+                            .padding(.horizontal, 32)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(appState.t(.email))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+
+                            HStack(spacing: 12) {
+                                Image(systemName: "envelope")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundStyle(Color.white.opacity(0.45))
+
+                                TextField(appState.t(.emailExamplePlaceholder), text: $email)
+                                    .textInputAutocapitalization(.never)
+                                    .keyboardType(.emailAddress)
+                                    .textContentType(.emailAddress)
+                                    .autocorrectionDisabled()
+                                    .foregroundStyle(.white)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 15)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                            )
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 28)
+
+                        if signInFormPhase == .credentials {
+                            VStack(alignment: .leading, spacing: 14) {
+                                if isCreatingAccount {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(appState.t(.fullNamePlaceholder))
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundStyle(.white)
+                                        TextField(appState.t(.fullNamePlaceholder), text: $fullName)
+                                            .textContentType(.name)
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 15)
+                                            .background(Color.white.opacity(0.06))
+                                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                            )
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(appState.t(.password))
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                    SecureField(appState.t(.password), text: $password)
+                                        .textContentType(isCreatingAccount ? .newPassword : .password)
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 15)
+                                        .background(Color.white.opacity(0.06))
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                        )
+                                }
+
+                                Button {
+                                    withAnimation { isCreatingAccount.toggle() }
+                                } label: {
+                                    Text(isCreatingAccount ? appState.t(.alreadyMemberToggle) : appState.t(.newMemberCreate))
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(Color(hex: "#A855F7"))
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.plain)
+
+                                if !isCreatingAccount {
+                                    Button {
+                                        Task { await requestPasswordReset() }
+                                    } label: {
+                                        Text(appState.t(.forgotPasswordReset))
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(Color.white.opacity(0.45))
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isBusy)
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 14)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+
+                        if let displayedError {
+                            Text(displayedError)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.tomato)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 12)
+                        }
+
+                        if AppState.isAccountAlreadyExistsMessage(appState.lastSyncError), isCreatingAccount {
+                            Button {
+                                withAnimation {
+                                    isCreatingAccount = false
+                                    appState.dismissSyncError()
+                                }
+                            } label: {
+                                Text(appState.t(.signInToAccount))
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(MarviColor.emerald)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, 8)
+                        }
+
+                        Button {
+                            handleSignInContinue()
+                        } label: {
+                            Text(appState.t(.continueAction))
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    emailContinueEnabled
+                                        ? AnyShapeStyle(landingGradient)
+                                        : AnyShapeStyle(Color.white.opacity(0.18))
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .shadow(
+                                    color: emailContinueEnabled ? Color(hex: "#A855F7").opacity(0.35) : .clear,
+                                    radius: 16,
+                                    x: 0,
+                                    y: 8
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!emailContinueEnabled || isBusy)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+
+                        if signInFormPhase == .email {
+                            AuthOrDivider(label: appState.t(.authOrDivider))
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 22)
+
+                            VStack(spacing: 12) {
+                                if APIConfig.googleSignInEnabled {
+                                    GoogleSignInButton(
+                                        title: googleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithGoogle),
+                                        isLoading: googleSignIn.isSigningIn,
+                                        isDisabled: googleSignIn.isSigningIn || isBusy
+                                    ) {
+                                        Task { await signInWithGoogleFlow() }
+                                    }
+                                }
+
+                                if APIConfig.appleSignInEnabled {
+                                    AppleSignInButton(
+                                        title: appleSignIn.isSigningIn ? appState.t(.signingIn) : appState.t(.signInWithApple),
+                                        isLoading: appleSignIn.isSigningIn,
+                                        isDisabled: appleSignIn.isSigningIn || isBusy
+                                    ) {
+                                        Task { await signInWithAppleFlow() }
+                                    }
+                                }
+
+                                if !APIConfig.googleSignInEnabled && !APIConfig.appleSignInEnabled {
+                                    Text(appState.t(.emailSignInRecommended))
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.white.opacity(0.45))
+                                        .multilineTextAlignment(.center)
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                        }
+
+                        Spacer(minLength: 36)
+
+                        Text(appState.t(.authLegalFooter))
+                            .font(.caption2)
+                            .foregroundStyle(Color.white.opacity(0.35))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                            .padding(.bottom, 18)
+                    }
+                }
+            }
+        }
+    }
+
+    private var emailContinueEnabled: Bool {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.contains("@") else { return false }
+        if signInFormPhase == .email { return true }
+        if isCreatingAccount {
+            return !fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && password.count >= 8
+        }
+        return !password.isEmpty
+    }
+
+    private func handleSignInContinue() {
+        if appState.isAuthenticated {
+            Task { await handlePrimaryAction() }
+            return
+        }
+        if signInFormPhase == .email {
+            withAnimation(.easeInOut(duration: 0.28)) {
+                signInFormPhase = .credentials
+            }
+            return
+        }
+        Task { await handlePrimaryAction() }
     }
 
     private var inviteStep: some View {
@@ -587,7 +957,7 @@ struct OnboardingView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
                 OnboardingStepHeader(
-                    eyebrow: signupIntent == .business ? appState.t(.step3of4) : appState.t(.step3of4),
+                    eyebrow: appState.t(.step3of4),
                     title: appState.t(.addLocation),
                     subtitle: appState.t(.addLocationSub)
                 )
@@ -765,18 +1135,28 @@ struct OnboardingView: View {
     }
 
     private func goBack() {
+        if step == .signIn, signInFormPhase == .credentials {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                signInFormPhase = .email
+                password = ""
+            }
+            return
+        }
+
         let previous: OnboardingStep?
         switch step {
         case .welcome:
             previous = nil
         case .signIn:
             previous = .welcome
+            showWelcomePaths = true
+            signInFormPhase = .email
         case .invite:
             previous = .signIn
         case .profile, .venueSetup:
             previous = .signIn
         case .agreement:
-            previous = signupIntent == .business ? .venueSetup : .profile
+            previous = signupIntent.usesVenuePath ? .venueSetup : .profile
         }
         guard let previous else { return }
         referralError = ""
@@ -789,6 +1169,9 @@ struct OnboardingView: View {
         referralError = ""
         appleSignInError = nil
         appState.dismissSyncError()
+        if next == .signIn {
+            signInFormPhase = .email
+        }
         withAnimation { step = next }
     }
 
@@ -806,7 +1189,7 @@ struct OnboardingView: View {
             }
         case .invite:
             // Invite codes removed — skip to profile/venue setup.
-            if signupIntent == .business {
+            if signupIntent.usesVenuePath {
                 advance(to: .venueSetup)
             } else {
                 advance(to: .profile)
@@ -844,7 +1227,8 @@ struct OnboardingView: View {
             "tiktok_handle": tiktokHandle.trimmingCharacters(in: .whitespacesAndNewlines),
             "full_name": fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? appState.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                : fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+                : fullName.trimmingCharacters(in: .whitespacesAndNewlines),
+            "signup_intent": signupIntent.serverIntentValue
         ]
     }
 
@@ -867,7 +1251,7 @@ struct OnboardingView: View {
 
         if await appState.isExistingMemberOnServer() {
             let role: UserRole
-            if signupIntent == .business, appState.allowedRoles.contains(.venue) {
+            if signupIntent.usesVenuePath, appState.allowedRoles.contains(.venue) {
                 role = .venue
             } else {
                 role = appState.allowedRoles.first ?? .creator
@@ -881,7 +1265,7 @@ struct OnboardingView: View {
             return
         }
 
-        advance(to: signupIntent == .business ? .venueSetup : .profile)
+        advance(to: signupIntent.usesVenuePath ? .venueSetup : .profile)
     }
 
     private func signInWithEmailFlow() async {
@@ -1004,7 +1388,7 @@ struct OnboardingView: View {
     }
 
     private func finishOnboarding() async {
-        if signupIntent == .business {
+        if signupIntent.usesVenuePath {
             let trimmedName = venueName.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedArea = venueArea.trimmingCharacters(in: .whitespacesAndNewlines)
             let registered = await appState.registerVenue(
@@ -1031,7 +1415,7 @@ struct OnboardingView: View {
             }
         }
 
-        appState.completeOnboarding(role: signupIntent == .business ? .venue : .creator)
+        appState.completeOnboarding(role: signupIntent.usesVenuePath ? .venue : .creator)
     }
 
     @ViewBuilder
@@ -1090,7 +1474,7 @@ private extension View {
         return self
             .opacity(visible ? 1 : 0)
             .offset(y: visible ? 0 : offsetY)
-            .scaleEffect(visible ? 1 : (delayBoost ? 0.96 : 0.98), anchor: .leading)
+            .scaleEffect(visible ? 1 : (delayBoost ? 0.96 : 0.98), anchor: .center)
             .allowsHitTesting(visible)
     }
 }
@@ -1564,6 +1948,85 @@ private struct OnboardingPill: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(MarviGradient.brand.opacity(0.35), lineWidth: 1)
         )
+    }
+}
+
+private struct AuthOrDivider: View {
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Rectangle()
+                .fill(Color.white.opacity(0.12))
+                .frame(height: 1)
+            Text(label)
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(Color.white.opacity(0.4))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(hex: "#0B0E14"))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            Rectangle()
+                .fill(Color.white.opacity(0.12))
+                .frame(height: 1)
+        }
+    }
+}
+
+private struct RoleSelectCard: View {
+    let intent: SignupIntent
+    let language: AppLanguage
+    let gradient: LinearGradient
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color(hex: "#16122A"))
+                        .frame(width: 52, height: 52)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color(hex: "#A855F7").opacity(0.25), lineWidth: 1)
+                        )
+
+                    Image(systemName: intent.icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(gradient)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(intent.shortTitle(for: language))
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+
+                    Text(intent.subtitle(for: language))
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(intent.shortTitle(for: language))
+        .accessibilityHint(intent.subtitle(for: language))
     }
 }
 
