@@ -253,7 +253,14 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     suspend fun fetchNotifications(): List<InboxMessage> {
-        val rows = client.select("notifications", mapOf("order" to "created_at.desc")) { it.asArrayOrEmpty() }
+        val rows = client.select(
+            "notifications",
+            mapOf(
+                "read_at" to "is.null",
+                "order" to "created_at.desc",
+                "limit" to "100"
+            )
+        ) { it.asArrayOrEmpty() }
         return rows.mapNotNull { row ->
             val obj = row.asObjectOrNull() ?: return@mapNotNull null
             InboxMessage(
@@ -261,13 +268,17 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 title = obj.string("title") ?: "",
                 body = obj.string("body") ?: "",
                 dateLabel = formatRelative(obj.string("created_at")),
-                isRead = obj["read_at"]?.let { it !is kotlinx.serialization.json.JsonNull } == true
+                isRead = false
             )
         }
     }
 
     suspend fun markNotificationRead(id: String) {
         client.rpcVoid("mark_notification_read", buildJsonObject { put("p_notification_id", id) })
+    }
+
+    suspend fun markAllNotificationsRead() {
+        client.rpcVoid("mark_all_notifications_read", buildJsonObject {})
     }
 
     suspend fun fetchSavedOfferIds(): Set<String> {

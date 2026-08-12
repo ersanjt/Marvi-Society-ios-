@@ -31,6 +31,7 @@ protocol MarviAPI: Sendable {
     func updateProfile(_ profile: CreatorProfile) async throws
     func fetchNotifications() async throws -> [InboxMessage]
     func markNotificationRead(_ id: UUID) async throws
+    func markAllNotificationsRead() async throws
     func registerDeviceToken(_ token: String, platform: String) async throws
     func trackEvent(_ name: String, properties: [String: String]) async throws
     func fetchSavedOfferIDs() async throws -> Set<UUID>
@@ -491,6 +492,7 @@ extension MarviAPI {
     }
 
     func markNotificationRead(_ id: UUID) async throws {}
+    func markAllNotificationsRead() async throws {}
 
     func registerDeviceToken(_ token: String, platform: String) async throws {}
 

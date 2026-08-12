@@ -79,6 +79,7 @@ enum MarviL10n {
         case reactivateMyAccount
         // Inbox / reauth
         case inboxTitle, inboxEmpty, inboxSub, inboxLoading, openAction
+        case inboxMarkAllRead, inboxUnreadCount, inboxClearedSub
         case welcomeBack, signInToContinue, forgotPasswordEmail
         // Membership status labels
         case statusUnderReview, statusApproved, statusPaused
@@ -382,6 +383,9 @@ enum MarviL10n {
         .inboxSub: "Campaign updates, proof reminders, and admin messages.",
         .inboxLoading: "Fetching your latest notifications.",
         .openAction: "Open",
+        .inboxMarkAllRead: "Clear all",
+        .inboxUnreadCount: "%d new",
+        .inboxClearedSub: "Opened notifications are cleared. Pull to refresh for new ones.",
         .welcomeBack: "Welcome back", .signInToContinue: "Sign in with your email and password to continue.",
         .forgotPasswordEmail: "Forgot password? Reset via email",
         .statusUnderReview: "Under review", .statusApproved: "Approved", .statusPaused: "Paused",
@@ -889,6 +893,9 @@ enum MarviL10n {
         .inboxSub: "Kampanya güncellemeleri, kanıt hatırlatıcıları ve yönetim mesajları.",
         .inboxLoading: "Son bildirimlerin yükleniyor.",
         .openAction: "Aç",
+        .inboxMarkAllRead: "Tümünü temizle",
+        .inboxUnreadCount: "%d yeni",
+        .inboxClearedSub: "Açılan bildirimler temizlendi. Yenileri için aşağı çek.",
         .welcomeBack: "Tekrar hoş geldin",
         .signInToContinue: "Devam etmek için e-posta ve şifrenle giriş yap.",
         .forgotPasswordEmail: "Şifreni mi unuttun? E-posta ile sıfırla",
@@ -1246,6 +1253,46 @@ extension AppState {
 
     func tf(_ key: MarviL10n.Key, _ arguments: CVarArg...) -> String {
         String(format: t(key), arguments: arguments)
+    }
+}
+
+// MARK: - Server notification text (SQL inserts English templates)
+
+extension MarviL10n {
+    private static let serverTextTurkish: [String: String] = [
+        "Request sent": "İstek gönderildi",
+        "Waiting for the venue to confirm your collaboration.": "Mekanın iş birliğini onaylaması bekleniyor.",
+        "Waiting for the business to confirm your collaboration.": "İşletmenin iş birliğini onaylaması bekleniyor.",
+        "Creator wants to collaborate": "Creator iş birliği yapmak istiyor",
+        "A creator accepted your offer. Confirm to start chatting.": "Bir creator teklifini kabul etti. Sohbete başlamak için onayla.",
+        "Collaboration confirmed": "İş birliği onaylandı",
+        "The venue confirmed. You can now chat in Messages.": "Mekan onayladı. Artık Mesajlar'dan sohbet edebilirsin.",
+        "The business confirmed. You can now chat in Messages.": "İşletme onayladı. Artık Mesajlar'dan sohbet edebilirsin.",
+        "Creator accepted your invite": "Creator davetini kabul etti",
+        "Collaboration confirmed. Open Messages to chat.": "İş birliği onaylandı. Sohbet için Mesajlar'ı aç.",
+        "Venue invited you": "Bir mekan seni davet etti",
+        "A venue partner wants to collaborate. Accept to start chatting.": "Bir mekan ortağı iş birliği yapmak istiyor. Sohbete başlamak için kabul et.",
+        "New collaboration request": "Yeni iş birliği isteği",
+        "New message": "Yeni mesaj",
+        "Membership approved": "Üyeliğin onaylandı",
+        "Your Marvi Society creator application was approved. Explore live events now.": "Marvi Society creator başvurun onaylandı. Canlı etkinlikleri şimdi keşfet."
+    ]
+
+    static func localizeServerText(_ text: String, language: AppLanguage) -> String {
+        guard language == .turkish else { return text }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let mapped = serverTextTurkish[trimmed] { return mapped }
+        return localizeRelativeDateText(trimmed)
+    }
+
+    private static func localizeRelativeDateText(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: #"(\d+)m ago"#, with: "$1 dk önce", options: .regularExpression)
+            .replacingOccurrences(of: #"(\d+)h ago"#, with: "$1 sa önce", options: .regularExpression)
+            .replacingOccurrences(of: #"(\d+)d ago"#, with: "$1 gün önce", options: .regularExpression)
+            .replacingOccurrences(of: "Now", with: "Şimdi")
+            .replacingOccurrences(of: "Today", with: "Bugün")
+            .replacingOccurrences(of: "Yesterday", with: "Dün")
     }
 }
 

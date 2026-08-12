@@ -130,6 +130,12 @@ struct CreatorProfileRow: Decodable {
     }
 }
 
+struct NotificationPayloadDTO: Decodable {
+    let booking_id: UUID?
+    let offer_id: UUID?
+    let conversation_id: UUID?
+}
+
 struct NotificationRow: Decodable {
     let id: UUID
     let title: String
@@ -141,6 +147,7 @@ struct NotificationRow: Decodable {
     let created_at: String?
     let booking_id: UUID?
     let offer_id: UUID?
+    let payload: NotificationPayloadDTO?
 
     func toMessage() -> InboxMessage {
         InboxMessage(
@@ -152,8 +159,8 @@ struct NotificationRow: Decodable {
             tint: PaletteToken(rawValue: tint ?? "rose") ?? .rose,
             isRead: read_at != nil && !(read_at?.isEmpty ?? true),
             notificationType: type ?? "general",
-            bookingID: booking_id,
-            offerID: offer_id
+            bookingID: booking_id ?? payload?.booking_id,
+            offerID: offer_id ?? payload?.offer_id
         )
     }
 }

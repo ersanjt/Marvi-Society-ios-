@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -283,11 +284,30 @@ fun InboxScreen(viewModel: AppViewModel) {
     MarviScreen {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             BrandLockup(subtitle = viewModel.t(MarviL10n.Key.INBOX_TITLE))
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier.height(12.dp))
+            if (viewModel.inboxMessages.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        viewModel.t(MarviL10n.Key.INBOX_UNREAD_COUNT)
+                            .replace("%d", viewModel.unreadInboxCount.toString()),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    TextButton(onClick = viewModel::markAllInboxRead) {
+                        Text(viewModel.t(MarviL10n.Key.INBOX_MARK_ALL_READ), color = MarviColor.Rose)
+                    }
+                }
+                Spacer(modifier.height(8.dp))
+            }
             if (viewModel.inboxMessages.isEmpty()) {
                 EmptyStateView(
                     title = viewModel.t(MarviL10n.Key.INBOX_EMPTY),
-                    subtitle = viewModel.t(MarviL10n.Key.NO_MESSAGES_YET_SUB),
+                    subtitle = viewModel.t(MarviL10n.Key.INBOX_CLEARED_SUB),
                     actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
                     onAction = viewModel::refreshFromServer
                 )
@@ -299,19 +319,31 @@ fun InboxScreen(viewModel: AppViewModel) {
                     items(viewModel.inboxMessages, key = { it.id }) { msg ->
                         MarviCard(
                             modifier = Modifier.clickable {
-                                if (!msg.isRead) viewModel.markInboxRead(msg.id)
+                                viewModel.markInboxRead(msg.id)
                             }
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                if (!msg.isRead) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(MarviColor.Rose)
-                                    )
-                                }
-                                Text(viewModel.localizeServerText(msg.title), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(MarviColor.Rose)
+                                )
+                                Text(
+                                    viewModel.localizeServerText(msg.title),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MarviColor.Ink,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    viewModel.t(MarviL10n.Key.CONTINUE),
+                                    color = MarviColor.Emerald,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                             Text(viewModel.localizeServerText(msg.body), color = MarviColor.Graphite)
                             Text(

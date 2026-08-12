@@ -306,23 +306,67 @@ final class AppState: ObservableObject {
     }
 
     func openInboxMessage(_ message: InboxMessage) {
+        // Optimistic: opened items leave the inbox immediately (user request).
+        withAnimation(.easeInOut(duration: 0.25)) {
+            inboxMessages.removeAll { $0.id == message.id }
+        }
+
         Task {
             if !message.isRead {
                 do {
                     try await api.markNotificationRead(message.id)
-                    if let index = inboxMessages.firstIndex(where: { $0.id == message.id }) {
-                        inboxMessages[index].isRead = true
-                    }
                 } catch {
-                    if let message = presentableError(error) {
-                        lastSyncError = message
+                    // Put it back if the server reject so the user can retry.
+                    await MainActor.run {
+                        if !inboxMessages.contains(where: { $0.id == message.id }) {
+                            inboxMessages.insert(message, at: 0)
+                        }
+                        if let presentable = presentableError(error) {
+                            lastSyncError = presentable
+                        }
                     }
+                    return
                 }
             }
-            if let link = message.deepLink {
-                navigate(to: link)
+            await MainActor.run {
+                if let link = message.deepLink {
+                    navigate(to: link)
+                }
+                track("inbox_open", properties: ["type": message.notificationType])
             }
-            track("inbox_open", properties: ["type": message.notificationType])
+        }
+    }
+
+    func markAllInboxRead() {
+        let snapshot = inboxMessages
+        withAnimation(.easeInOut(duration: 0.25)) {
+            inboxMessages = []
+        }
+        Task {
+            do {
+                try await api.markAllNotificationsRead()
+                track("inbox_mark_all_read", properties: ["count": "\(snapshot.count)"])
+            } catch {
+                // Fallback when mark_all RPC is not applied yet: mark each row.
+                var failed = false
+                for message in snapshot where !message.isRead {
+                    do {
+                        try await api.markNotificationRead(message.id)
+                    } catch {
+                        failed = true
+                    }
+                }
+                if failed {
+                    await MainActor.run {
+                        inboxMessages = snapshot
+                        if let presentable = presentableError(error) {
+                            lastSyncError = presentable
+                        }
+                    }
+                } else {
+                    track("inbox_mark_all_read", properties: ["count": "\(snapshot.count)", "fallback": "true"])
+                }
+            }
         }
     }
 
@@ -341,7 +385,7 @@ final class AppState: ObservableObject {
     }
 
     var unreadInboxCount: Int {
-        inboxMessages.filter { !$0.isRead }.count
+        min(inboxMessages.filter { !$0.isRead }.count, 99)
     }
 
     func nearbyOffers(withinKm: Double = 8) -> [Offer] {
@@ -482,7 +526,9 @@ final class AppState: ObservableObject {
             noteFailure("bookings", error: error)
         }
 
-        if let loadedInbox = try? await api.fetchNotifications() { inboxMessages = loadedInbox }
+        if let loadedInbox = try? await api.fetchNotifications() {
+            inboxMessages = loadedInbox.filter { !$0.isRead }
+        }
 
         do {
             savedOfferIDs = try await api.fetchSavedOfferIDs()

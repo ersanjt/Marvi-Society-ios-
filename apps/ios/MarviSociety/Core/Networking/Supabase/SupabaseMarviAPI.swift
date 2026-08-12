@@ -264,7 +264,11 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchNotifications() async throws -> [InboxMessage] {
         let rows: [NotificationRow] = try await client.select(
             table: "notifications",
-            query: [URLQueryItem(name: "order", value: "created_at.desc")]
+            query: [
+                URLQueryItem(name: "read_at", value: "is.null"),
+                URLQueryItem(name: "order", value: "created_at.desc"),
+                URLQueryItem(name: "limit", value: "100")
+            ]
         )
         return rows.map { $0.toMessage() }
     }
@@ -274,6 +278,10 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             function: "mark_notification_read",
             body: ["p_notification_id": id.uuidString]
         )
+    }
+
+    func markAllNotificationsRead() async throws {
+        try await client.rpcVoid(function: "mark_all_notifications_read", body: [:])
     }
 
     func registerDeviceToken(_ token: String, platform: String) async throws {

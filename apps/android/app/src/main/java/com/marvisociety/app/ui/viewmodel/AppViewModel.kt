@@ -118,7 +118,7 @@ class AppViewModel(
     }
 
     val isRemoteMode: Boolean get() = repository.usesRemoteBackend
-    val unreadInboxCount: Int get() = inboxMessages.count { !it.isRead }
+    val unreadInboxCount: Int get() = inboxMessages.count { !it.isRead }.coerceAtMost(99)
 
     /** Invite codes are no longer required for membership. */
     val needsInviteRedemption: Boolean get() = false
@@ -1256,11 +1256,26 @@ class AppViewModel(
     }
 
     fun markInboxRead(id: String) {
+        val snapshot = inboxMessages
+        inboxMessages = inboxMessages.filterNot { it.id == id }
         viewModelScope.launch {
             runCatching {
                 repository.markNotificationRead(id)
-                inboxMessages = inboxMessages.map { if (it.id == id) it.copy(isRead = true) else it }
             }.onFailure { error ->
+                inboxMessages = snapshot
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+            }
+        }
+    }
+
+    fun markAllInboxRead() {
+        val snapshot = inboxMessages
+        inboxMessages = emptyList()
+        viewModelScope.launch {
+            runCatching {
+                repository.markAllNotificationsRead()
+            }.onFailure { error ->
+                inboxMessages = snapshot
                 lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
             }
         }

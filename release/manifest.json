@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.3",
-      "buildNumber": 73,
+      "buildNumber": 74,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,8 +17,8 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260812180001_admin_campaign_control",
-      "migrationCount": 59
+      "migrationHead": "20260812210001_inbox_mark_all_read",
+      "migrationCount": 60
     }
   },
   "syncLog": [

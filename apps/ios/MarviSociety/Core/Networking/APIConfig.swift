@@ -139,6 +139,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func updateProfile(_ profile: CreatorProfile) async throws { throw notConfigured() }
     func fetchNotifications() async throws -> [InboxMessage] { throw notConfigured() }
     func markNotificationRead(_ id: UUID) async throws { throw notConfigured() }
+    func markAllNotificationsRead() async throws { throw notConfigured() }
     func registerDeviceToken(_ token: String, platform: String) async throws { throw notConfigured() }
     func trackEvent(_ name: String, properties: [String: String]) async throws { throw notConfigured() }
     func fetchSavedOfferIDs() async throws -> Set<UUID> { throw notConfigured() }

@@ -551,7 +551,20 @@ struct HomeHeader: View {
                 HeaderIconButton(icon: "magnifyingglass", action: onSearch)
             }
             if let onNotifications {
-                HeaderIconButton(icon: "bell", action: onNotifications)
+                ZStack(alignment: .topTrailing) {
+                    HeaderIconButton(icon: "bell", action: onNotifications)
+                    if appState.unreadInboxCount > 0 {
+                        Text("\(appState.unreadInboxCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(MarviColor.rose)
+                            .clipShape(Capsule())
+                            .offset(x: 6, y: -4)
+                            .accessibilityLabel("\(appState.unreadInboxCount) unread")
+                    }
+                }
             }
         }
     }
