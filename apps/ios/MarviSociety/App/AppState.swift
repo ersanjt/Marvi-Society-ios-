@@ -1016,7 +1016,10 @@ final class AppState: ObservableObject {
         do {
             try await api.updateProfile(profile)
             profile = try await api.fetchProfile()
-            socialVerification = try await api.ensureSocialVerificationCode()
+            // Social verification is best-effort; don't fail a successful profile save.
+            if let verification = try? await api.ensureSocialVerificationCode() {
+                socialVerification = verification
+            }
             lastSyncError = nil
             return true
         } catch {

@@ -68,9 +68,15 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     private suspend fun fetchProfileRow(): JsonObject? {
+        // Admins can SELECT every profiles row; always scope to the signed-in user.
+        val userId = client.currentUserId() ?: return null
         val rows = client.select(
             "profiles",
-            mapOf("select" to "role,status,referral_code,paused_by_self", "limit" to "1")
+            mapOf(
+                "select" to "role,status,referral_code,paused_by_self",
+                "id" to "eq.$userId",
+                "limit" to "1"
+            )
         ) { it.asArrayOrEmpty() }
         return rows.firstOrNull()?.asObjectOrNull()
     }
@@ -108,8 +114,23 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
     }
 
     suspend fun fetchProfile(): CreatorProfile {
-        val rows = client.select("creator_profiles", mapOf("limit" to "1")) { it.asArrayOrEmpty() }
-        val row = rows.firstOrNull() ?: return CreatorProfile()
+        // Admins can SELECT every creator_profiles row via RLS. An unscoped
+        // `limit=1` often returns someone else's row, so edits/photos look like
+        // they never saved after refresh.
+        val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
+        fun loadOwn(): JsonElement? =
+            client.select(
+                "creator_profiles",
+                mapOf("user_id" to "eq.$userId", "limit" to "1")
+            ) { it.asArrayOrEmpty() }.firstOrNull()
+
+        loadOwn()?.let { return parseCreatorProfile(it) }
+
+        runCatching {
+            client.rpcJson("ensure_creator_profile", buildJsonObject { })
+        }
+
+        val row = loadOwn() ?: return CreatorProfile()
         return parseCreatorProfile(row)
     }
 

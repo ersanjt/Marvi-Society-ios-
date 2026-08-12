@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.3",
-      "buildNumber": 74,
+      "buildNumber": 75,
       "bundleId": "com.marvisociety.app"
     },
     "web": {

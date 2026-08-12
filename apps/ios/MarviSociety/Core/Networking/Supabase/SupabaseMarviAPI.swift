@@ -107,10 +107,15 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     private func fetchAccountContextFromProfiles() async throws -> AccountContext {
+        // Admins can SELECT every profiles row; always scope to the signed-in user.
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
         let rows: [ProfileRoleRow] = try await client.select(
             table: "profiles",
             query: [
                 URLQueryItem(name: "select", value: "role,status,email,referral_code,paused_by_self"),
+                URLQueryItem(name: "id", value: "eq.\(userID)"),
                 URLQueryItem(name: "limit", value: "1")
             ]
         )
@@ -181,9 +186,18 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
     }
 
     private func loadCreatorProfileRow() async throws -> CreatorProfile? {
+        // Admins can SELECT every creator_profiles row via RLS. An unscoped
+        // `limit=1` often returns someone else's row, so edits/photos look like
+        // they never saved after refresh.
+        guard let userID = await client.currentUserID() else {
+            throw MarviAPIError.notAuthenticated
+        }
         let rows: [CreatorProfileRow] = try await client.select(
             table: "creator_profiles",
-            query: [URLQueryItem(name: "limit", value: "1")]
+            query: [
+                URLQueryItem(name: "user_id", value: "eq.\(userID)"),
+                URLQueryItem(name: "limit", value: "1")
+            ]
         )
         return rows.first?.toProfile()
     }

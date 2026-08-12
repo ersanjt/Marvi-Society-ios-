@@ -581,7 +581,11 @@ class AppViewModel(
             if (repository.usesRemoteBackend && isAuthenticated) {
                 runCatching {
                     repository.updateProfile(profile)
-                    socialVerification = repository.ensureSocialVerificationCode()
+                    profile = repository.fetchProfile()
+                    // Social verification is best-effort; don't fail a successful profile save.
+                    runCatching {
+                        socialVerification = repository.ensureSocialVerificationCode()
+                    }
                 }.onFailure { error ->
                     lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
                 }
