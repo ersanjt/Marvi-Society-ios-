@@ -823,17 +823,52 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
 
     func adminSoftDeleteOffer(offerID: UUID, reason: String? = nil) async throws {
         var body: [String: Any] = ["p_offer_id": offerID.uuidString]
-        if let reason, !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            body["p_reason"] = reason
+        let trimmedReason = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedReason, !trimmedReason.isEmpty {
+            body["p_reason"] = trimmedReason
         }
-        try await client.rpcVoid(function: "admin_soft_delete_offer", body: body)
+        do {
+            try await client.rpcVoid(function: "admin_soft_delete_offer", body: body)
+        } catch {
+            // Fallback when migration is not applied yet (missing RPC / schema cache).
+            var patch: [String: Any] = [
+                "status": CampaignStatus.completed.apiValue,
+                "admin_block_reason": (trimmedReason?.isEmpty == false)
+                    ? trimmedReason!
+                    : "Deleted by admin"
+            ]
+            // Prefer soft-delete column when present; ignore if column missing.
+            let iso = ISO8601DateFormatter().string(from: Date())
+            patch["deleted_at"] = iso
+            do {
+                try await client.patch(table: "offers", id: offerID, body: patch)
+            } catch {
+                // Older DBs without deleted_at / admin_block_reason: status-only hide.
+                try await client.patch(
+                    table: "offers",
+                    id: offerID,
+                    body: ["status": CampaignStatus.completed.apiValue]
+                )
+            }
+        }
     }
 
     func adminRestoreOffer(offerID: UUID) async throws {
-        try await client.rpcVoid(
-            function: "admin_restore_offer",
-            body: ["p_offer_id": offerID.uuidString]
-        )
+        do {
+            try await client.rpcVoid(
+                function: "admin_restore_offer",
+                body: ["p_offer_id": offerID.uuidString]
+            )
+        } catch {
+            try await client.patch(
+                table: "offers",
+                id: offerID,
+                body: [
+                    "deleted_at": NSNull(),
+                    "status": CampaignStatus.draft.apiValue
+                ]
+            )
+        }
     }
 
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate] {

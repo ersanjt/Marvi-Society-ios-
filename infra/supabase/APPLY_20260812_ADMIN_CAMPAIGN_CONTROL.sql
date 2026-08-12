@@ -8,7 +8,10 @@ ALTER TABLE public.offers
 CREATE INDEX IF NOT EXISTS offers_deleted_at_idx ON public.offers (deleted_at)
     WHERE deleted_at IS NOT NULL;
 
-CREATE OR REPLACE VIEW public.offers_public AS
+-- Explore must never show soft-deleted campaigns.
+-- DROP + CREATE required: REPLACE cannot rename/reorder columns when `o.*` gains new fields.
+DROP VIEW IF EXISTS public.offers_public;
+CREATE VIEW public.offers_public AS
 SELECT
     o.*,
     v.venue_name,

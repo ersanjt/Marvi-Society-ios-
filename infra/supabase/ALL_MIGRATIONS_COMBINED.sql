@@ -1,5 +1,5 @@
 -- Marvi Society — combined migrations
--- Generated: 2026-08-12T17:39:09Z
+-- Generated: 2026-08-12T19:39:29Z
 -- Source: infra/supabase/migrations/*.sql (lexicographic order)
 -- Do not edit by hand; run: npm run db:combine
 
@@ -12260,7 +12260,9 @@ CREATE INDEX IF NOT EXISTS offers_deleted_at_idx ON public.offers (deleted_at)
     WHERE deleted_at IS NOT NULL;
 
 -- Explore must never show soft-deleted campaigns.
-CREATE OR REPLACE VIEW public.offers_public AS
+-- DROP + CREATE required: REPLACE cannot rename/reorder columns when `o.*` gains new fields.
+DROP VIEW IF EXISTS public.offers_public;
+CREATE VIEW public.offers_public AS
 SELECT
     o.*,
     v.venue_name,
@@ -12464,5 +12466,37 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_restore_offer(UUID) TO authenticated;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 20260812210001_inbox_mark_all_read.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Inbox: mark all notifications read for the signed-in user.
+-- Clients remove opened items from the list and only fetch unread rows.
+
+CREATE OR REPLACE FUNCTION public.mark_all_notifications_read()
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_count INTEGER := 0;
+BEGIN
+    IF auth.uid() IS NULL THEN
+        RAISE EXCEPTION 'Not authenticated';
+    END IF;
+
+    UPDATE public.notifications
+    SET read_at = now()
+    WHERE user_id = auth.uid()
+      AND read_at IS NULL;
+
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+    RETURN v_count;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.mark_all_notifications_read() TO authenticated;
 
 

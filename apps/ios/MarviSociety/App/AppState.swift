@@ -1605,31 +1605,35 @@ final class AppState: ObservableObject {
         }
     }
 
-    func adminSoftDeleteCampaign(_ campaign: Campaign, reason: String? = nil) {
-        guard allowedRoles.contains(.admin) else { return }
+    @discardableResult
+    func adminSoftDeleteCampaign(_ campaign: Campaign, reason: String? = nil) async -> Bool {
+        guard allowedRoles.contains(.admin) else { return false }
         processingAdminTaskID = campaign.id
-        Task {
-            defer { processingAdminTaskID = nil }
-            do {
-                try await api.adminSoftDeleteOffer(offerID: campaign.id, reason: reason)
-                await refreshFromServer()
-            } catch {
-                if let message = presentableError(error) { lastSyncError = message }
-            }
+        defer { processingAdminTaskID = nil }
+        do {
+            try await api.adminSoftDeleteOffer(offerID: campaign.id, reason: reason)
+            await refreshFromServer()
+            lastSyncError = nil
+            return true
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return false
         }
     }
 
-    func adminRestoreCampaign(_ campaign: Campaign) {
-        guard allowedRoles.contains(.admin) else { return }
+    @discardableResult
+    func adminRestoreCampaign(_ campaign: Campaign) async -> Bool {
+        guard allowedRoles.contains(.admin) else { return false }
         processingAdminTaskID = campaign.id
-        Task {
-            defer { processingAdminTaskID = nil }
-            do {
-                try await api.adminRestoreOffer(offerID: campaign.id)
-                await refreshFromServer()
-            } catch {
-                if let message = presentableError(error) { lastSyncError = message }
-            }
+        defer { processingAdminTaskID = nil }
+        do {
+            try await api.adminRestoreOffer(offerID: campaign.id)
+            await refreshFromServer()
+            lastSyncError = nil
+            return true
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return false
         }
     }
 

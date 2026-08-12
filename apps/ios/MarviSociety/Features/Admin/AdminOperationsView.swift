@@ -1551,30 +1551,36 @@ struct AdminCampaignsTab: View {
             clearDialog()
             return
         }
-        switch action {
-        case .setStatus(let status):
-            let reason: String?
-            switch status {
-            case .draft:
-                reason = isTurkish ? "Admin tarafından yayından kaldırıldı / engellendi" : "Unpublished / blocked by admin"
-            case .live:
-                reason = isTurkish ? "Admin onayladı" : "Approved by admin"
-            default:
-                reason = nil
-            }
-            appState.adminSetCampaignStatus(campaign, status: status, reason: reason)
-            actionFeedback = isTurkish ? "Durum güncellendi" : "Status updated"
-        case .softDelete:
-            appState.adminSoftDeleteCampaign(
-                campaign,
-                reason: isTurkish ? "Admin sildi" : "Deleted by admin"
-            )
-            actionFeedback = isTurkish ? "Kampanya silindi" : "Campaign deleted"
-        case .restore:
-            appState.adminRestoreCampaign(campaign)
-            actionFeedback = isTurkish ? "Kampanya geri alındı" : "Campaign restored"
-        }
         clearDialog()
+        Task {
+            switch action {
+            case .setStatus(let status):
+                let reason: String?
+                switch status {
+                case .draft:
+                    reason = isTurkish ? "Admin tarafından yayından kaldırıldı / engellendi" : "Unpublished / blocked by admin"
+                case .live:
+                    reason = isTurkish ? "Admin onayladı" : "Approved by admin"
+                default:
+                    reason = nil
+                }
+                appState.adminSetCampaignStatus(campaign, status: status, reason: reason)
+                actionFeedback = isTurkish ? "Durum güncellendi" : "Status updated"
+            case .softDelete:
+                let ok = await appState.adminSoftDeleteCampaign(
+                    campaign,
+                    reason: isTurkish ? "Admin sildi" : "Deleted by admin"
+                )
+                actionFeedback = ok
+                    ? (isTurkish ? "Kampanya silindi" : "Campaign deleted")
+                    : (appState.lastSyncError ?? (isTurkish ? "Silinemedi" : "Delete failed"))
+            case .restore:
+                let ok = await appState.adminRestoreCampaign(campaign)
+                actionFeedback = ok
+                    ? (isTurkish ? "Kampanya geri alındı" : "Campaign restored")
+                    : (appState.lastSyncError ?? (isTurkish ? "Geri alınamadı" : "Restore failed"))
+            }
+        }
     }
 }
 
