@@ -837,13 +837,19 @@ struct MarviTextField: View {
     }
 }
 
+enum StudioGridCampaignFocus: Equatable {
+    case underReview, upcoming, happening, past
+}
+
 struct StudioStatusGrid: View {
     @EnvironmentObject private var appState: AppState
     let onCreate: () -> Void
     let onSwipe: () -> Void
     var onPast: (() -> Void)? = nil
-    var onActive: (() -> Void)? = nil
-    var selectedPast: Bool = false
+    var onUnderReview: (() -> Void)? = nil
+    var onUpcoming: (() -> Void)? = nil
+    var onHappening: (() -> Void)? = nil
+    var selectedFocus: StudioGridCampaignFocus? = nil
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
@@ -853,29 +859,29 @@ struct StudioStatusGrid: View {
                 title: appState.t(.studioUnderReview),
                 icon: "clock",
                 tint: MarviColor.gold,
-                isSelected: !selectedPast,
-                action: onActive
+                isSelected: selectedFocus == .underReview,
+                action: onUnderReview
             )
             StudioGridTile(
                 title: appState.t(.studioUpcoming),
                 icon: "calendar",
                 tint: MarviColor.blue,
-                isSelected: !selectedPast,
-                action: onActive
+                isSelected: selectedFocus == .upcoming,
+                action: onUpcoming
             )
             StudioGridTile(title: appState.t(.studioOpenSwipe), icon: "hand.draw", tint: MarviColor.rose, action: onSwipe)
             StudioGridTile(
                 title: appState.t(.studioHappening),
                 icon: "sparkles",
                 tint: MarviColor.emerald,
-                isSelected: !selectedPast,
-                action: onActive
+                isSelected: selectedFocus == .happening,
+                action: onHappening
             )
             StudioGridTile(
                 title: appState.t(.studioPast),
                 icon: "archivebox",
                 tint: MarviColor.muted,
-                isSelected: selectedPast,
+                isSelected: selectedFocus == .past,
                 action: onPast
             )
             StudioGridTile(title: appState.t(.studioCreate), icon: "plus", tint: MarviColor.aubergine, action: onCreate)

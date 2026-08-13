@@ -203,6 +203,9 @@ enum MarviL10n {
         case venuePartnerWorkspace, reviewCreators, campaigns, campaignsSub
         case brandPartners, brandPartnersSub, noBrandCampaigns, noBrandCampaignsSub
         case toReviewVenueSub, noReviewsTab, noReviewsTabSub
+        case noReviewsCheckedInSub, noReviewsCheckedOutSub, noReviewsNoShowSub
+        case swipeNeedsLiveTitle, swipeNeedsLiveSub, noBrandsYet, noBrandsYetSub
+        case campaignStatusDraft, campaignStatusReview, campaignStatusLive, campaignStatusCompleted
         case creatorMatching, shortlistComplete, noCreatorsMatch, noCreatorsMatchSub, allReviewedSub
         case visitLabel, shareThoughts, shareThoughtsSub, punctuality, presentation, optionalNote
         case hospitality, experience
@@ -702,6 +705,17 @@ enum MarviL10n {
         .noBrandCampaignsSub: "Submit a campaign for admin review to publish on Explore.",
         .toReviewVenueSub: "Share your thoughts after creator visits.",
         .noReviewsTab: "No reviews in this tab", .noReviewsTabSub: "Creators appear here after check-in or checkout.",
+        .noReviewsCheckedInSub: "Creators who have checked in appear here until you review them.",
+        .noReviewsCheckedOutSub: "After checkout or proof, creators waiting for your feedback show here.",
+        .noReviewsNoShowSub: "Cancelled visits appear here.",
+        .swipeNeedsLiveTitle: "Swipe opens with a live campaign",
+        .swipeNeedsLiveSub: "Create a campaign and wait for admin to publish it live — then shortlist creators here.",
+        .noBrandsYet: "No brands yet",
+        .noBrandsYetSub: "Brands you create while adding venues appear here.",
+        .campaignStatusDraft: "Draft",
+        .campaignStatusReview: "In review",
+        .campaignStatusLive: "Live",
+        .campaignStatusCompleted: "Completed",
         .creatorMatching: "Creator matching", .shortlistComplete: "Shortlist complete",
         .noCreatorsMatch: "No creators to match",
         .noCreatorsMatchSub: "When your campaign is live, creator applications will appear here for swiping.",
@@ -1268,6 +1282,17 @@ enum MarviL10n {
         .noBrandCampaignsSub: "Keşfet'te yayınlamak için admin incelemesine kampanya gönder.",
         .toReviewVenueSub: "Creator ziyaretlerinden sonra düşüncelerini paylaş.",
         .noReviewsTab: "Bu sekmede inceleme yok", .noReviewsTabSub: "Check-in veya checkout sonrası creatorlar burada görünür.",
+        .noReviewsCheckedInSub: "Check-in yapan creatorlar, incelemeni beklerken burada görünür.",
+        .noReviewsCheckedOutSub: "Checkout veya kanıt sonrası geri bildirim bekleyenler burada.",
+        .noReviewsNoShowSub: "İptal edilen ziyaretler burada görünür.",
+        .swipeNeedsLiveTitle: "Swipe canlı kampanya ile açılır",
+        .swipeNeedsLiveSub: "Kampanya oluştur; admin canlı yayınlayınca creator shortlist burada yapılır.",
+        .noBrandsYet: "Henüz marka yok",
+        .noBrandsYetSub: "Mekân eklerken oluşturduğun markalar burada görünür.",
+        .campaignStatusDraft: "Taslak",
+        .campaignStatusReview: "İncelemede",
+        .campaignStatusLive: "Canlı",
+        .campaignStatusCompleted: "Tamamlandı",
         .creatorMatching: "Creator eşleştirme", .shortlistComplete: "Kısa liste tamamlandı",
         .noCreatorsMatch: "Eşleşecek creator yok",
         .noCreatorsMatchSub: "Kampanyan canlı olduğunda creator başvuruları kaydırma için burada görünür.",
@@ -1487,6 +1512,17 @@ extension BookingStage {
         case .proofDue: MarviL10n.t(.stageProofDue, language: language)
         case .completed: MarviL10n.t(.stageCompleted, language: language)
         case .cancelled: MarviL10n.t(.stageCancelled, language: language)
+        }
+    }
+}
+
+extension CampaignStatus {
+    func label(for language: AppLanguage) -> String {
+        switch self {
+        case .draft: MarviL10n.t(.campaignStatusDraft, language: language)
+        case .review: MarviL10n.t(.campaignStatusReview, language: language)
+        case .live: MarviL10n.t(.campaignStatusLive, language: language)
+        case .completed: MarviL10n.t(.campaignStatusCompleted, language: language)
         }
     }
 }

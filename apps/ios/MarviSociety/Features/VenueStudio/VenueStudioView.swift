@@ -30,16 +30,20 @@ private enum VenueStudioTab: CaseIterable, Identifiable {
 }
 
 private enum StudioCampaignScope: CaseIterable, Identifiable {
-    case active, past
+    case underReview, upcoming, happening, past
 
     var id: Self { self }
 
     func title(for language: AppLanguage) -> String {
         switch self {
-        case .active: MarviL10n.t(.studioCampaignsActive, language: language)
+        case .underReview: MarviL10n.t(.studioUnderReview, language: language)
+        case .upcoming: MarviL10n.t(.studioUpcoming, language: language)
+        case .happening: MarviL10n.t(.studioHappening, language: language)
         case .past: MarviL10n.t(.studioPast, language: language)
         }
     }
+
+    var isPast: Bool { self == .past }
 }
 
 struct VenueStudioView: View {
@@ -50,11 +54,13 @@ struct VenueStudioView: View {
     @State private var editingVenueID: UUID?
     @State private var reviewSegment: VenueReviewSegment = .checkedIn
     @State private var studioTab: VenueStudioTab = .establishments
-    @State private var campaignScope: StudioCampaignScope = .active
+    @State private var campaignScope: StudioCampaignScope = .upcoming
     @State private var isShowingInbox = false
     @State private var campaignPendingDelete: Campaign?
     @State private var isDeletingCampaign = false
     @State private var deleteFeedback: String?
+    @State private var studioBrands: [BrandSummary] = []
+    @State private var studioActionMessage: String?
 
     private var firstName: String {
         appState.profile.displayName
@@ -65,12 +71,7 @@ struct VenueStudioView: View {
     }
 
     private var canCreateCampaignNow: Bool {
-        switch focusedVenue?.status {
-        case .approved, .none:
-            return true
-        case .underReview, .paused:
-            return false
-        }
+        focusedVenue?.status == .approved
     }
 
     private var activeCampaignsEmptySubtitle: String {
@@ -97,7 +98,7 @@ struct VenueStudioView: View {
                 MarviColor.gold
             )
         case .approved:
-            let hasLive = !(appState.campaigns.filter { !$0.isDeleted && $0.status == .live }.isEmpty)
+            let hasLive = !campaignsForFocusedVenue.filter { $0.status == .live }.isEmpty
             return (
                 appState.t(.venueApprovedBannerTitle),
                 hasLive
@@ -116,23 +117,33 @@ struct VenueStudioView: View {
         }
     }
 
-    private var studioCampaigns: [Campaign] {
+    private var campaignsForFocusedVenue: [Campaign] {
         let visible = appState.campaigns.filter { !$0.isDeleted }
+        guard let active = focusedVenue else { return visible }
+        let matched = visible.filter {
+            $0.venueName.caseInsensitiveCompare(active.venueName) == .orderedSame
+                && $0.area.caseInsensitiveCompare(active.area) == .orderedSame
+        }
+        // Fall back to all account campaigns if naming hasn't synced yet.
+        return matched.isEmpty ? visible : matched
+    }
+
+    private var studioCampaigns: [Campaign] {
+        let visible = campaignsForFocusedVenue
         switch campaignScope {
-        case .active:
-            return visible.filter { $0.status != .completed }
+        case .underReview:
+            return visible.filter { $0.status == .review }
+        case .upcoming:
+            return visible.filter { $0.status == .draft }
+        case .happening:
+            return visible.filter { $0.status == .live }
         case .past:
             return visible.filter { $0.status == .completed }
         }
     }
 
     private var liveCampaignForActiveVenue: Campaign? {
-        guard let active = appState.activeVenue else {
-            return appState.campaigns.first(where: { $0.status == .live })
-        }
-        return appState.campaigns.first(where: {
-            $0.status == .live && $0.venueName == active.venueName && $0.area == active.area
-        }) ?? appState.campaigns.first(where: { $0.status == .live })
+        campaignsForFocusedVenue.first(where: { $0.status == .live })
     }
 
     private var filteredReviewQueue: [VenueReviewItem] {
@@ -141,15 +152,46 @@ struct VenueStudioView: View {
             case .checkedIn:
                 return item.stage == .checkedIn && !item.hasReview
             case .checkedOut:
-                return item.stage == .proofDue
-                    || item.stage == .completed
-                    || item.hasReview
-                    || item.proofStatus == .approved
-                    || item.proofStatus == .pending
+                // Needs venue feedback after the visit / proof window.
+                return !item.hasReview && (
+                    item.stage == .proofDue
+                        || item.stage == .completed
+                        || item.proofStatus == .pending
+                        || item.proofStatus == .approved
+                )
             case .noShow:
                 return item.stage == .cancelled
             }
         }
+    }
+
+    private var reviewEmptySubtitle: String {
+        switch reviewSegment {
+        case .checkedIn: appState.t(.noReviewsCheckedInSub)
+        case .checkedOut: appState.t(.noReviewsCheckedOutSub)
+        case .noShow: appState.t(.noReviewsNoShowSub)
+        }
+    }
+
+    private func openCampaignBuilder() {
+        studioActionMessage = nil
+        guard canCreateCampaignNow else {
+            studioActionMessage = focusedVenue?.status == .paused
+                ? appState.t(.venueRejectedBannerSub)
+                : appState.t(.venuePendingBannerSub)
+            return
+        }
+        isShowingBuilder = true
+    }
+
+    private func openSwipe() {
+        studioActionMessage = nil
+        guard liveCampaignForActiveVenue != nil else {
+            studioActionMessage = appState.t(.swipeNeedsLiveSub)
+            campaignScope = .happening
+            return
+        }
+        isShowingSwipe = true
     }
 
     var body: some View {
@@ -204,17 +246,24 @@ struct VenueStudioView: View {
                                             editingVenueID = venueID
                                         }
                                     } else if focusedVenue?.status == .approved,
-                                              appState.campaigns.filter({ !$0.isDeleted && $0.status == .live }).isEmpty,
+                                              campaignsForFocusedVenue.filter({ $0.status == .live }).isEmpty,
                                               canCreateCampaignNow {
                                         PrimaryActionButton(
                                             title: appState.t(.newCampaign),
                                             systemImage: "plus.circle.fill"
                                         ) {
-                                            isShowingBuilder = true
+                                            openCampaignBuilder()
                                         }
                                     }
                                 }
                             }
+                        }
+
+                        if let studioActionMessage {
+                            Text(studioActionMessage)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.gold)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
@@ -243,17 +292,26 @@ struct VenueStudioView: View {
                                         .font(.caption)
                                         .foregroundStyle(MarviColor.muted)
 
-                                    GradientCTA(title: appState.t(.reviewCreators), action: { isShowingSwipe = true })
+                                    GradientCTA(title: appState.t(.reviewCreators), action: { openSwipe() })
                                 }
                             }
                         }
 
                         StudioStatusGrid(
-                            onCreate: { isShowingBuilder = true },
-                            onSwipe: { isShowingSwipe = true },
+                            onCreate: { openCampaignBuilder() },
+                            onSwipe: { openSwipe() },
                             onPast: { campaignScope = .past },
-                            onActive: { campaignScope = .active },
-                            selectedPast: campaignScope == .past
+                            onUnderReview: { campaignScope = .underReview },
+                            onUpcoming: { campaignScope = .upcoming },
+                            onHappening: { campaignScope = .happening },
+                            selectedFocus: {
+                                switch campaignScope {
+                                case .underReview: .underReview
+                                case .upcoming: .upcoming
+                                case .happening: .happening
+                                case .past: .past
+                                }
+                            }()
                         )
 
                         SSSegmentedTabs(
@@ -270,7 +328,11 @@ struct VenueStudioView: View {
 
                             SSSegmentedTabs(
                                 options: StudioCampaignScope.allCases,
-                                title: { $0.title(for: appState.preferredLanguage) },
+                                title: { scope in
+                                    // Compact single-line labels for the chip row.
+                                    scope.title(for: appState.preferredLanguage)
+                                        .replacingOccurrences(of: "\n", with: " ")
+                                },
                                 selection: $campaignScope
                             )
 
@@ -283,17 +345,17 @@ struct VenueStudioView: View {
                             if studioCampaigns.isEmpty {
                                 MarviCard {
                                     EmptyStateView(
-                                        title: campaignScope == .active
-                                            ? appState.t(.noActiveCampaigns)
-                                            : appState.t(.noPastCampaigns),
-                                        subtitle: campaignScope == .active
-                                            ? activeCampaignsEmptySubtitle
-                                            : appState.t(.noPastCampaignsSub),
-                                        icon: campaignScope == .active ? "megaphone" : "archivebox",
-                                        actionTitle: campaignScope == .active && canCreateCampaignNow
+                                        title: campaignScope == .past
+                                            ? appState.t(.noPastCampaigns)
+                                            : appState.t(.noActiveCampaigns),
+                                        subtitle: campaignScope == .past
+                                            ? appState.t(.noPastCampaignsSub)
+                                            : activeCampaignsEmptySubtitle,
+                                        icon: campaignScope == .past ? "archivebox" : "megaphone",
+                                        actionTitle: campaignScope != .past && canCreateCampaignNow
                                             ? appState.t(.studioCreate) : nil,
-                                        action: campaignScope == .active && canCreateCampaignNow
-                                            ? { isShowingBuilder = true } : nil
+                                        action: campaignScope != .past && canCreateCampaignNow
+                                            ? { openCampaignBuilder() } : nil
                                     )
                                 }
                             } else {
@@ -309,20 +371,29 @@ struct VenueStudioView: View {
                                 subtitle: appState.t(.brandPartnersSub)
                             )
 
-                            if studioCampaigns.isEmpty {
+                            if studioBrands.isEmpty {
                                 MarviCard {
                                     EmptyStateView(
-                                        title: appState.t(.noBrandCampaigns),
-                                        subtitle: appState.t(.noBrandCampaignsSub),
+                                        title: appState.t(.noBrandsYet),
+                                        subtitle: appState.t(.noBrandsYetSub),
                                         icon: "tag",
                                         actionTitle: appState.t(.refresh),
-                                        action: { Task { await appState.refreshFromServer() } }
+                                        action: {
+                                            Task { studioBrands = await appState.fetchMyBrands() }
+                                        }
                                     )
                                 }
                             } else {
-                                ForEach(studioCampaigns) { campaign in
-                                    CampaignCard(campaign: campaign) {
-                                        campaignPendingDelete = campaign
+                                ForEach(studioBrands) { brand in
+                                    MarviCard {
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text(brand.brandName)
+                                                .font(.headline.weight(.bold))
+                                                .foregroundStyle(MarviColor.ink)
+                                            Text(brand.organizationName)
+                                                .font(.caption)
+                                                .foregroundStyle(MarviColor.muted)
+                                        }
                                     }
                                 }
                             }
@@ -356,7 +427,7 @@ struct VenueStudioView: View {
                                 if filteredReviewQueue.isEmpty {
                                     EmptyStateView(
                                         title: appState.t(.noReviewsTab),
-                                        subtitle: appState.t(.noReviewsTabSub),
+                                        subtitle: reviewEmptySubtitle,
                                         icon: "star.bubble"
                                     )
                                 } else {
@@ -371,6 +442,10 @@ struct VenueStudioView: View {
                 }
                 .refreshable {
                     await appState.refreshFromServer()
+                    studioBrands = await appState.fetchMyBrands()
+                }
+                .task {
+                    studioBrands = await appState.fetchMyBrands()
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -448,11 +523,18 @@ struct InfluencerSwipeView: View {
 
     private var liveOfferID: UUID? {
         guard let active = appState.activeVenue else {
-            return appState.campaigns.first(where: { $0.status == .live })?.id
+            return appState.campaigns.first(where: { !$0.isDeleted && $0.status == .live })?.id
         }
         return appState.campaigns.first(where: {
-            $0.status == .live && $0.venueName == active.venueName && $0.area == active.area
-        })?.id ?? appState.campaigns.first(where: { $0.status == .live })?.id
+            !$0.isDeleted && $0.status == .live
+                && $0.venueName.caseInsensitiveCompare(active.venueName) == .orderedSame
+                && $0.area.caseInsensitiveCompare(active.area) == .orderedSame
+        })?.id ?? appState.campaigns.first(where: { !$0.isDeleted && $0.status == .live })?.id
+    }
+
+    private var liveCampaignTitle: String {
+        guard let id = liveOfferID else { return appState.t(.creatorMatching) }
+        return appState.campaigns.first(where: { $0.id == id })?.title ?? appState.t(.creatorMatching)
     }
 
     var body: some View {
@@ -473,7 +555,7 @@ struct InfluencerSwipeView: View {
                     Spacer()
 
                     VStack(spacing: 2) {
-                        Text(appState.campaigns.first?.title ?? appState.t(.creatorMatching))
+                        Text(liveCampaignTitle)
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(MarviColor.ink)
                         Text(appState.tf(.creatorsLeft, candidates.count))
@@ -487,7 +569,24 @@ struct InfluencerSwipeView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
 
-                if isLoading {
+                if liveOfferID == nil {
+                    VStack(spacing: 16) {
+                        Image(systemName: "hand.draw")
+                            .font(.system(size: 48))
+                            .foregroundStyle(MarviColor.rose)
+                        Text(appState.t(.swipeNeedsLiveTitle))
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                        Text(appState.t(.swipeNeedsLiveSub))
+                            .font(.subheadline)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(MarviColor.muted)
+                            .padding(.horizontal, 32)
+                        GradientCTA(title: appState.t(.close), action: { dismiss() })
+                            .padding(.horizontal, 40)
+                    }
+                    .frame(maxHeight: .infinity)
+                } else if isLoading {
                     Spacer()
                     ProgressView().tint(MarviColor.rose).scaleEffect(1.3)
                     Text(appState.t(.loadingCreators))
@@ -690,25 +789,25 @@ private struct VenueReviewDetailSheet: View {
                             Label(appState.t(.reviewAlreadySubmitted), systemImage: "checkmark.circle.fill")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(MarviColor.emerald)
-                        }
-
-                        GradientCTA(
-                            title: isSubmitting ? appState.t(.saving) : appState.t(.submitReview),
-                            action: {
-                                Task {
-                                    isSubmitting = true
-                                    let ok = await appState.submitVenueReview(
-                                        bookingID: item.id,
-                                        punctuality: Int(punctuality.rounded()),
-                                        presentation: Int(presentation.rounded()),
-                                        comment: comment
-                                    )
-                                    isSubmitting = false
-                                    if ok { dismiss() }
+                        } else {
+                            GradientCTA(
+                                title: isSubmitting ? appState.t(.saving) : appState.t(.submitReview),
+                                action: {
+                                    Task {
+                                        isSubmitting = true
+                                        let ok = await appState.submitVenueReview(
+                                            bookingID: item.id,
+                                            punctuality: Int(punctuality.rounded()),
+                                            presentation: Int(presentation.rounded()),
+                                            comment: comment
+                                        )
+                                        isSubmitting = false
+                                        if ok { dismiss() }
+                                    }
                                 }
-                            }
-                        )
-                        .disabled(isSubmitting)
+                            )
+                            .disabled(isSubmitting)
+                        }
                     }
                     .padding(16)
                 }
@@ -852,7 +951,7 @@ private struct CampaignCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 5) {
-                        StatusPill(text: campaign.status.rawValue, tint: statusTint, systemImage: "circle.fill")
+                        StatusPill(text: campaign.status.label(for: appState.preferredLanguage), tint: statusTint, systemImage: "circle.fill")
                         Text(campaign.title)
                             .font(.headline.weight(.bold))
                             .foregroundStyle(MarviColor.ink)
