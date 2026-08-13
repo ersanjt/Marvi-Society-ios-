@@ -156,7 +156,9 @@ fun ProfileScreen(viewModel: AppViewModel) {
             }
 
             Column(
-                modifier = Modifier.padding(top = 36.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 36.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
@@ -165,12 +167,25 @@ fun ProfileScreen(viewModel: AppViewModel) {
                     color = MarviColor.Ink,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    viewModel.roleLabel(viewModel.selectedRole),
-                    color = MarviColor.Rose,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                val niche = viewModel.profile.niches.firstOrNull()?.takeIf { it.isNotBlank() }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        viewModel.roleLabel(viewModel.selectedRole),
+                        color = MarviColor.Rose,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (niche != null) {
+                        Text("·", color = MarviColor.Muted)
+                        Text(
+                            niche,
+                            color = MarviColor.Muted,
+                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1
+                        )
+                    }
+                }
                 val handle = viewModel.profile.handle.takeIf { it.isNotBlank() }?.let { "@${it.removePrefix("@")}" }
                 if (handle != null) {
                     Text(handle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
@@ -188,31 +203,6 @@ fun ProfileScreen(viewModel: AppViewModel) {
                         else -> MarviColor.Gold
                     }
                 )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(modifier = Modifier.weight(1f)) {
-                    SecondaryActionButton(
-                        title = viewModel.t(MarviL10n.Key.CHANGE_PHOTO),
-                        onClick = {
-                            avatarPicker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                        enabled = !viewModel.isProfileMediaUploading
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    SecondaryActionButton(
-                        title = viewModel.t(MarviL10n.Key.CHANGE_COVER),
-                        onClick = {
-                            coverPicker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                        enabled = !viewModel.isProfileMediaUploading
-                    )
-                }
             }
 
             if (showCompletion) {
@@ -312,8 +302,59 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
 
                 ProfileMainTab.EDIT -> {
+                    var nichesText by remember {
+                        mutableStateOf(viewModel.profile.niches.joinToString(", "))
+                    }
+                    var languagesText by remember {
+                        mutableStateOf(viewModel.profile.languages.joinToString(", "))
+                    }
+                    var saveMessage by remember { mutableStateOf<String?>(null) }
+                    var saveFailed by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(viewModel.profile.niches, viewModel.profile.languages) {
+                        nichesText = viewModel.profile.niches.joinToString(", ")
+                        languagesText = viewModel.profile.languages.joinToString(", ")
+                    }
+
                     MarviCard {
-                        SectionTitle(text = viewModel.t(MarviL10n.Key.PROFILE_SETUP_TITLE))
+                        SectionTitle(text = viewModel.t(MarviL10n.Key.PROFILE_BASICS_TITLE))
+                        Text(viewModel.t(MarviL10n.Key.PROFILE_BASICS_SUB), color = MarviColor.Muted)
+                        OutlinedTextField(
+                            value = viewModel.profile.name,
+                            onValueChange = { viewModel.updateProfileName(it) },
+                            label = { Text(viewModel.t(MarviL10n.Key.DISPLAY_NAME)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = viewModel.profile.bio,
+                            onValueChange = { viewModel.updateProfileBio(it) },
+                            label = { Text(viewModel.t(MarviL10n.Key.BIO_PLACEHOLDER)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2
+                        )
+                        OutlinedTextField(
+                            value = viewModel.profile.city,
+                            onValueChange = { viewModel.updateProfileCity(it) },
+                            label = { Text(viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = nichesText,
+                            onValueChange = { nichesText = it },
+                            label = { Text(viewModel.t(MarviL10n.Key.NICHES_COMMA)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = languagesText,
+                            onValueChange = { languagesText = it },
+                            label = { Text(viewModel.t(MarviL10n.Key.LANGUAGES_COMMA)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    MarviCard {
+                        SectionTitle(text = viewModel.t(MarviL10n.Key.SOCIAL_ACCOUNTS))
+                        Text(viewModel.t(MarviL10n.Key.SOCIAL_ACCOUNTS_SUB), color = MarviColor.Muted)
                         OutlinedTextField(
                             value = viewModel.profile.handle,
                             onValueChange = { viewModel.updateProfileHandle(it) },
@@ -326,22 +367,60 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             label = { Text(viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER)) },
                             modifier = Modifier.fillMaxWidth()
                         )
-                        OutlinedTextField(
-                            value = viewModel.profile.city,
-                            onValueChange = { viewModel.updateProfileCity(it) },
-                            label = { Text(viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER)) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = viewModel.profile.bio,
-                            onValueChange = { viewModel.updateProfileBio(it) },
-                            label = { Text(viewModel.t(MarviL10n.Key.BIO_PLACEHOLDER)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3
-                        )
+                    }
+
+                    MarviCard {
+                        SectionTitle(text = viewModel.t(MarviL10n.Key.PROFILE_PHOTOS_TITLE))
+                        Text(viewModel.t(MarviL10n.Key.PROFILE_PHOTOS_SUB), color = MarviColor.Muted)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                SecondaryActionButton(
+                                    title = viewModel.t(MarviL10n.Key.CHANGE_PHOTO),
+                                    onClick = {
+                                        avatarPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
+                                    enabled = !viewModel.isProfileMediaUploading
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                SecondaryActionButton(
+                                    title = viewModel.t(MarviL10n.Key.CHANGE_COVER),
+                                    onClick = {
+                                        coverPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
+                                    enabled = !viewModel.isProfileMediaUploading
+                                )
+                            }
+                        }
+                        if (viewModel.isProfileMediaUploading) {
+                            CircularProgressIndicator(color = MarviColor.Rose, modifier = Modifier.size(24.dp))
+                        }
+                        saveMessage?.let { message ->
+                            Text(
+                                message,
+                                color = if (saveFailed) MarviColor.Tomato else MarviColor.Emerald,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                         PrimaryActionButton(
                             title = viewModel.t(MarviL10n.Key.SAVE_PROFILE),
-                            onClick = viewModel::saveProfileFromEditor
+                            onClick = {
+                                viewModel.updateProfileNichesFromText(nichesText)
+                                viewModel.updateProfileLanguagesFromText(languagesText)
+                                viewModel.saveProfileFromEditor { ok ->
+                                    saveFailed = !ok
+                                    saveMessage = if (ok) {
+                                        viewModel.t(MarviL10n.Key.PROFILE_SAVED_SUCCESS)
+                                    } else {
+                                        viewModel.lastSyncError ?: viewModel.t(MarviL10n.Key.PROFILE_SAVE_FAILED)
+                                    }
+                                }
+                            }
                         )
                     }
 

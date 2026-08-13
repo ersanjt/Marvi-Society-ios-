@@ -96,6 +96,7 @@ struct ProfileView: View {
                     VStack(spacing: 16) {
                         PremiumProfileHeader(
                             profile: appState.profile,
+                            roleLabel: appState.selectedRole.label(for: appState.preferredLanguage),
                             managementTitle: managementTitle,
                             avatarPickerItem: $avatarPickerItem,
                             coverPickerItem: $coverPickerItem,
@@ -297,23 +298,81 @@ struct ProfileView: View {
 
                         if selectedMainTab == .edit {
                         MarviCard {
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                SectionTitle(
+                                    title: appState.t(.profileBasicsTitle),
+                                    subtitle: appState.t(.profileBasicsSub)
+                                )
+
+                                ProfileLabeledField(label: appState.t(.displayName)) {
+                                    MarviTextField(placeholder: appState.t(.displayName), text: $appState.profile.name)
+                                }
+                                ProfileLabeledField(label: appState.t(.bio)) {
+                                    MarviTextField(placeholder: appState.t(.bio), text: $appState.profile.bio)
+                                }
+                                ProfileLabeledField(label: appState.t(.cityField)) {
+                                    MarviTextField(placeholder: appState.t(.cityField), text: $appState.profile.city)
+                                }
+                                ProfileLabeledField(label: appState.t(.nichesComma)) {
+                                    MarviTextField(
+                                        placeholder: appState.t(.nichesComma),
+                                        text: $nichesText,
+                                        autocapitalization: .words
+                                    )
+                                }
+                                ProfileLabeledField(label: appState.t(.languagesComma)) {
+                                    MarviTextField(
+                                        placeholder: appState.t(.languagesComma),
+                                        text: $languagesText,
+                                        autocapitalization: .words
+                                    )
+                                }
+                            }
+                        }
+
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 14) {
                                 SectionTitle(title: appState.t(.socialAccounts), subtitle: appState.t(.socialAccountsSub))
 
-                                MarviTextField(placeholder: appState.t(.displayName), text: $appState.profile.name)
-                                MarviTextField(placeholder: appState.t(.bio), text: $appState.profile.bio)
-                                MarviTextField(placeholder: appState.t(.cityField), text: $appState.profile.city)
-                                MarviTextField(placeholder: appState.t(.instagramPlaceholder), text: $appState.profile.handle, autocapitalization: .never)
-                                MarviTextField(placeholder: appState.t(.tiktokHandleField), text: $appState.profile.tiktokHandle, autocapitalization: .never)
-                                MarviTextField(
-                                    placeholder: appState.t(.nichesComma),
-                                    text: $nichesText,
-                                    autocapitalization: .words
-                                )
-                                MarviTextField(
-                                    placeholder: appState.t(.languagesComma),
-                                    text: $languagesText,
-                                    autocapitalization: .words
+                                ProfileLabeledField(label: appState.t(.instagramPlaceholder)) {
+                                    MarviTextField(
+                                        placeholder: appState.t(.instagramPlaceholder),
+                                        text: $appState.profile.handle,
+                                        autocapitalization: .never
+                                    )
+                                }
+                                ProfileLabeledField(label: appState.t(.tiktokHandleField)) {
+                                    MarviTextField(
+                                        placeholder: appState.t(.tiktokHandleField),
+                                        text: $appState.profile.tiktokHandle,
+                                        autocapitalization: .never
+                                    )
+                                }
+
+                                HStack(spacing: 12) {
+                                    if let instagramURL = socialURL(platform: "instagram", handle: appState.profile.handle) {
+                                        Link(destination: instagramURL) {
+                                            Label(appState.t(.openInstagram), systemImage: "camera")
+                                                .font(.caption.weight(.bold))
+                                                .foregroundStyle(MarviColor.rose)
+                                        }
+                                    }
+                                    if let tiktokURL = socialURL(platform: "tiktok", handle: appState.profile.tiktokHandle) {
+                                        Link(destination: tiktokURL) {
+                                            Label(appState.t(.openTiktok), systemImage: "music.note")
+                                                .font(.caption.weight(.bold))
+                                                .foregroundStyle(MarviColor.rose)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                SectionTitle(
+                                    title: appState.t(.profilePhotosTitle),
+                                    subtitle: appState.t(.profilePhotosSub)
                                 )
 
                                 HStack(spacing: 10) {
@@ -358,20 +417,6 @@ struct ProfileView: View {
                                     .foregroundStyle(photoUploadFailed ? MarviColor.tomato : MarviColor.emerald)
                                 }
 
-                                if let instagramURL = socialURL(platform: "instagram", handle: appState.profile.handle) {
-                                    Link(destination: instagramURL) {
-                                        Label(appState.t(.openInstagram), systemImage: "camera")
-                                            .font(.caption.weight(.bold))
-                                    }
-                                }
-
-                                if let tiktokURL = socialURL(platform: "tiktok", handle: appState.profile.tiktokHandle) {
-                                    Link(destination: tiktokURL) {
-                                        Label(appState.t(.openTiktok), systemImage: "music.note")
-                                            .font(.caption.weight(.bold))
-                                    }
-                                }
-
                                 if let saveSuccessMessage {
                                     Label(
                                         saveSuccessMessage,
@@ -412,9 +457,9 @@ struct ProfileView: View {
                                         .padding(.vertical, 12)
                                     }
                                     .buttonStyle(.plain)
-                                    .foregroundStyle(MarviColor.emerald)
-                                    .background(MarviColor.emerald.opacity(0.1))
-                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .foregroundStyle(.white)
+                                    .background(MarviGradient.brand)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                     .disabled(isSavingProfile || appState.isSyncing)
                                 }
                             }
@@ -426,7 +471,7 @@ struct ProfileView: View {
                             ShowcaseEditorCard()
                         }
 
-                        if !isChecklistComplete {
+                        if !isChecklistComplete, appState.selectedRole == .creator {
                         MarviCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 SectionTitle(
@@ -839,6 +884,7 @@ struct ProfileView: View {
 private struct PremiumProfileHeader: View {
     @EnvironmentObject private var appState: AppState
     let profile: CreatorProfile
+    let roleLabel: String
     let managementTitle: String
     @Binding var avatarPickerItem: PhotosPickerItem?
     @Binding var coverPickerItem: PhotosPickerItem?
@@ -846,13 +892,18 @@ private struct PremiumProfileHeader: View {
     let onManagement: () -> Void
 
     private let avatarSize: CGFloat = 88
-    private let coverHeight: CGFloat = 140
+    private let coverHeight: CGFloat = 148
 
     private var initials: String {
         let fromName = profile.name.split(separator: " ").prefix(2).compactMap { $0.first }.map(String.init).joined()
         if !fromName.isEmpty { return fromName.uppercased() }
         let fromHandle = profile.handle.replacingOccurrences(of: "@", with: "").prefix(2)
         return fromHandle.isEmpty ? "M" : String(fromHandle).uppercased()
+    }
+
+    private var nicheLabel: String? {
+        let niche = profile.niches.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return niche.isEmpty ? nil : niche
     }
 
     var body: some View {
@@ -866,16 +917,25 @@ private struct PremiumProfileHeader: View {
             }
             .padding(.bottom, avatarSize / 2)
 
-            // Identity sits under the cover (not over the photo) so it stays readable.
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(profile.name.isEmpty ? appState.t(.member) : profile.name)
                     .font(.title3.weight(.bold))
                     .foregroundStyle(MarviColor.ink)
                     .lineLimit(2)
 
-                Text(profile.niches.first ?? appState.t(.creator))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(MarviColor.rose)
+                HStack(spacing: 8) {
+                    Text(roleLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(MarviColor.rose)
+                    if let nicheLabel {
+                        Text("·")
+                            .foregroundStyle(MarviColor.muted)
+                        Text(nicheLabel)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(MarviColor.muted)
+                            .lineLimit(1)
+                    }
+                }
 
                 Text(profile.handle.isEmpty ? appState.t(.handleEmpty) : "@\(profile.handle.replacingOccurrences(of: "@", with: ""))")
                     .font(.caption)
@@ -887,8 +947,9 @@ private struct PremiumProfileHeader: View {
                     systemImage: statusIcon(for: profile.status)
                 )
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.top, 14)
 
             SSManagementButton(title: managementTitle, action: onManagement)
                 .padding(.horizontal, 16)
@@ -998,6 +1059,21 @@ private struct PremiumProfileHeader: View {
         case .approved: "checkmark.seal"
         case .underReview: "hourglass"
         case .paused: "pause.circle"
+        }
+    }
+}
+
+private struct ProfileLabeledField<Content: View>: View {
+    let label: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(MarviColor.muted)
+                .textCase(.uppercase)
+            content
         }
     }
 }

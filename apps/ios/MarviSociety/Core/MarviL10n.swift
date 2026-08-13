@@ -180,6 +180,7 @@ enum MarviL10n {
         case studioCampaignsActive, noActiveCampaigns, noActiveCampaignsSub, noPastCampaigns, noPastCampaignsSub
         case profileEngagement
         case profileTabOverview, profileTabEdit, profileTabAccount, profileTabSettings
+        case profileBasicsTitle, profileBasicsSub, profilePhotosTitle, profilePhotosSub
         case communityTab, communityTitle, communitySub, communitySearchPrompt
         case communityFeedTitle, communityFeedSub, communityFeedEmpty
         case communityMembersTitle, communityMembersSub, communityMembersEmpty, communityMembersEmptySub
@@ -638,6 +639,10 @@ enum MarviL10n {
         .profileTabEdit: "Edit",
         .profileTabAccount: "Account",
         .profileTabSettings: "Settings",
+        .profileBasicsTitle: "Profile basics",
+        .profileBasicsSub: "Name, bio, city, niches, and languages shown on your profile.",
+        .profilePhotosTitle: "Photos",
+        .profilePhotosSub: "Profile photo and cover image for your account.",
         .communityTab: "Community",
         .communityTitle: "Find members",
         .communitySub: "Search creators, follow people you admire, and see where they collaborate.",
@@ -1200,6 +1205,10 @@ enum MarviL10n {
         .profileTabEdit: "Düzenle",
         .profileTabAccount: "Hesap",
         .profileTabSettings: "Ayarlar",
+        .profileBasicsTitle: "Profil bilgileri",
+        .profileBasicsSub: "Profilinde görünen ad, biyografi, şehir, niş ve diller.",
+        .profilePhotosTitle: "Fotoğraflar",
+        .profilePhotosSub: "Hesap için profil fotoğrafı ve kapak görseli.",
         .communityTab: "Topluluk",
         .communityTitle: "Üyeleri bul",
         .communitySub: "Creator ara, takip et, nereye gittiklerini ve ne paylaştıklarını gör.",

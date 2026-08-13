@@ -573,6 +573,10 @@ class AppViewModel(
         profile = profile.copy(handle = handle.removePrefix("@"))
     }
 
+    fun updateProfileName(name: String) {
+        profile = profile.copy(name = name)
+    }
+
     fun updateProfileTiktok(tiktok: String) {
         profile = profile.copy(tiktokHandle = tiktok.removePrefix("@"))
     }
@@ -585,7 +589,23 @@ class AppViewModel(
         profile = profile.copy(bio = bio)
     }
 
-    fun saveProfileFromEditor() {
+    fun updateProfileNichesFromText(text: String) {
+        profile = profile.copy(
+            niches = text.split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+        )
+    }
+
+    fun updateProfileLanguagesFromText(text: String) {
+        profile = profile.copy(
+            languages = text.split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+        )
+    }
+
+    fun saveProfileFromEditor(onDone: ((Boolean) -> Unit)? = null) {
         viewModelScope.launch {
             if (repository.usesRemoteBackend && isAuthenticated) {
                 runCatching {
@@ -595,9 +615,14 @@ class AppViewModel(
                     runCatching {
                         socialVerification = repository.ensureSocialVerificationCode()
                     }
+                }.onSuccess {
+                    onDone?.invoke(true)
                 }.onFailure { error ->
                     lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                    onDone?.invoke(false)
                 }
+            } else {
+                onDone?.invoke(true)
             }
         }
     }
