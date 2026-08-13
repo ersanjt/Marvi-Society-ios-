@@ -23,6 +23,11 @@
   },
   "syncLog": [
     {
+      "at": "2026-08-13T17:53:29Z",
+      "status": "ok",
+      "message": "pushed 3a9131d to origin/main"
+    },
+    {
       "at": "2026-08-13T17:53:25Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260813200001_venue_soft_delete_offer)"
@@ -266,11 +271,6 @@
       "at": "2026-08-11T10:43:59Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-11T10:34:43Z",
-      "status": "ok",
-      "message": "pushed 1a03b85 to origin/main"
     }
   ],
   "releases": [
