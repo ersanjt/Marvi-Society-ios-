@@ -601,16 +601,12 @@ final class AppState: ObservableObject {
 
         if let loadedStrikes = try? await api.fetchStrikes() { strikes = loadedStrikes }
 
-        do {
-            collaborationHistory = try await api.fetchMyCollaborationHistory()
-        } catch {
-            noteFailure("collaboration", error: error)
+        if let history = try? await api.fetchMyCollaborationHistory() {
+            collaborationHistory = history
         }
         if let counts = try? await api.fetchMyFollowCounts() { followCounts = counts }
-        do {
-            showcaseItems = try await api.fetchMyShowcase()
-        } catch {
-            noteFailure("showcase", error: error)
+        if let items = try? await api.fetchMyShowcase() {
+            showcaseItems = items
         }
         if isAuthenticated, accountRole != .admin {
             if let verification = try? await api.ensureSocialVerificationCode() {
@@ -637,10 +633,8 @@ final class AppState: ObservableObject {
             noteFailure("campaigns", error: error)
         }
         if allowedRoles.contains(.venue) {
-            do {
-                venueReviewQueue = try await api.fetchVenueReviewQueue()
-            } catch {
-                noteFailure("venue reviews", error: error)
+            if let reviews = try? await api.fetchVenueReviewQueue() {
+                venueReviewQueue = reviews
             }
         }
 

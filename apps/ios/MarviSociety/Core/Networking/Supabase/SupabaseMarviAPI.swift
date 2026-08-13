@@ -438,7 +438,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             valueLabel: input.valueLabel,
             slots: input.slots,
             matchedCreators: 0,
-            status: .review,
+            status: .live,
             deliverables: input.deliverables
         )
     }
