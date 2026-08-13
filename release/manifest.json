@@ -1,10 +1,10 @@
 {
-  "version": "1.5.3",
+  "version": "1.5.4",
   "codename": "platform-completion",
   "releasedAt": "2026-08-13T00:00:00Z",
   "components": {
     "ios": {
-      "marketingVersion": "1.5.3",
+      "marketingVersion": "1.5.4",
       "buildNumber": 81,
       "bundleId": "com.marvisociety.app"
     },
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T17:07:36Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260813200001_venue_soft_delete_offer)"
+    },
+    {
+      "at": "2026-08-13T17:04:37Z",
+      "status": "ok",
+      "message": "pushed aac6849 to origin/main"
+    },
     {
       "at": "2026-08-13T17:04:34Z",
       "status": "ok",
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-08-10T22:49:47Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-10T22:43:31Z",
-      "status": "ok",
-      "message": "pushed 030d1aa to origin/main"
-    },
-    {
-      "at": "2026-08-10T22:43:28Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
     }
