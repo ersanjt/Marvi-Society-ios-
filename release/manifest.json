@@ -1,7 +1,7 @@
 {
-  "version": "0.3.0",
+  "version": "1.5.3",
   "codename": "platform-completion",
-  "releasedAt": "2026-08-10T00:00:00Z",
+  "releasedAt": "2026-08-13T00:00:00Z",
   "components": {
     "ios": {
       "marketingVersion": "1.5.3",
@@ -9,7 +9,7 @@
       "bundleId": "com.marvisociety.app"
     },
     "web": {
-      "version": "0.2.0"
+      "version": "1.5.3"
     },
     "android": {
       "marketingVersion": "1.9.7",
@@ -274,6 +274,12 @@
     }
   ],
   "releases": [
+    {
+      "version": "1.5.3",
+      "tag": "v1.5.3",
+      "date": "2026-08-13",
+      "summary": "Submit 1.5.3 (79) to App Review for public App Store release"
+    },
     {
       "version": "0.2.0",
       "tag": "v0.2.0",

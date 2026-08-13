@@ -1,3 +1,9 @@
+## [1.5.3] - 2026-08-13
+
+Submit 1.5.3 (79) to App Review for public App Store release
+
+- Migration head: `20260813010001_inbox_role_polish`
+
 # Changelog
 
 All notable changes are documented here. Use `npm run release -- <version> "summary"` for new releases.
