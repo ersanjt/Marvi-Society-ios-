@@ -162,25 +162,42 @@ struct ProfileView: View {
                                     title: appState.t(.workspace),
                                     subtitle: appState.accountRole == .admin
                                         ? appState.t(.workspaceAdminSub)
-                                        : appState.t(.workspaceSwitchSub)
+                                        : (appState.allowedRoles.count > 1
+                                            ? appState.t(.workspaceSwitchSub)
+                                            : appState.selectedRole.localizedDescription(language: appState.preferredLanguage))
                                 )
 
-                                WorkspaceRolePicker(
-                                    roles: UserRole.sortedWorkspaces(appState.allowedRoles),
-                                    selected: $appState.selectedRole,
-                                    language: appState.preferredLanguage,
-                                    onSelect: { role in
-                                        appState.switchWorkspace(to: role)
-                                        if role == .admin {
-                                            Task { await appState.openAdminConsole() }
+                                if appState.allowedRoles.count > 1 {
+                                    WorkspaceRolePicker(
+                                        roles: UserRole.sortedWorkspaces(appState.allowedRoles),
+                                        selected: $appState.selectedRole,
+                                        language: appState.preferredLanguage,
+                                        onSelect: { role in
+                                            appState.switchWorkspace(to: role)
+                                            if role == .admin {
+                                                Task { await appState.openAdminConsole() }
+                                            }
                                         }
-                                    }
-                                )
+                                    )
 
-                                Text(appState.selectedRole.localizedDescription(language: appState.preferredLanguage))
-                                    .font(.subheadline)
-                                    .foregroundStyle(MarviColor.muted)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                    Text(appState.selectedRole.localizedDescription(language: appState.preferredLanguage))
+                                        .font(.subheadline)
+                                        .foregroundStyle(MarviColor.muted)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                } else {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: appState.selectedRole.icon)
+                                            .foregroundStyle(MarviColor.rose)
+                                        Text(appState.selectedRole.label(for: appState.preferredLanguage))
+                                            .font(.subheadline.weight(.bold))
+                                            .foregroundStyle(MarviColor.ink)
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 10)
+                                    .background(MarviColor.panelElevated)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                }
                             }
                         }
                         .id("workspace-section")

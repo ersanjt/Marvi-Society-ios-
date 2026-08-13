@@ -663,11 +663,9 @@ final class AppState: ObservableObject {
         do {
             let context = try await api.fetchAccountContext()
             accountRole = context.role
-            var workspaces = UserRole.allowedWorkspaces(for: context.role)
-            if context.hasVenueProfile, !workspaces.contains(.venue) {
-                workspaces.append(.venue)
-            }
-            allowedRoles = UserRole.sortedWorkspaces(workspaces)
+            // Workspaces follow the server account role only — venue owners stay in Mekân,
+            // creators stay in Creator. Do not unlock Creator tools just because a venue row exists.
+            allowedRoles = UserRole.sortedWorkspaces(UserRole.allowedWorkspaces(for: context.role))
             if !allowedRoles.contains(selectedRole) {
                 selectedRole = allowedRoles.first ?? .creator
             }
@@ -1029,6 +1027,9 @@ final class AppState: ObservableObject {
         do {
             _ = try await api.registerVenueLocation(input)
             myVenues = try await api.fetchMyVenues()
+            accountRole = .venue
+            allowedRoles = [.venue]
+            selectedRole = .venue
             await syncAllowedRoles()
             await refreshFromServer()
             return true

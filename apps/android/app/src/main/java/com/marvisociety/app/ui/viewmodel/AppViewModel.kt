@@ -827,6 +827,11 @@ class AppViewModel(
                 val context = repository.fetchAccountContext()
                 accountRole = context.role
                 allowedRoles = UserRole.allowedWorkspaces(context.role)
+                selectedRole = if (allowedRoles.contains(UserRole.VENUE)) {
+                    UserRole.VENUE
+                } else {
+                    allowedRoles.firstOrNull() ?: UserRole.CREATOR
+                }
             }.onSuccess {
                 onResult(true)
             }.onFailure { error ->
