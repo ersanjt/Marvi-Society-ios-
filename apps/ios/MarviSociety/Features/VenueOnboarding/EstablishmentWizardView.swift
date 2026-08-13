@@ -123,14 +123,15 @@ struct EstablishmentWizardView: View {
 
     private var navigationTitle: String {
         if isEditingExisting, step == .hub {
-            return appState.t(.estWizardEditTitle)
-        }
-        switch step {
-        case .brand: appState.t(.estWizardBrandTitle)
-        case .hub: appState.t(.estWizardHubTitle)
-        case .details: appState.t(.estWizardDetailsTitle)
-        case .address: appState.t(.estWizardAddressTitle)
-        case .photos: appState.t(.estWizardPhotosTitle)
+            appState.t(.estWizardEditTitle)
+        } else {
+            switch step {
+            case .brand: appState.t(.estWizardBrandTitle)
+            case .hub: appState.t(.estWizardHubTitle)
+            case .details: appState.t(.estWizardDetailsTitle)
+            case .address: appState.t(.estWizardAddressTitle)
+            case .photos: appState.t(.estWizardPhotosTitle)
+            }
         }
     }
 
@@ -151,14 +152,15 @@ struct EstablishmentWizardView: View {
 
     private var headerSubtitle: String {
         if isEditingExisting, step == .hub {
-            return appState.t(.estWizardEditSub)
-        }
-        switch step {
-        case .brand: appState.t(.estWizardBrandSub)
-        case .hub: appState.t(.estWizardHubSub)
-        case .details: appState.t(.estWizardDetailsSub)
-        case .address: appState.t(.estWizardAddressSub)
-        case .photos: appState.t(.estWizardPhotosSub)
+            appState.t(.estWizardEditSub)
+        } else {
+            switch step {
+            case .brand: appState.t(.estWizardBrandSub)
+            case .hub: appState.t(.estWizardHubSub)
+            case .details: appState.t(.estWizardDetailsSub)
+            case .address: appState.t(.estWizardAddressSub)
+            case .photos: appState.t(.estWizardPhotosSub)
+            }
         }
     }
 
