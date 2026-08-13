@@ -8,6 +8,7 @@ struct CommunityView: View {
     @State private var selectedActivityCreatorID: UUID?
     @State private var selectedActivityVenueID: UUID?
     @State private var selectedDirectThread: DirectThread?
+    @State private var selectedConversation: ChatConversation?
 
     var body: some View {
         NavigationStack {
@@ -41,6 +42,10 @@ struct CommunityView: View {
             .navigationTitle(appState.t(.communityTab))
             .searchable(
                 text: $searchText,
+                isPresented: Binding(
+                    get: { section == .members },
+                    set: { _ in }
+                ),
                 prompt: appState.t(.communitySearchPrompt)
             )
             .onSubmit(of: .search) {
@@ -53,7 +58,10 @@ struct CommunityView: View {
             .task {
                 await refreshCurrentSection()
             }
-            .onChange(of: section) { _, _ in
+            .onChange(of: section) { _, newSection in
+                if newSection != .members {
+                    searchText = ""
+                }
                 Task { await refreshCurrentSection() }
             }
             .sheet(item: $selectedMember) { member in
@@ -85,6 +93,10 @@ struct CommunityView: View {
             }
             .sheet(item: $selectedDirectThread) { thread in
                 DirectChatThreadView(thread: thread)
+                    .environmentObject(appState)
+            }
+            .sheet(item: $selectedConversation) { conversation in
+                ChatThreadView(conversation: conversation)
                     .environmentObject(appState)
             }
         }
@@ -185,85 +197,164 @@ struct CommunityView: View {
         }
     }
 
+    private var communityInboxItems: [CommunityInboxItem] {
+        let directs = appState.directThreads.map(CommunityInboxItem.direct)
+        let collabs = appState.conversations.map(CommunityInboxItem.collab)
+        return (directs + collabs).sorted { $0.sortDate > $1.sortDate }
+    }
+
     private var messagesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionTitle(
-                title: appState.t(.communitySegmentMessages),
-                subtitle: appState.t(.communitySub)
-            )
-
-            if appState.directThreads.isEmpty && appState.conversations.isEmpty {
-                EmptyStateView(
-                    title: appState.t(.noMessagesYet),
-                    subtitle: appState.t(.noMessagesYetSub),
-                    icon: "bubble.left.and.bubble.right",
-                    actionTitle: appState.t(.refresh),
-                    action: { Task { await refreshCurrentSection() } }
+        MarviCard {
+            VStack(alignment: .leading, spacing: 14) {
+                SectionTitle(
+                    title: appState.t(.communitySegmentMessages),
+                    subtitle: appState.t(.communityMessagesSub)
                 )
-            } else {
-                if !appState.directThreads.isEmpty {
-                    MarviCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(appState.t(.sendMessageBtn))
-                                .font(.caption.weight(.bold))
-                                .textCase(.uppercase)
-                                .foregroundStyle(MarviColor.muted)
 
-                            ForEach(appState.directThreads) { thread in
-                                Button {
-                                    selectedDirectThread = thread
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(thread.peerName)
-                                            .font(.subheadline.weight(.bold))
-                                            .foregroundStyle(MarviColor.ink)
-                                        Text(thread.preview)
-                                            .font(.caption)
-                                            .foregroundStyle(MarviColor.muted)
-                                            .lineLimit(2)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 6)
-                                }
-                                .buttonStyle(.plain)
+                if communityInboxItems.isEmpty {
+                    EmptyStateView(
+                        title: appState.t(.noMessagesYet),
+                        subtitle: appState.t(.communityMessagesSub),
+                        icon: "bubble.left.and.bubble.right",
+                        actionTitle: appState.t(.refresh),
+                        action: { Task { await refreshCurrentSection() } }
+                    )
+                } else {
+                    ForEach(Array(communityInboxItems.enumerated()), id: \.element.id) { index, item in
+                        Button {
+                            switch item {
+                            case .direct(let thread):
+                                selectedDirectThread = thread
+                            case .collab(let conversation):
+                                selectedConversation = conversation
                             }
+                        } label: {
+                            CommunityInboxRow(item: item)
                         }
-                    }
-                }
+                        .buttonStyle(.plain)
 
-                if !appState.conversations.isEmpty {
-                    MarviCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(appState.t(.messagesTitle))
-                                .font(.caption.weight(.bold))
-                                .textCase(.uppercase)
-                                .foregroundStyle(MarviColor.muted)
-
-                            ForEach(appState.conversations) { conversation in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(conversation.venueName.isEmpty ? conversation.offerTitle : conversation.venueName)
-                                        .font(.subheadline.weight(.bold))
-                                        .foregroundStyle(MarviColor.ink)
-                                    Text(conversation.preview)
-                                        .font(.caption)
-                                        .foregroundStyle(MarviColor.muted)
-                                        .lineLimit(2)
-                                }
-                                .padding(.vertical, 6)
-                            }
-
-                            NavigationLink {
-                                CollaborationChatView()
-                                    .environmentObject(appState)
-                            } label: {
-                                Label(appState.t(.messagesTitle), systemImage: "arrow.right.circle")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(MarviColor.rose)
-                            }
+                        if index < communityInboxItems.count - 1 {
+                            Divider()
+                                .overlay(MarviColor.panelElevated)
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+private enum CommunityInboxItem: Identifiable {
+    case direct(DirectThread)
+    case collab(ChatConversation)
+
+    var id: String {
+        switch self {
+        case .direct(let thread):
+            return "direct-\(thread.id.uuidString)"
+        case .collab(let conversation):
+            return "collab-\(conversation.id.uuidString)"
+        }
+    }
+
+    var sortDate: Date {
+        switch self {
+        case .direct(let thread):
+            return thread.lastMessageAt ?? .distantPast
+        case .collab(let conversation):
+            return conversation.lastMessageAt ?? .distantPast
+        }
+    }
+}
+
+private struct CommunityInboxRow: View {
+    @EnvironmentObject private var appState: AppState
+    let item: CommunityInboxItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(MarviColor.rose.opacity(0.14))
+                Image(systemName: iconName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(MarviColor.rose)
+            }
+            .frame(width: 44, height: 44)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(MarviColor.ink)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(badge)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(MarviColor.rose)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(MarviColor.rose.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.muted)
+                    .lineLimit(2)
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MarviColor.muted)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(badge), \(subtitle)")
+    }
+
+    private var iconName: String {
+        switch item {
+        case .direct: return "person.crop.circle"
+        case .collab: return "building.2"
+        }
+    }
+
+    private var title: String {
+        switch item {
+        case .direct(let thread):
+            return thread.peerName
+        case .collab(let conversation):
+            return conversation.venueName.isEmpty ? conversation.offerTitle : conversation.venueName
+        }
+    }
+
+    private var subtitle: String {
+        switch item {
+        case .direct(let thread):
+            let handle = thread.peerHandle.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !handle.isEmpty {
+                let normalized = handle.hasPrefix("@") ? handle : "@\(handle)"
+                return "\(normalized) · \(thread.preview)"
+            }
+            return thread.preview
+        case .collab(let conversation):
+            if conversation.venueName.isEmpty || conversation.offerTitle.isEmpty {
+                return conversation.preview
+            }
+            if conversation.preview == conversation.offerTitle {
+                return conversation.offerTitle
+            }
+            return "\(conversation.offerTitle) · \(conversation.preview)"
+        }
+    }
+
+    private var badge: String {
+        switch item {
+        case .direct:
+            return appState.t(.communityDirectChat)
+        case .collab:
+            return appState.t(.communityCollabChat)
         }
     }
 }

@@ -181,6 +181,7 @@ enum MarviL10n {
         case communityMembersTitle, communityMembersSub, communityMembersEmpty, communityMembersEmptySub
         case memberCheckedInActivity, memberShowcaseActivity, messageAfterCollab
         case communitySegmentFeed, communitySegmentMembers, communitySegmentMessages
+        case communityMessagesSub, communityDirectChat, communityCollabChat
         case profileCommentsTitle, profileCommentsSub, profileCommentsEmpty
         case commentPlaceholder, postComment, sendMessageBtn, commentRequired
         case memberVenueOfferActivity, venuePublicProfile, venueLiveOffers, venueKindLabel
@@ -635,6 +636,9 @@ enum MarviL10n {
         .communitySegmentFeed: "Feed",
         .communitySegmentMembers: "Members",
         .communitySegmentMessages: "Messages",
+        .communityMessagesSub: "Direct chats and collaboration conversations in one place.",
+        .communityDirectChat: "Direct",
+        .communityCollabChat: "Collaboration",
         .profileCommentsTitle: "Comments",
         .profileCommentsSub: "Leave a note on this profile.",
         .profileCommentsEmpty: "No comments yet. Be the first to say hello.",
@@ -1171,6 +1175,9 @@ enum MarviL10n {
         .communitySegmentFeed: "Akış",
         .communitySegmentMembers: "Üyeler",
         .communitySegmentMessages: "Mesajlar",
+        .communityMessagesSub: "Direkt sohbetler ve iş birliği konuşmaları tek listede.",
+        .communityDirectChat: "Direkt",
+        .communityCollabChat: "İş birliği",
         .profileCommentsTitle: "Yorumlar",
         .profileCommentsSub: "Bu profile bir not bırak.",
         .profileCommentsEmpty: "Henüz yorum yok. İlk sen yaz.",

@@ -183,6 +183,10 @@ private fun MainShell(viewModel: AppViewModel) {
                             navController.navigate(
                                 "chat/${thread.id}/${Uri.encode(thread.peerName)}"
                             )
+                        },
+                        onOpenConversation = { convo ->
+                            val title = convo.title.ifBlank { "Marvi" }
+                            navController.navigate("collabchat/${convo.id}/${Uri.encode(title)}")
                         }
                     )
                 }

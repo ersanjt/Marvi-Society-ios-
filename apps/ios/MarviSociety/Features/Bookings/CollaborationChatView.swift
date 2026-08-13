@@ -49,7 +49,7 @@ struct CollaborationChatView: View {
     }
 }
 
-private struct ChatThreadView: View {
+struct ChatThreadView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
     let conversation: ChatConversation
