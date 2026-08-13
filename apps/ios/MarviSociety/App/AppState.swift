@@ -18,6 +18,8 @@ final class AppState: ObservableObject {
     @Published var campaigns: [Campaign] = []
     @Published var adminTasks: [AdminTask] = []
     @Published var adminUsers: [AdminUserSummary] = []
+    @Published var adminVenues: [AdminVenueSummary] = []
+    @Published var adminBookings: [AdminBookingSummary] = []
     @Published var adminInviteCodes: [AdminInviteCodeItem] = []
     @Published var lastInviteActionSummary: String?
     @Published var inboxMessages: [InboxMessage] = []
@@ -582,6 +584,12 @@ final class AppState: ObservableObject {
             }
             if let loadedUsers = try? await api.fetchAdminUsers(search: nil, status: nil) {
                 adminUsers = loadedUsers
+            }
+            if let loadedVenues = try? await api.fetchAdminVenues(search: nil, status: nil) {
+                adminVenues = loadedVenues
+            }
+            if let loadedBookings = try? await api.fetchAdminBookings(search: nil, stage: nil) {
+                adminBookings = loadedBookings
             }
         } else if let loadedTasks = try? await api.fetchAdminTasks() {
             adminTasks = loadedTasks
@@ -1707,6 +1715,30 @@ final class AppState: ObservableObject {
         }
     }
 
+    func loadAdminVenues(search: String = "", status: String? = nil) async {
+        guard isRemoteMode, isAuthenticated, allowedRoles.contains(.admin) else { return }
+        do {
+            adminVenues = try await api.fetchAdminVenues(
+                search: search.isEmpty ? nil : search,
+                status: status
+            )
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+        }
+    }
+
+    func loadAdminBookings(search: String = "", stage: String? = nil) async {
+        guard isRemoteMode, isAuthenticated, allowedRoles.contains(.admin) else { return }
+        do {
+            adminBookings = try await api.fetchAdminBookings(
+                search: search.isEmpty ? nil : search,
+                stage: stage
+            )
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+        }
+    }
+
     func loadAdminUserDetail(userID: UUID) async -> AdminUserDetail? {
         guard isRemoteMode, isAuthenticated, allowedRoles.contains(.admin) else { return nil }
         do {
@@ -1714,6 +1746,19 @@ final class AppState: ObservableObject {
         } catch {
             if let message = presentableError(error) { lastSyncError = message }
             return nil
+        }
+    }
+
+    func adminSetVenueStatus(venueID: UUID, status: MembershipStatus) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminSetVenueStatus(venueID: venueID, status: status.apiValue)
+            await loadAdminVenues()
+            return nil
+        } catch {
+            return presentableError(error) ?? t(.errSomeDataRefresh)
         }
     }
 
@@ -2020,6 +2065,8 @@ final class AppState: ObservableObject {
         campaigns = []
         adminTasks = []
         adminUsers = []
+        adminVenues = []
+        adminBookings = []
         adminInviteCodes = []
         adminActivity = []
         isLoadingAdminActivity = false

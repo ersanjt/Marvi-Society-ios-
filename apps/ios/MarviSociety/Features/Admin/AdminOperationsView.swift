@@ -4,33 +4,39 @@ import SwiftUI
 
 enum AdminConsoleTab: String, CaseIterable, Identifiable {
     case queue
-    case campaigns
+    case bookings
+    case venues
     case users
+    case campaigns
+    case activity
     case map
     case broadcast
-    case activity
 
     var id: String { rawValue }
 
     func title(for language: AppLanguage) -> String {
         switch self {
         case .queue: MarviL10n.t(.adminTabQueue, language: language)
-        case .campaigns: language == .turkish ? "Kampanya" : "Campaigns"
+        case .bookings: MarviL10n.t(.adminTabBookings, language: language)
+        case .venues: MarviL10n.t(.adminTabVenues, language: language)
         case .users: MarviL10n.t(.adminTabUsers, language: language)
+        case .campaigns: language == .turkish ? "Kampanya" : "Campaigns"
+        case .activity: MarviL10n.t(.adminTabActivity, language: language)
         case .map: MarviL10n.t(.adminTabMap, language: language)
         case .broadcast: MarviL10n.t(.adminTabBroadcast, language: language)
-        case .activity: MarviL10n.t(.adminTabActivity, language: language)
         }
     }
 
     var icon: String {
         switch self {
         case .queue: "tray.full"
-        case .campaigns: "megaphone.fill"
+        case .bookings: "calendar"
+        case .venues: "building.2"
         case .users: "person.3"
+        case .campaigns: "megaphone.fill"
+        case .activity: "waveform.path.ecg"
         case .map: "map"
         case .broadcast: "megaphone"
-        case .activity: "waveform.path.ecg"
         }
     }
 }
@@ -1993,6 +1999,309 @@ struct AdminCampaignsTab: View {
                     : (appState.lastSyncError ?? (isTurkish ? "Geri alınamadı" : "Restore failed"))
             }
         }
+    }
+}
+
+struct AdminVenuesTab: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var searchText = ""
+    @State private var statusFilter: String? = nil
+    @State private var actionMessage = ""
+    @State private var actionIsError = false
+
+    private var isTurkish: Bool { appState.preferredLanguage == .turkish }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionTitle(
+                    title: appState.t(.adminVenuesDirectoryTitle),
+                    subtitle: appState.t(.adminVenuesDirectorySub)
+                )
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        filterChip(title: appState.t(.adminFilterAll), value: nil)
+                        filterChip(title: isTurkish ? "İncelemede" : "Under review", value: "under_review")
+                        filterChip(title: isTurkish ? "Onaylı" : "Approved", value: "approved")
+                        filterChip(title: isTurkish ? "Duraklatılmış" : "Paused", value: "paused")
+                    }
+                }
+
+                MarviTextField(
+                    placeholder: isTurkish ? "Mekân, alan veya sahip ara…" : "Search venue, area, or owner…",
+                    text: $searchText
+                )
+                .onChange(of: searchText) { _, _ in
+                    Task { await appState.loadAdminVenues(search: searchText, status: statusFilter) }
+                }
+
+                Text("\(appState.adminVenues.count) \(appState.t(.adminVenuesCountLabel))")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(MarviColor.muted)
+
+                if !actionMessage.isEmpty {
+                    Text(actionMessage)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(actionIsError ? MarviColor.tomato : MarviColor.emerald)
+                }
+
+                if appState.adminVenues.isEmpty {
+                    MarviCard {
+                        EmptyStateView(
+                            title: appState.t(.adminVenuesEmpty),
+                            subtitle: appState.t(.adminVenuesEmptySub),
+                            icon: "building.2",
+                            actionTitle: appState.t(.refresh),
+                            action: { Task { await appState.loadAdminVenues(search: searchText, status: statusFilter) } }
+                        )
+                    }
+                } else {
+                    ForEach(appState.adminVenues) { venue in
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(venue.venueName)
+                                            .font(.headline.weight(.bold))
+                                            .foregroundStyle(MarviColor.ink)
+                                        Text("\(venue.area) · \(venue.category ?? "—")")
+                                            .font(.subheadline)
+                                            .foregroundStyle(MarviColor.muted)
+                                        if let owner = venue.ownerName ?? venue.ownerEmail {
+                                            Text(owner)
+                                                .font(.caption)
+                                                .foregroundStyle(MarviColor.graphite)
+                                        }
+                                    }
+                                    Spacer()
+                                    StatusPill(
+                                        text: venue.displayStatus,
+                                        tint: venueStatusTint(venue.status),
+                                        systemImage: "building.2.fill"
+                                    )
+                                }
+
+                                Text(
+                                    isTurkish
+                                        ? "\(venue.liveOfferCount) canlı · \(venue.offerCount) kampanya · \(venue.bookingCount) rezervasyon"
+                                        : "\(venue.liveOfferCount) live · \(venue.offerCount) campaigns · \(venue.bookingCount) bookings"
+                                )
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(MarviColor.muted)
+
+                                HStack(spacing: 8) {
+                                    venueAction(
+                                        title: isTurkish ? "Onayla" : "Approve",
+                                        tint: MarviColor.emerald
+                                    ) {
+                                        await setStatus(venue, .approved)
+                                    }
+                                    venueAction(
+                                        title: isTurkish ? "Duraklat" : "Pause",
+                                        tint: MarviColor.tomato
+                                    ) {
+                                        await setStatus(venue, .paused)
+                                    }
+                                    venueAction(
+                                        title: isTurkish ? "İnceleme" : "Review",
+                                        tint: MarviColor.gold
+                                    ) {
+                                        await setStatus(venue, .underReview)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .refreshable {
+            await appState.loadAdminVenues(search: searchText, status: statusFilter)
+        }
+        .task {
+            await appState.loadAdminVenues(search: searchText, status: statusFilter)
+        }
+    }
+
+    private func filterChip(title: String, value: String?) -> some View {
+        Button {
+            statusFilter = value
+            Task { await appState.loadAdminVenues(search: searchText, status: statusFilter) }
+        } label: {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .foregroundStyle(statusFilter == value ? Color.white : MarviColor.muted)
+                .background(statusFilter == value ? AnyShapeStyle(MarviGradient.brand) : AnyShapeStyle(MarviColor.panel))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func venueStatusTint(_ status: String?) -> Color {
+        switch status {
+        case "approved": MarviColor.emerald
+        case "paused": MarviColor.tomato
+        default: MarviColor.gold
+        }
+    }
+
+    private func venueAction(title: String, tint: Color, action: @escaping () async -> Void) -> some View {
+        Button {
+            Task { await action() }
+        } label: {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .foregroundStyle(tint)
+                .background(tint.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func setStatus(_ venue: AdminVenueSummary, _ status: MembershipStatus) async {
+        if let error = await appState.adminSetVenueStatus(venueID: venue.venueID, status: status) {
+            actionIsError = true
+            actionMessage = error
+        } else {
+            actionIsError = false
+            actionMessage = isTurkish ? "Mekân durumu güncellendi" : "Venue status updated"
+            await appState.loadAdminVenues(search: searchText, status: statusFilter)
+        }
+    }
+}
+
+struct AdminBookingsTab: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var searchText = ""
+    @State private var stageFilter: String? = nil
+
+    private var isTurkish: Bool { appState.preferredLanguage == .turkish }
+
+    private let stages: [(String?, String, String)] = [
+        (nil, "All", "Tümü"),
+        ("invited", "Invited", "Davet"),
+        ("confirmed", "Confirmed", "Onaylı"),
+        ("checked_in", "Checked in", "Check-in"),
+        ("proof_due", "Proof due", "Kanıt"),
+        ("completed", "Completed", "Tamam"),
+        ("cancelled", "Cancelled", "İptal")
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionTitle(
+                    title: appState.t(.adminBookingsDirectoryTitle),
+                    subtitle: appState.t(.adminBookingsDirectorySub)
+                )
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(stages, id: \.0) { item in
+                            stageChip(api: item.0, en: item.1, tr: item.2)
+                        }
+                    }
+                }
+
+                MarviTextField(
+                    placeholder: isTurkish ? "Creator, mekân veya kampanya ara…" : "Search creator, venue, or campaign…",
+                    text: $searchText
+                )
+                .onChange(of: searchText) { _, _ in
+                    Task { await appState.loadAdminBookings(search: searchText, stage: stageFilter) }
+                }
+
+                Text("\(appState.adminBookings.count) \(appState.t(.adminBookingsCountLabel))")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(MarviColor.muted)
+
+                if appState.adminBookings.isEmpty {
+                    MarviCard {
+                        EmptyStateView(
+                            title: appState.t(.bookingsLabel),
+                            subtitle: appState.t(.noBookingsAdminSub),
+                            icon: "calendar",
+                            actionTitle: appState.t(.refresh),
+                            action: { Task { await appState.loadAdminBookings(search: searchText, stage: stageFilter) } }
+                        )
+                    }
+                } else {
+                    ForEach(appState.adminBookings) { booking in
+                        MarviCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(booking.offerTitle ?? "—")
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(MarviColor.ink)
+                                Text(booking.venueName ?? "—")
+                                    .font(.subheadline)
+                                    .foregroundStyle(MarviColor.muted)
+                                HStack {
+                                    StatusPill(
+                                        text: booking.stageLabel,
+                                        tint: MarviColor.rose,
+                                        systemImage: "calendar"
+                                    )
+                                    if let guest = booking.guestName, !guest.isEmpty {
+                                        Text(guest)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(MarviColor.graphite)
+                                    }
+                                }
+                                if let email = booking.guestEmail, !email.isEmpty {
+                                    Text(email)
+                                        .font(.caption)
+                                        .foregroundStyle(MarviColor.muted)
+                                }
+                                if let date = booking.dateLabel, !date.isEmpty {
+                                    Text(date)
+                                        .font(.caption)
+                                        .foregroundStyle(MarviColor.muted)
+                                }
+                                if let proof = booking.proofStatus, !proof.isEmpty {
+                                    Text(
+                                        isTurkish
+                                            ? "Kanıt: \(proof.replacingOccurrences(of: "_", with: " "))"
+                                            : "Proof: \(proof.replacingOccurrences(of: "_", with: " "))"
+                                    )
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(MarviColor.aubergine)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .refreshable {
+            await appState.loadAdminBookings(search: searchText, stage: stageFilter)
+        }
+        .task {
+            await appState.loadAdminBookings(search: searchText, stage: stageFilter)
+        }
+    }
+
+    private func stageChip(api: String?, en: String, tr: String) -> some View {
+        let title = isTurkish ? tr : en
+        return Button {
+            stageFilter = api
+            Task { await appState.loadAdminBookings(search: searchText, stage: stageFilter) }
+        } label: {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .foregroundStyle(stageFilter == api ? Color.white : MarviColor.muted)
+                .background(stageFilter == api ? AnyShapeStyle(MarviGradient.brand) : AnyShapeStyle(MarviColor.panel))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 

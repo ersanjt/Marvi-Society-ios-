@@ -8,7 +8,6 @@ struct AdminDashboardView: View {
     /// Snapshot used by confirmationDialog so Approve isn't dropped when SwiftUI clears `pendingAction` on dismiss.
     @State private var dialogAction: AdminTaskAction?
     @State private var strikeReason = "Proof not delivered per campaign terms"
-    @State private var showingBookingsSheet = false
     @State private var showingStrikesSheet = false
     @State private var showingTaskConfirm = false
     @State private var showingStrikeAlert = false
@@ -16,19 +15,43 @@ struct AdminDashboardView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("Section", selection: $tab) {
-                    ForEach(AdminConsoleTab.allCases) { section in
-                        Label(section.title(for: appState.preferredLanguage), systemImage: section.icon).tag(section)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(AdminConsoleTab.allCases) { section in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.15)) { tab = section }
+                            } label: {
+                                Label(section.title(for: appState.preferredLanguage), systemImage: section.icon)
+                                    .font(.caption.weight(.bold))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .foregroundStyle(tab == section ? Color.white : MarviColor.muted)
+                                    .background(
+                                        tab == section
+                                            ? AnyShapeStyle(MarviGradient.brand)
+                                            : AnyShapeStyle(MarviColor.panel)
+                                    )
+                                    .clipShape(Capsule())
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(tab == section ? Color.clear : MarviColor.border, lineWidth: 1)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
 
                 Group {
                     switch tab {
                     case .queue:
                         adminQueueContent
+                    case .bookings:
+                        AdminBookingsTab()
+                    case .venues:
+                        AdminVenuesTab()
                     case .campaigns:
                         AdminCampaignsTab()
                     case .users:
@@ -43,10 +66,6 @@ struct AdminDashboardView: View {
                 }
             }
             .navigationTitle(appState.t(.admin))
-            .sheet(isPresented: $showingBookingsSheet) {
-                AdminBookingsSheet()
-                    .environmentObject(appState)
-            }
             .sheet(isPresented: $showingStrikesSheet) {
                 AdminStrikesSheet()
                     .environmentObject(appState)
@@ -161,12 +180,22 @@ struct AdminDashboardView: View {
                                 Task { await appState.loadAdminUsers() }
                             }
                             AdminMetric(
-                                value: "\(appState.activeBookings.count)",
+                                value: "\(appState.adminVenues.count)",
+                                label: appState.t(.venuesLabel),
+                                icon: "building.2",
+                                tint: MarviColor.aubergine
+                            ) {
+                                tab = .venues
+                                Task { await appState.loadAdminVenues() }
+                            }
+                            AdminMetric(
+                                value: "\(appState.adminBookings.count)",
                                 label: appState.t(.bookingsLabel),
                                 icon: "calendar",
                                 tint: MarviColor.emerald
                             ) {
-                                showingBookingsSheet = true
+                                tab = .bookings
+                                Task { await appState.loadAdminBookings() }
                             }
                             AdminMetric(
                                 value: "\(appState.strikes.count)",
@@ -312,70 +341,6 @@ private struct AdminMetric: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct AdminBookingsSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var appState: AppState
-
-    var body: some View {
-        NavigationStack {
-            MarviScreen {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        if appState.bookings.isEmpty {
-                            EmptyStateView(
-                                title: appState.t(.bookingsLabel),
-                                subtitle: appState.t(.noBookingsAdminSub),
-                                icon: "calendar",
-                                actionTitle: appState.t(.refresh),
-                                action: { Task { await appState.refreshFromServer() } }
-                            )
-                            .padding(16)
-                        } else {
-                            ForEach(appState.bookings) { booking in
-                                MarviCard {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text(booking.offer.title)
-                                            .font(.headline.weight(.bold))
-                                            .foregroundStyle(MarviColor.ink)
-                                        Text(booking.offer.venue)
-                                            .font(.subheadline)
-                                            .foregroundStyle(MarviColor.muted)
-                                        HStack {
-                                            StatusPill(
-                                                text: booking.stage.rawValue.capitalized,
-                                                tint: MarviColor.rose,
-                                                systemImage: "circle.fill"
-                                            )
-                                            if !booking.guestName.isEmpty {
-                                                Text(booking.guestName)
-                                                    .font(.caption)
-                                                    .foregroundStyle(MarviColor.graphite)
-                                            }
-                                        }
-                                        Text(booking.offer.dateLabel)
-                                            .font(.caption)
-                                            .foregroundStyle(MarviColor.muted)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
-                        }
-                    }
-                }
-            }
-            .navigationTitle(appState.t(.bookingsLabel))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(appState.t(.close)) { dismiss() }
-                }
-            }
-            .task { await appState.refreshFromServer() }
-        }
     }
 }
 

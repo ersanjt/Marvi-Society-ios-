@@ -1194,6 +1194,48 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func fetchAdminVenues(search: String?, status: String?) async throws -> [AdminVenueSummary] {
+        var body: [String: Any] = ["p_limit": 100]
+        if let search, !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_search"] = search
+        }
+        if let status, !status.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_status"] = status
+        }
+        return try await client.rpc(
+            function: "admin_list_venues",
+            body: body,
+            type: [AdminVenueSummary].self,
+            decoder: Self.adminDecoder
+        )
+    }
+
+    func fetchAdminBookings(search: String?, stage: String?) async throws -> [AdminBookingSummary] {
+        var body: [String: Any] = ["p_limit": 100]
+        if let search, !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_search"] = search
+        }
+        if let stage, !stage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            body["p_stage"] = stage
+        }
+        return try await client.rpc(
+            function: "admin_list_bookings",
+            body: body,
+            type: [AdminBookingSummary].self,
+            decoder: Self.adminDecoder
+        )
+    }
+
+    func adminSetVenueStatus(venueID: UUID, status: String) async throws {
+        try await client.rpcVoid(
+            function: "admin_set_venue_status",
+            body: [
+                "p_venue_id": venueID.uuidString,
+                "p_status": status
+            ]
+        )
+    }
+
     func adminSetMembershipStatus(userID: UUID, status: String) async throws {
         try await client.rpcVoid(
             function: "admin_set_membership_status",

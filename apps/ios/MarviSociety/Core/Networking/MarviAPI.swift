@@ -92,6 +92,9 @@ protocol MarviAPI: Sendable {
     func upsertUserLocation(lat: Double, lng: Double) async throws
     func fetchAdminUsers(search: String?, status: String?) async throws -> [AdminUserSummary]
     func fetchAdminUserDetail(userID: UUID) async throws -> AdminUserDetail
+    func fetchAdminVenues(search: String?, status: String?) async throws -> [AdminVenueSummary]
+    func fetchAdminBookings(search: String?, stage: String?) async throws -> [AdminBookingSummary]
+    func adminSetVenueStatus(venueID: UUID, status: String) async throws
     func adminSetMembershipStatus(userID: UUID, status: String) async throws
     func adminSetUserRole(userID: UUID, role: String) async throws
     func adminSendNotification(userID: UUID, title: String, body: String) async throws
@@ -344,6 +347,23 @@ extension MarviAPI {
     func fetchAdminUserDetail(userID: UUID) async throws -> AdminUserDetail {
         _ = userID
         throw MarviAPIError.server(message: "Admin detail requires Supabase mode")
+    }
+
+    func fetchAdminVenues(search: String?, status: String?) async throws -> [AdminVenueSummary] {
+        _ = search
+        _ = status
+        return []
+    }
+
+    func fetchAdminBookings(search: String?, stage: String?) async throws -> [AdminBookingSummary] {
+        _ = search
+        _ = stage
+        return []
+    }
+
+    func adminSetVenueStatus(venueID: UUID, status: String) async throws {
+        _ = venueID
+        _ = status
     }
 
     func adminSetMembershipStatus(userID: UUID, status: String) async throws {

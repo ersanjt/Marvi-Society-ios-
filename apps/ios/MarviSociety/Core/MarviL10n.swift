@@ -157,7 +157,11 @@ enum MarviL10n {
         case operationsCommand, adminControl, adminControlSub
         case usersLabel, bookingsLabel, strikesLabel, reviewQueue, reviewQueueSub
         case adminTabQueue, adminTabUsers, adminTabMap, adminTabBroadcast, adminTabActivity
+        case adminTabVenues, adminTabBookings
         case adminUsersDirectoryTitle, adminUsersDirectorySub, adminUsersCountLabel
+        case adminVenuesDirectoryTitle, adminVenuesDirectorySub, adminVenuesCountLabel, adminVenuesEmpty, adminVenuesEmptySub
+        case adminBookingsDirectoryTitle, adminBookingsDirectorySub, adminBookingsCountLabel
+        case venuesLabel
         case adminShowTools, adminHideTools, adminFilterAll, adminClearFilters
         case adminUsersFilterEmpty, adminUsersFilterEmptySub
         case adminEmailPhotoHint, adminPhotoEmailSubject, adminPhotoEmailBody
@@ -567,12 +571,22 @@ enum MarviL10n {
         .operationsCommand: "Operations command", .adminControl: "Admin control",
         .adminControlSub: "Review applications, campaigns, proof submissions, and operational risk.",
         .usersLabel: "Users", .bookingsLabel: "Bookings", .strikesLabel: "Strikes",
+        .venuesLabel: "Venues",
         .reviewQueue: "Review queue", .reviewQueueSub: "Approve or reject items before they go live.",
         .adminTabQueue: "Queue", .adminTabUsers: "Users", .adminTabMap: "Map", .adminTabBroadcast: "Broadcast",
         .adminTabActivity: "Activity",
+        .adminTabVenues: "Venues", .adminTabBookings: "Bookings",
         .adminUsersDirectoryTitle: "Members",
         .adminUsersDirectorySub: "See photos, message or email members, and fix profile media.",
         .adminUsersCountLabel: "members",
+        .adminVenuesDirectoryTitle: "Venues",
+        .adminVenuesDirectorySub: "All locations — approve, pause, or send back to review.",
+        .adminVenuesCountLabel: "venues",
+        .adminVenuesEmpty: "No venues",
+        .adminVenuesEmptySub: "Venue applications and registered locations appear here.",
+        .adminBookingsDirectoryTitle: "Bookings",
+        .adminBookingsDirectorySub: "Who is going where — every collaboration reservation across the platform.",
+        .adminBookingsCountLabel: "bookings",
         .adminShowTools: "Invite tools",
         .adminHideTools: "Hide tools",
         .adminFilterAll: "All",
@@ -1114,12 +1128,22 @@ enum MarviL10n {
         .operationsCommand: "Operasyon merkezi", .adminControl: "Yönetim kontrolü",
         .adminControlSub: "Başvuruları, kampanyaları, kanıt gönderimlerini ve operasyonel riski incele.",
         .usersLabel: "Kullanıcılar", .bookingsLabel: "Rezervasyonlar", .strikesLabel: "Uyarılar",
+        .venuesLabel: "Mekânlar",
         .reviewQueue: "İnceleme kuyruğu", .reviewQueueSub: "Yayınlanmadan önce öğeleri onayla veya reddet.",
         .adminTabQueue: "Kuyruk", .adminTabUsers: "Kullanıcılar", .adminTabMap: "Harita", .adminTabBroadcast: "Yayın",
         .adminTabActivity: "Aktivite",
+        .adminTabVenues: "Mekânlar", .adminTabBookings: "Rezervasyon",
         .adminUsersDirectoryTitle: "Üyeler",
         .adminUsersDirectorySub: "Fotoğrafları görün, mesaj veya e-posta gönderin, profil medyasını düzeltin.",
         .adminUsersCountLabel: "üye",
+        .adminVenuesDirectoryTitle: "Mekânlar",
+        .adminVenuesDirectorySub: "Tüm lokasyonlar — onayla, duraklat veya incelemeye geri gönder.",
+        .adminVenuesCountLabel: "mekân",
+        .adminVenuesEmpty: "Mekân yok",
+        .adminVenuesEmptySub: "Mekân başvuruları ve kayıtlı lokasyonlar burada görünür.",
+        .adminBookingsDirectoryTitle: "Rezervasyonlar",
+        .adminBookingsDirectorySub: "Kim nereye gidiyor — platformdaki tüm iş birliği rezervasyonları.",
+        .adminBookingsCountLabel: "rezervasyon",
         .adminShowTools: "Davet araçları",
         .adminHideTools: "Araçları gizle",
         .adminFilterAll: "Tümü",

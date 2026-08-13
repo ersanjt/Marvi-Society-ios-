@@ -343,6 +343,30 @@ data class AdminInviteCodeItem(
     val createdLabel: String
 )
 
+data class AdminVenueSummary(
+    val id: String,
+    val venueName: String,
+    val area: String,
+    val category: String,
+    val status: MembershipStatus?,
+    val ownerEmail: String,
+    val ownerName: String,
+    val offerCount: Int,
+    val liveOfferCount: Int,
+    val bookingCount: Int
+)
+
+data class AdminBookingSummary(
+    val id: String,
+    val offerTitle: String,
+    val venueName: String,
+    val guestName: String,
+    val guestEmail: String,
+    val stage: String,
+    val dateLabel: String,
+    val proofStatus: String
+)
+
 data class VenueSummary(
     val id: String,
     val name: String,

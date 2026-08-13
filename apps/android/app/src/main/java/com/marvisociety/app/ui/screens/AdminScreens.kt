@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
@@ -43,7 +44,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.marvisociety.app.data.AdminBookingSummary
 import com.marvisociety.app.data.AdminTaskStatus
+import com.marvisociety.app.data.AdminVenueSummary
 import com.marvisociety.app.data.Campaign
 import com.marvisociety.app.data.CollaborationModel
 import com.marvisociety.app.data.InboxMessage
@@ -59,10 +62,13 @@ import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
+private enum class AdminSection { QUEUE, BOOKINGS, VENUES, USERS }
+
 @Composable
 fun AdminDashboardScreen(viewModel: AppViewModel) {
     LaunchedEffect(Unit) { viewModel.refreshFromServer() }
 
+    var section by remember { mutableStateOf(AdminSection.QUEUE) }
     var showCreateInvite by remember { mutableStateOf(false) }
     var inviteEmail by remember { mutableStateOf("") }
     var inviteMaxUses by remember { mutableStateOf("1") }
@@ -71,245 +77,429 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
     var resolvingTaskId by remember { mutableStateOf<String?>(null) }
 
     MarviScreen {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                BrandLockup(subtitle = viewModel.t(MarviL10n.Key.ADMIN))
-            }
-            item {
-                AdminSectionHeader(
-                    title = viewModel.t(MarviL10n.Key.ADMIN_TASKS),
-                    count = viewModel.adminTasks.size
-                )
-            }
-            if (viewModel.adminTasks.isEmpty()) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            BrandLockup(subtitle = viewModel.t(MarviL10n.Key.ADMIN))
+            Spacer(modifier = Modifier.height(12.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
-                    EmptyStateView(
-                        title = viewModel.t(MarviL10n.Key.ADMIN_TASKS_EMPTY),
-                        subtitle = viewModel.t(MarviL10n.Key.ADMIN_TASKS_EMPTY_SUB),
-                        actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
-                        onAction = viewModel::refreshFromServer
+                    AdminTabChip(
+                        selected = section == AdminSection.QUEUE,
+                        label = "${viewModel.t(MarviL10n.Key.ADMIN_TAB_QUEUE)} (${viewModel.adminTasks.size})",
+                        onClick = { section = AdminSection.QUEUE }
+                    )
+                }
+                item {
+                    AdminTabChip(
+                        selected = section == AdminSection.BOOKINGS,
+                        label = "${viewModel.t(MarviL10n.Key.ADMIN_TAB_BOOKINGS)} (${viewModel.adminBookings.size})",
+                        onClick = { section = AdminSection.BOOKINGS }
+                    )
+                }
+                item {
+                    AdminTabChip(
+                        selected = section == AdminSection.VENUES,
+                        label = "${viewModel.t(MarviL10n.Key.ADMIN_TAB_VENUES)} (${viewModel.adminVenues.size})",
+                        onClick = { section = AdminSection.VENUES }
+                    )
+                }
+                item {
+                    AdminTabChip(
+                        selected = section == AdminSection.USERS,
+                        label = "${viewModel.t(MarviL10n.Key.ADMIN_TAB_USERS)} (${viewModel.adminUsers.size})",
+                        onClick = { section = AdminSection.USERS }
                     )
                 }
             }
-            items(viewModel.adminTasks, key = { it.id }) { task ->
-                MarviCard {
-                    Text(viewModel.taskTypeLabel(task.type), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                    if (task.subtitle.isNotBlank()) {
-                        Text(task.subtitle, color = MarviColor.Muted)
-                    }
-                    Text(
-                        "${viewModel.priorityLabel(task.priority)} · ${viewModel.localizeServerText(task.dateLabel)}",
-                        color = MarviColor.Graphite,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    if (task.status == AdminTaskStatus.OPEN) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                            Button(
-                                onClick = {
-                                    resolvingTaskId = task.id
-                                    viewModel.approveTask(task.id) { resolvingTaskId = null }
-                                },
-                                enabled = resolvingTaskId == null,
-                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                            ) { Text(viewModel.t(MarviL10n.Key.APPROVE)) }
-                            Button(
-                                onClick = {
-                                    resolvingTaskId = task.id
-                                    viewModel.rejectTask(task.id) { resolvingTaskId = null }
-                                },
-                                enabled = resolvingTaskId == null,
-                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Tomato)
-                            ) { Text(viewModel.t(MarviL10n.Key.REJECT)) }
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                when (section) {
+                    AdminSection.QUEUE -> {
+                        item {
+                            AdminSectionHeader(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_TASKS),
+                                count = viewModel.adminTasks.size
+                            )
                         }
-                    }
-                }
-            }
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AdminSectionHeader(
-                        title = viewModel.t(MarviL10n.Key.INVITE_CODES),
-                        count = viewModel.adminInviteCodes.size
-                    )
-                    Button(
-                        onClick = { showCreateInvite = !showCreateInvite },
-                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                    ) {
-                        Text(if (showCreateInvite) viewModel.t(MarviL10n.Key.CLOSE) else viewModel.t(MarviL10n.Key.CREATE_INVITE_CODE))
-                    }
-                }
-            }
-            if (showCreateInvite) {
-                item {
-                    MarviCard {
-                        OutlinedTextField(
-                            value = inviteEmail,
-                            onValueChange = { inviteEmail = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.INVITE_EMAIL)) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = inviteMaxUses,
-                            onValueChange = { inviteMaxUses = it.filter { ch -> ch.isDigit() }.ifBlank { "1" } },
-                            label = { Text(viewModel.t(MarviL10n.Key.MAX_USES)) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("creator", "venue").forEach { type ->
-                                FilterChip(
-                                    selected = inviteOwnerType == type,
-                                    onClick = { inviteOwnerType = type },
-                                    label = { Text(if (type == "venue") viewModel.t(MarviL10n.Key.VENUE_TAG) else viewModel.t(MarviL10n.Key.CREATOR_TAG)) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                                        selectedLabelColor = MarviColor.Rose
-                                    )
+                        if (viewModel.adminTasks.isEmpty()) {
+                            item {
+                                EmptyStateView(
+                                    title = viewModel.t(MarviL10n.Key.ADMIN_TASKS_EMPTY),
+                                    subtitle = viewModel.t(MarviL10n.Key.ADMIN_TASKS_EMPTY_SUB),
+                                    actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                                    onAction = viewModel::refreshFromServer
                                 )
                             }
                         }
-                        Button(
-                            onClick = {
-                                isCreatingInvite = true
-                                viewModel.adminCreateInvite(
-                                    code = null,
-                                    ownerType = inviteOwnerType,
-                                    maxUses = inviteMaxUses.toIntOrNull()?.coerceIn(1, 999) ?: 1,
-                                    inviteEmail = inviteEmail.ifBlank { null }
-                                ) { succeeded ->
-                                    isCreatingInvite = false
-                                    if (succeeded) {
-                                        inviteEmail = ""
-                                        inviteMaxUses = "1"
-                                        showCreateInvite = false
+                        items(viewModel.adminTasks, key = { it.id }) { task ->
+                            MarviCard {
+                                Text(viewModel.taskTypeLabel(task.type), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                                if (task.subtitle.isNotBlank()) {
+                                    Text(task.subtitle, color = MarviColor.Muted)
+                                }
+                                Text(
+                                    "${viewModel.priorityLabel(task.priority)} · ${viewModel.localizeServerText(task.dateLabel)}",
+                                    color = MarviColor.Graphite,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                if (task.status == AdminTaskStatus.OPEN) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                resolvingTaskId = task.id
+                                                viewModel.approveTask(task.id) { resolvingTaskId = null }
+                                            },
+                                            enabled = resolvingTaskId == null,
+                                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
+                                        ) { Text(viewModel.t(MarviL10n.Key.APPROVE)) }
+                                        Button(
+                                            onClick = {
+                                                resolvingTaskId = task.id
+                                                viewModel.rejectTask(task.id) { resolvingTaskId = null }
+                                            },
+                                            enabled = resolvingTaskId == null,
+                                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Tomato)
+                                        ) { Text(viewModel.t(MarviL10n.Key.REJECT)) }
                                     }
                                 }
-                            },
-                            enabled = !isCreatingInvite,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                        ) {
-                            Text(
-                                if (isCreatingInvite) {
-                                    viewModel.t(MarviL10n.Key.SUBMITTING)
-                                } else {
-                                    viewModel.t(MarviL10n.Key.CREATE)
-                                }
-                            )
+                            }
                         }
                     }
-                }
-            }
-            if (viewModel.adminInviteCodes.isEmpty() && !showCreateInvite) {
-                item {
-                    Text(
-                        viewModel.t(MarviL10n.Key.INVITE_CODES_EMPTY),
-                        color = MarviColor.Muted,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            items(viewModel.adminInviteCodes, key = { it.code }) { code ->
-                MarviCard {
-                    Text(code.code, fontWeight = FontWeight.Bold, color = MarviColor.Rose)
-                    val ownerLabel = if (code.ownerType.equals("venue", ignoreCase = true)) {
-                        viewModel.t(MarviL10n.Key.VENUE_TAG)
-                    } else {
-                        viewModel.t(MarviL10n.Key.CREATOR_TAG)
-                    }
-                    Text("${code.useCount}/${code.maxUses} ${viewModel.t(MarviL10n.Key.USES_SUFFIX)} · $ownerLabel", color = MarviColor.Muted)
-                    code.inviteEmail?.let { Text(it, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall) }
-                }
-            }
-            item {
-                AdminSectionHeader(
-                    title = viewModel.t(MarviL10n.Key.ADMIN_USERS),
-                    count = viewModel.adminUsers.size,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-            if (viewModel.adminUsers.isEmpty()) {
-                item {
-                    Text(
-                        viewModel.t(MarviL10n.Key.ADMIN_USERS_EMPTY),
-                        color = MarviColor.Muted,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            items(viewModel.adminUsers, key = { it.id }) { user ->
-                MarviCard {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (user.avatarUrl.isNotBlank()) {
-                            AsyncImage(
-                                model = user.avatarUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(MarviColor.PanelElevated, CircleShape)
+
+                    AdminSection.BOOKINGS -> {
+                        item {
+                            AdminSectionHeader(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_TAB_BOOKINGS),
+                                count = viewModel.adminBookings.size
                             )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(MarviColor.Rose.copy(alpha = 0.15f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    user.fullName.ifBlank { user.email }.take(2).uppercase(),
-                                    color = MarviColor.Rose,
-                                    fontWeight = FontWeight.Bold
+                        }
+                        if (viewModel.adminBookings.isEmpty()) {
+                            item {
+                                EmptyStateView(
+                                    title = viewModel.t(MarviL10n.Key.ADMIN_BOOKINGS_EMPTY),
+                                    subtitle = viewModel.t(MarviL10n.Key.ADMIN_BOOKINGS_EMPTY_SUB),
+                                    actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                                    onAction = { viewModel.loadAdminBookings() }
                                 )
                             }
                         }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(user.fullName.ifBlank { user.email }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                            Text("${user.email} · ${user.city}", color = MarviColor.Muted)
-                            Text(viewModel.roleLabel(user.role), color = MarviColor.Rose)
+                        items(viewModel.adminBookings, key = { it.id }) { booking ->
+                            AdminBookingCard(viewModel, booking)
                         }
                     }
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = {
-                            viewModel.adminSetUserStatus(user.id, MembershipStatus.APPROVED)
-                        }) {
-                            Text(viewModel.t(MarviL10n.Key.APPROVE), color = MarviColor.Emerald)
+
+                    AdminSection.VENUES -> {
+                        item {
+                            AdminSectionHeader(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_TAB_VENUES),
+                                count = viewModel.adminVenues.size
+                            )
                         }
-                        TextButton(onClick = {
-                            viewModel.adminSetUserStatus(user.id, MembershipStatus.PAUSED)
-                        }) {
-                            Text(viewModel.t(MarviL10n.Key.BLOCK), color = MarviColor.Tomato)
+                        if (viewModel.adminVenues.isEmpty()) {
+                            item {
+                                EmptyStateView(
+                                    title = viewModel.t(MarviL10n.Key.ADMIN_VENUES_EMPTY),
+                                    subtitle = viewModel.t(MarviL10n.Key.ADMIN_VENUES_EMPTY_SUB),
+                                    actionTitle = viewModel.t(MarviL10n.Key.REFRESH),
+                                    onAction = { viewModel.loadAdminVenues() }
+                                )
+                            }
+                        }
+                        items(viewModel.adminVenues, key = { it.id }) { venue ->
+                            AdminVenueCard(viewModel, venue)
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = {
-                            viewModel.adminSetUserRole(user.id, UserRole.CREATOR)
-                        }) {
-                            Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_CREATOR), color = MarviColor.Rose)
+
+                    AdminSection.USERS -> {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AdminSectionHeader(
+                                    title = viewModel.t(MarviL10n.Key.INVITE_CODES),
+                                    count = viewModel.adminInviteCodes.size
+                                )
+                                Button(
+                                    onClick = { showCreateInvite = !showCreateInvite },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                                ) {
+                                    Text(
+                                        if (showCreateInvite) viewModel.t(MarviL10n.Key.CLOSE)
+                                        else viewModel.t(MarviL10n.Key.CREATE_INVITE_CODE)
+                                    )
+                                }
+                            }
                         }
-                        TextButton(onClick = {
-                            viewModel.adminSetUserRole(user.id, UserRole.VENUE)
-                        }) {
-                            Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_BUSINESS), color = MarviColor.Gold)
+                        if (showCreateInvite) {
+                            item {
+                                MarviCard {
+                                    OutlinedTextField(
+                                        value = inviteEmail,
+                                        onValueChange = { inviteEmail = it },
+                                        label = { Text(viewModel.t(MarviL10n.Key.INVITE_EMAIL)) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    OutlinedTextField(
+                                        value = inviteMaxUses,
+                                        onValueChange = { inviteMaxUses = it.filter { ch -> ch.isDigit() }.ifBlank { "1" } },
+                                        label = { Text(viewModel.t(MarviL10n.Key.MAX_USES)) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        listOf("creator", "venue").forEach { type ->
+                                            FilterChip(
+                                                selected = inviteOwnerType == type,
+                                                onClick = { inviteOwnerType = type },
+                                                label = {
+                                                    Text(
+                                                        if (type == "venue") viewModel.t(MarviL10n.Key.VENUE_TAG)
+                                                        else viewModel.t(MarviL10n.Key.CREATOR_TAG)
+                                                    )
+                                                },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
+                                                    selectedLabelColor = MarviColor.Rose
+                                                )
+                                            )
+                                        }
+                                    }
+                                    Button(
+                                        onClick = {
+                                            isCreatingInvite = true
+                                            viewModel.adminCreateInvite(
+                                                code = null,
+                                                ownerType = inviteOwnerType,
+                                                maxUses = inviteMaxUses.toIntOrNull()?.coerceIn(1, 999) ?: 1,
+                                                inviteEmail = inviteEmail.ifBlank { null }
+                                            ) { succeeded ->
+                                                isCreatingInvite = false
+                                                if (succeeded) {
+                                                    inviteEmail = ""
+                                                    inviteMaxUses = "1"
+                                                    showCreateInvite = false
+                                                }
+                                            }
+                                        },
+                                        enabled = !isCreatingInvite,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
+                                    ) {
+                                        Text(
+                                            if (isCreatingInvite) viewModel.t(MarviL10n.Key.SUBMITTING)
+                                            else viewModel.t(MarviL10n.Key.CREATE)
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        TextButton(onClick = {
-                            viewModel.adminSetUserRole(user.id, UserRole.ADMIN)
-                        }) {
-                            Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_ADMIN), color = MarviColor.Aubergine)
+                        if (viewModel.adminInviteCodes.isEmpty() && !showCreateInvite) {
+                            item {
+                                Text(
+                                    viewModel.t(MarviL10n.Key.INVITE_CODES_EMPTY),
+                                    color = MarviColor.Muted,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        items(viewModel.adminInviteCodes, key = { it.code }) { code ->
+                            MarviCard {
+                                Text(code.code, fontWeight = FontWeight.Bold, color = MarviColor.Rose)
+                                val ownerLabel = if (code.ownerType.equals("venue", ignoreCase = true)) {
+                                    viewModel.t(MarviL10n.Key.VENUE_TAG)
+                                } else {
+                                    viewModel.t(MarviL10n.Key.CREATOR_TAG)
+                                }
+                                Text(
+                                    "${code.useCount}/${code.maxUses} ${viewModel.t(MarviL10n.Key.USES_SUFFIX)} · $ownerLabel",
+                                    color = MarviColor.Muted
+                                )
+                                code.inviteEmail?.let {
+                                    Text(it, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                        item {
+                            AdminSectionHeader(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_USERS),
+                                count = viewModel.adminUsers.size,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                        if (viewModel.adminUsers.isEmpty()) {
+                            item {
+                                Text(
+                                    viewModel.t(MarviL10n.Key.ADMIN_USERS_EMPTY),
+                                    color = MarviColor.Muted,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        items(viewModel.adminUsers, key = { it.id }) { user ->
+                            MarviCard {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (user.avatarUrl.isNotBlank()) {
+                                        AsyncImage(
+                                            model = user.avatarUrl,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(MarviColor.PanelElevated, CircleShape)
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .background(MarviColor.Rose.copy(alpha = 0.15f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                user.fullName.ifBlank { user.email }.take(2).uppercase(),
+                                                color = MarviColor.Rose,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            user.fullName.ifBlank { user.email },
+                                            fontWeight = FontWeight.Bold,
+                                            color = MarviColor.Ink
+                                        )
+                                        Text("${user.email} · ${user.city}", color = MarviColor.Muted)
+                                        Text(viewModel.roleLabel(user.role), color = MarviColor.Rose)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TextButton(onClick = {
+                                        viewModel.adminSetUserStatus(user.id, MembershipStatus.APPROVED)
+                                    }) {
+                                        Text(viewModel.t(MarviL10n.Key.APPROVE), color = MarviColor.Emerald)
+                                    }
+                                    TextButton(onClick = {
+                                        viewModel.adminSetUserStatus(user.id, MembershipStatus.PAUSED)
+                                    }) {
+                                        Text(viewModel.t(MarviL10n.Key.BLOCK), color = MarviColor.Tomato)
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TextButton(onClick = {
+                                        viewModel.adminSetUserRole(user.id, UserRole.CREATOR)
+                                    }) {
+                                        Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_CREATOR), color = MarviColor.Rose)
+                                    }
+                                    TextButton(onClick = {
+                                        viewModel.adminSetUserRole(user.id, UserRole.VENUE)
+                                    }) {
+                                        Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_BUSINESS), color = MarviColor.Gold)
+                                    }
+                                    TextButton(onClick = {
+                                        viewModel.adminSetUserRole(user.id, UserRole.ADMIN)
+                                    }) {
+                                        Text(viewModel.t(MarviL10n.Key.ADMIN_MAKE_ADMIN), color = MarviColor.Aubergine)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AdminTabChip(selected: Boolean, label: String, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
+            selectedLabelColor = MarviColor.Rose
+        )
+    )
+}
+
+@Composable
+private fun AdminVenueCard(viewModel: AppViewModel, venue: AdminVenueSummary) {
+    MarviCard {
+        Text(venue.venueName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+        Text("${venue.area} · ${venue.category}", color = MarviColor.Muted)
+        val owner = venue.ownerName.ifBlank { venue.ownerEmail }
+        if (owner.isNotBlank()) {
+            Text(owner, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
+        }
+        Text(
+            "${venue.liveOfferCount} live · ${venue.offerCount} campaigns · ${venue.bookingCount} bookings",
+            color = MarviColor.Muted,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Text(
+            venue.status?.name?.lowercase()?.replace('_', ' ') ?: "under review",
+            color = MarviColor.Aubergine,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+            TextButton(onClick = {
+                viewModel.adminSetVenueStatus(venue.id, MembershipStatus.APPROVED)
+            }) {
+                Text(viewModel.t(MarviL10n.Key.APPROVE), color = MarviColor.Emerald)
+            }
+            TextButton(onClick = {
+                viewModel.adminSetVenueStatus(venue.id, MembershipStatus.PAUSED)
+            }) {
+                Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_PAUSE), color = MarviColor.Tomato)
+            }
+            TextButton(onClick = {
+                viewModel.adminSetVenueStatus(venue.id, MembershipStatus.UNDER_REVIEW)
+            }) {
+                Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_REVIEW), color = MarviColor.Gold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminBookingCard(viewModel: AppViewModel, booking: AdminBookingSummary) {
+    MarviCard {
+        Text(booking.offerTitle.ifBlank { "—" }, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+        Text(booking.venueName.ifBlank { "—" }, color = MarviColor.Muted)
+        if (booking.guestName.isNotBlank()) {
+            Text(booking.guestName, color = MarviColor.Graphite, fontWeight = FontWeight.SemiBold)
+        }
+        if (booking.guestEmail.isNotBlank()) {
+            Text(booking.guestEmail, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        }
+        Text(
+            booking.stage.replace('_', ' '),
+            color = MarviColor.Rose,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
+        )
+        if (booking.dateLabel.isNotBlank()) {
+            Text(booking.dateLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        }
+        if (booking.proofStatus.isNotBlank()) {
+            Text(
+                "Proof: ${booking.proofStatus.replace('_', ' ')}",
+                color = MarviColor.Aubergine,
+                style = MaterialTheme.typography.labelSmall
+            )
         }
     }
 }

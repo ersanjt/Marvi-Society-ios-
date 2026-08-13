@@ -68,6 +68,10 @@ class AppViewModel(
         private set
     var adminUsers by mutableStateOf<List<AdminUserSummary>>(emptyList())
         private set
+    var adminVenues by mutableStateOf<List<AdminVenueSummary>>(emptyList())
+        private set
+    var adminBookings by mutableStateOf<List<AdminBookingSummary>>(emptyList())
+        private set
     var adminInviteCodes by mutableStateOf<List<AdminInviteCodeItem>>(emptyList())
         private set
     var myVenues by mutableStateOf<List<VenueSummary>>(emptyList())
@@ -345,6 +349,8 @@ class AppViewModel(
                         UserRole.ADMIN -> {
                             adminTasks = repository.fetchAdminTasks()
                             adminUsers = repository.fetchAdminUsers(null, null)
+                            adminVenues = repository.fetchAdminVenues(null, null)
+                            adminBookings = repository.fetchAdminBookings(null, null)
                             adminInviteCodes = repository.fetchAdminInviteCodes()
                         }
                         UserRole.VENUE -> {
@@ -1381,6 +1387,40 @@ class AppViewModel(
             }.onFailure { error ->
                 lastSyncError = error.message
                 onResult(false)
+            }
+        }
+    }
+
+    fun adminSetVenueStatus(venueId: String, status: MembershipStatus, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.adminSetVenueStatus(venueId, status)
+                adminVenues = repository.fetchAdminVenues(null, null)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
+    fun loadAdminVenues(search: String? = null, status: String? = null) {
+        viewModelScope.launch {
+            runCatching {
+                adminVenues = repository.fetchAdminVenues(search, status)
+            }.onFailure { error ->
+                lastSyncError = error.message
+            }
+        }
+    }
+
+    fun loadAdminBookings(search: String? = null, stage: String? = null) {
+        viewModelScope.launch {
+            runCatching {
+                adminBookings = repository.fetchAdminBookings(search, stage)
+            }.onFailure { error ->
+                lastSyncError = error.message
             }
         }
     }

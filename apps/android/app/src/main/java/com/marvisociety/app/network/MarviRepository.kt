@@ -518,6 +518,36 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         return rows.mapNotNull { parseAdminUser(it) }
     }
 
+    suspend fun fetchAdminVenues(search: String?, status: String?): List<AdminVenueSummary> {
+        val body = buildJsonObject {
+            put("p_limit", 100)
+            if (!search.isNullOrBlank()) put("p_search", search.trim())
+            if (!status.isNullOrBlank()) put("p_status", status.trim())
+        }
+        val rows = client.rpcJson("admin_list_venues", body).asArrayOrEmpty()
+        return rows.mapNotNull { parseAdminVenue(it) }
+    }
+
+    suspend fun fetchAdminBookings(search: String?, stage: String?): List<AdminBookingSummary> {
+        val body = buildJsonObject {
+            put("p_limit", 100)
+            if (!search.isNullOrBlank()) put("p_search", search.trim())
+            if (!stage.isNullOrBlank()) put("p_stage", stage.trim())
+        }
+        val rows = client.rpcJson("admin_list_bookings", body).asArrayOrEmpty()
+        return rows.mapNotNull { parseAdminBooking(it) }
+    }
+
+    suspend fun adminSetVenueStatus(venueId: String, status: MembershipStatus) {
+        client.rpcVoid(
+            "admin_set_venue_status",
+            buildJsonObject {
+                put("p_venue_id", venueId)
+                put("p_status", status.apiValue)
+            }
+        )
+    }
+
     suspend fun adminSetMembershipStatus(userId: String, status: MembershipStatus) {
         client.rpcVoid(
             "admin_set_membership_status",
@@ -1243,6 +1273,36 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             createdLabel = formatRelative(obj.string("last_seen_at") ?: obj.string("created_at")),
             avatarUrl = obj.string("avatar_url") ?: "",
             coverUrl = obj.string("cover_url") ?: ""
+        )
+    }
+
+    private fun parseAdminVenue(el: JsonElement): AdminVenueSummary? {
+        val obj = el.asObjectOrNull() ?: return null
+        return AdminVenueSummary(
+            id = obj.string("venue_id") ?: return null,
+            venueName = obj.string("venue_name") ?: "",
+            area = obj.string("area") ?: "",
+            category = obj.string("category") ?: "",
+            status = membershipFromApi(obj.string("status")),
+            ownerEmail = obj.string("owner_email") ?: "",
+            ownerName = obj.string("owner_name") ?: "",
+            offerCount = obj.int("offer_count") ?: 0,
+            liveOfferCount = obj.int("live_offer_count") ?: 0,
+            bookingCount = obj.int("booking_count") ?: 0
+        )
+    }
+
+    private fun parseAdminBooking(el: JsonElement): AdminBookingSummary? {
+        val obj = el.asObjectOrNull() ?: return null
+        return AdminBookingSummary(
+            id = obj.string("booking_id") ?: return null,
+            offerTitle = obj.string("offer_title") ?: "",
+            venueName = obj.string("venue_name") ?: "",
+            guestName = obj.string("guest_name") ?: "",
+            guestEmail = obj.string("guest_email") ?: "",
+            stage = obj.string("stage") ?: "",
+            dateLabel = obj.string("date_label") ?: "",
+            proofStatus = obj.string("proof_status") ?: ""
         )
     }
 

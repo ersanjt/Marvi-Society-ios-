@@ -1165,6 +1165,78 @@ enum InboxSection: String, CaseIterable, Identifiable {
     }
 }
 
+struct AdminVenueSummary: Identifiable, Hashable, Codable {
+    var id: UUID { venueID }
+    let venueID: UUID
+    var venueName: String
+    var area: String
+    var category: String?
+    var status: String?
+    var ownerUserID: UUID?
+    var ownerEmail: String?
+    var ownerName: String?
+    var offerCount: Int
+    var liveOfferCount: Int
+    var bookingCount: Int
+    var createdAt: Date?
+    var updatedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case venueID = "venue_id"
+        case venueName = "venue_name"
+        case area, category, status
+        case ownerUserID = "owner_user_id"
+        case ownerEmail = "owner_email"
+        case ownerName = "owner_name"
+        case offerCount = "offer_count"
+        case liveOfferCount = "live_offer_count"
+        case bookingCount = "booking_count"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+
+    var displayStatus: String {
+        (status ?? "under_review").replacingOccurrences(of: "_", with: " ").capitalized
+    }
+}
+
+struct AdminBookingSummary: Identifiable, Hashable, Codable {
+    var id: UUID { bookingID }
+    let bookingID: UUID
+    var offerID: UUID?
+    var offerTitle: String?
+    var venueID: UUID?
+    var venueName: String?
+    var creatorUserID: UUID?
+    var guestName: String?
+    var guestEmail: String?
+    var stage: String?
+    var dateLabel: String?
+    var proofStatus: String?
+    var createdAt: Date?
+    var updatedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case bookingID = "booking_id"
+        case offerID = "offer_id"
+        case offerTitle = "offer_title"
+        case venueID = "venue_id"
+        case venueName = "venue_name"
+        case creatorUserID = "creator_user_id"
+        case guestName = "guest_name"
+        case guestEmail = "guest_email"
+        case stage
+        case dateLabel = "date_label"
+        case proofStatus = "proof_status"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+
+    var stageLabel: String {
+        (stage ?? "invited").replacingOccurrences(of: "_", with: " ").capitalized
+    }
+}
+
 struct AdminUserSummary: Identifiable, Hashable, Codable {
     var id: UUID { userID }
     let userID: UUID
