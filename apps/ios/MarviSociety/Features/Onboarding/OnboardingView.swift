@@ -72,8 +72,8 @@ private enum SignupIntent: String, CaseIterable, Identifiable {
 
     var accent: Color {
         switch self {
-        case .creator: Color(hex: "#A855F7")
-        case .business: Color(hex: "#60A5FA")
+        case .creator: MarviColor.rose
+        case .business: MarviColor.aubergine
         }
     }
 
@@ -157,7 +157,7 @@ struct OnboardingView: View {
 
     private var landingGradient: LinearGradient {
         LinearGradient(
-            colors: [Color(hex: "#A855F7"), Color(hex: "#3B82F6")],
+            colors: [MarviColor.rose, MarviColor.aubergine],
             startPoint: .leading,
             endPoint: .trailing
         )
@@ -294,11 +294,11 @@ struct OnboardingView: View {
 
     private var welcomeStep: some View {
         ZStack {
-            Color(hex: "#0B0E14").ignoresSafeArea()
+            MarviColor.surface.ignoresSafeArea()
 
             GeometryReader { geo in
                 Circle()
-                    .fill(Color(hex: "#A855F7").opacity(showWelcomePaths ? 0.18 : 0.32))
+                    .fill(MarviColor.rose.opacity(showWelcomePaths ? 0.18 : 0.32))
                     .frame(width: geo.size.width * 0.9)
                     .blur(radius: 90)
                     .offset(y: geo.size.height * (showWelcomePaths ? 0.2 : 0.08))
@@ -308,9 +308,9 @@ struct OnboardingView: View {
                     // Soft atmospheric wash — stands in for the photo backdrop.
                     LinearGradient(
                         colors: [
-                            Color(hex: "#1A1030").opacity(0.55),
-                            Color(hex: "#0B0E14").opacity(0.2),
-                            Color(hex: "#0B0E14")
+                            MarviColor.aubergine.opacity(0.55),
+                            MarviColor.surface.opacity(0.2),
+                            MarviColor.surface
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -359,7 +359,7 @@ struct OnboardingView: View {
 
             VStack(spacing: 18) {
                 BrandMark(size: 92)
-                    .shadow(color: Color(hex: "#A855F7").opacity(0.45), radius: 28, x: 0, y: 10)
+                    .shadow(color: MarviColor.rose.opacity(0.45), radius: 28, x: 0, y: 10)
                     .welcomeReveal(welcomeReveal, threshold: .brand)
 
                 HStack(spacing: 0) {
@@ -402,7 +402,7 @@ struct OnboardingView: View {
                     .padding(.vertical, 17)
                     .background(landingGradient)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: Color(hex: "#A855F7").opacity(0.4), radius: 18, x: 0, y: 8)
+                    .shadow(color: MarviColor.rose.opacity(0.4), radius: 18, x: 0, y: 8)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(appState.t(.getStarted))
@@ -525,11 +525,11 @@ struct OnboardingView: View {
 
     private var signInStep: some View {
         ZStack {
-            Color(hex: "#0B0E14").ignoresSafeArea()
+            MarviColor.surface.ignoresSafeArea()
 
             GeometryReader { geo in
                 Circle()
-                    .fill(Color(hex: "#A855F7").opacity(0.2))
+                    .fill(MarviColor.rose.opacity(0.2))
                     .frame(width: geo.size.width * 0.85)
                     .blur(radius: 90)
                     .offset(y: -geo.size.height * 0.05)
@@ -573,7 +573,7 @@ struct OnboardingView: View {
                             RoundedRectangle(cornerRadius: 22, style: .continuous)
                                 .fill(landingGradient)
                                 .frame(width: 72, height: 72)
-                                .shadow(color: Color(hex: "#A855F7").opacity(0.45), radius: 20, x: 0, y: 8)
+                                .shadow(color: MarviColor.rose.opacity(0.45), radius: 20, x: 0, y: 8)
 
                             Image(systemName: "sparkles")
                                 .font(.system(size: 28, weight: .semibold))
@@ -672,7 +672,7 @@ struct OnboardingView: View {
                                 } label: {
                                     Text(isCreatingAccount ? appState.t(.alreadyMemberToggle) : appState.t(.newMemberCreate))
                                         .font(.caption.weight(.semibold))
-                                        .foregroundStyle(Color(hex: "#A855F7"))
+                                        .foregroundStyle(MarviColor.rose)
                                         .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.plain)
@@ -734,7 +734,7 @@ struct OnboardingView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .shadow(
-                                    color: emailContinueEnabled ? Color(hex: "#A855F7").opacity(0.35) : .clear,
+                                    color: emailContinueEnabled ? MarviColor.rose.opacity(0.35) : .clear,
                                     radius: 16,
                                     x: 0,
                                     y: 8
@@ -1521,7 +1521,7 @@ private struct OnboardingLaunchIntro: View {
     @State private var orbPulse = false
     @State private var contentAppeared = false
 
-    private let accent = Color(hex: "#A855F7")
+    private let accent = MarviColor.rose
     private let autoAdvanceSeconds: TimeInterval = 3.2
 
     private var appVersionLabel: String {
@@ -1531,7 +1531,7 @@ private struct OnboardingLaunchIntro: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "#0B0E14").ignoresSafeArea()
+            MarviColor.surface.ignoresSafeArea()
 
             GeometryReader { geo in
                 Circle()
@@ -1649,7 +1649,7 @@ private struct LaunchIntroSlideCard: View {
         VStack(spacing: 22) {
             ZStack {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color(hex: "#16122A"))
+                    .fill(MarviColor.panelElevated)
                     .frame(width: 108, height: 108)
                     .overlay(
                         RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -1951,7 +1951,7 @@ private struct AuthOrDivider: View {
                 .foregroundStyle(Color.white.opacity(0.4))
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color(hex: "#0B0E14"))
+                .background(MarviColor.surface)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(Color.white.opacity(0.12), lineWidth: 1)
@@ -1975,11 +1975,11 @@ private struct RoleSelectCard: View {
             HStack(spacing: 16) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color(hex: "#16122A"))
+                        .fill(MarviColor.panelElevated)
                         .frame(width: 52, height: 52)
                         .overlay(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(Color(hex: "#A855F7").opacity(0.25), lineWidth: 1)
+                                .stroke(MarviColor.rose.opacity(0.25), lineWidth: 1)
                         )
 
                     Image(systemName: intent.icon)

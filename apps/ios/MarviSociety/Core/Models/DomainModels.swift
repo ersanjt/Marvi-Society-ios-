@@ -119,12 +119,8 @@ enum OfferCategory: String, CaseIterable, Codable, Identifiable, Hashable {
 
     var tint: Color {
         switch self {
-        case .dining: MarviColor.tomato
-        case .nightlife: MarviColor.aubergine
-        case .wellness: MarviColor.emerald
-        case .beauty: MarviColor.rose
-        case .fitness: MarviColor.blue
-        case .retail: MarviColor.gold
+        case .dining, .beauty, .retail: MarviColor.rose
+        case .nightlife, .wellness, .fitness: MarviColor.aubergine
         }
     }
 }

@@ -29,7 +29,7 @@ object MarviGradient {
     val Cool: Brush = Brush.linearGradient(
         colors = listOf(
             MarviColor.Aubergine.copy(alpha = 0.16f),
-            MarviColor.Blue.copy(alpha = 0.08f),
+            MarviColor.Rose.copy(alpha = 0.08f),
             MarviColor.Surface
         ),
         start = Offset(Float.POSITIVE_INFINITY, 0f),
@@ -49,6 +49,6 @@ object MarviGradient {
     )
 }
 
-/** Tab bar selected tint (iOS UIKit tab pink). */
-val TabSelected = Color(0xFFFF2E78)
+/** Tab bar selected tint — brand rose. */
+val TabSelected = Color(0xFFFF2D78)
 val TabBarBackground = Color(0xFF050508)

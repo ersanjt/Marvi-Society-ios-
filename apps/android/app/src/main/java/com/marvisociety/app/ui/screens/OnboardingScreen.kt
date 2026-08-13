@@ -432,7 +432,7 @@ private fun OnboardingLaunchIntro(
     viewModel: AppViewModel,
     onFinished: () -> Unit
 ) {
-    val accent = Color(0xFFA855F7)
+    val accent = MarviColor.Rose
     val slides = listOf(
         IntroSlide(
             icon = Icons.Outlined.Videocam,
@@ -463,7 +463,7 @@ private fun OnboardingLaunchIntro(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0B0E14))
+            .background(MarviColor.Surface)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -532,7 +532,7 @@ private fun OnboardingLaunchIntro(
                         modifier = Modifier
                             .size(108.dp)
                             .clip(RoundedCornerShape(28.dp))
-                            .background(Color(0xFF16122A))
+                            .background(MarviColor.PanelElevated)
                             .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(28.dp)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -609,9 +609,9 @@ private fun WelcomeStep(
     onMember: () -> Unit
 ) {
     var showPaths by remember { mutableStateOf(false) }
-    val accentStart = Color(0xFFA855F7)
-    val accentEnd = Color(0xFF3B82F6)
-    val landingBrush = Brush.horizontalGradient(listOf(accentStart, accentEnd))
+    val accentStart = MarviColor.Rose
+    val accentEnd = MarviColor.Aubergine
+    val landingBrush = MarviGradient.Brand
 
     Box(
         modifier = Modifier
@@ -839,11 +839,11 @@ private fun RolePathCard(
             modifier = Modifier
                 .size(52.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF16122A))
-                .border(1.dp, Color(0xFFA855F7).copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+                .background(MarviColor.PanelElevated)
+                .border(1.dp, MarviColor.Rose.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color(0xFFA855F7), modifier = Modifier.size(22.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = MarviColor.Rose, modifier = Modifier.size(22.dp))
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {

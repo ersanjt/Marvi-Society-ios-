@@ -47,7 +47,7 @@ const config: Config = {
         "brand-gradient-vertical":
           "linear-gradient(135deg, #FF2D78 0%, #8B5CF6 50%, #4C1D95 100%)",
         "brand-warm":
-          "linear-gradient(135deg, rgba(255,45,120,0.35) 0%, rgba(139,92,246,0.25) 50%, #0A0A0C 100%)",
+          "linear-gradient(135deg, rgba(255,45,120,0.35) 0%, rgba(139,92,246,0.25) 50%, #000000 100%)",
       },
     },
   },

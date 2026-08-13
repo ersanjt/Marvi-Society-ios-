@@ -14,9 +14,9 @@ import androidx.compose.ui.unit.sp
 private val MarviDark = darkColorScheme(
     primary = MarviColor.Rose,
     onPrimary = Color.White,
-    secondary = MarviColor.Gold,
-    onSecondary = MarviColor.InkOnLight,
-    tertiary = MarviColor.Emerald,
+    secondary = MarviColor.Aubergine,
+    onSecondary = Color.White,
+    tertiary = MarviColor.Aubergine,
     background = MarviColor.Surface,
     onBackground = MarviColor.Ink,
     surface = MarviColor.Panel,

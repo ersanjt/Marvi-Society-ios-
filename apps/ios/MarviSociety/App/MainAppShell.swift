@@ -7,7 +7,7 @@ struct MainAppShell: View {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
-        appearance.shadowColor = UIColor(red: 1, green: 0.18, blue: 0.47, alpha: 0.08)
+        appearance.shadowColor = UIColor(red: 1, green: 45 / 255, blue: 120 / 255, alpha: 0.08)
 
         let normal = appearance.stackedLayoutAppearance.normal
         normal.iconColor = UIColor(white: 0.5, alpha: 1)
@@ -17,9 +17,10 @@ struct MainAppShell: View {
         ]
 
         let selected = appearance.stackedLayoutAppearance.selected
-        selected.iconColor = UIColor(red: 1, green: 0.18, blue: 0.47, alpha: 1)
+        // Brand rose #FF2D78
+        selected.iconColor = UIColor(red: 1, green: 45 / 255, blue: 120 / 255, alpha: 1)
         selected.titleTextAttributes = [
-            .foregroundColor: UIColor(red: 1, green: 0.18, blue: 0.47, alpha: 1),
+            .foregroundColor: UIColor(red: 1, green: 45 / 255, blue: 120 / 255, alpha: 1),
             .font: UIFont.systemFont(ofSize: 10, weight: .bold)
         ]
 
