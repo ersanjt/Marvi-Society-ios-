@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.4",
-      "buildNumber": 99,
+      "buildNumber": 100,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260814060001_venue_map_coords_sync_and_push_trigger",
-      "migrationCount": 78
+      "migrationHead": "20260814070001_dedupe_venue_profiles_and_reuse",
+      "migrationCount": 79
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T23:18:48Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260814070001_dedupe_venue_profiles_and_reuse)"
+    },
+    {
+      "at": "2026-08-13T23:08:16Z",
+      "status": "ok",
+      "message": "pushed 81b3cc9 to origin/main"
+    },
     {
       "at": "2026-08-13T23:08:12Z",
       "status": "ok",
@@ -261,16 +271,6 @@
       "at": "2026-08-12T19:39:38Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260812210001_inbox_mark_all_read)"
-    },
-    {
-      "at": "2026-08-12T19:38:31Z",
-      "status": "error",
-      "message": "supabase db push failed"
-    },
-    {
-      "at": "2026-08-12T19:35:43Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
     }
   ],
   "releases": [

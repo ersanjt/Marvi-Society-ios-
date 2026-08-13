@@ -886,156 +886,130 @@ fun VenueStudioScreen(
                     onNotifications = onOpenInbox
                 )
             }
+
+            // Compact venue context (chips / single row) — no duplicate full cards
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        viewModel.t(MarviL10n.Key.MANAGE_EVENTS),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MarviColor.Ink,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        viewModel.t(MarviL10n.Key.AT_ESTABLISHMENTS),
-                        style = MaterialTheme.typography.headlineSmall.merge(
-                            androidx.compose.ui.text.TextStyle(brush = com.marvisociety.app.ui.theme.MarviGradient.Brand)
-                        ),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-            item {
-                val live = viewModel.campaigns.firstOrNull { !it.isDeleted && it.status.equals("live", ignoreCase = true) }
-                if (live != null) {
+                val venues = viewModel.myVenues
+                if (venues.isEmpty()) {
                     MarviCard {
-                        Text(
-                            viewModel.t(MarviL10n.Key.LIVE_CAMPAIGN).uppercase(),
-                            color = MarviColor.Muted,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Text(live.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
-                        com.marvisociety.app.ui.components.GradientCTA(
-                            title = viewModel.t(MarviL10n.Key.MATCH_CREATORS_TITLE),
-                            onClick = { viewModel.loadSwipeCandidates() }
-                        )
-                    }
-                }
-            }
-            item {
-                var campaignScope by remember { mutableStateOf(com.marvisociety.app.ui.components.StudioGridFocus.HAPPENING) }
-                StudioStatusGrid(
-                    underReview = viewModel.t(MarviL10n.Key.STUDIO_UNDER_REVIEW),
-                    upcoming = viewModel.t(MarviL10n.Key.STUDIO_UPCOMING),
-                    openSwipe = viewModel.t(MarviL10n.Key.STUDIO_OPEN_SWIPE),
-                    happening = viewModel.t(MarviL10n.Key.STUDIO_HAPPENING),
-                    past = viewModel.t(MarviL10n.Key.STUDIO_PAST),
-                    create = viewModel.t(MarviL10n.Key.STUDIO_CREATE),
-                    selected = campaignScope,
-                    onUnderReview = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.UNDER_REVIEW; showPastCampaigns = false },
-                    onUpcoming = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.UPCOMING; showPastCampaigns = false },
-                    onSwipe = { viewModel.loadSwipeCandidates() },
-                    onHappening = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.HAPPENING; showPastCampaigns = false },
-                    onPast = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.PAST; showPastCampaigns = true },
-                    onCreate = {
-                        if (!canCreateCampaign) {
-                            formError = viewModel.t(MarviL10n.Key.VENUE_MUST_BE_APPROVED)
-                        } else {
-                            showCreate = true
+                        Text(viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.EST_HUB_SUB), color = MarviColor.Muted)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onAddEstablishment,
+                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                        ) {
+                            Text(viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT))
                         }
                     }
-                )
-            }
-            item {
-                Text(viewModel.t(MarviL10n.Key.STUDIO), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
-            }
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(viewModel.t(MarviL10n.Key.MY_ESTABLISHMENTS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
-                    Button(
-                        onClick = onAddEstablishment,
-                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                    ) {
-                        Text(viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT))
+                } else if (venues.size == 1) {
+                    val venue = venues.first()
+                    MarviCard {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(venue.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                                Text(
+                                    "${venue.area} · ${when (venue.status) {
+                                        MembershipStatus.APPROVED -> viewModel.t(MarviL10n.Key.LOCATION_APPROVED)
+                                        MembershipStatus.UNDER_REVIEW -> viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_TITLE)
+                                        MembershipStatus.PAUSED -> viewModel.t(MarviL10n.Key.LOCATION_REJECTED)
+                                        null -> ""
+                                    }}",
+                                    color = MarviColor.Muted,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            OutlinedButton(onClick = { onEditEstablishment(venue.id) }) {
+                                Text(viewModel.t(MarviL10n.Key.EST_WIZARD_EDIT_TITLE))
+                            }
+                        }
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(viewModel.t(MarviL10n.Key.MY_ESTABLISHMENTS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                            TextButton(onClick = onAddEstablishment) {
+                                Text(viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT), color = MarviColor.Rose)
+                            }
+                        }
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(venues, key = { it.id }) { venue ->
+                                val selected = venue.isActive
+                                MarviCard(
+                                    modifier = Modifier
+                                        .clickable { if (!venue.isActive) viewModel.setActiveVenue(venue.id) }
+                                        .then(
+                                            if (selected) Modifier.border(1.dp, MarviColor.Rose, RoundedCornerShape(14.dp))
+                                            else Modifier
+                                        )
+                                ) {
+                                    Text(venue.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink, maxLines = 1)
+                                    Text(venue.area, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                                }
+                            }
+                        }
                     }
                 }
             }
-            items(viewModel.myVenues, key = { it.id }) { venue ->
-                MarviCard(
-                    modifier = Modifier.clickable {
-                        if (!venue.isActive) viewModel.setActiveVenue(venue.id)
-                    }
-                ) {
-                    Text(venue.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                    Text("${venue.area} · ${viewModel.categoryLabel(venue.category)}", color = MarviColor.Muted)
-                    when (venue.status) {
-                        MembershipStatus.UNDER_REVIEW -> Text(
-                            viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_TITLE),
-                            color = MarviColor.Gold,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        MembershipStatus.APPROVED -> Text(
-                            viewModel.t(MarviL10n.Key.LOCATION_APPROVED),
-                            color = MarviColor.Emerald,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        MembershipStatus.PAUSED -> Text(
-                            viewModel.t(MarviL10n.Key.LOCATION_REJECTED),
-                            color = MarviColor.Tomato,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        null -> Unit
-                    }
-                    if (venue.isActive) Text(viewModel.t(MarviL10n.Key.VENUE_ACTIVE), color = MarviColor.Rose)
-                }
-            }
+
             item {
-                val focused = focusedVenue
-                when (focused?.status) {
+                when (focusedVenue?.status) {
                     MembershipStatus.UNDER_REVIEW -> MarviCard {
                         Text(viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                         Text(viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_SUB), color = MarviColor.Muted)
-                    }
-                    MembershipStatus.APPROVED -> MarviCard {
-                        val hasLive = viewModel.campaigns.any { !it.isDeleted && it.status.equals("live", ignoreCase = true) }
-                        Text(viewModel.t(MarviL10n.Key.VENUE_APPROVED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                        Text(
-                            viewModel.t(
-                                if (hasLive) MarviL10n.Key.VENUE_APPROVED_BANNER_SUB
-                                else MarviL10n.Key.VENUE_APPROVED_NEEDS_LIVE_SUB
-                            ),
-                            color = MarviColor.Muted
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(onClick = { focused?.id?.let(onEditEstablishment) }) {
-                            Text(viewModel.t(MarviL10n.Key.EST_WIZARD_EDIT_TITLE))
-                        }
                     }
                     MembershipStatus.PAUSED -> MarviCard {
                         Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                         Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_SUB), color = MarviColor.Muted)
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
-                            onClick = { focused?.id?.let(onEditEstablishment) },
+                            onClick = { focusedVenue?.id?.let(onEditEstablishment) },
                             colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
                         ) {
                             Text(viewModel.t(MarviL10n.Key.VENUE_EDIT_AND_RESUBMIT))
                         }
                     }
+                    MembershipStatus.APPROVED -> {
+                        val live = viewModel.campaigns.firstOrNull { !it.isDeleted && it.status.equals("live", ignoreCase = true) }
+                        if (live != null) {
+                            MarviCard {
+                                Text(
+                                    viewModel.t(MarviL10n.Key.LIVE_CAMPAIGN).uppercase(),
+                                    color = MarviColor.Muted,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                                Text(live.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                com.marvisociety.app.ui.components.GradientCTA(
+                                    title = viewModel.t(MarviL10n.Key.MATCH_CREATORS_TITLE),
+                                    onClick = { viewModel.loadSwipeCandidates() }
+                                )
+                            }
+                        } else if (canCreateCampaign) {
+                            Button(
+                                onClick = { showCreate = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                            ) {
+                                Text(viewModel.t(MarviL10n.Key.NEW_CAMPAIGN), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                     null -> Unit
                 }
             }
-            if (viewModel.myVenues.isEmpty()) {
-                item {
-                    Text(
-                        viewModel.t(MarviL10n.Key.EST_HUB_SUB),
-                        color = MarviColor.Muted,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+
+            item {
+                Text(viewModel.t(MarviL10n.Key.CAMPAIGNS), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
             }
             item {
                 Row(
@@ -1043,7 +1017,24 @@ fun VenueStudioScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(viewModel.t(MarviL10n.Key.CAMPAIGNS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
+                    FilterChip(
+                        selected = !showPastCampaigns,
+                        onClick = { showPastCampaigns = false },
+                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_HAPPENING)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
+                            selectedLabelColor = MarviColor.Rose
+                        )
+                    )
+                    FilterChip(
+                        selected = showPastCampaigns,
+                        onClick = { showPastCampaigns = true },
+                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_PAST)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
+                            selectedLabelColor = MarviColor.Rose
+                        )
+                    )
                     Button(
                         onClick = {
                             if (!canCreateCampaign) {
