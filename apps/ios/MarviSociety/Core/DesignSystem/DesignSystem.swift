@@ -831,16 +831,43 @@ struct StudioStatusGrid: View {
     @EnvironmentObject private var appState: AppState
     let onCreate: () -> Void
     let onSwipe: () -> Void
+    var onPast: (() -> Void)? = nil
+    var onActive: (() -> Void)? = nil
+    var selectedPast: Bool = false
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 10) {
-            StudioGridTile(title: appState.t(.studioUnderReview), icon: "clock", tint: MarviColor.gold)
-            StudioGridTile(title: appState.t(.studioUpcoming), icon: "calendar", tint: MarviColor.blue)
+            StudioGridTile(
+                title: appState.t(.studioUnderReview),
+                icon: "clock",
+                tint: MarviColor.gold,
+                isSelected: !selectedPast,
+                action: onActive
+            )
+            StudioGridTile(
+                title: appState.t(.studioUpcoming),
+                icon: "calendar",
+                tint: MarviColor.blue,
+                isSelected: !selectedPast,
+                action: onActive
+            )
             StudioGridTile(title: appState.t(.studioOpenSwipe), icon: "hand.draw", tint: MarviColor.rose, action: onSwipe)
-            StudioGridTile(title: appState.t(.studioHappening), icon: "sparkles", tint: MarviColor.emerald)
-            StudioGridTile(title: appState.t(.studioPast), icon: "archivebox", tint: MarviColor.muted)
+            StudioGridTile(
+                title: appState.t(.studioHappening),
+                icon: "sparkles",
+                tint: MarviColor.emerald,
+                isSelected: !selectedPast,
+                action: onActive
+            )
+            StudioGridTile(
+                title: appState.t(.studioPast),
+                icon: "archivebox",
+                tint: MarviColor.muted,
+                isSelected: selectedPast,
+                action: onPast
+            )
             StudioGridTile(title: appState.t(.studioCreate), icon: "plus", tint: MarviColor.aubergine, action: onCreate)
         }
     }
@@ -850,6 +877,7 @@ private struct StudioGridTile: View {
     let title: String
     let icon: String
     let tint: Color
+    var isSelected: Bool = false
     var action: (() -> Void)?
 
     var body: some View {
@@ -864,16 +892,16 @@ private struct StudioGridTile: View {
                 Text(title)
                     .font(.caption2.weight(.bold))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(MarviColor.muted)
+                    .foregroundStyle(isSelected ? MarviColor.ink : MarviColor.muted)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 88)
-            .background(MarviColor.panel)
+            .background(isSelected ? tint.opacity(0.12) : MarviColor.panel)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(MarviColor.border, lineWidth: 1)
+                    .stroke(isSelected ? tint.opacity(0.55) : MarviColor.border, lineWidth: isSelected ? 1.5 : 1)
             )
         }
         .buttonStyle(.plain)

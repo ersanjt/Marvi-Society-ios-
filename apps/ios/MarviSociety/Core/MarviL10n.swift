@@ -173,6 +173,7 @@ enum MarviL10n {
         case adminCreateInviteCode, adminUpdateInviteQuota, adminInviteQuotaPh
         case studioUnderReview, studioUpcoming, studioOpenSwipe, studioHappening, studioPast, studioCreate
         case deleteCampaignConfirm, campaignDeletedMsg
+        case studioCampaignsActive, noActiveCampaigns, noActiveCampaignsSub, noPastCampaigns, noPastCampaignsSub
         case profileEngagement
         case profileTabOverview, profileTabEdit, profileTabAccount, profileTabSettings
         case communityTab, communityTitle, communitySub, communitySearchPrompt
@@ -607,6 +608,11 @@ enum MarviL10n {
         .studioHappening: "Happening", .studioPast: "Past", .studioCreate: "Create",
         .deleteCampaignConfirm: "Delete this campaign? It will be removed from Explore and open requests will be cancelled.",
         .campaignDeletedMsg: "Campaign deleted",
+        .studioCampaignsActive: "Active",
+        .noActiveCampaigns: "No active campaigns",
+        .noActiveCampaignsSub: "Create a campaign to invite creators. Past campaigns stay in Past.",
+        .noPastCampaigns: "No past campaigns",
+        .noPastCampaignsSub: "Completed campaigns will appear here.",
         .profileEngagement: "Engagement",
         .profileTabOverview: "Overview",
         .profileTabEdit: "Edit",
@@ -1138,6 +1144,11 @@ enum MarviL10n {
         .studioHappening: "Devam eden", .studioPast: "Geçmiş", .studioCreate: "Oluştur",
         .deleteCampaignConfirm: "Bu kampanya silinsin mi? Keşfet’ten kalkar ve açık talepler iptal edilir.",
         .campaignDeletedMsg: "Kampanya silindi",
+        .studioCampaignsActive: "Aktif",
+        .noActiveCampaigns: "Aktif kampanya yok",
+        .noActiveCampaignsSub: "Creator davet etmek için kampanya oluşturun. Eski kampanyalar Geçmiş’te kalır.",
+        .noPastCampaigns: "Geçmiş kampanya yok",
+        .noPastCampaignsSub: "Tamamlanan kampanyalar burada görünür.",
         .profileEngagement: "Etkileşim",
         .profileTabOverview: "Genel",
         .profileTabEdit: "Düzenle",

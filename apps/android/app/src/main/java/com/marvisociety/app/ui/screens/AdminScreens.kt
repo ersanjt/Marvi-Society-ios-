@@ -477,7 +477,14 @@ fun VenueStudioScreen(
     var formError by remember { mutableStateOf<String?>(null) }
     var campaignPendingDelete by remember { mutableStateOf<Campaign?>(null) }
     var deleteFeedback by remember { mutableStateOf<String?>(null) }
+    var showPastCampaigns by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val visibleCampaigns = viewModel.campaigns.filterNot { it.isDeleted }.filter { campaign ->
+        val completed = campaign.status.equals("Completed", ignoreCase = true)
+            || campaign.status.equals("completed", ignoreCase = true)
+            || campaign.status.contains("Tamam", ignoreCase = true)
+        if (showPastCampaigns) completed else !completed
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadSwipeCandidates()
@@ -689,12 +696,65 @@ fun VenueStudioScreen(
                     }
                 }
             }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilterChip(
+                        selected = !showPastCampaigns,
+                        onClick = { showPastCampaigns = false },
+                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_CAMPAIGNS_ACTIVE)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.2f),
+                            selectedLabelColor = MarviColor.Ink
+                        )
+                    )
+                    FilterChip(
+                        selected = showPastCampaigns,
+                        onClick = { showPastCampaigns = true },
+                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_CAMPAIGNS_PAST)) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MarviColor.Muted.copy(alpha = 0.2f),
+                            selectedLabelColor = MarviColor.Ink
+                        )
+                    )
+                }
+            }
             deleteFeedback?.let { msg ->
                 item {
                     Text(msg, color = MarviColor.Emerald, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            items(viewModel.campaigns.filterNot { it.isDeleted }, key = { it.id }) { campaign ->
+            if (visibleCampaigns.isEmpty()) {
+                item {
+                    MarviCard {
+                        Text(
+                            if (showPastCampaigns) viewModel.t(MarviL10n.Key.NO_PAST_CAMPAIGNS)
+                            else viewModel.t(MarviL10n.Key.NO_ACTIVE_CAMPAIGNS),
+                            fontWeight = FontWeight.Bold,
+                            color = MarviColor.Ink
+                        )
+                        Text(
+                            if (showPastCampaigns) viewModel.t(MarviL10n.Key.NO_PAST_CAMPAIGNS_SUB)
+                            else viewModel.t(MarviL10n.Key.NO_ACTIVE_CAMPAIGNS_SUB),
+                            color = MarviColor.Muted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        if (!showPastCampaigns) {
+                            Button(
+                                onClick = { showCreate = true },
+                                modifier = Modifier.padding(top = 8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                            ) {
+                                Text(viewModel.t(MarviL10n.Key.NEW_CAMPAIGN))
+                            }
+                        }
+                    }
+                }
+            }
+            items(visibleCampaigns, key = { it.id }) { campaign ->
                 MarviCard {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

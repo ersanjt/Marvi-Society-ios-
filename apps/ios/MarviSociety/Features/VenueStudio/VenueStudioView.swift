@@ -29,6 +29,19 @@ private enum VenueStudioTab: CaseIterable, Identifiable {
     }
 }
 
+private enum StudioCampaignScope: CaseIterable, Identifiable {
+    case active, past
+
+    var id: Self { self }
+
+    func title(for language: AppLanguage) -> String {
+        switch self {
+        case .active: MarviL10n.t(.studioCampaignsActive, language: language)
+        case .past: MarviL10n.t(.studioPast, language: language)
+        }
+    }
+}
+
 struct VenueStudioView: View {
     @EnvironmentObject private var appState: AppState
     @State private var isShowingBuilder = false
@@ -36,6 +49,7 @@ struct VenueStudioView: View {
     @State private var isShowingAddVenue = false
     @State private var reviewSegment: VenueReviewSegment = .checkedIn
     @State private var studioTab: VenueStudioTab = .establishments
+    @State private var campaignScope: StudioCampaignScope = .active
     @State private var isShowingInbox = false
     @State private var campaignPendingDelete: Campaign?
     @State private var isDeletingCampaign = false
@@ -46,7 +60,13 @@ struct VenueStudioView: View {
     }
 
     private var studioCampaigns: [Campaign] {
-        appState.campaigns.filter { !$0.isDeleted }
+        let visible = appState.campaigns.filter { !$0.isDeleted }
+        switch campaignScope {
+        case .active:
+            return visible.filter { $0.status != .completed }
+        case .past:
+            return visible.filter { $0.status == .completed }
+        }
     }
 
     private var liveCampaignForActiveVenue: Campaign? {
@@ -133,7 +153,10 @@ struct VenueStudioView: View {
 
                         StudioStatusGrid(
                             onCreate: { isShowingBuilder = true },
-                            onSwipe: { isShowingSwipe = true }
+                            onSwipe: { isShowingSwipe = true },
+                            onPast: { campaignScope = .past },
+                            onActive: { campaignScope = .active },
+                            selectedPast: campaignScope == .past
                         )
 
                         SSSegmentedTabs(
@@ -148,15 +171,37 @@ struct VenueStudioView: View {
                                 subtitle: String(format: appState.t(.campaignsSub), studioCampaigns.count)
                             )
 
+                            SSSegmentedTabs(
+                                options: StudioCampaignScope.allCases,
+                                title: { $0.title(for: appState.preferredLanguage) },
+                                selection: $campaignScope
+                            )
+
                             if let deleteFeedback {
                                 Text(deleteFeedback)
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(MarviColor.emerald)
                             }
 
-                            ForEach(studioCampaigns) { campaign in
-                                CampaignCard(campaign: campaign) {
-                                    campaignPendingDelete = campaign
+                            if studioCampaigns.isEmpty {
+                                MarviCard {
+                                    EmptyStateView(
+                                        title: campaignScope == .active
+                                            ? appState.t(.noActiveCampaigns)
+                                            : appState.t(.noPastCampaigns),
+                                        subtitle: campaignScope == .active
+                                            ? appState.t(.noActiveCampaignsSub)
+                                            : appState.t(.noPastCampaignsSub),
+                                        icon: campaignScope == .active ? "megaphone" : "archivebox",
+                                        actionTitle: campaignScope == .active ? appState.t(.studioCreate) : nil,
+                                        action: campaignScope == .active ? { isShowingBuilder = true } : nil
+                                    )
+                                }
+                            } else {
+                                ForEach(studioCampaigns) { campaign in
+                                    CampaignCard(campaign: campaign) {
+                                        campaignPendingDelete = campaign
+                                    }
                                 }
                             }
                         } else {
