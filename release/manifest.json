@@ -17,11 +17,26 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260813010001_inbox_role_polish",
-      "migrationCount": 63
+      "migrationHead": "20260813150001_fix_admin_tasks_resolved_at",
+      "migrationCount": 64
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T12:14:56Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260813150001_fix_admin_tasks_resolved_at)"
+    },
+    {
+      "at": "2026-08-13T12:14:11Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260813150001_fix_admin_tasks_resolved_at)"
+    },
+    {
+      "at": "2026-08-13T11:36:43Z",
+      "status": "ok",
+      "message": "release v1.5.3"
+    },
     {
       "at": "2026-08-12T21:47:10Z",
       "status": "ok",
@@ -256,21 +271,6 @@
       "at": "2026-07-19T12:33:17Z",
       "status": "ok",
       "message": "pushed 0fc4180 to origin/main"
-    },
-    {
-      "at": "2026-07-19T12:33:13Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260717000001_proof_upload_retry_policy)"
-    },
-    {
-      "at": "2026-07-18T16:16:54Z",
-      "status": "ok",
-      "message": "pushed fb75bcf to origin/main"
-    },
-    {
-      "at": "2026-07-18T16:16:36Z",
-      "status": "ok",
-      "message": "pushed 59e3da5 to origin/main"
     }
   ],
   "releases": [

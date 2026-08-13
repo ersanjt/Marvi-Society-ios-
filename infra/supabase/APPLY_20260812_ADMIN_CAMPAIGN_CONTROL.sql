@@ -74,13 +74,17 @@ BEGIN
 
     IF p_status = 'live' THEN
         UPDATE public.admin_tasks
-        SET status = 'approved', updated_at = now()
+        SET status = 'approved',
+            resolved_at = now(),
+            assigned_admin_id = auth.uid()
         WHERE type = 'campaign_review'
           AND subject_id = p_offer_id
           AND status = 'open';
     ELSIF p_status = 'draft' AND v_from = 'review' THEN
         UPDATE public.admin_tasks
-        SET status = 'rejected', updated_at = now()
+        SET status = 'rejected',
+            resolved_at = now(),
+            assigned_admin_id = auth.uid()
         WHERE type = 'campaign_review'
           AND subject_id = p_offer_id
           AND status = 'open';
@@ -142,7 +146,9 @@ BEGIN
     RETURNING * INTO v_offer;
 
     UPDATE public.admin_tasks
-    SET status = 'rejected', updated_at = now()
+    SET status = 'rejected',
+        resolved_at = now(),
+        assigned_admin_id = auth.uid()
     WHERE type = 'campaign_review'
       AND subject_id = p_offer_id
       AND status = 'open';

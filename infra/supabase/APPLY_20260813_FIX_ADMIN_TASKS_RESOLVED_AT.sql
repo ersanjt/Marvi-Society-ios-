@@ -1,28 +1,5 @@
--- Admin full campaign control: status RPC + soft delete + public view exclude deleted.
-
-ALTER TABLE public.offers
-    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS admin_block_reason TEXT;
-
-CREATE INDEX IF NOT EXISTS offers_deleted_at_idx ON public.offers (deleted_at)
-    WHERE deleted_at IS NOT NULL;
-
--- Explore must never show soft-deleted campaigns.
--- DROP + CREATE required: REPLACE cannot rename/reorder columns when `o.*` gains new fields.
-DROP VIEW IF EXISTS public.offers_public;
-CREATE VIEW public.offers_public AS
-SELECT
-    o.*,
-    v.venue_name,
-    v.area
-FROM public.offers o
-JOIN public.venue_profiles v ON v.id = o.venue_id
-WHERE o.status = 'live'
-  AND o.deleted_at IS NULL
-  AND v.status = 'approved';
-
-ALTER VIEW public.offers_public SET (security_invoker = true);
-GRANT SELECT ON public.offers_public TO anon, authenticated;
+-- Hotfix paste for Supabase SQL Editor:
+-- admin_tasks has resolved_at (not updated_at). Fixes admin publish live campaigns.
 
 CREATE OR REPLACE FUNCTION public.admin_set_offer_status(
     p_offer_id UUID,
@@ -71,7 +48,6 @@ BEGIN
     WHERE id = p_offer_id
     RETURNING * INTO v_offer;
 
-    -- Keep Queue in sync when publishing or sending back to draft from review.
     IF p_status = 'live' THEN
         UPDATE public.admin_tasks
         SET status = 'approved',
@@ -120,7 +96,6 @@ AS $$
 DECLARE
     v_offer public.offers;
     v_reason TEXT := nullif(trim(coalesce(p_reason, '')), '');
-    v_booking RECORD;
 BEGIN
     IF NOT public.is_admin() THEN
         RAISE EXCEPTION 'Admin only';
@@ -154,7 +129,6 @@ BEGIN
       AND subject_id = p_offer_id
       AND status = 'open';
 
-    -- Cancel open bookings safely via existing cancel path GUC when available.
     BEGIN
         PERFORM set_config('marvi.allow_booking_mutation', '1', true);
     EXCEPTION WHEN OTHERS THEN
@@ -182,41 +156,3 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_soft_delete_offer(UUID, TEXT) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.admin_restore_offer(p_offer_id UUID)
-RETURNS public.offers
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-    v_offer public.offers;
-BEGIN
-    IF NOT public.is_admin() THEN
-        RAISE EXCEPTION 'Admin only';
-    END IF;
-
-    UPDATE public.offers
-    SET
-        deleted_at = NULL,
-        status = 'draft',
-        updated_at = now()
-    WHERE id = p_offer_id
-    RETURNING * INTO v_offer;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Offer not found';
-    END IF;
-
-    PERFORM public.log_activity_event(
-        'admin_campaign_restored',
-        'offer',
-        p_offer_id,
-        jsonb_build_object('title', v_offer.title)
-    );
-
-    RETURN v_offer;
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION public.admin_restore_offer(UUID) TO authenticated;
