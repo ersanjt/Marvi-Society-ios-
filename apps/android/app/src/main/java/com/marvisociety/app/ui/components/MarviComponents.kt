@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -1167,11 +1168,14 @@ fun OnboardingProgressCapsules(filledCount: Int, total: Int = 4) {
 
 @Composable
 fun ChatBubble(body: String, isMine: Boolean, timeLabel: String = "") {
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
+    ) {
         if (isMine) Spacer(Modifier.width(40.dp))
         Column(
             modifier = Modifier
-                .weight(1f, fill = false)
+                .widthIn(max = 280.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .then(
                     if (isMine) Modifier.background(MarviGradient.Brand)

@@ -41,6 +41,8 @@ import com.marvisociety.app.data.PublicVenueProfile
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
@@ -143,37 +145,62 @@ fun MemberProfileScreen(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val targetUserId = member.userId.ifBlank { member.id }
-                                isFollowBusy = true
-                                val onResult: (Boolean) -> Unit = { succeeded ->
-                                    if (succeeded) {
-                                        scope.launch {
-                                            runCatching {
-                                                creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
-                                            }.onFailure { profileError = it.message }
-                                            isFollowBusy = false
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (profile.isFollowing) {
+                            SecondaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.UNFOLLOW_CREATOR),
+                                onClick = {
+                                    scope.launch {
+                                        val targetUserId = member.userId.ifBlank { member.id }
+                                        isFollowBusy = true
+                                        val onResult: (Boolean) -> Unit = { succeeded ->
+                                            if (succeeded) {
+                                                scope.launch {
+                                                    runCatching {
+                                                        creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
+                                                    }.onFailure { profileError = it.message }
+                                                    isFollowBusy = false
+                                                }
+                                            } else {
+                                                isFollowBusy = false
+                                            }
                                         }
-                                    } else {
-                                        isFollowBusy = false
+                                        viewModel.unfollowUser(targetUserId, onResult)
                                     }
-                                }
-                                if (profile.isFollowing) {
-                                    viewModel.unfollowUser(targetUserId, onResult)
-                                } else {
-                                    viewModel.followUser(targetUserId, onResult)
-                                }
-                            }
-                        },
-                        enabled = !isFollowBusy,
-                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                    ) {
-                        Text(if (profile.isFollowing) viewModel.t(MarviL10n.Key.UNFOLLOW_CREATOR) else viewModel.t(MarviL10n.Key.FOLLOW_CREATOR))
+                                },
+                                enabled = !isFollowBusy
+                            )
+                        } else {
+                            PrimaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.FOLLOW_CREATOR),
+                                onClick = {
+                                    scope.launch {
+                                        val targetUserId = member.userId.ifBlank { member.id }
+                                        isFollowBusy = true
+                                        val onResult: (Boolean) -> Unit = { succeeded ->
+                                            if (succeeded) {
+                                                scope.launch {
+                                                    runCatching {
+                                                        creatorProfile = viewModel.fetchCreatorPublicProfile(member.id)
+                                                    }.onFailure { profileError = it.message }
+                                                    isFollowBusy = false
+                                                }
+                                            } else {
+                                                isFollowBusy = false
+                                            }
+                                        }
+                                        viewModel.followUser(targetUserId, onResult)
+                                    }
+                                },
+                                enabled = !isFollowBusy
+                            )
+                        }
                     }
-                    Button(onClick = { onMessage(member.userId.ifBlank { member.id }) }) {
-                        Text(viewModel.t(MarviL10n.Key.MESSAGE))
+                    Box(modifier = Modifier.weight(1f)) {
+                        SecondaryActionButton(
+                            title = viewModel.t(MarviL10n.Key.MESSAGE),
+                            onClick = { onMessage(member.userId.ifBlank { member.id }) }
+                        )
                     }
                 }
                 if (profile.handle.isNotBlank()) {

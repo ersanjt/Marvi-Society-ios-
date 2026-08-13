@@ -1383,7 +1383,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         val createdRaw = obj.string("created_at")
         val metaEl = obj["metadata"]
         val metadata = buildMap {
-            val metaObj = metaEl.asObjectOrNull()
+            val metaObj = metaEl?.asObjectOrNull()
             if (metaObj != null) {
                 metaObj.keys.forEach { key ->
                     put(key, metaObj.string(key) ?: metaObj[key]?.toString()?.trim('"').orEmpty())

@@ -177,12 +177,12 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                             ) {
                                 if (viewModel.profile.score > 0) {
                                     StatusPill(
-                                        viewModel.t(MarviL10n.Key.MATCH_PERCENT).replace("%d", viewModel.profile.score.toString()),
+                                        viewModel.tf(MarviL10n.Key.MATCH_PERCENT, viewModel.profile.score),
                                         MarviColor.Gold
                                     )
                                 }
                                 StatusPill(
-                                    viewModel.t(MarviL10n.Key.SLOTS_LEFT).replace("%d", offer.remaining.toString()),
+                                    viewModel.tf(MarviL10n.Key.SLOTS_LEFT, offer.remaining),
                                     MarviColor.Rose
                                 )
                                 Spacer(Modifier.weight(1f))
@@ -459,19 +459,7 @@ fun DirectChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(messages, key = { it.id }) { msg ->
-                    val bubbleColor = if (msg.isMine) MarviColor.Rose.copy(alpha = 0.18f) else MarviColor.PanelElevated
-                    val textColor = if (msg.isMine) MarviColor.Rose else MarviColor.Ink
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(bubbleColor)
-                            .padding(12.dp),
-                        horizontalAlignment = if (msg.isMine) Alignment.End else Alignment.Start
-                    ) {
-                        Text(msg.body, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                        Text(msg.createdLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
-                    }
+                    ChatBubble(body = msg.body, isMine = msg.isMine, timeLabel = msg.createdLabel)
                 }
             }
             MarviTextField(
@@ -594,19 +582,7 @@ fun CollaborationThreadScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(messages, key = { it.id }) { msg ->
-                    val bubbleColor = if (msg.isMine) MarviColor.Rose.copy(alpha = 0.18f) else MarviColor.PanelElevated
-                    val textColor = if (msg.isMine) MarviColor.Rose else MarviColor.Ink
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(bubbleColor)
-                            .padding(12.dp),
-                        horizontalAlignment = if (msg.isMine) Alignment.End else Alignment.Start
-                    ) {
-                        Text(msg.body, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                        Text(msg.createdLabel, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
-                    }
+                    ChatBubble(body = msg.body, isMine = msg.isMine, timeLabel = msg.createdLabel)
                 }
             }
             MarviTextField(

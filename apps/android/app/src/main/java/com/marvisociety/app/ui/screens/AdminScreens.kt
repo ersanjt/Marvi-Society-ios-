@@ -498,28 +498,13 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                         }
                     }
                     AdminSection.MAP -> {
-                        item {
-                            EmptyStateView(
-                                title = viewModel.t(MarviL10n.Key.ADMIN_TAB_MAP),
-                                subtitle = viewModel.t(MarviL10n.Key.NEAR_YOU)
-                            )
-                        }
+                        item { AdminMapPanel(viewModel) }
                     }
                     AdminSection.BROADCAST -> {
-                        item {
-                            EmptyStateView(
-                                title = viewModel.t(MarviL10n.Key.ADMIN_TAB_BROADCAST),
-                                subtitle = viewModel.t(MarviL10n.Key.ADMIN_ACTIVITY_EMPTY_SUB)
-                            )
-                        }
+                        item { AdminBroadcastPanel(viewModel) }
                     }
                     AdminSection.ACTIVITY -> {
-                        item {
-                            EmptyStateView(
-                                title = viewModel.t(MarviL10n.Key.ADMIN_ACTIVITY_EMPTY),
-                                subtitle = viewModel.t(MarviL10n.Key.ADMIN_ACTIVITY_EMPTY_SUB)
-                            )
-                        }
+                        item { AdminActivityPanel(viewModel) }
                     }
                 }
             }
@@ -713,8 +698,7 @@ fun InboxScreen(viewModel: AppViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        viewModel.t(MarviL10n.Key.INBOX_UNREAD_COUNT)
-                            .replace("%d", viewModel.unreadInboxCount.toString()),
+                        viewModel.tf(MarviL10n.Key.INBOX_UNREAD_COUNT, viewModel.unreadInboxCount),
                         color = MarviColor.Muted,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold

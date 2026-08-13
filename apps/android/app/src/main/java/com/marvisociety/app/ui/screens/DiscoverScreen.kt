@@ -21,11 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,11 +47,14 @@ import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.EventCalendarStrip
 import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.HomeHeader
+import com.marvisociety.app.ui.components.MarviActionSheet
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.MarviTextField
 import com.marvisociety.app.ui.components.MembershipStatusBanner
 import com.marvisociety.app.ui.components.OfferImageView
+import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.components.SSDiscoverAxisPills
 import com.marvisociety.app.ui.components.SSExploreHeader
 import com.marvisociety.app.ui.components.SSFilterChip
@@ -216,7 +217,7 @@ fun DiscoverScreen(
                     eyebrow = viewModel.t(MarviL10n.Key.FIND_EXPLORE_EVENTS),
                     cityPrefix = viewModel.t(MarviL10n.Key.UP_NEXT_IN),
                     city = city,
-                    eventsFound = viewModel.t(MarviL10n.Key.EVENTS_FOUND).replace("%d", filtered.size.toString())
+                    eventsFound = viewModel.tf(MarviL10n.Key.EVENTS_FOUND, filtered.size)
                 )
             }
 
@@ -402,29 +403,25 @@ fun DiscoverScreen(
     }
 
     if (showSort) {
-        AlertDialog(
-            onDismissRequest = { showSort = false },
-            title = { Text(viewModel.t(MarviL10n.Key.SORT_EVENTS), color = MarviColor.Ink) },
-            containerColor = MarviColor.Panel,
-            text = {
-                Column {
-                    listOf(
-                        DiscoverSort.NEWEST to MarviL10n.Key.SORT_NEWEST,
-                        DiscoverSort.SLOTS to MarviL10n.Key.SORT_FEW_SLOTS,
-                        DiscoverSort.MATCH to MarviL10n.Key.SORT_BEST_MATCH
-                    ).forEach { (mode, key) ->
-                        TextButton(onClick = { sortMode = mode; showSort = false }) {
-                            Text(viewModel.t(key), color = MarviColor.Rose, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showSort = false }) {
-                    Text(viewModel.t(MarviL10n.Key.CLOSE), color = MarviColor.Muted)
-                }
+        MarviActionSheet(
+            title = viewModel.t(MarviL10n.Key.SORT_EVENTS),
+            onDismiss = { showSort = false }
+        ) {
+            listOf(
+                DiscoverSort.NEWEST to MarviL10n.Key.SORT_NEWEST,
+                DiscoverSort.SLOTS to MarviL10n.Key.SORT_FEW_SLOTS,
+                DiscoverSort.MATCH to MarviL10n.Key.SORT_BEST_MATCH
+            ).forEach { (mode, key) ->
+                PrimaryActionButton(
+                    title = viewModel.t(key),
+                    onClick = { sortMode = mode; showSort = false }
+                )
             }
-        )
+            SecondaryActionButton(
+                title = viewModel.t(MarviL10n.Key.CLOSE),
+                onClick = { showSort = false }
+            )
+        }
     }
 }
 

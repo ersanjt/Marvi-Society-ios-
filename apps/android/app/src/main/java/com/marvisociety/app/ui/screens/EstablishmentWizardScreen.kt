@@ -850,7 +850,7 @@ private fun PhotosStep(
         }
         OutlinedButton(onClick = onPickGallery, modifier = Modifier.fillMaxWidth()) {
             Text(
-                viewModel.t(MarviL10n.Key.EST_ADD_GALLERY).replace("%d", galleryUris.size.toString())
+                viewModel.tf(MarviL10n.Key.EST_ADD_GALLERY, galleryUris.size)
             )
         }
         if (galleryUris.isNotEmpty()) {

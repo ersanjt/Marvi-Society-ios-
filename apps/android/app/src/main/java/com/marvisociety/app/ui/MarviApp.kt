@@ -118,7 +118,7 @@ private fun MainShell(viewModel: AppViewModel) {
                     NavigationBar(containerColor = TabBarBackground, tonalElevation = 0.dp) {
                     tabs.forEachIndexed { index, tab ->
                         NavigationBarItem(
-                            selected = viewModel.workspaceTabIndex == index,
+                            selected = currentRoute == tab.route || currentRoute.startsWith("${tab.route}/"),
                             onClick = {
                                 viewModel.setWorkspaceTab(index)
                                 navController.navigate(tab.route) {
@@ -150,7 +150,7 @@ private fun MainShell(viewModel: AppViewModel) {
                                 Text(
                                     viewModel.t(tab.labelKey),
                                     fontSize = 10.sp,
-                                    fontWeight = if (viewModel.workspaceTabIndex == index) FontWeight.Bold else FontWeight.SemiBold
+                                    fontWeight = if (currentRoute == tab.route || currentRoute.startsWith("${tab.route}/")) FontWeight.Bold else FontWeight.SemiBold
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
@@ -168,7 +168,7 @@ private fun MainShell(viewModel: AppViewModel) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            viewModel.lastSyncError?.let { error ->
+            viewModel.bannerSyncError?.let { error ->
                 SyncErrorBanner(
                     message = error,
                     retryTitle = viewModel.t(MarviL10n.Key.RETRY),

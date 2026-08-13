@@ -12,8 +12,8 @@
       "version": "1.5.3"
     },
     "android": {
-      "marketingVersion": "1.9.8",
-      "versionCode": 54,
+      "marketingVersion": "1.9.9",
+      "versionCode": 55,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T23:08:12Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260814060001_venue_map_coords_sync_and_push_trigger)"
+    },
+    {
+      "at": "2026-08-13T23:03:46Z",
+      "status": "ok",
+      "message": "pushed c4fbb4e to origin/main"
+    },
     {
       "at": "2026-08-13T23:03:37Z",
       "status": "ok",
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-08-12T19:35:43Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-12T17:39:14Z",
-      "status": "ok",
-      "message": "pushed 1ee0d96 to origin/main"
-    },
-    {
-      "at": "2026-08-12T17:39:10Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
     }
