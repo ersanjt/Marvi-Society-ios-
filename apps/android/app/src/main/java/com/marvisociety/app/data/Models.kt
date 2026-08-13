@@ -376,6 +376,34 @@ data class VenueSummary(
     val status: MembershipStatus? = null
 )
 
+data class EstablishmentDraft(
+    val id: String,
+    val venueName: String = "",
+    val draftName: String = "",
+    val area: String = "",
+    val city: String = "",
+    val country: String = "",
+    val address: String = "",
+    val addressLine1: String = "",
+    val addressLine2: String = "",
+    val postalCode: String = "",
+    val instagramHandle: String = "",
+    val description: String = "",
+    val contactName: String = "",
+    val contactPhone: String = "",
+    val contactIsSelf: Boolean = false,
+    val isPhysical: Boolean = true,
+    val categories: List<String> = emptyList(),
+    val logoUrl: String = "",
+    val detailsComplete: Boolean = false,
+    val addressComplete: Boolean = false,
+    val photosComplete: Boolean = false,
+    val lat: Double? = null,
+    val lng: Double? = null
+) {
+    val displayName: String get() = draftName.ifBlank { venueName }
+}
+
 data class BrandSummary(
     val organizationId: String,
     val organizationName: String,

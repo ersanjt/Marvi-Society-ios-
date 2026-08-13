@@ -861,6 +861,62 @@ struct VenueSummary: Codable, Hashable, Identifiable {
     }
 }
 
+struct EstablishmentDraft: Codable, Hashable, Identifiable {
+    let id: UUID
+    var venueName: String?
+    var draftName: String?
+    var area: String?
+    var city: String?
+    var country: String?
+    var address: String?
+    var addressLine1: String?
+    var addressLine2: String?
+    var postalCode: String?
+    var instagramHandle: String?
+    var description: String?
+    var contactName: String?
+    var contactPhone: String?
+    var contactIsSelf: Bool?
+    var isPhysical: Bool?
+    var categories: [String]?
+    var logoURL: String?
+    var galleryURLs: [String]?
+    var detailsComplete: Bool?
+    var addressComplete: Bool?
+    var photosComplete: Bool?
+    var lat: Double?
+    var lng: Double?
+    var status: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case venueName = "venue_name"
+        case draftName = "draft_name"
+        case area, city, country, address
+        case addressLine1 = "address_line1"
+        case addressLine2 = "address_line2"
+        case postalCode = "postal_code"
+        case instagramHandle = "instagram_handle"
+        case description
+        case contactName = "contact_name"
+        case contactPhone = "contact_phone"
+        case contactIsSelf = "contact_is_self"
+        case isPhysical = "is_physical"
+        case categories
+        case logoURL = "logo_url"
+        case galleryURLs = "gallery_urls"
+        case detailsComplete = "details_complete"
+        case addressComplete = "address_complete"
+        case photosComplete = "photos_complete"
+        case lat, lng, status
+    }
+
+    var displayName: String {
+        if let draftName, !draftName.isEmpty { return draftName }
+        return venueName ?? ""
+    }
+}
+
 struct RegisterVenueInput: Sendable {
     let venueName: String
     let area: String

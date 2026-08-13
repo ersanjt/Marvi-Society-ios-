@@ -250,12 +250,31 @@ private fun MainShell(viewModel: AppViewModel) {
                 composable("studio") {
                     VenueStudioScreen(
                         viewModel = viewModel,
-                        onAddEstablishment = { navController.navigate("establishment_wizard") }
+                        onAddEstablishment = { navController.navigate("establishment_wizard") },
+                        onEditEstablishment = { venueId ->
+                            navController.navigate("establishment_wizard/$venueId")
+                        }
                     )
                 }
                 composable("establishment_wizard") {
                     EstablishmentWizardScreen(
                         viewModel = viewModel,
+                        editingVenueId = null,
+                        onBack = { navController.popBackStack() },
+                        onSubmitted = {
+                            viewModel.refreshFromServer()
+                            navController.popBackStack()
+                        }
+                    )
+                }
+                composable(
+                    route = "establishment_wizard/{venueId}",
+                    arguments = listOf(navArgument("venueId") { type = NavType.StringType })
+                ) { entry ->
+                    val venueId = entry.arguments?.getString("venueId")
+                    EstablishmentWizardScreen(
+                        viewModel = viewModel,
+                        editingVenueId = venueId,
                         onBack = { navController.popBackStack() },
                         onSubmitted = {
                             viewModel.refreshFromServer()

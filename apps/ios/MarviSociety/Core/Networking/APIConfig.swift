@@ -153,6 +153,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchMyBrands() async throws -> [BrandSummary] { throw notConfigured() }
     func createOrganizationWithBrand(organizationName: String, brandName: String) async throws -> OrganizationBrandResult { throw notConfigured() }
     func createEstablishmentDraft(brandID: UUID, establishmentName: String) async throws -> UUID { throw notConfigured() }
+    func fetchEstablishmentDraft(venueID: UUID) async throws -> EstablishmentDraft { throw notConfigured() }
     func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async throws { throw notConfigured() }
     func upsertEstablishmentAddress(venueID: UUID, input: EstablishmentAddressInput) async throws { throw notConfigured() }
     func upsertEstablishmentPhotos(venueID: UUID, logoURL: String, galleryURLs: [String]) async throws { throw notConfigured() }

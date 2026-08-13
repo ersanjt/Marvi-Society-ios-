@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.4",
-      "buildNumber": 88,
+      "buildNumber": 89,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,11 +17,16 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260813250001_admin_list_venues_and_bookings",
-      "migrationCount": 71
+      "migrationHead": "20260813260001_venue_resubmit_edit_flow",
+      "migrationCount": 72
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T19:17:49Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260813260001_venue_resubmit_edit_flow)"
+    },
     {
       "at": "2026-08-13T19:08:29Z",
       "status": "ok",
@@ -264,11 +269,6 @@
     },
     {
       "at": "2026-08-11T12:41:06Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-11T11:38:13Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
     }

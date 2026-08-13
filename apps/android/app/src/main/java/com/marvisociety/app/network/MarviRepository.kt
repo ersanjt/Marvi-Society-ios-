@@ -682,6 +682,39 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             ?: throw MarviApiException("Establishment draft returned empty id")
     }
 
+    suspend fun fetchEstablishmentDraft(venueId: String): EstablishmentDraft {
+        val result = client.rpcJson(
+            "fetch_establishment_draft",
+            buildJsonObject { put("p_venue_id", venueId) }
+        )
+        val obj = result.asObjectOrNull() ?: throw MarviApiException("Establishment draft missing")
+        return EstablishmentDraft(
+            id = obj.string("id") ?: venueId,
+            venueName = obj.string("venue_name") ?: "",
+            draftName = obj.string("draft_name") ?: "",
+            area = obj.string("area") ?: "",
+            city = obj.string("city") ?: "",
+            country = obj.string("country") ?: "",
+            address = obj.string("address") ?: "",
+            addressLine1 = obj.string("address_line1") ?: "",
+            addressLine2 = obj.string("address_line2") ?: "",
+            postalCode = obj.string("postal_code") ?: "",
+            instagramHandle = obj.string("instagram_handle") ?: "",
+            description = obj.string("description") ?: "",
+            contactName = obj.string("contact_name") ?: "",
+            contactPhone = obj.string("contact_phone") ?: "",
+            contactIsSelf = obj.bool("contact_is_self") == true,
+            isPhysical = obj.bool("is_physical") != false,
+            categories = result.stringList("categories"),
+            logoUrl = obj.string("logo_url") ?: "",
+            detailsComplete = obj.bool("details_complete") == true,
+            addressComplete = obj.bool("address_complete") == true,
+            photosComplete = obj.bool("photos_complete") == true,
+            lat = obj.double("lat"),
+            lng = obj.double("lng")
+        )
+    }
+
     suspend fun upsertEstablishmentDetails(
         venueId: String,
         instagramHandle: String,

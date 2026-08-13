@@ -649,7 +649,8 @@ private fun AdminSectionHeader(title: String, count: Int, modifier: Modifier = M
 @Composable
 fun VenueStudioScreen(
     viewModel: AppViewModel,
-    onAddEstablishment: () -> Unit = {}
+    onAddEstablishment: () -> Unit = {},
+    onEditEstablishment: (String) -> Unit = {}
 ) {
     var showCreate by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
@@ -742,12 +743,26 @@ fun VenueStudioScreen(
                         Text(viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_SUB), color = MarviColor.Muted)
                     }
                     MembershipStatus.APPROVED -> MarviCard {
+                        val hasLive = viewModel.campaigns.any { !it.isDeleted && it.status.equals("live", ignoreCase = true) }
                         Text(viewModel.t(MarviL10n.Key.VENUE_APPROVED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                        Text(viewModel.t(MarviL10n.Key.VENUE_APPROVED_BANNER_SUB), color = MarviColor.Muted)
+                        Text(
+                            viewModel.t(
+                                if (hasLive) MarviL10n.Key.VENUE_APPROVED_BANNER_SUB
+                                else MarviL10n.Key.VENUE_APPROVED_NEEDS_LIVE_SUB
+                            ),
+                            color = MarviColor.Muted
+                        )
                     }
                     MembershipStatus.PAUSED -> MarviCard {
                         Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                         Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_SUB), color = MarviColor.Muted)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { focused?.id?.let(onEditEstablishment) },
+                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                        ) {
+                            Text(viewModel.t(MarviL10n.Key.VENUE_EDIT_AND_RESUBMIT))
+                        }
                     }
                     null -> Unit
                 }

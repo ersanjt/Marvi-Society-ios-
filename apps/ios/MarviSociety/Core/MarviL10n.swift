@@ -214,11 +214,12 @@ enum MarviL10n {
         case myLocations, myLocationsSub, addLocation, addLocationSub, selectLocation
         case locationPendingReview, locationApproved, locationRejected, locationTypeLabel, addressOptional, contactPhoneOptional
         case venuePendingBannerTitle, venuePendingBannerSub
-        case venueApprovedBannerTitle, venueApprovedBannerSub
-        case venueRejectedBannerTitle, venueRejectedBannerSub
+        case venueApprovedBannerTitle, venueApprovedBannerSub, venueApprovedNeedsLiveCampaignSub
+        case venueRejectedBannerTitle, venueRejectedBannerSub, venueEditAndResubmit
         case noActiveCampaignsApprovedSub
         // Establishment wizard
         case estWizardBack, estWizardBrandTitle, estWizardBrandSub, estWizardHubTitle, estWizardHubSub
+        case estWizardEditTitle, estWizardEditSub, estWizardEditLoadFailed
         case estWizardDetailsTitle, estWizardDetailsSub, estWizardAddressTitle, estWizardAddressSub
         case estWizardPhotosTitle, estWizardPhotosSub
         case estWizardExistingBrands, estWizardCreateBrand, estWizardOrgNamePh, estWizardBrandNamePh
@@ -728,15 +729,20 @@ enum MarviL10n {
         .venuePendingBannerSub: "Your venue application is with Marvi. You’ll get an inbox update when it’s approved or needs changes.",
         .venueApprovedBannerTitle: "Venue approved",
         .venueApprovedBannerSub: "You’re ready to create campaigns and invite creators.",
+        .venueApprovedNeedsLiveCampaignSub: "Approved venues are not public on Explore until you create a campaign and admin publishes it live.",
         .venueRejectedBannerTitle: "Venue needs updates",
-        .venueRejectedBannerSub: "Admin asked for changes. Update your venue details and resubmit, or check Inbox for details.",
-        .noActiveCampaignsApprovedSub: "Your venue is approved. Create a campaign to invite creators.",
+        .venueRejectedBannerSub: "Admin asked for changes. Tap below to edit details and resubmit for review.",
+        .venueEditAndResubmit: "Edit & resubmit",
+        .noActiveCampaignsApprovedSub: "Your venue is approved. Create a campaign — Explore shows it after admin goes live.",
         .locationTypeLabel: "Type", .addressOptional: "Address (optional)", .contactPhoneOptional: "Contact phone (optional)",
         .estWizardBack: "Back",
         .estWizardBrandTitle: "Your brand",
         .estWizardBrandSub: "Create an organization and brand, or pick one you already own.",
         .estWizardHubTitle: "New establishment",
         .estWizardHubSub: "Name the place, then complete details, address, and photos.",
+        .estWizardEditTitle: "Edit establishment",
+        .estWizardEditSub: "Update the sections that need changes, then submit again for admin review.",
+        .estWizardEditLoadFailed: "Couldn’t load this establishment. Pull to refresh and try again.",
         .estWizardDetailsTitle: "Details",
         .estWizardDetailsSub: "Instagram, description, categories, and contact.",
         .estWizardAddressTitle: "Address",
@@ -1285,15 +1291,20 @@ enum MarviL10n {
         .venuePendingBannerSub: "Mekân başvurun Marvi’de. Onay veya düzeltme gerektiğinde Gelen Kutusu’nda bildirim göreceksin.",
         .venueApprovedBannerTitle: "Mekânın onaylandı",
         .venueApprovedBannerSub: "Artık kampanya oluşturup creator davet edebilirsin.",
+        .venueApprovedNeedsLiveCampaignSub: "Onaylı mekân Keşfet’te hemen görünmez. Kampanya oluştur; admin canlı yayınladıktan sonra herkes görür.",
         .venueRejectedBannerTitle: "Mekân güncellemesi gerekli",
-        .venueRejectedBannerSub: "Admin düzeltme istedi. Mekân bilgilerini güncelleyip tekrar gönder veya Gelen Kutusu’na bak.",
-        .noActiveCampaignsApprovedSub: "Mekânın onaylandı. Creator davet etmek için kampanya oluştur.",
+        .venueRejectedBannerSub: "Admin düzeltme istedi. Aşağıdan düzenle ve tekrar incelemeye gönder.",
+        .venueEditAndResubmit: "Düzenle ve tekrar gönder",
+        .noActiveCampaignsApprovedSub: "Mekânın onaylandı. Kampanya oluştur — admin canlı yayınlayınca Keşfet’te görünür.",
         .locationTypeLabel: "Tür", .addressOptional: "Adres (isteğe bağlı)", .contactPhoneOptional: "İletişim telefonu (isteğe bağlı)",
         .estWizardBack: "Geri",
         .estWizardBrandTitle: "Markan",
         .estWizardBrandSub: "Organizasyon ve marka oluştur veya mevcut birini seç.",
         .estWizardHubTitle: "Yeni mekân",
         .estWizardHubSub: "İsim ver, ardından detay, adres ve fotoğrafları tamamla.",
+        .estWizardEditTitle: "Mekânı düzenle",
+        .estWizardEditSub: "Gerekli bölümleri güncelle, sonra tekrar admin incelemesine gönder.",
+        .estWizardEditLoadFailed: "Mekân yüklenemedi. Yenileyip tekrar dene.",
         .estWizardDetailsTitle: "Detaylar",
         .estWizardDetailsSub: "Instagram, açıklama, kategoriler ve iletişim.",
         .estWizardAddressTitle: "Adres",

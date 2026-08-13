@@ -603,6 +603,15 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func fetchEstablishmentDraft(venueID: UUID) async throws -> EstablishmentDraft {
+        try await client.rpc(
+            function: "fetch_establishment_draft",
+            body: ["p_venue_id": venueID.uuidString],
+            type: EstablishmentDraft.self,
+            decoder: Self.adminDecoder
+        )
+    }
+
     func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async throws {
         try await client.rpcVoid(
             function: "upsert_establishment_details",

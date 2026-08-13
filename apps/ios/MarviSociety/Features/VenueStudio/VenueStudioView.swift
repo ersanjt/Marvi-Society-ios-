@@ -47,6 +47,7 @@ struct VenueStudioView: View {
     @State private var isShowingBuilder = false
     @State private var isShowingSwipe = false
     @State private var isShowingAddVenue = false
+    @State private var editingVenueID: UUID?
     @State private var reviewSegment: VenueReviewSegment = .checkedIn
     @State private var studioTab: VenueStudioTab = .establishments
     @State private var campaignScope: StudioCampaignScope = .active
@@ -96,9 +97,12 @@ struct VenueStudioView: View {
                 MarviColor.gold
             )
         case .approved:
+            let hasLive = !(appState.campaigns.filter { !$0.isDeleted && $0.status == .live }.isEmpty)
             return (
                 appState.t(.venueApprovedBannerTitle),
-                appState.t(.venueApprovedBannerSub),
+                hasLive
+                    ? appState.t(.venueApprovedBannerSub)
+                    : appState.t(.venueApprovedNeedsLiveCampaignSub),
                 "checkmark.seal.fill",
                 MarviColor.emerald
             )
@@ -175,20 +179,40 @@ struct VenueStudioView: View {
 
                         if let statusBanner = venueStatusBanner {
                             MarviCard {
-                                HStack(alignment: .top, spacing: 12) {
-                                    Image(systemName: statusBanner.icon)
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(statusBanner.tint)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(statusBanner.title)
-                                            .font(.subheadline.weight(.bold))
-                                            .foregroundStyle(MarviColor.ink)
-                                        Text(statusBanner.subtitle)
-                                            .font(.caption)
-                                            .foregroundStyle(MarviColor.muted)
-                                            .fixedSize(horizontal: false, vertical: true)
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Image(systemName: statusBanner.icon)
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(statusBanner.tint)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(statusBanner.title)
+                                                .font(.subheadline.weight(.bold))
+                                                .foregroundStyle(MarviColor.ink)
+                                            Text(statusBanner.subtitle)
+                                                .font(.caption)
+                                                .foregroundStyle(MarviColor.muted)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                        Spacer(minLength: 0)
                                     }
-                                    Spacer(minLength: 0)
+
+                                    if focusedVenue?.status == .paused, let venueID = focusedVenue?.id {
+                                        PrimaryActionButton(
+                                            title: appState.t(.venueEditAndResubmit),
+                                            systemImage: "pencil.and.outline"
+                                        ) {
+                                            editingVenueID = venueID
+                                        }
+                                    } else if focusedVenue?.status == .approved,
+                                              appState.campaigns.filter({ !$0.isDeleted && $0.status == .live }).isEmpty,
+                                              canCreateCampaignNow {
+                                        PrimaryActionButton(
+                                            title: appState.t(.newCampaign),
+                                            systemImage: "plus.circle.fill"
+                                        ) {
+                                            isShowingBuilder = true
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -357,6 +381,15 @@ struct VenueStudioView: View {
             .sheet(isPresented: $isShowingAddVenue) {
                 EstablishmentWizardView()
                     .environmentObject(appState)
+            }
+            .sheet(isPresented: Binding(
+                get: { editingVenueID != nil },
+                set: { if !$0 { editingVenueID = nil } }
+            )) {
+                if let editingVenueID {
+                    EstablishmentWizardView(editingVenueID: editingVenueID)
+                        .environmentObject(appState)
+                }
             }
             .fullScreenCover(isPresented: $isShowingSwipe) {
                 InfluencerSwipeView()

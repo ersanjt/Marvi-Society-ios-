@@ -64,10 +64,11 @@ private fun establishmentCategoryOptions(language: AppLanguage) =
 @Composable
 fun EstablishmentWizardScreen(
     viewModel: AppViewModel,
+    editingVenueId: String? = null,
     onBack: () -> Unit,
     onSubmitted: () -> Unit
 ) {
-    var step by remember { mutableStateOf(WizardStep.BRAND) }
+    var step by remember { mutableStateOf(if (editingVenueId != null) WizardStep.HUB else WizardStep.BRAND) }
     var localError by remember { mutableStateOf<String?>(null) }
 
     var organizationName by remember { mutableStateOf("") }
@@ -76,11 +77,12 @@ fun EstablishmentWizardScreen(
     var creatingNewBrand by remember { mutableStateOf(false) }
 
     var establishmentName by remember { mutableStateOf("") }
-    var venueId by remember { mutableStateOf<String?>(null) }
+    var venueId by remember { mutableStateOf<String?>(editingVenueId) }
 
     var detailsComplete by remember { mutableStateOf(false) }
     var addressComplete by remember { mutableStateOf(false) }
     var photosComplete by remember { mutableStateOf(false) }
+    var existingLogoUrl by remember { mutableStateOf<String?>(null) }
 
     var instagram by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -107,6 +109,42 @@ fun EstablishmentWizardScreen(
         viewModel.loadMyBrands()
     }
 
+    LaunchedEffect(editingVenueId) {
+        val id = editingVenueId ?: return@LaunchedEffect
+        viewModel.loadEstablishmentDraft(id) { draft ->
+            if (draft == null) {
+                localError = viewModel.lastSyncError
+                    ?: viewModel.t(MarviL10n.Key.EST_WIZARD_EDIT_SUB)
+                return@loadEstablishmentDraft
+            }
+            venueId = draft.id
+            establishmentName = draft.displayName
+            instagram = draft.instagramHandle
+            description = draft.description
+            selectedCategories.clear()
+            selectedCategories.addAll(draft.categories)
+            contactName = draft.contactName.ifBlank { viewModel.profile.name }
+            contactPhone = draft.contactPhone
+            contactIsSelf = draft.contactIsSelf
+            isPhysical = draft.isPhysical
+            country = draft.country.ifBlank { "Türkiye" }
+            city = draft.city.ifBlank { draft.area.ifBlank { "Istanbul" } }
+            locationLabel = draft.area.ifBlank { draft.city }
+            addressLine1 = draft.addressLine1.ifBlank { draft.address }
+            addressLine2 = draft.addressLine2
+            postalCode = draft.postalCode
+            draft.lat?.let { latText = it.toString() }
+            draft.lng?.let { lngText = it.toString() }
+            existingLogoUrl = draft.logoUrl.takeIf { it.isNotBlank() }
+            detailsComplete = draft.detailsComplete ||
+                (instagram.isNotBlank() && description.isNotBlank() && selectedCategories.isNotEmpty() && contactPhone.isNotBlank())
+            addressComplete = draft.addressComplete ||
+                city.isNotBlank() || locationLabel.isNotBlank() || addressLine1.isNotBlank()
+            photosComplete = draft.photosComplete || existingLogoUrl != null
+            step = WizardStep.HUB
+        }
+    }
+
     LaunchedEffect(viewModel.myBrands) {
         if (viewModel.myBrands.isEmpty()) {
             creatingNewBrand = true
@@ -127,7 +165,8 @@ fun EstablishmentWizardScreen(
     }
 
     val busy = viewModel.isEstablishmentBusy
-    val canSubmit = detailsComplete && addressComplete && photosComplete && venueId != null
+    val canSubmit = detailsComplete && addressComplete &&
+        (photosComplete || existingLogoUrl != null || logoUri != null) && venueId != null
 
     MarviScreen {
         Column(
@@ -155,7 +194,10 @@ fun EstablishmentWizardScreen(
                     Text(viewModel.t(MarviL10n.Key.BACK), color = MarviColor.Muted)
                 }
                 Text(
-                    viewModel.t(MarviL10n.Key.EST_WIZARD_TITLE),
+                    viewModel.t(
+                        if (editingVenueId != null) MarviL10n.Key.EST_WIZARD_EDIT_TITLE
+                        else MarviL10n.Key.EST_WIZARD_TITLE
+                    ),
                     fontWeight = FontWeight.Bold,
                     color = MarviColor.Ink,
                     style = MaterialTheme.typography.titleMedium
@@ -404,16 +446,21 @@ fun EstablishmentWizardScreen(
                     onSave = {
                         localError = null
                         val id = venueId
-                        val logo = logoUri
                         if (id == null) {
                             localError = viewModel.t(MarviL10n.Key.SYNC_ERROR)
+                            return@PhotosStep
+                        }
+                        val logo = logoUri
+                        if (logo == null && existingLogoUrl != null) {
+                            photosComplete = true
+                            step = WizardStep.HUB
                             return@PhotosStep
                         }
                         if (logo == null) {
                             localError = viewModel.t(MarviL10n.Key.EST_LOGO_REQUIRED)
                             return@PhotosStep
                         }
-                        if (galleryUris.size < 3) {
+                        if (galleryUris.size < 3 && existingLogoUrl == null) {
                             localError = viewModel.t(MarviL10n.Key.EST_PHOTOS_MIN)
                             return@PhotosStep
                         }

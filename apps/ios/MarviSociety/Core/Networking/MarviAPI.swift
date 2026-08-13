@@ -45,6 +45,7 @@ protocol MarviAPI: Sendable {
     func fetchMyBrands() async throws -> [BrandSummary]
     func createOrganizationWithBrand(organizationName: String, brandName: String) async throws -> OrganizationBrandResult
     func createEstablishmentDraft(brandID: UUID, establishmentName: String) async throws -> UUID
+    func fetchEstablishmentDraft(venueID: UUID) async throws -> EstablishmentDraft
     func upsertEstablishmentDetails(venueID: UUID, input: EstablishmentDetailsInput) async throws
     func upsertEstablishmentAddress(venueID: UUID, input: EstablishmentAddressInput) async throws
     func upsertEstablishmentPhotos(venueID: UUID, logoURL: String, galleryURLs: [String]) async throws
@@ -290,6 +291,11 @@ extension MarviAPI {
     func createEstablishmentDraft(brandID: UUID, establishmentName: String) async throws -> UUID {
         _ = brandID
         _ = establishmentName
+        throw MarviAPIError.server(message: "Establishment draft requires Supabase mode")
+    }
+
+    func fetchEstablishmentDraft(venueID: UUID) async throws -> EstablishmentDraft {
+        _ = venueID
         throw MarviAPIError.server(message: "Establishment draft requires Supabase mode")
     }
 

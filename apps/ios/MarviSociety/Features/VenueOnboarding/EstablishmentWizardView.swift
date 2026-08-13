@@ -6,6 +6,9 @@ struct EstablishmentWizardView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
 
+    /// When set, opens directly on the checklist hub for an existing establishment.
+    var editingVenueID: UUID? = nil
+
     private enum Step: Hashable {
         case brand
         case hub
@@ -25,6 +28,7 @@ struct EstablishmentWizardView: View {
     @State private var detailsComplete = false
     @State private var addressComplete = false
     @State private var photosComplete = false
+    @State private var existingLogoURL: String? = nil
 
     @State private var instagramHandle = ""
     @State private var descriptionText = ""
@@ -53,6 +57,9 @@ struct EstablishmentWizardView: View {
 
     @State private var isBusy = false
     @State private var localError: String?
+    @State private var didLoadEditDraft = false
+
+    private var isEditingExisting: Bool { editingVenueID != nil || (venueID != nil && didLoadEditDraft) }
 
     var body: some View {
         NavigationStack {
@@ -85,7 +92,7 @@ struct EstablishmentWizardView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if step != .brand {
+                    if step != .brand && !(isEditingExisting && step == .hub) {
                         Button(appState.t(.estWizardBack)) {
                             withAnimation { step = backStep }
                         }
@@ -97,7 +104,10 @@ struct EstablishmentWizardView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .task { await loadBrands() }
+        .task {
+            await loadBrands()
+            await loadExistingDraftIfNeeded()
+        }
         .onChange(of: contactIsSelf) { _, isSelf in
             if isSelf {
                 contactName = appState.profile.displayName
@@ -112,6 +122,9 @@ struct EstablishmentWizardView: View {
     }
 
     private var navigationTitle: String {
+        if isEditingExisting, step == .hub {
+            return appState.t(.estWizardEditTitle)
+        }
         switch step {
         case .brand: appState.t(.estWizardBrandTitle)
         case .hub: appState.t(.estWizardHubTitle)
@@ -137,6 +150,9 @@ struct EstablishmentWizardView: View {
     }
 
     private var headerSubtitle: String {
+        if isEditingExisting, step == .hub {
+            return appState.t(.estWizardEditSub)
+        }
         switch step {
         case .brand: appState.t(.estWizardBrandSub)
         case .hub: appState.t(.estWizardHubSub)
@@ -295,7 +311,46 @@ struct EstablishmentWizardView: View {
     }
 
     private var canSubmit: Bool {
-        venueID != nil && detailsComplete && addressComplete && photosComplete
+        venueID != nil && detailsComplete && addressComplete && (photosComplete || existingLogoURL != nil || logoData != nil)
+    }
+
+    private func loadExistingDraftIfNeeded() async {
+        guard let editingVenueID, !didLoadEditDraft else { return }
+        isBusy = true
+        defer { isBusy = false }
+        guard let draft = await appState.loadEstablishmentDraft(venueID: editingVenueID) else {
+            localError = appState.lastSyncError ?? appState.t(.estWizardEditLoadFailed)
+            return
+        }
+        apply(draft: draft)
+        didLoadEditDraft = true
+        withAnimation { step = .hub }
+    }
+
+    private func apply(draft: EstablishmentDraft) {
+        venueID = draft.id
+        establishmentName = draft.displayName
+        instagramHandle = draft.instagramHandle ?? ""
+        descriptionText = draft.description ?? ""
+        selectedCategories = Set(draft.categories ?? [])
+        contactName = draft.contactName ?? appState.profile.displayName
+        contactPhone = draft.contactPhone ?? ""
+        contactIsSelf = draft.contactIsSelf ?? false
+        isPhysical = draft.isPhysical ?? true
+        country = draft.country ?? ""
+        city = draft.city ?? draft.area ?? ""
+        locationLabel = draft.area ?? draft.city ?? ""
+        addressLine1 = draft.addressLine1 ?? draft.address ?? ""
+        addressLine2 = draft.addressLine2 ?? ""
+        postalCode = draft.postalCode ?? ""
+        if let lat = draft.lat { latText = String(lat) }
+        if let lng = draft.lng { lngText = String(lng) }
+        existingLogoURL = draft.logoURL.flatMap { $0.isEmpty ? nil : $0 }
+        detailsComplete = draft.detailsComplete == true
+            || (!instagramHandle.isEmpty && !descriptionText.isEmpty && !selectedCategories.isEmpty && !contactPhone.isEmpty)
+        addressComplete = draft.addressComplete == true
+            || !city.isEmpty || !locationLabel.isEmpty || !addressLine1.isEmpty
+        photosComplete = draft.photosComplete == true || existingLogoURL != nil
     }
 
     private func checklistRow(
@@ -702,7 +757,14 @@ struct EstablishmentWizardView: View {
     }
 
     private func savePhotos() async {
-        guard let venueID, let logoData else { return }
+        guard let venueID else { return }
+        // Keep existing logo when editing and user didn't pick a new one.
+        if logoData == nil, let existingLogoURL, !existingLogoURL.isEmpty {
+            photosComplete = true
+            withAnimation { step = .hub }
+            return
+        }
+        guard let logoData else { return }
         localError = nil
         isBusy = true
         let ok = await appState.upsertEstablishmentPhotos(

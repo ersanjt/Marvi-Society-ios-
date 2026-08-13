@@ -162,10 +162,14 @@ final class AppState: ObservableObject {
     /// Invite codes are no longer required for membership (kept for admin tooling only).
     var needsInviteRedemption: Bool { false }
 
-    /// Only paused accounts are blocked. New members can enter and request collaborations immediately.
+    /// Only paused accounts are blocked. Venue partners stay in Studio to fix
+    /// establishments that admin sent back for changes.
     var needsAdminApproval: Bool {
         guard isRemoteMode, isAuthenticated, hasCompletedOnboarding else { return false }
         if accountRole == .admin { return false }
+        if accountRole == .venue || selectedRole == .venue || allowedRoles.contains(.venue) {
+            return false
+        }
         return profile.status == .paused
     }
 
@@ -921,6 +925,16 @@ final class AppState: ObservableObject {
             )
             myVenues = try await api.fetchMyVenues()
             return venueID
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return nil
+        }
+    }
+
+    func loadEstablishmentDraft(venueID: UUID) async -> EstablishmentDraft? {
+        guard isRemoteMode, isAuthenticated else { return nil }
+        do {
+            return try await api.fetchEstablishmentDraft(venueID: venueID)
         } catch {
             if let message = presentableError(error) { lastSyncError = message }
             return nil

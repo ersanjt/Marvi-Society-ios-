@@ -127,10 +127,13 @@ class AppViewModel(
     /** Invite codes are no longer required for membership. */
     val needsInviteRedemption: Boolean get() = false
 
-    /** Only paused accounts are blocked; new members can use the app immediately. */
+    /** Venue partners stay in Studio to fix establishments sent back for changes. */
     val needsAdminApproval: Boolean
         get() = isRemoteMode && isAuthenticated && hasCompletedOnboarding &&
             accountRole != UserRole.ADMIN &&
+            accountRole != UserRole.VENUE &&
+            selectedRole != UserRole.VENUE &&
+            !allowedRoles.contains(UserRole.VENUE) &&
             profile.status == MembershipStatus.PAUSED
 
     /** Social handles are optional profile enrichment. */
@@ -896,6 +899,21 @@ class AppViewModel(
                 val venueId = repository.createEstablishmentDraft(brandId, establishmentName)
                 myVenues = repository.fetchMyVenues()
                 venueId
+            }.onSuccess {
+                onResult(it)
+            }.onFailure { error ->
+                lastSyncError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+                onResult(null)
+            }
+            isEstablishmentBusy = false
+        }
+    }
+
+    fun loadEstablishmentDraft(venueId: String, onResult: (EstablishmentDraft?) -> Unit) {
+        viewModelScope.launch {
+            isEstablishmentBusy = true
+            runCatching {
+                repository.fetchEstablishmentDraft(venueId)
             }.onSuccess {
                 onResult(it)
             }.onFailure { error ->
