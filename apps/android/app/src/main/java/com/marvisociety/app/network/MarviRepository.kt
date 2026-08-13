@@ -1253,7 +1253,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             name = obj.string("venue_name") ?: "",
             area = obj.string("area") ?: "",
             category = OfferCategory.fromApi(obj.string("category")),
-            isActive = obj.bool("is_active") == true
+            isActive = obj.bool("is_active") == true,
+            status = MembershipStatus.fromApi(obj.string("status"))
         )
     }
 

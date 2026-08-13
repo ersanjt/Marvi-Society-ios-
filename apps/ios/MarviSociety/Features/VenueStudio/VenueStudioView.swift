@@ -59,6 +59,59 @@ struct VenueStudioView: View {
         appState.profile.displayName
     }
 
+    private var focusedVenue: VenueSummary? {
+        appState.activeVenue ?? appState.myVenues.first
+    }
+
+    private var canCreateCampaignNow: Bool {
+        switch focusedVenue?.status {
+        case .approved, .none:
+            return true
+        case .underReview, .paused:
+            return false
+        }
+    }
+
+    private var activeCampaignsEmptySubtitle: String {
+        switch focusedVenue?.status {
+        case .underReview:
+            return appState.t(.venuePendingBannerSub)
+        case .paused:
+            return appState.t(.venueRejectedBannerSub)
+        case .approved:
+            return appState.t(.noActiveCampaignsApprovedSub)
+        case .none:
+            return appState.t(.noActiveCampaignsSub)
+        }
+    }
+
+    private var venueStatusBanner: (title: String, subtitle: String, icon: String, tint: Color)? {
+        guard let status = focusedVenue?.status else { return nil }
+        switch status {
+        case .underReview:
+            return (
+                appState.t(.venuePendingBannerTitle),
+                appState.t(.venuePendingBannerSub),
+                "hourglass",
+                MarviColor.gold
+            )
+        case .approved:
+            return (
+                appState.t(.venueApprovedBannerTitle),
+                appState.t(.venueApprovedBannerSub),
+                "checkmark.seal.fill",
+                MarviColor.emerald
+            )
+        case .paused:
+            return (
+                appState.t(.venueRejectedBannerTitle),
+                appState.t(.venueRejectedBannerSub),
+                "exclamationmark.triangle.fill",
+                MarviColor.tomato
+            )
+        }
+    }
+
     private var studioCampaigns: [Campaign] {
         let visible = appState.campaigns.filter { !$0.isDeleted }
         switch campaignScope {
@@ -119,6 +172,26 @@ struct VenueStudioView: View {
                             },
                             onAdd: { isShowingAddVenue = true }
                         )
+
+                        if let statusBanner = venueStatusBanner {
+                            MarviCard {
+                                HStack(alignment: .top, spacing: 12) {
+                                    Image(systemName: statusBanner.icon)
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(statusBanner.tint)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(statusBanner.title)
+                                            .font(.subheadline.weight(.bold))
+                                            .foregroundStyle(MarviColor.ink)
+                                        Text(statusBanner.subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(MarviColor.muted)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                            }
+                        }
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text(appState.t(.manageEvents))
@@ -190,11 +263,13 @@ struct VenueStudioView: View {
                                             ? appState.t(.noActiveCampaigns)
                                             : appState.t(.noPastCampaigns),
                                         subtitle: campaignScope == .active
-                                            ? appState.t(.noActiveCampaignsSub)
+                                            ? activeCampaignsEmptySubtitle
                                             : appState.t(.noPastCampaignsSub),
                                         icon: campaignScope == .active ? "megaphone" : "archivebox",
-                                        actionTitle: campaignScope == .active ? appState.t(.studioCreate) : nil,
-                                        action: campaignScope == .active ? { isShowingBuilder = true } : nil
+                                        actionTitle: campaignScope == .active && canCreateCampaignNow
+                                            ? appState.t(.studioCreate) : nil,
+                                        action: campaignScope == .active && canCreateCampaignNow
+                                            ? { isShowingBuilder = true } : nil
                                     )
                                 }
                             } else {
@@ -1089,6 +1164,14 @@ private struct VenueLocationChip: View {
                 Text(appState.t(.locationPendingReview))
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(MarviColor.gold)
+            } else if venue.status == .approved {
+                Text(appState.t(.locationApproved))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(venue.isActive ? Color.white.opacity(0.9) : MarviColor.emerald)
+            } else if venue.status == .paused {
+                Text(appState.t(.locationRejected))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(MarviColor.tomato)
             }
         }
         .foregroundStyle(venue.isActive ? Color.white : MarviColor.ink)

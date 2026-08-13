@@ -39,6 +39,15 @@ enum class MembershipStatus {
             APPROVED -> "approved"
             PAUSED -> "paused"
         }
+
+    companion object {
+        fun fromApi(raw: String?): MembershipStatus? = when (raw?.lowercase()) {
+            "under_review", "pending" -> UNDER_REVIEW
+            "approved" -> APPROVED
+            "paused", "rejected" -> PAUSED
+            else -> null
+        }
+    }
 }
 
 enum class CollaborationModel(val api: String) {
@@ -339,7 +348,8 @@ data class VenueSummary(
     val name: String,
     val area: String,
     val category: OfferCategory,
-    val isActive: Boolean = false
+    val isActive: Boolean = false,
+    val status: MembershipStatus? = null
 )
 
 data class BrandSummary(

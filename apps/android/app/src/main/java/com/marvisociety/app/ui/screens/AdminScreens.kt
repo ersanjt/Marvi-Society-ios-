@@ -523,7 +523,43 @@ fun VenueStudioScreen(
                 MarviCard {
                     Text(venue.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                     Text("${venue.area} · ${viewModel.categoryLabel(venue.category)}", color = MarviColor.Muted)
-                    if (venue.isActive) Text(viewModel.t(MarviL10n.Key.VENUE_ACTIVE), color = MarviColor.Emerald)
+                    when (venue.status) {
+                        MembershipStatus.UNDER_REVIEW -> Text(
+                            viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_TITLE),
+                            color = MarviColor.Gold,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        MembershipStatus.APPROVED -> Text(
+                            viewModel.t(MarviL10n.Key.LOCATION_APPROVED),
+                            color = MarviColor.Emerald,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        MembershipStatus.PAUSED -> Text(
+                            viewModel.t(MarviL10n.Key.LOCATION_REJECTED),
+                            color = MarviColor.Tomato,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        null -> Unit
+                    }
+                    if (venue.isActive) Text(viewModel.t(MarviL10n.Key.VENUE_ACTIVE), color = MarviColor.Rose)
+                }
+            }
+            item {
+                val focused = viewModel.myVenues.firstOrNull { it.isActive } ?: viewModel.myVenues.firstOrNull()
+                when (focused?.status) {
+                    MembershipStatus.UNDER_REVIEW -> MarviCard {
+                        Text(viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_SUB), color = MarviColor.Muted)
+                    }
+                    MembershipStatus.APPROVED -> MarviCard {
+                        Text(viewModel.t(MarviL10n.Key.VENUE_APPROVED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.VENUE_APPROVED_BANNER_SUB), color = MarviColor.Muted)
+                    }
+                    MembershipStatus.PAUSED -> MarviCard {
+                        Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_SUB), color = MarviColor.Muted)
+                    }
+                    null -> Unit
                 }
             }
             if (viewModel.myVenues.isEmpty()) {

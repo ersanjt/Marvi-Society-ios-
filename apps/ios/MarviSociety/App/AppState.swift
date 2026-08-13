@@ -469,6 +469,12 @@ final class AppState: ObservableObject {
             Task { await openAdminConsole() }
         case "profile":
             navigate(to: .profile)
+        case "studio", "venue", "venue-studio":
+            navigate(to: .venueStudio)
+        case "community":
+            navigate(to: .community)
+        case "bookings", "events":
+            navigate(to: .bookings)
         case "invite":
             if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                let code = components.queryItems?.first(where: { $0.name == "code" })?.value,

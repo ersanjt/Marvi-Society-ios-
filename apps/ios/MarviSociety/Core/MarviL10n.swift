@@ -208,7 +208,11 @@ enum MarviL10n {
         case segmentCheckedIn, segmentCheckedOut, segmentNoShow, tabEstablishments, tabBrands
         case followersCount, creatorSlotsVenue
         case myLocations, myLocationsSub, addLocation, addLocationSub, selectLocation
-        case locationPendingReview, locationTypeLabel, addressOptional, contactPhoneOptional
+        case locationPendingReview, locationApproved, locationRejected, locationTypeLabel, addressOptional, contactPhoneOptional
+        case venuePendingBannerTitle, venuePendingBannerSub
+        case venueApprovedBannerTitle, venueApprovedBannerSub
+        case venueRejectedBannerTitle, venueRejectedBannerSub
+        case noActiveCampaignsApprovedSub
         // Establishment wizard
         case estWizardBack, estWizardBrandTitle, estWizardBrandSub, estWizardHubTitle, estWizardHubSub
         case estWizardDetailsTitle, estWizardDetailsSub, estWizardAddressTitle, estWizardAddressSub
@@ -705,6 +709,14 @@ enum MarviL10n {
         .myLocations: "Your locations", .myLocationsSub: "One account — manage every venue, shop, or brand.",
         .addLocation: "Add your business", .addLocationSub: "Name, area, and category. If yours is missing, type a custom category.",
         .selectLocation: "Active location", .locationPendingReview: "Pending review",
+        .locationApproved: "Approved", .locationRejected: "Needs changes",
+        .venuePendingBannerTitle: "Waiting for admin review",
+        .venuePendingBannerSub: "Your venue application is with Marvi. You’ll get an inbox update when it’s approved or needs changes.",
+        .venueApprovedBannerTitle: "Venue approved",
+        .venueApprovedBannerSub: "You’re ready to create campaigns and invite creators.",
+        .venueRejectedBannerTitle: "Venue needs updates",
+        .venueRejectedBannerSub: "Admin asked for changes. Update your venue details and resubmit, or check Inbox for details.",
+        .noActiveCampaignsApprovedSub: "Your venue is approved. Create a campaign to invite creators.",
         .locationTypeLabel: "Type", .addressOptional: "Address (optional)", .contactPhoneOptional: "Contact phone (optional)",
         .estWizardBack: "Back",
         .estWizardBrandTitle: "Your brand",
@@ -1244,6 +1256,14 @@ enum MarviL10n {
         .myLocations: "Mekânların", .myLocationsSub: "Tek hesap — restoran, otel, mağaza ve daha fazlası.",
         .addLocation: "İşletmeni ekle", .addLocationSub: "Ad, bölge ve kategori seç. Listede yoksa kendi kategorini yazabilirsin.",
         .selectLocation: "Aktif mekân", .locationPendingReview: "İnceleme bekliyor",
+        .locationApproved: "Onaylandı", .locationRejected: "Düzeltme gerekli",
+        .venuePendingBannerTitle: "Admin incelemesi bekleniyor",
+        .venuePendingBannerSub: "Mekân başvurun Marvi’de. Onay veya düzeltme gerektiğinde Gelen Kutusu’nda bildirim göreceksin.",
+        .venueApprovedBannerTitle: "Mekânın onaylandı",
+        .venueApprovedBannerSub: "Artık kampanya oluşturup creator davet edebilirsin.",
+        .venueRejectedBannerTitle: "Mekân güncellemesi gerekli",
+        .venueRejectedBannerSub: "Admin düzeltme istedi. Mekân bilgilerini güncelleyip tekrar gönder veya Gelen Kutusu’na bak.",
+        .noActiveCampaignsApprovedSub: "Mekânın onaylandı. Creator davet etmek için kampanya oluştur.",
         .locationTypeLabel: "Tür", .addressOptional: "Adres (isteğe bağlı)", .contactPhoneOptional: "İletişim telefonu (isteğe bağlı)",
         .estWizardBack: "Geri",
         .estWizardBrandTitle: "Markan",
