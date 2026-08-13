@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.marvisociety.app.data.AdminTaskStatus
+import com.marvisociety.app.data.Campaign
 import com.marvisociety.app.data.CollaborationModel
 import com.marvisociety.app.data.InboxMessage
 import com.marvisociety.app.data.InboxSection
@@ -474,6 +475,8 @@ fun VenueStudioScreen(
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var submitting by remember { mutableStateOf(false) }
     var formError by remember { mutableStateOf<String?>(null) }
+    var campaignPendingDelete by remember { mutableStateOf<Campaign?>(null) }
+    var deleteFeedback by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -686,14 +689,62 @@ fun VenueStudioScreen(
                     }
                 }
             }
-            items(viewModel.campaigns, key = { it.id }) { campaign ->
+            deleteFeedback?.let { msg ->
+                item {
+                    Text(msg, color = MarviColor.Emerald, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            items(viewModel.campaigns.filterNot { it.isDeleted }, key = { it.id }) { campaign ->
                 MarviCard {
-                    Text(campaign.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                    Text("${campaign.venueName} · ${campaign.status}", color = MarviColor.Muted)
-                    Text(
-                        viewModel.localizeServerText(campaign.dateLabel),
-                        color = MarviColor.Graphite,
-                        style = MaterialTheme.typography.bodySmall
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(campaign.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                            Text("${campaign.venueName} · ${campaign.status}", color = MarviColor.Muted)
+                            Text(
+                                viewModel.localizeServerText(campaign.dateLabel),
+                                color = MarviColor.Graphite,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        TextButton(onClick = { campaignPendingDelete = campaign }) {
+                            Text(viewModel.t(MarviL10n.Key.DELETE), color = MarviColor.Tomato)
+                        }
+                    }
+                }
+            }
+
+            campaignPendingDelete?.let { pending ->
+                item {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { campaignPendingDelete = null },
+                        title = { Text(viewModel.t(MarviL10n.Key.DELETE)) },
+                        text = { Text(viewModel.t(MarviL10n.Key.DELETE_CAMPAIGN_CONFIRM)) },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        val ok = viewModel.deleteCampaign(pending.id)
+                                        campaignPendingDelete = null
+                                        deleteFeedback = if (ok) {
+                                            viewModel.t(MarviL10n.Key.CAMPAIGN_DELETED)
+                                        } else {
+                                            viewModel.lastSyncError
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text(viewModel.t(MarviL10n.Key.DELETE), color = MarviColor.Tomato)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { campaignPendingDelete = null }) {
+                                Text(viewModel.t(MarviL10n.Key.CANCEL))
+                            }
+                        }
                     )
                 }
             }

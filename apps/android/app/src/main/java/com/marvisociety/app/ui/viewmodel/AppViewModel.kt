@@ -350,7 +350,7 @@ class AppViewModel(
                         UserRole.VENUE -> {
                             myVenues = repository.fetchMyVenues()
                             myBrands = runCatching { repository.fetchMyBrands() }.getOrDefault(myBrands)
-                            campaigns = repository.fetchCampaigns()
+                            campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
                             swipeCandidates = runCatching { repository.fetchSwipeCandidates(null) }.getOrDefault(swipeCandidates)
                             venueReviewQueue = runCatching { repository.fetchVenueReviewQueue() }.getOrDefault(venueReviewQueue)
                         }
@@ -1064,7 +1064,19 @@ class AppViewModel(
                 requirements = requirements,
                 hostNote = hostNote
             )
-            campaigns = repository.fetchCampaigns()
+            campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
+            true
+        }.getOrElse { error ->
+            lastSyncError = error.message
+            false
+        }
+    }
+
+    suspend fun deleteCampaign(campaignId: String): Boolean {
+        return runCatching {
+            lastSyncError = null
+            repository.venueSoftDeleteOffer(campaignId)
+            campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
             true
         }.getOrElse { error ->
             lastSyncError = error.message

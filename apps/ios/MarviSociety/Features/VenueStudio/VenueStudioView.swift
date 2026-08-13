@@ -37,9 +37,16 @@ struct VenueStudioView: View {
     @State private var reviewSegment: VenueReviewSegment = .checkedIn
     @State private var studioTab: VenueStudioTab = .establishments
     @State private var isShowingInbox = false
+    @State private var campaignPendingDelete: Campaign?
+    @State private var isDeletingCampaign = false
+    @State private var deleteFeedback: String?
 
     private var firstName: String {
         appState.profile.displayName
+    }
+
+    private var studioCampaigns: [Campaign] {
+        appState.campaigns.filter { !$0.isDeleted }
     }
 
     private var liveCampaignForActiveVenue: Campaign? {
@@ -138,11 +145,19 @@ struct VenueStudioView: View {
                         if studioTab == .establishments {
                             SectionTitle(
                                 title: appState.t(.campaigns),
-                                subtitle: String(format: appState.t(.campaignsSub), appState.campaigns.count)
+                                subtitle: String(format: appState.t(.campaignsSub), studioCampaigns.count)
                             )
 
-                            ForEach(appState.campaigns) { campaign in
-                                CampaignCard(campaign: campaign)
+                            if let deleteFeedback {
+                                Text(deleteFeedback)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(MarviColor.emerald)
+                            }
+
+                            ForEach(studioCampaigns) { campaign in
+                                CampaignCard(campaign: campaign) {
+                                    campaignPendingDelete = campaign
+                                }
                             }
                         } else {
                             SectionTitle(
@@ -150,7 +165,7 @@ struct VenueStudioView: View {
                                 subtitle: appState.t(.brandPartnersSub)
                             )
 
-                            if appState.campaigns.isEmpty {
+                            if studioCampaigns.isEmpty {
                                 MarviCard {
                                     EmptyStateView(
                                         title: appState.t(.noBrandCampaigns),
@@ -161,8 +176,10 @@ struct VenueStudioView: View {
                                     )
                                 }
                             } else {
-                                ForEach(appState.campaigns) { campaign in
-                                    CampaignCard(campaign: campaign)
+                                ForEach(studioCampaigns) { campaign in
+                                    CampaignCard(campaign: campaign) {
+                                        campaignPendingDelete = campaign
+                                    }
                                 }
                             }
                         }
@@ -235,6 +252,35 @@ struct VenueStudioView: View {
                         }
                 }
             }
+            .confirmationDialog(
+                appState.t(.deleteCampaignConfirm),
+                isPresented: Binding(
+                    get: { campaignPendingDelete != nil },
+                    set: { if !$0 { campaignPendingDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button(appState.t(.delete), role: .destructive) {
+                    guard let campaign = campaignPendingDelete else { return }
+                    campaignPendingDelete = nil
+                    isDeletingCampaign = true
+                    Task {
+                        let ok = await appState.venueSoftDeleteCampaign(campaign)
+                        await MainActor.run {
+                            isDeletingCampaign = false
+                            if ok {
+                                deleteFeedback = appState.t(.campaignDeletedMsg)
+                            } else {
+                                deleteFeedback = appState.lastSyncError
+                            }
+                        }
+                    }
+                }
+                Button(appState.t(.cancel), role: .cancel) {
+                    campaignPendingDelete = nil
+                }
+            }
+            .disabled(isDeletingCampaign)
         }
     }
 }
@@ -637,7 +683,9 @@ private struct SwipeActionButton: View {
 }
 
 private struct CampaignCard: View {
+    @EnvironmentObject private var appState: AppState
     let campaign: Campaign
+    var onDelete: () -> Void
 
     var body: some View {
         MarviCard {
@@ -659,7 +707,17 @@ private struct CampaignCard: View {
                             .font(.subheadline)
                             .foregroundStyle(MarviColor.muted)
                     }
-                    Spacer()
+                    Spacer(minLength: 8)
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(MarviColor.tomato)
+                            .frame(width: 36, height: 36)
+                            .background(MarviColor.tomato.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(appState.t(.delete))
                 }
 
                 HStack(spacing: 10) {

@@ -361,7 +361,8 @@ data class Campaign(
     val title: String,
     val status: String,
     val venueName: String,
-    val dateLabel: String
+    val dateLabel: String,
+    val isDeleted: Boolean = false
 )
 
 data class MemberSearchResult(

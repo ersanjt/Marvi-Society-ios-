@@ -172,6 +172,7 @@ enum MarviL10n {
         case adminInviteCodeLabel, adminInviteUsesLabel, adminInviteMaxUsesLabel
         case adminCreateInviteCode, adminUpdateInviteQuota, adminInviteQuotaPh
         case studioUnderReview, studioUpcoming, studioOpenSwipe, studioHappening, studioPast, studioCreate
+        case deleteCampaignConfirm, campaignDeletedMsg
         case profileEngagement
         case profileTabOverview, profileTabEdit, profileTabAccount, profileTabSettings
         case communityTab, communityTitle, communitySub, communitySearchPrompt
@@ -604,6 +605,8 @@ enum MarviL10n {
         .adminInviteQuotaPh: "Max uses",
         .studioUnderReview: "Under\nReview", .studioUpcoming: "Upcoming\nEvents", .studioOpenSwipe: "Open for\nswipe",
         .studioHappening: "Happening", .studioPast: "Past", .studioCreate: "Create",
+        .deleteCampaignConfirm: "Delete this campaign? It will be removed from Explore and open requests will be cancelled.",
+        .campaignDeletedMsg: "Campaign deleted",
         .profileEngagement: "Engagement",
         .profileTabOverview: "Overview",
         .profileTabEdit: "Edit",
@@ -1133,6 +1136,8 @@ enum MarviL10n {
         .adminInviteQuotaPh: "Maks kullanım",
         .studioUnderReview: "İncelemede", .studioUpcoming: "Yaklaşan\nEtkinlikler", .studioOpenSwipe: "Swipe\naçık",
         .studioHappening: "Devam eden", .studioPast: "Geçmiş", .studioCreate: "Oluştur",
+        .deleteCampaignConfirm: "Bu kampanya silinsin mi? Keşfet’ten kalkar ve açık talepler iptal edilir.",
+        .campaignDeletedMsg: "Kampanya silindi",
         .profileEngagement: "Etkileşim",
         .profileTabOverview: "Genel",
         .profileTabEdit: "Düzenle",

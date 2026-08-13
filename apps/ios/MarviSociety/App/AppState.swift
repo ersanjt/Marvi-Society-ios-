@@ -1654,6 +1654,24 @@ final class AppState: ObservableObject {
     }
 
     @discardableResult
+    func venueSoftDeleteCampaign(_ campaign: Campaign, reason: String? = nil) async -> Bool {
+        guard allowedRoles.contains(.venue) || allowedRoles.contains(.admin) else { return false }
+        processingAdminTaskID = campaign.id
+        defer { processingAdminTaskID = nil }
+        do {
+            try await api.venueSoftDeleteOffer(offerID: campaign.id, reason: reason)
+            // Optimistic remove so Studio updates immediately.
+            campaigns.removeAll { $0.id == campaign.id }
+            await refreshFromServer()
+            lastSyncError = nil
+            return true
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return false
+        }
+    }
+
+    @discardableResult
     func adminRestoreCampaign(_ campaign: Campaign) async -> Bool {
         guard allowedRoles.contains(.admin) else { return false }
         processingAdminTaskID = campaign.id

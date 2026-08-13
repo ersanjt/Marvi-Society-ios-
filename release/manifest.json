@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.3",
-      "buildNumber": 80,
+      "buildNumber": 81,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,11 +17,26 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260813190001_category_sort_hotel_restaurant_cafe",
-      "migrationCount": 65
+      "migrationHead": "20260813200001_venue_soft_delete_offer",
+      "migrationCount": 66
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T17:04:34Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260813200001_venue_soft_delete_offer)"
+    },
+    {
+      "at": "2026-08-13T17:04:26Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260813200001_venue_soft_delete_offer)"
+    },
+    {
+      "at": "2026-08-13T16:37:06Z",
+      "status": "ok",
+      "message": "pushed 158179f to origin/main"
+    },
     {
       "at": "2026-08-13T16:37:03Z",
       "status": "ok",
@@ -256,21 +271,6 @@
       "at": "2026-08-10T22:43:28Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-10T22:32:34Z",
-      "status": "ok",
-      "message": "pushed d851643 to origin/main"
-    },
-    {
-      "at": "2026-08-10T22:32:31Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-10T22:09:47Z",
-      "status": "ok",
-      "message": "pushed c2736e6 to origin/main"
     }
   ],
   "releases": [

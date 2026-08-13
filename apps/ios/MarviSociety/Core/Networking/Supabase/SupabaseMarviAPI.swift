@@ -858,6 +858,15 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         }
     }
 
+    func venueSoftDeleteOffer(offerID: UUID, reason: String? = nil) async throws {
+        var body: [String: Any] = ["p_offer_id": offerID.uuidString]
+        let trimmedReason = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedReason, !trimmedReason.isEmpty {
+            body["p_reason"] = trimmedReason
+        }
+        try await client.rpcVoid(function: "venue_soft_delete_offer", body: body)
+    }
+
     func adminRestoreOffer(offerID: UUID) async throws {
         do {
             try await client.rpcVoid(

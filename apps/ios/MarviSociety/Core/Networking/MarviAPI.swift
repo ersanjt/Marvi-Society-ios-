@@ -65,6 +65,7 @@ protocol MarviAPI: Sendable {
     func rejectTask(_ taskID: UUID) async throws
     func adminSetOfferStatus(offerID: UUID, status: CampaignStatus, reason: String?) async throws
     func adminSoftDeleteOffer(offerID: UUID, reason: String?) async throws
+    func venueSoftDeleteOffer(offerID: UUID, reason: String?) async throws
     func adminRestoreOffer(offerID: UUID) async throws
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate]
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws
@@ -235,6 +236,12 @@ extension MarviAPI {
     }
 
     func adminSoftDeleteOffer(offerID: UUID, reason: String?) async throws {
+        _ = offerID
+        _ = reason
+        throw MarviAPIError.server(message: "Campaign delete requires Supabase mode")
+    }
+
+    func venueSoftDeleteOffer(offerID: UUID, reason: String?) async throws {
         _ = offerID
         _ = reason
         throw MarviAPIError.server(message: "Campaign delete requires Supabase mode")

@@ -172,6 +172,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func rejectTask(_ taskID: UUID) async throws { throw notConfigured() }
     func adminSetOfferStatus(offerID: UUID, status: CampaignStatus, reason: String? = nil) async throws { throw notConfigured() }
     func adminSoftDeleteOffer(offerID: UUID, reason: String?) async throws { throw notConfigured() }
+    func venueSoftDeleteOffer(offerID: UUID, reason: String?) async throws { throw notConfigured() }
     func adminRestoreOffer(offerID: UUID) async throws { throw notConfigured() }
     func fetchSwipeCandidates(offerID: UUID?) async throws -> [InfluencerCandidate] { [] }
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws { throw notConfigured() }

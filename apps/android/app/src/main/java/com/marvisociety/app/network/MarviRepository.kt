@@ -754,6 +754,16 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         return client.publicStorageUrl("venue-media", path)
     }
 
+    suspend fun venueSoftDeleteOffer(offerId: String, reason: String? = null) {
+        client.rpcVoid(
+            "venue_soft_delete_offer",
+            buildJsonObject {
+                put("p_offer_id", offerId)
+                if (!reason.isNullOrBlank()) put("p_reason", reason)
+            }
+        )
+    }
+
     suspend fun fetchCampaigns(): List<Campaign> {
         val rows = client.select(
             "offers",
@@ -770,7 +780,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 title = obj.string("title") ?: "Campaign",
                 status = obj.string("status") ?: "Draft",
                 venueName = venue?.string("venue_name") ?: obj.string("venue_name") ?: "",
-                dateLabel = formatRelative(obj.string("created_at"))
+                dateLabel = formatRelative(obj.string("created_at")),
+                isDeleted = !obj.string("deleted_at").isNullOrBlank()
             )
         }
     }
