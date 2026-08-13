@@ -2008,6 +2008,7 @@ struct AdminVenuesTab: View {
     @State private var statusFilter: String? = nil
     @State private var actionMessage = ""
     @State private var actionIsError = false
+    @State private var venuePendingDelete: AdminVenueSummary?
 
     private var isTurkish: Bool { appState.preferredLanguage == .turkish }
 
@@ -2018,6 +2019,11 @@ struct AdminVenuesTab: View {
                     title: appState.t(.adminVenuesDirectoryTitle),
                     subtitle: appState.t(.adminVenuesDirectorySub)
                 )
+
+                Text(appState.t(.adminVenuesHelp))
+                    .font(.caption)
+                    .foregroundStyle(MarviColor.muted)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -2058,60 +2064,7 @@ struct AdminVenuesTab: View {
                     }
                 } else {
                     ForEach(appState.adminVenues) { venue in
-                        MarviCard {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack(alignment: .top) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(venue.venueName)
-                                            .font(.headline.weight(.bold))
-                                            .foregroundStyle(MarviColor.ink)
-                                        Text("\(venue.area) · \(venue.category ?? "—")")
-                                            .font(.subheadline)
-                                            .foregroundStyle(MarviColor.muted)
-                                        if let owner = venue.ownerName ?? venue.ownerEmail {
-                                            Text(owner)
-                                                .font(.caption)
-                                                .foregroundStyle(MarviColor.graphite)
-                                        }
-                                    }
-                                    Spacer()
-                                    StatusPill(
-                                        text: venue.displayStatus,
-                                        tint: venueStatusTint(venue.status),
-                                        systemImage: "building.2.fill"
-                                    )
-                                }
-
-                                Text(
-                                    isTurkish
-                                        ? "\(venue.liveOfferCount) canlı · \(venue.offerCount) kampanya · \(venue.bookingCount) rezervasyon"
-                                        : "\(venue.liveOfferCount) live · \(venue.offerCount) campaigns · \(venue.bookingCount) bookings"
-                                )
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(MarviColor.muted)
-
-                                HStack(spacing: 8) {
-                                    venueAction(
-                                        title: isTurkish ? "Onayla" : "Approve",
-                                        tint: MarviColor.emerald
-                                    ) {
-                                        await setStatus(venue, .approved)
-                                    }
-                                    venueAction(
-                                        title: isTurkish ? "Duraklat" : "Pause",
-                                        tint: MarviColor.tomato
-                                    ) {
-                                        await setStatus(venue, .paused)
-                                    }
-                                    venueAction(
-                                        title: isTurkish ? "İnceleme" : "Review",
-                                        tint: MarviColor.gold
-                                    ) {
-                                        await setStatus(venue, .underReview)
-                                    }
-                                }
-                            }
-                        }
+                        adminVenueCard(venue)
                     }
                 }
             }
@@ -2122,6 +2075,130 @@ struct AdminVenuesTab: View {
         }
         .task {
             await appState.loadAdminVenues(search: searchText, status: statusFilter)
+        }
+        .confirmationDialog(
+            appState.t(.adminVenueDeleteConfirm),
+            isPresented: Binding(
+                get: { venuePendingDelete != nil },
+                set: { if !$0 { venuePendingDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(appState.t(.delete), role: .destructive) {
+                guard let venue = venuePendingDelete else { return }
+                venuePendingDelete = nil
+                Task { await deleteVenue(venue) }
+            }
+            Button(appState.t(.cancel), role: .cancel) {
+                venuePendingDelete = nil
+            }
+        } message: {
+            if let venue = venuePendingDelete {
+                Text(String(format: appState.t(.adminVenueDeleteConfirmSub), venue.venueName))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func adminVenueCard(_ venue: AdminVenueSummary) -> some View {
+        let statusKey = (venue.status ?? "under_review").lowercased()
+        MarviCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(venue.venueName)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(MarviColor.ink)
+                        Text("\(venue.area) · \(venue.category ?? "—")")
+                            .font(.subheadline)
+                            .foregroundStyle(MarviColor.muted)
+                        if let owner = venue.ownerName ?? venue.ownerEmail {
+                            Text(owner)
+                                .font(.caption)
+                                .foregroundStyle(MarviColor.graphite)
+                        }
+                        Text(String(venue.venueID.uuidString.prefix(8)).uppercased())
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(MarviColor.muted.opacity(0.7))
+                    }
+                    Spacer()
+                    StatusPill(
+                        text: localizedVenueStatus(statusKey),
+                        tint: venueStatusTint(statusKey),
+                        systemImage: "building.2.fill"
+                    )
+                }
+
+                Text(
+                    isTurkish
+                        ? "\(venue.liveOfferCount) canlı · \(venue.offerCount) kampanya · \(venue.bookingCount) rezervasyon"
+                        : "\(venue.liveOfferCount) live · \(venue.offerCount) campaigns · \(venue.bookingCount) bookings"
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MarviColor.muted)
+
+                if venue.liveOfferCount == 0, statusKey == "approved" {
+                    Text(appState.t(.adminVenueNoLiveHint))
+                        .font(.caption2)
+                        .foregroundStyle(MarviColor.gold)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: 8) {
+                    ForEach(primaryActions(for: statusKey), id: \.title) { action in
+                        venueAction(title: action.title, tint: action.tint) {
+                            await setStatus(venue, action.status)
+                        }
+                    }
+                }
+
+                Button {
+                    venuePendingDelete = venue
+                } label: {
+                    Label(appState.t(.adminVenueDelete), systemImage: "trash")
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(MarviColor.tomato)
+                        .background(MarviColor.tomato.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private struct VenuePrimaryAction {
+        let title: String
+        let tint: Color
+        let status: MembershipStatus
+    }
+
+    private func primaryActions(for statusKey: String) -> [VenuePrimaryAction] {
+        switch statusKey {
+        case "approved":
+            [
+                .init(title: appState.t(.adminVenueNeedsChanges), tint: MarviColor.tomato, status: .paused),
+                .init(title: appState.t(.adminVenueSendReview), tint: MarviColor.gold, status: .underReview)
+            ]
+        case "paused":
+            [
+                .init(title: appState.t(.approve), tint: MarviColor.emerald, status: .approved),
+                .init(title: appState.t(.adminVenueSendReview), tint: MarviColor.gold, status: .underReview)
+            ]
+        default:
+            [
+                .init(title: appState.t(.approve), tint: MarviColor.emerald, status: .approved),
+                .init(title: appState.t(.adminVenueNeedsChanges), tint: MarviColor.tomato, status: .paused)
+            ]
+        }
+    }
+
+    private func localizedVenueStatus(_ statusKey: String) -> String {
+        switch statusKey {
+        case "approved": appState.t(.statusApproved)
+        case "paused": appState.t(.statusPaused)
+        default: appState.t(.statusUnderReview)
         }
     }
 
@@ -2170,7 +2247,18 @@ struct AdminVenuesTab: View {
             actionMessage = error
         } else {
             actionIsError = false
-            actionMessage = isTurkish ? "Mekân durumu güncellendi" : "Venue status updated"
+            actionMessage = appState.t(.adminVenueStatusUpdated)
+            await appState.loadAdminVenues(search: searchText, status: statusFilter)
+        }
+    }
+
+    private func deleteVenue(_ venue: AdminVenueSummary) async {
+        if let error = await appState.adminDeleteVenue(venueID: venue.venueID) {
+            actionIsError = true
+            actionMessage = error
+        } else {
+            actionIsError = false
+            actionMessage = appState.t(.adminVenueDeleted)
             await appState.loadAdminVenues(search: searchText, status: statusFilter)
         }
     }

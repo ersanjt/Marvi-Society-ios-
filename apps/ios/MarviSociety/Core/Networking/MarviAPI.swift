@@ -96,6 +96,7 @@ protocol MarviAPI: Sendable {
     func fetchAdminVenues(search: String?, status: String?) async throws -> [AdminVenueSummary]
     func fetchAdminBookings(search: String?, stage: String?) async throws -> [AdminBookingSummary]
     func adminSetVenueStatus(venueID: UUID, status: String) async throws
+    func adminDeleteVenue(venueID: UUID) async throws
     func adminSetMembershipStatus(userID: UUID, status: String) async throws
     func adminSetUserRole(userID: UUID, role: String) async throws
     func adminSendNotification(userID: UUID, title: String, body: String) async throws
@@ -370,6 +371,10 @@ extension MarviAPI {
     func adminSetVenueStatus(venueID: UUID, status: String) async throws {
         _ = venueID
         _ = status
+    }
+
+    func adminDeleteVenue(venueID: UUID) async throws {
+        _ = venueID
     }
 
     func adminSetMembershipStatus(userID: UUID, status: String) async throws {

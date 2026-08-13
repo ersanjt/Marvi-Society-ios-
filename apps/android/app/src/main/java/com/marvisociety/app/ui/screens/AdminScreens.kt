@@ -200,6 +200,11 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                                 title = viewModel.t(MarviL10n.Key.ADMIN_TAB_VENUES),
                                 count = viewModel.adminVenues.size
                             )
+                            Text(
+                                viewModel.t(MarviL10n.Key.ADMIN_VENUES_HELP),
+                                color = MarviColor.Muted,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                         if (viewModel.adminVenues.isEmpty()) {
                             item {
@@ -436,6 +441,8 @@ private fun AdminTabChip(selected: Boolean, label: String, onClick: () -> Unit) 
 
 @Composable
 private fun AdminVenueCard(viewModel: AppViewModel, venue: AdminVenueSummary) {
+    var confirmDelete by remember { mutableStateOf(false) }
+    val status = venue.status
     MarviCard {
         Text(venue.venueName, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
         Text("${venue.area} · ${venue.category}", color = MarviColor.Muted)
@@ -444,31 +451,95 @@ private fun AdminVenueCard(viewModel: AppViewModel, venue: AdminVenueSummary) {
             Text(owner, color = MarviColor.Graphite, style = MaterialTheme.typography.bodySmall)
         }
         Text(
+            venue.id.take(8).uppercase(),
+            color = MarviColor.Muted.copy(alpha = 0.7f),
+            style = MaterialTheme.typography.labelSmall
+        )
+        Text(
             "${venue.liveOfferCount} live · ${venue.offerCount} campaigns · ${venue.bookingCount} bookings",
             color = MarviColor.Muted,
             style = MaterialTheme.typography.bodySmall
         )
         Text(
-            venue.status?.name?.lowercase()?.replace('_', ' ') ?: "under review",
-            color = MarviColor.Aubergine,
+            when (status) {
+                MembershipStatus.APPROVED -> viewModel.t(MarviL10n.Key.STATUS_APPROVED)
+                MembershipStatus.PAUSED -> viewModel.t(MarviL10n.Key.STATUS_PAUSED)
+                MembershipStatus.UNDER_REVIEW, null -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
+            },
+            color = when (status) {
+                MembershipStatus.APPROVED -> MarviColor.Emerald
+                MembershipStatus.PAUSED -> MarviColor.Tomato
+                else -> MarviColor.Gold
+            },
             fontWeight = FontWeight.SemiBold,
             style = MaterialTheme.typography.labelMedium
         )
+        if (status == MembershipStatus.APPROVED && venue.liveOfferCount == 0) {
+            Text(
+                viewModel.t(MarviL10n.Key.ADMIN_VENUE_NO_LIVE_HINT),
+                color = MarviColor.Gold,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-            TextButton(onClick = {
-                viewModel.adminSetVenueStatus(venue.id, MembershipStatus.APPROVED)
-            }) {
-                Text(viewModel.t(MarviL10n.Key.APPROVE), color = MarviColor.Emerald)
+            when (status) {
+                MembershipStatus.APPROVED -> {
+                    TextButton(onClick = {
+                        viewModel.adminSetVenueStatus(venue.id, MembershipStatus.PAUSED)
+                    }) {
+                        Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_NEEDS_CHANGES), color = MarviColor.Tomato)
+                    }
+                    TextButton(onClick = {
+                        viewModel.adminSetVenueStatus(venue.id, MembershipStatus.UNDER_REVIEW)
+                    }) {
+                        Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_SEND_REVIEW), color = MarviColor.Gold)
+                    }
+                }
+                MembershipStatus.PAUSED -> {
+                    TextButton(onClick = {
+                        viewModel.adminSetVenueStatus(venue.id, MembershipStatus.APPROVED)
+                    }) {
+                        Text(viewModel.t(MarviL10n.Key.APPROVE), color = MarviColor.Emerald)
+                    }
+                    TextButton(onClick = {
+                        viewModel.adminSetVenueStatus(venue.id, MembershipStatus.UNDER_REVIEW)
+                    }) {
+                        Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_SEND_REVIEW), color = MarviColor.Gold)
+                    }
+                }
+                else -> {
+                    TextButton(onClick = {
+                        viewModel.adminSetVenueStatus(venue.id, MembershipStatus.APPROVED)
+                    }) {
+                        Text(viewModel.t(MarviL10n.Key.APPROVE), color = MarviColor.Emerald)
+                    }
+                    TextButton(onClick = {
+                        viewModel.adminSetVenueStatus(venue.id, MembershipStatus.PAUSED)
+                    }) {
+                        Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_NEEDS_CHANGES), color = MarviColor.Tomato)
+                    }
+                }
             }
-            TextButton(onClick = {
-                viewModel.adminSetVenueStatus(venue.id, MembershipStatus.PAUSED)
-            }) {
-                Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_PAUSE), color = MarviColor.Tomato)
-            }
-            TextButton(onClick = {
-                viewModel.adminSetVenueStatus(venue.id, MembershipStatus.UNDER_REVIEW)
-            }) {
-                Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_REVIEW), color = MarviColor.Gold)
+        }
+        TextButton(onClick = { confirmDelete = true }) {
+            Text(viewModel.t(MarviL10n.Key.ADMIN_VENUE_DELETE), color = MarviColor.Tomato)
+        }
+        if (confirmDelete) {
+            Text(
+                viewModel.t(MarviL10n.Key.ADMIN_VENUE_DELETE_CONFIRM),
+                color = MarviColor.Muted,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = {
+                    viewModel.adminDeleteVenue(venue.id)
+                    confirmDelete = false
+                }) {
+                    Text(viewModel.t(MarviL10n.Key.DELETE), color = MarviColor.Tomato)
+                }
+                TextButton(onClick = { confirmDelete = false }) {
+                    Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
+                }
             }
         }
     }

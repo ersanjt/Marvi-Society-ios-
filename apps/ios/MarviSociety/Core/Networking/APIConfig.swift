@@ -220,6 +220,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func fetchAdminVenues(search: String?, status: String?) async throws -> [AdminVenueSummary] { throw notConfigured() }
     func fetchAdminBookings(search: String?, stage: String?) async throws -> [AdminBookingSummary] { throw notConfigured() }
     func adminSetVenueStatus(venueID: UUID, status: String) async throws { throw notConfigured() }
+    func adminDeleteVenue(venueID: UUID) async throws { throw notConfigured() }
     func adminSetMembershipStatus(userID: UUID, status: String) async throws { throw notConfigured() }
     func adminSetUserRole(userID: UUID, role: String) async throws { throw notConfigured() }
     func adminSendNotification(userID: UUID, title: String, body: String) async throws { throw notConfigured() }

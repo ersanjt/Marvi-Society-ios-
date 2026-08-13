@@ -1448,6 +1448,20 @@ class AppViewModel(
         }
     }
 
+    fun adminDeleteVenue(venueId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.adminDeleteVenue(venueId)
+                adminVenues = repository.fetchAdminVenues(null, null)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
     fun loadAdminVenues(search: String? = null, status: String? = null) {
         viewModelScope.launch {
             runCatching {

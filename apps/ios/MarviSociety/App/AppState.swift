@@ -1776,6 +1776,19 @@ final class AppState: ObservableObject {
         }
     }
 
+    func adminDeleteVenue(venueID: UUID) async -> String? {
+        guard isRemoteMode, allowedRoles.contains(.admin) else {
+            return t(.errAdminRequired)
+        }
+        do {
+            try await api.adminDeleteVenue(venueID: venueID)
+            await loadAdminVenues()
+            return nil
+        } catch {
+            return presentableError(error) ?? t(.errSomeDataRefresh)
+        }
+    }
+
     func adminSetUserStatus(userID: UUID, status: MembershipStatus) async -> String? {
         guard isRemoteMode, allowedRoles.contains(.admin) else {
             return t(.errAdminRequired)

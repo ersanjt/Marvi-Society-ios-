@@ -1245,6 +1245,13 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func adminDeleteVenue(venueID: UUID) async throws {
+        try await client.rpcVoid(
+            function: "admin_delete_venue",
+            body: ["p_venue_id": venueID.uuidString]
+        )
+    }
+
     func adminSetMembershipStatus(userID: UUID, status: String) async throws {
         try await client.rpcVoid(
             function: "admin_set_membership_status",

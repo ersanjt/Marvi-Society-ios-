@@ -548,6 +548,13 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         )
     }
 
+    suspend fun adminDeleteVenue(venueId: String) {
+        client.rpcVoid(
+            "admin_delete_venue",
+            buildJsonObject { put("p_venue_id", venueId) }
+        )
+    }
+
     suspend fun adminSetMembershipStatus(userId: String, status: MembershipStatus) {
         client.rpcVoid(
             "admin_set_membership_status",

@@ -160,6 +160,8 @@ enum MarviL10n {
         case adminTabVenues, adminTabBookings
         case adminUsersDirectoryTitle, adminUsersDirectorySub, adminUsersCountLabel
         case adminVenuesDirectoryTitle, adminVenuesDirectorySub, adminVenuesCountLabel, adminVenuesEmpty, adminVenuesEmptySub
+        case adminVenuesHelp, adminVenueNeedsChanges, adminVenueSendReview, adminVenueDelete
+        case adminVenueDeleteConfirm, adminVenueDeleteConfirmSub, adminVenueDeleted, adminVenueStatusUpdated, adminVenueNoLiveHint
         case adminBookingsDirectoryTitle, adminBookingsDirectorySub, adminBookingsCountLabel
         case venuesLabel
         case adminShowTools, adminHideTools, adminFilterAll, adminClearFilters
@@ -585,10 +587,19 @@ enum MarviL10n {
         .adminUsersDirectorySub: "See photos, message or email members, and fix profile media.",
         .adminUsersCountLabel: "members",
         .adminVenuesDirectoryTitle: "Venues",
-        .adminVenuesDirectorySub: "All locations — approve, pause, or send back to review.",
+        .adminVenuesDirectorySub: "All locations — approve, request changes, or remove.",
         .adminVenuesCountLabel: "venues",
         .adminVenuesEmpty: "No venues",
         .adminVenuesEmptySub: "Venue applications and registered locations appear here.",
+        .adminVenuesHelp: "Approve = partner can create campaigns. Needs changes = partner must edit & resubmit. Delete removes the venue and takes campaigns offline.",
+        .adminVenueNeedsChanges: "Needs changes",
+        .adminVenueSendReview: "To review",
+        .adminVenueDelete: "Delete venue",
+        .adminVenueDeleteConfirm: "Delete this venue?",
+        .adminVenueDeleteConfirmSub: "%@ will be removed. Live campaigns go offline and open bookings are cancelled.",
+        .adminVenueDeleted: "Venue deleted",
+        .adminVenueStatusUpdated: "Venue status updated",
+        .adminVenueNoLiveHint: "Approved but not on Explore yet — partner must create a campaign, then approve it live in Queue.",
         .adminBookingsDirectoryTitle: "Bookings",
         .adminBookingsDirectorySub: "Who is going where — every collaboration reservation across the platform.",
         .adminBookingsCountLabel: "bookings",
@@ -1162,10 +1173,19 @@ enum MarviL10n {
         .adminUsersDirectorySub: "Fotoğrafları görün, mesaj veya e-posta gönderin, profil medyasını düzeltin.",
         .adminUsersCountLabel: "üye",
         .adminVenuesDirectoryTitle: "Mekânlar",
-        .adminVenuesDirectorySub: "Tüm lokasyonlar — onayla, duraklat veya incelemeye geri gönder.",
+        .adminVenuesDirectorySub: "Tüm lokasyonlar — onayla, düzeltme iste veya kaldır.",
         .adminVenuesCountLabel: "mekân",
         .adminVenuesEmpty: "Mekân yok",
         .adminVenuesEmptySub: "Mekân başvuruları ve kayıtlı lokasyonlar burada görünür.",
+        .adminVenuesHelp: "Onayla = partner kampanya açabilir. Düzeltme = partner düzenleyip tekrar gönderir. Sil = mekân kalkar, kampanyalar yayından iner.",
+        .adminVenueNeedsChanges: "Düzeltme iste",
+        .adminVenueSendReview: "İncelemeye al",
+        .adminVenueDelete: "Mekânı sil",
+        .adminVenueDeleteConfirm: "Bu mekân silinsin mi?",
+        .adminVenueDeleteConfirmSub: "%@ kaldırılacak. Canlı kampanyalar kapanır, açık rezervasyonlar iptal edilir.",
+        .adminVenueDeleted: "Mekân silindi",
+        .adminVenueStatusUpdated: "Mekân durumu güncellendi",
+        .adminVenueNoLiveHint: "Onaylı ama Keşfet’te yok — partner kampanya oluşturmalı; sen de Kuyruk’tan canlı yayınlamalısın.",
         .adminBookingsDirectoryTitle: "Rezervasyonlar",
         .adminBookingsDirectorySub: "Kim nereye gidiyor — platformdaki tüm iş birliği rezervasyonları.",
         .adminBookingsCountLabel: "rezervasyon",
