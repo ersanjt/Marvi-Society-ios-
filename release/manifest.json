@@ -12,8 +12,8 @@
       "version": "1.5.3"
     },
     "android": {
-      "marketingVersion": "1.9.7",
-      "versionCode": 53,
+      "marketingVersion": "1.9.8",
+      "versionCode": 54,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T22:26:49Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260814050001_harden_collab_accept_and_decline)"
+    },
+    {
+      "at": "2026-08-13T22:22:54Z",
+      "status": "ok",
+      "message": "pushed 8dce7f4 to origin/main"
+    },
     {
       "at": "2026-08-13T22:22:51Z",
       "status": "ok",
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-08-12T16:59:23Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-12T16:58:01Z",
-      "status": "ok",
-      "message": "pushed e3099fc to origin/main"
-    },
-    {
-      "at": "2026-08-12T16:57:58Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
     }

@@ -1,6 +1,7 @@
 package com.marvisociety.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -126,8 +130,23 @@ fun MapDiscoverScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                if (mappableOffers.size > 1) {
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(mappableOffers.take(8), key = { it.id }) { nearby ->
+                            MarviCard(
+                                modifier = Modifier
+                                    .width(220.dp)
+                                    .clickable { selectedOffer = nearby }
+                            ) {
+                                Text(nearby.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text("${nearby.venue} · ${nearby.area}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                            }
+                        }
+                    }
+                }
                 MarviCard {
                     Text(offer.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                     Text("${offer.venue} · ${offer.area}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)

@@ -259,7 +259,21 @@ private fun MainShell(viewModel: AppViewModel) {
                     )
                 }
                 composable("bookings") {
-                    BookingsScreen(viewModel, onOpenMessages = { navController.navigate("collab") })
+                    BookingsScreen(
+                        viewModel,
+                        onOpenMessages = { navController.navigate("collab") },
+                        onOpenInbox = {
+                            val index = tabs.indexOfFirst { it.route == "inbox" }
+                            if (index >= 0) {
+                                viewModel.setWorkspaceTab(index)
+                                navController.navigate("inbox") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                    )
                 }
                 composable("collab") {
                     CollaborationChatScreen(

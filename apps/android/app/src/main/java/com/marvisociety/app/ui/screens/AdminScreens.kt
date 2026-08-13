@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
@@ -43,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.marvisociety.app.data.AdminBookingSummary
 import com.marvisociety.app.data.AdminTaskStatus
@@ -56,13 +59,15 @@ import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandLockup
 import com.marvisociety.app.ui.components.EmptyStateView
+import com.marvisociety.app.ui.components.HomeHeader
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.StudioStatusGrid
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
-private enum class AdminSection { QUEUE, BOOKINGS, VENUES, USERS, CAMPAIGNS }
+private enum class AdminSection { QUEUE, BOOKINGS, VENUES, USERS, CAMPAIGNS, MAP, BROADCAST, ACTIVITY }
 
 @Composable
 fun AdminDashboardScreen(viewModel: AppViewModel) {
@@ -114,6 +119,27 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                         selected = section == AdminSection.CAMPAIGNS,
                         label = "${viewModel.t(MarviL10n.Key.ADMIN_TAB_CAMPAIGNS)} (${viewModel.campaigns.count { !it.isDeleted }})",
                         onClick = { section = AdminSection.CAMPAIGNS }
+                    )
+                }
+                item {
+                    AdminTabChip(
+                        selected = section == AdminSection.MAP,
+                        label = viewModel.t(MarviL10n.Key.ADMIN_TAB_MAP),
+                        onClick = { section = AdminSection.MAP }
+                    )
+                }
+                item {
+                    AdminTabChip(
+                        selected = section == AdminSection.BROADCAST,
+                        label = viewModel.t(MarviL10n.Key.ADMIN_TAB_BROADCAST),
+                        onClick = { section = AdminSection.BROADCAST }
+                    )
+                }
+                item {
+                    AdminTabChip(
+                        selected = section == AdminSection.ACTIVITY,
+                        label = viewModel.t(MarviL10n.Key.ADMIN_TAB_ACTIVITY),
+                        onClick = { section = AdminSection.ACTIVITY }
                     )
                 }
             }
@@ -471,6 +497,30 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                             }
                         }
                     }
+                    AdminSection.MAP -> {
+                        item {
+                            EmptyStateView(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_TAB_MAP),
+                                subtitle = viewModel.t(MarviL10n.Key.NEAR_YOU)
+                            )
+                        }
+                    }
+                    AdminSection.BROADCAST -> {
+                        item {
+                            EmptyStateView(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_TAB_BROADCAST),
+                                subtitle = viewModel.t(MarviL10n.Key.ADMIN_ACTIVITY_EMPTY_SUB)
+                            )
+                        }
+                    }
+                    AdminSection.ACTIVITY -> {
+                        item {
+                            EmptyStateView(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_ACTIVITY_EMPTY),
+                                subtitle = viewModel.t(MarviL10n.Key.ADMIN_ACTIVITY_EMPTY_SUB)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -479,14 +529,20 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
 
 @Composable
 private fun AdminTabChip(selected: Boolean, label: String, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-            selectedLabelColor = MarviColor.Rose
-        )
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+    Text(
+        text = label,
+        color = if (selected) androidx.compose.ui.graphics.Color.White else MarviColor.Muted,
+        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.labelMedium,
+        modifier = Modifier
+            .clip(shape)
+            .then(
+                if (selected) Modifier.background(com.marvisociety.app.ui.theme.MarviGradient.Brand)
+                else Modifier.background(MarviColor.Panel).border(1.dp, MarviColor.Border, shape)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     )
 }
 
@@ -697,34 +753,48 @@ fun InboxScreen(viewModel: AppViewModel) {
                                 }
                             ) {
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(8.dp)
-                                            .clip(CircleShape)
-                                            .background(MarviColor.Rose)
-                                    )
-                                    Text(
-                                        viewModel.localizeServerText(msg.title),
-                                        fontWeight = FontWeight.Bold,
-                                        color = MarviColor.Ink,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Text(
-                                        viewModel.t(MarviL10n.Key.OPEN_ACTION),
-                                        color = MarviColor.Emerald,
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MarviColor.Rose.copy(alpha = 0.14f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("●", color = MarviColor.Rose, fontSize = 10.sp)
+                                    }
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text(
+                                            viewModel.localizeServerText(msg.title),
+                                            fontWeight = FontWeight.Bold,
+                                            color = MarviColor.Ink
+                                        )
+                                        Text(viewModel.localizeServerText(msg.body), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            viewModel.localizeServerText(msg.dateLabel),
+                                            color = MarviColor.Muted,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        if (!msg.isRead) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MarviColor.Rose)
+                                            )
+                                        }
+                                        Text(
+                                            viewModel.t(MarviL10n.Key.OPEN_ACTION),
+                                            color = MarviColor.Emerald,
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelMedium
+                                        )
+                                    }
                                 }
-                                Text(viewModel.localizeServerText(msg.body), color = MarviColor.Graphite)
-                                Text(
-                                    viewModel.localizeServerText(msg.dateLabel),
-                                    color = MarviColor.Muted,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
                             }
                         }
                     }
@@ -772,7 +842,9 @@ private fun AdminSectionHeader(title: String, count: Int, modifier: Modifier = M
 fun VenueStudioScreen(
     viewModel: AppViewModel,
     onAddEstablishment: () -> Unit = {},
-    onEditEstablishment: (String) -> Unit = {}
+    onEditEstablishment: (String) -> Unit = {},
+    onOpenProfile: () -> Unit = {},
+    onOpenInbox: () -> Unit = {}
 ) {
     var showCreate by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
@@ -818,6 +890,77 @@ fun VenueStudioScreen(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item {
+                HomeHeader(
+                    greeting = viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.MEMBER_LABEL) },
+                    subtitle = viewModel.t(MarviL10n.Key.VENUE_PARTNER_WORKSPACE),
+                    avatarUrl = viewModel.profile.avatarUrl.takeIf { it.isNotBlank() },
+                    avatarLetter = viewModel.profile.name.ifBlank { "M" },
+                    hiPrefix = viewModel.t(MarviL10n.Key.HI_GREETING),
+                    unreadCount = viewModel.unreadInboxCount,
+                    onProfile = onOpenProfile,
+                    onNotifications = onOpenInbox
+                )
+            }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        viewModel.t(MarviL10n.Key.MANAGE_EVENTS),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MarviColor.Ink,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        viewModel.t(MarviL10n.Key.AT_ESTABLISHMENTS),
+                        style = MaterialTheme.typography.headlineSmall.merge(
+                            androidx.compose.ui.text.TextStyle(brush = com.marvisociety.app.ui.theme.MarviGradient.Brand)
+                        ),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            item {
+                val live = viewModel.campaigns.firstOrNull { !it.isDeleted && it.status.equals("live", ignoreCase = true) }
+                if (live != null) {
+                    MarviCard {
+                        Text(
+                            viewModel.t(MarviL10n.Key.LIVE_CAMPAIGN).uppercase(),
+                            color = MarviColor.Muted,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Text(live.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                        com.marvisociety.app.ui.components.GradientCTA(
+                            title = viewModel.t(MarviL10n.Key.MATCH_CREATORS_TITLE),
+                            onClick = { viewModel.loadSwipeCandidates() }
+                        )
+                    }
+                }
+            }
+            item {
+                var campaignScope by remember { mutableStateOf(com.marvisociety.app.ui.components.StudioGridFocus.HAPPENING) }
+                StudioStatusGrid(
+                    underReview = viewModel.t(MarviL10n.Key.STUDIO_UNDER_REVIEW),
+                    upcoming = viewModel.t(MarviL10n.Key.STUDIO_UPCOMING),
+                    openSwipe = viewModel.t(MarviL10n.Key.STUDIO_OPEN_SWIPE),
+                    happening = viewModel.t(MarviL10n.Key.STUDIO_HAPPENING),
+                    past = viewModel.t(MarviL10n.Key.STUDIO_PAST),
+                    create = viewModel.t(MarviL10n.Key.STUDIO_CREATE),
+                    selected = campaignScope,
+                    onUnderReview = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.UNDER_REVIEW; showPastCampaigns = false },
+                    onUpcoming = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.UPCOMING; showPastCampaigns = false },
+                    onSwipe = { viewModel.loadSwipeCandidates() },
+                    onHappening = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.HAPPENING; showPastCampaigns = false },
+                    onPast = { campaignScope = com.marvisociety.app.ui.components.StudioGridFocus.PAST; showPastCampaigns = true },
+                    onCreate = {
+                        if (!canCreateCampaign) {
+                            formError = viewModel.t(MarviL10n.Key.VENUE_MUST_BE_APPROVED)
+                        } else {
+                            showCreate = true
+                        }
+                    }
+                )
+            }
             item {
                 Text(viewModel.t(MarviL10n.Key.STUDIO), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
             }

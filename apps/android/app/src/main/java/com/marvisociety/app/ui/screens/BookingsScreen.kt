@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.marvisociety.app.data.Booking
 import com.marvisociety.app.data.BookingStage
 import com.marvisociety.app.data.PendingCollaborationRequest
@@ -198,64 +199,6 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
 }
 
 private enum class BookingBucket { REQUESTS, TO_CONFIRM, TO_REVIEW, TO_VISIT }
-
-@Composable
-private fun BookingStatusGrid(
-    selected: BookingBucket,
-    counts: Map<BookingBucket, Int>,
-    viewModel: AppViewModel,
-    onSelect: (BookingBucket) -> Unit
-) {
-    val items = listOf(
-        Triple(BookingBucket.REQUESTS, MarviL10n.Key.REQUESTS, MarviColor.Rose),
-        Triple(BookingBucket.TO_CONFIRM, MarviL10n.Key.TO_CONFIRM, MarviColor.Aubergine),
-        Triple(BookingBucket.TO_REVIEW, MarviL10n.Key.TO_REVIEW, MarviColor.Gold),
-        Triple(BookingBucket.TO_VISIT, MarviL10n.Key.TO_VISIT, MarviColor.Blue),
-        Triple(BookingBucket.COMPLETED, MarviL10n.Key.STAGE_COMPLETED, MarviColor.Emerald),
-        Triple(BookingBucket.CANCELLED, MarviL10n.Key.STAGE_CANCELLED, MarviColor.Tomato)
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items.chunked(2).forEach { rowItems ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                rowItems.forEach { (bucket, key, tint) ->
-                    val isSelected = selected == bucket
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .then(
-                                if (isSelected) Modifier.background(MarviGradient.Brand)
-                                else Modifier.background(MarviColor.Panel)
-                            )
-                            .then(
-                                if (isSelected) Modifier
-                                else Modifier.border(1.dp, MarviColor.Border, RoundedCornerShape(14.dp))
-                            )
-                            .clickable { onSelect(bucket) }
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            (counts[bucket] ?: 0).toString(),
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = if (isSelected) androidx.compose.ui.graphics.Color.White else tint,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            viewModel.t(key),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (isSelected) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f) else MarviColor.Muted,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun PendingCollaborationRequestCard(
