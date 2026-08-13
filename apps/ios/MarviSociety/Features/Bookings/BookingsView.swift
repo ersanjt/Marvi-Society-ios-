@@ -835,7 +835,7 @@ private struct CreatorVenueReviewSheet: View {
 private struct PendingCollaborationRequestCard: View {
     @EnvironmentObject private var appState: AppState
     let request: PendingCollaborationRequest
-    @State private var isAccepting = false
+    @State private var isBusy = false
 
     var body: some View {
         MarviCard {
@@ -850,26 +850,46 @@ private struct PendingCollaborationRequestCard: View {
                 Text(request.venueName)
                     .font(.caption)
                     .foregroundStyle(MarviColor.muted)
-                Button {
-                    Task {
-                        isAccepting = true
-                        _ = await appState.creatorAcceptCollaboration(requestID: request.id)
-                        isAccepting = false
+                HStack(spacing: 8) {
+                    Button {
+                        Task {
+                            isBusy = true
+                            _ = await appState.creatorAcceptCollaboration(requestID: request.id)
+                            isBusy = false
+                        }
+                    } label: {
+                        Label(
+                            isBusy ? appState.t(.saving) : appState.t(.acceptVenueInvite),
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
                     }
-                } label: {
-                    Label(
-                        isAccepting ? appState.t(.saving) : appState.t(.acceptVenueInvite),
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .font(.caption.weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
+                    .background(MarviColor.emerald)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .disabled(isBusy)
+
+                    Button {
+                        Task {
+                            isBusy = true
+                            _ = await appState.creatorDeclineCollaboration(requestID: request.id)
+                            isBusy = false
+                        }
+                    } label: {
+                        Text(appState.t(.decline))
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(MarviColor.tomato)
+                    .background(MarviColor.panel)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .disabled(isBusy)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white)
-                .background(MarviColor.emerald)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .disabled(isAccepting)
             }
         }
     }

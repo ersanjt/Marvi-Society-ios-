@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.4",
-      "buildNumber": 97,
+      "buildNumber": 98,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260814040001_fix_pending_collab_and_approval_copy",
-      "migrationCount": 76
+      "migrationHead": "20260814050001_harden_collab_accept_and_decline",
+      "migrationCount": 77
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-13T22:22:51Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260814050001_harden_collab_accept_and_decline)"
+    },
+    {
+      "at": "2026-08-13T22:11:21Z",
+      "status": "ok",
+      "message": "pushed c8870e5 to origin/main"
+    },
     {
       "at": "2026-08-13T22:11:17Z",
       "status": "ok",
@@ -259,16 +269,6 @@
     },
     {
       "at": "2026-08-12T16:57:58Z",
-      "status": "partial",
-      "message": "migrations combined; CLI not linked"
-    },
-    {
-      "at": "2026-08-12T08:38:03Z",
-      "status": "ok",
-      "message": "pushed 6c31d2e to origin/main"
-    },
-    {
-      "at": "2026-08-12T08:38:00Z",
       "status": "partial",
       "message": "migrations combined; CLI not linked"
     }

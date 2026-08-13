@@ -353,6 +353,20 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         return hydrateBooking(row)
     }
 
+    suspend fun creatorDeclineCollaboration(requestId: String) {
+        client.rpcVoid(
+            "creator_decline_collaboration",
+            buildJsonObject { put("p_request_id", requestId) }
+        )
+    }
+
+    suspend fun setActiveVenue(venueId: String) {
+        client.rpcVoid(
+            "set_active_venue",
+            buildJsonObject { put("p_venue_id", venueId) }
+        )
+    }
+
     suspend fun adminSetOfferStatus(offerId: String, status: String, reason: String? = null) {
         client.rpcVoid(
             "admin_set_offer_status",
@@ -875,6 +889,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 id = obj.string("id") ?: return@mapNotNull null,
                 title = obj.string("title") ?: "Campaign",
                 status = obj.string("status") ?: "Draft",
+                venueId = obj.string("venue_id"),
                 venueName = venue?.string("venue_name") ?: obj.string("venue_name") ?: "",
                 dateLabel = formatRelative(obj.string("created_at")),
                 isDeleted = !obj.string("deleted_at").isNullOrBlank()

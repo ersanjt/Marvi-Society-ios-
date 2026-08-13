@@ -431,6 +431,7 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         return Campaign(
             id: row.id,
             title: input.title,
+            venueID: targetVenue.id,
             venueName: targetVenue.venueName,
             area: targetVenue.area,
             category: input.category,
@@ -751,6 +752,10 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             ]
         )
         guard let bookingID = bookings.first?.id else { return }
+        try await cancelBooking(bookingID)
+    }
+
+    func cancelBooking(_ bookingID: UUID) async throws {
         let _: BookingRPCRow = try await client.rpc(
             function: "cancel_booking",
             body: ["p_booking_id": bookingID.uuidString]
@@ -1587,6 +1592,13 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
             body: ["p_request_id": requestID.uuidString]
         )
         return try await hydrateBooking(row)
+    }
+
+    func creatorDeclineCollaboration(_ requestID: UUID) async throws {
+        try await client.rpcVoid(
+            function: "creator_decline_collaboration",
+            body: ["p_request_id": requestID.uuidString]
+        )
     }
 
     func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest] {

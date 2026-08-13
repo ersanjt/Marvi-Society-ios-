@@ -9,6 +9,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
+  if (action === "shortlist" && !offerId) {
+    return NextResponse.json(
+      { error: "Select a live campaign before inviting creators." },
+      { status: 400 }
+    );
+  }
+
   const supabase = await createClient();
   const rpc = action === "shortlist" ? "shortlist_creator" : "pass_creator";
   const { error } = await supabase.rpc(rpc, {

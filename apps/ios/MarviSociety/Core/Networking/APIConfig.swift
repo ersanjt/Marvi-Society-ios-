@@ -166,6 +166,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func hasVenueProfile() async throws -> Bool { throw notConfigured() }
     func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions) async throws -> Booking { throw notConfigured() }
     func cancelOffer(_ offerID: UUID) async throws { throw notConfigured() }
+    func cancelBooking(_ bookingID: UUID) async throws { throw notConfigured() }
     func checkIn(bookingID: UUID, code: String) async throws -> Booking { throw notConfigured() }
     func submitProof(bookingID: UUID, links: [String]) async throws -> Booking { throw notConfigured() }
     func toggleSavedOffer(_ offerID: UUID) async throws -> Bool { throw notConfigured() }
@@ -256,6 +257,7 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func sendMessage(conversationID: UUID, body: String) async throws -> ChatMessage { throw notConfigured() }
     func venueConfirmBooking(_ bookingID: UUID) async throws -> Booking { throw notConfigured() }
     func creatorAcceptCollaboration(_ requestID: UUID) async throws -> Booking { throw notConfigured() }
+    func creatorDeclineCollaboration(_ requestID: UUID) async throws { throw notConfigured() }
     func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest] { [] }
     func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem] { [] }
     func resolveCurrentUserID() async -> UUID? { nil }

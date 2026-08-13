@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,18 +24,38 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Gesture
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.PauseCircle
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -44,6 +65,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -56,9 +79,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.marvisociety.app.R
+import com.marvisociety.app.data.MembershipStatus
+import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.theme.InterFamily
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
+import com.marvisociety.app.ui.theme.NewsreaderFamily
 
 @Composable
 fun MarviScreen(content: @Composable () -> Unit) {
@@ -117,28 +143,37 @@ fun SyncErrorBanner(
     onRetry: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(shape)
             .background(MarviColor.PanelElevated)
-            .border(1.dp, MarviColor.Tomato.copy(alpha = 0.35f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .border(1.dp, MarviColor.Tomato.copy(alpha = 0.35f), shape)
+            .padding(12.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        Icon(Icons.Default.Warning, null, tint = MarviColor.Tomato, modifier = Modifier.size(16.dp))
         Text(
             message,
             color = MarviColor.Ink,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.weight(1f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
         )
         TextButton(onClick = onRetry) {
-            Text(retryTitle, color = MarviColor.Rose, fontWeight = FontWeight.SemiBold)
+            Text(retryTitle, color = MarviColor.Rose, fontWeight = FontWeight.Bold)
         }
-        TextButton(onClick = onDismiss) {
-            Text("×", color = MarviColor.Muted, fontWeight = FontWeight.Bold)
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Close, null, tint = MarviColor.Muted, modifier = Modifier.size(12.dp))
         }
     }
 }
@@ -377,7 +412,7 @@ fun FilterChipPill(
                     .border(1.dp, MarviColor.Border, shape)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     )
 }
 
@@ -385,15 +420,17 @@ fun FilterChipPill(
 fun SegmentedTabs(
     tabs: List<String>,
     selectedIndex: Int,
-    onSelect: (Int) -> Unit
+    onSelect: (Int) -> Unit,
+    uppercase: Boolean = true
 ) {
+    val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MarviColor.PanelElevated)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+            .clip(shape)
+            .background(MarviColor.Panel)
+            .border(1.dp, MarviColor.Border, shape)
+            .padding(4.dp)
     ) {
         tabs.forEachIndexed { index, label ->
             val selected = index == selectedIndex
@@ -401,19 +438,18 @@ fun SegmentedTabs(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .then(
-                        if (selected) Modifier.background(MarviGradient.Brand)
-                        else Modifier
-                    )
+                    .then(if (selected) Modifier.background(MarviGradient.Brand) else Modifier)
                     .clickable { onSelect(index) }
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    label,
+                    if (uppercase) label.uppercase() else label,
                     color = if (selected) Color.White else MarviColor.Muted,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    maxLines = 1
                 )
             }
         }
@@ -447,18 +483,34 @@ fun OfferImageView(
 fun CircleIconButton(
     icon: ImageVector,
     onClick: () -> Unit,
-    tint: Color = MarviColor.Rose
+    tint: Color = MarviColor.Ink,
+    badgeCount: Int = 0
 ) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(MarviColor.Panel)
-            .border(1.dp, MarviColor.Border, CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
+    Box {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MarviColor.Panel)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
+        }
+        if (badgeCount > 0) {
+            Text(
+                badgeCount.coerceAtMost(99).toString(),
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 6.dp, y = (-4).dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(MarviColor.Rose)
+                    .padding(horizontal = 5.dp, vertical = 2.dp)
+            )
+        }
     }
 }
 
@@ -468,6 +520,11 @@ fun HomeHeader(
     subtitle: String,
     avatarUrl: String?,
     avatarLetter: String,
+    hiPrefix: String? = null,
+    unreadCount: Int = 0,
+    onProfile: (() -> Unit)? = null,
+    onSearch: (() -> Unit)? = null,
+    onNotifications: (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
@@ -475,27 +532,51 @@ fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(MarviGradient.BrandVertical),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Text(avatarLetter.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+        val leading = @Composable {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MarviGradient.Brand),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(avatarLetter.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Column {
+                    Text(
+                        if (hiPrefix.isNullOrBlank()) greeting else "$hiPrefix, $greeting",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MarviColor.Ink,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MarviColor.Muted, maxLines = 1)
+                }
             }
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(greeting, style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MarviColor.Muted)
+        if (onProfile != null) {
+            Box(modifier = Modifier.weight(1f).clickable(onClick = onProfile)) { leading() }
+        } else {
+            Box(modifier = Modifier.weight(1f)) { leading() }
+        }
+        if (onSearch != null) {
+            CircleIconButton(Icons.Outlined.Search, onClick = onSearch)
+        }
+        if (onNotifications != null) {
+            CircleIconButton(Icons.Outlined.Notifications, onClick = onNotifications, badgeCount = unreadCount)
         }
         trailing?.invoke()
     }
@@ -602,5 +683,458 @@ fun BootstrapSplash(message: String) {
                 fontWeight = FontWeight.SemiBold
             )
         }
+    }
+}
+
+@Composable
+fun MembershipStatusBanner(
+    status: MembershipStatus,
+    pausedBySelf: Boolean,
+    viewModelLabel: (MarviL10n.Key) -> String,
+    onReactivate: (() -> Unit)? = null
+) {
+    val tint = when (status) {
+        MembershipStatus.UNDER_REVIEW -> MarviColor.Gold
+        MembershipStatus.APPROVED -> MarviColor.Emerald
+        MembershipStatus.PAUSED -> MarviColor.Tomato
+    }
+    val icon = when (status) {
+        MembershipStatus.UNDER_REVIEW -> Icons.Default.HourglassEmpty
+        MembershipStatus.APPROVED -> Icons.Default.AutoAwesome
+        MembershipStatus.PAUSED -> Icons.Default.PauseCircle
+    }
+    val title = when (status) {
+        MembershipStatus.UNDER_REVIEW -> viewModelLabel(MarviL10n.Key.UNDER_REVIEW_BANNER)
+        MembershipStatus.APPROVED -> viewModelLabel(MarviL10n.Key.APPROVED_BANNER)
+        MembershipStatus.PAUSED -> viewModelLabel(
+            if (pausedBySelf) MarviL10n.Key.PAUSED_SELF_BANNER else MarviL10n.Key.PAUSED_ADMIN_BANNER
+        )
+    }
+    val message = when (status) {
+        MembershipStatus.UNDER_REVIEW -> viewModelLabel(MarviL10n.Key.UNDER_REVIEW_BANNER_SUB)
+        MembershipStatus.APPROVED -> viewModelLabel(MarviL10n.Key.APPROVED_BANNER_SUB)
+        MembershipStatus.PAUSED -> viewModelLabel(
+            if (pausedBySelf) MarviL10n.Key.PAUSED_SELF_BANNER_SUB else MarviL10n.Key.PAUSED_ADMIN_BANNER_SUB
+        )
+    }
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(tint.copy(alpha = 0.1f))
+            .border(1.dp, tint.copy(alpha = 0.25f), shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                Text(title, color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text(message, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        if (status == MembershipStatus.PAUSED && pausedBySelf && onReactivate != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MarviColor.Emerald.copy(alpha = 0.12f))
+                    .clickable(onClick = onReactivate)
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    viewModelLabel(MarviL10n.Key.REACTIVATE_ACCOUNT),
+                    color = MarviColor.Emerald,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SSExploreHeader(eyebrow: String, cityPrefix: String, city: String, eventsFound: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            eyebrow.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MarviColor.Muted,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.2.sp
+        )
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                cityPrefix,
+                style = MaterialTheme.typography.displaySmall.copy(fontFamily = NewsreaderFamily),
+                color = MarviColor.Ink,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                city,
+                style = MaterialTheme.typography.displaySmall.copy(fontFamily = NewsreaderFamily).merge(
+                    TextStyle(brush = MarviGradient.Brand)
+                ),
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(eventsFound, color = MarviColor.Rose, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+fun SSDiscoverAxisPills(
+    whenTitle: String,
+    whereTitle: String,
+    typeTitle: String,
+    whenReset: String,
+    whereReset: String,
+    typeReset: String,
+    whenOptions: List<String>,
+    whereOptions: List<String>,
+    typeOptions: List<String>,
+    selectedWhen: String?,
+    selectedWhere: String?,
+    selectedType: String?,
+    onWhen: (String?) -> Unit,
+    onWhere: (String?) -> Unit,
+    onType: (String?) -> Unit
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        AxisMenu(Modifier.weight(1f), Icons.Default.CalendarMonth, whenTitle, whenReset, whenOptions, selectedWhen, onWhen)
+        AxisMenu(Modifier.weight(1f), Icons.Default.Place, whereTitle, whereReset, whereOptions, selectedWhere, onWhere)
+        AxisMenu(Modifier.weight(1f), Icons.Default.AutoAwesome, typeTitle, typeReset, typeOptions, selectedType, onType)
+    }
+}
+
+@Composable
+private fun AxisMenu(
+    modifier: Modifier,
+    icon: ImageVector,
+    title: String,
+    resetLabel: String,
+    options: List<String>,
+    value: String?,
+    onSelect: (String?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(14.dp)
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(MarviColor.Panel)
+                .border(
+                    if (value != null) 2.dp else 1.dp,
+                    if (value != null) MarviColor.Rose else MarviColor.Border,
+                    shape
+                )
+                .clickable { expanded = true }
+                .padding(vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(icon, null, tint = MarviColor.Rose, modifier = Modifier.size(16.dp))
+            Text(
+                value ?: title,
+                color = MarviColor.Ink,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text(resetLabel) }, onClick = { onSelect(null); expanded = false })
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(option) }, onClick = { onSelect(option); expanded = false })
+            }
+        }
+    }
+}
+
+@Composable
+fun SSFilterChip(title: String, icon: ImageVector? = null, onClick: () -> Unit, dimmed: Boolean = false) {
+    Row(
+        modifier = Modifier
+            .alpha(if (dimmed) 0.45f else 1f)
+            .clip(RoundedCornerShape(50))
+            .background(MarviColor.Panel)
+            .border(1.dp, MarviColor.Border, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        if (icon != null) Icon(icon, null, tint = MarviColor.Ink, modifier = Modifier.size(14.dp))
+        Text(title, color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+@Composable
+fun SSFilterToolbar(
+    filtersLabel: String,
+    sortLabel: String,
+    locationLabel: String,
+    dateLabel: String,
+    onFilters: () -> Unit,
+    onSort: () -> Unit,
+    onLocation: () -> Unit,
+    onDate: () -> Unit
+) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { SSFilterChip(filtersLabel, Icons.Default.Tune, onFilters) }
+        item { SSFilterChip(sortLabel, Icons.Default.SwapVert, onSort) }
+        item { SSFilterChip(locationLabel, Icons.Default.Place, onLocation) }
+        item { SSFilterChip(dateLabel, Icons.Default.CalendarMonth, onDate) }
+    }
+}
+
+data class CalendarDayUi(val id: Int, val weekday: String, val label: String)
+
+@Composable
+fun EventCalendarStrip(days: List<CalendarDayUi>, selectedDay: Int?, onSelect: (Int?) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        items(days, key = { it.id }) { day ->
+            val selected = selectedDay == day.id
+            val shape = RoundedCornerShape(14.dp)
+            Column(
+                modifier = Modifier
+                    .width(52.dp)
+                    .height(64.dp)
+                    .clip(shape)
+                    .then(if (selected) Modifier.background(MarviGradient.Brand) else Modifier.background(MarviColor.Panel))
+                    .then(if (selected) Modifier else Modifier.border(1.dp, MarviColor.Border, shape))
+                    .clickable { onSelect(if (selected) null else day.id) }
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    day.weekday,
+                    color = if (selected) Color.White else MarviColor.Muted,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    day.label,
+                    color = if (selected) Color.White else MarviColor.Ink,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SSManagementButton(title: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MarviGradient.Brand)
+            .clickable(onClick = onClick)
+            .padding(vertical = 15.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            title.uppercase(),
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.6.sp,
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
+@Composable
+fun GradientCTA(title: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MarviGradient.Brand)
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            title.uppercase(),
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.5.sp,
+            style = MaterialTheme.typography.titleMedium
+        )
+    }
+}
+
+data class StatusBadgeUi(val id: String, val title: String, val count: Int, val tint: Color)
+
+@Composable
+fun SSSelectableStatusGrid(
+    badges: List<StatusBadgeUi>,
+    selectedId: String?,
+    onSelect: (String?) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        badges.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                row.forEach { badge ->
+                    val selected = selectedId == badge.id
+                    val shape = RoundedCornerShape(14.dp)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(shape)
+                            .then(if (selected) Modifier.background(MarviGradient.Brand) else Modifier.background(MarviColor.Panel))
+                            .then(if (selected) Modifier else Modifier.border(1.dp, MarviColor.Border, shape))
+                            .clickable { onSelect(if (selected) null else badge.id) }
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            badge.count.toString(),
+                            color = if (selected) Color.White else badge.tint,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineLarge
+                        )
+                        Text(
+                            badge.title,
+                            color = if (selected) Color.White.copy(alpha = 0.9f) else MarviColor.Muted,
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SSToggleTabs(leftTitle: String, rightTitle: String, isRightSelected: Boolean, onSelectRight: (Boolean) -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MarviColor.Panel)
+            .border(1.dp, MarviColor.Border, shape)
+            .padding(4.dp)
+    ) {
+        listOf(leftTitle to false, rightTitle to true).forEach { (title, right) ->
+            val selected = isRightSelected == right
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .then(if (selected) Modifier.background(MarviGradient.Brand) else Modifier)
+                    .clickable { onSelectRight(right) }
+                    .padding(vertical = 11.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    title,
+                    color = if (selected) Color.White else MarviColor.Muted,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+    }
+}
+
+enum class StudioGridFocus { UNDER_REVIEW, UPCOMING, HAPPENING, PAST }
+
+@Composable
+fun StudioStatusGrid(
+    underReview: String,
+    upcoming: String,
+    openSwipe: String,
+    happening: String,
+    past: String,
+    create: String,
+    selected: StudioGridFocus?,
+    onUnderReview: () -> Unit,
+    onUpcoming: () -> Unit,
+    onSwipe: () -> Unit,
+    onHappening: () -> Unit,
+    onPast: () -> Unit,
+    onCreate: () -> Unit
+) {
+    val tiles = listOf(
+        Triple(underReview, Icons.Default.HourglassEmpty, MarviColor.Gold) to Pair(selected == StudioGridFocus.UNDER_REVIEW, onUnderReview),
+        Triple(upcoming, Icons.Default.CalendarMonth, MarviColor.Blue) to Pair(selected == StudioGridFocus.UPCOMING, onUpcoming),
+        Triple(openSwipe, Icons.Default.Gesture, MarviColor.Rose) to Pair(false, onSwipe),
+        Triple(happening, Icons.Default.AutoAwesome, MarviColor.Emerald) to Pair(selected == StudioGridFocus.HAPPENING, onHappening),
+        Triple(past, Icons.Default.Archive, MarviColor.Muted) to Pair(selected == StudioGridFocus.PAST, onPast),
+        Triple(create, Icons.Default.Add, MarviColor.Aubergine) to Pair(false, onCreate)
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        tiles.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                row.forEach { (meta, state) ->
+                    val (title, icon, tint) = meta
+                    val (isSelected, action) = state
+                    val shape = RoundedCornerShape(14.dp)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(88.dp)
+                            .clip(shape)
+                            .background(if (isSelected) tint.copy(alpha = 0.12f) else MarviColor.Panel)
+                            .border(if (isSelected) 1.5.dp else 1.dp, if (isSelected) tint.copy(alpha = 0.55f) else MarviColor.Border, shape)
+                            .clickable(onClick = action)
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            title,
+                            color = if (isSelected) MarviColor.Ink else MarviColor.Muted,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileHealthRing(score: Int, label: String) {
+    Box(modifier = Modifier.size(110.dp), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = 10.dp.toPx()
+            drawCircle(color = Color.White.copy(alpha = 0.08f), style = Stroke(width = stroke))
+            drawArc(
+                brush = MarviGradient.Brand,
+                startAngle = -90f,
+                sweepAngle = 360f * (score.coerceIn(0, 100) / 100f),
+                useCenter = false,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("$score%", color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineMedium)
+            Text(label, color = MarviColor.Muted, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+fun DeclineAcceptRow(declineTitle: String, acceptTitle: String, onDecline: () -> Unit, onAccept: () -> Unit, acceptEnabled: Boolean = true) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.weight(1f)) { SecondaryActionButton(declineTitle, onDecline) }
+        Box(modifier = Modifier.weight(1f)) { PrimaryActionButton(acceptTitle, onAccept, enabled = acceptEnabled) }
     }
 }

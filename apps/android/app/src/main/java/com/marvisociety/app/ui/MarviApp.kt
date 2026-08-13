@@ -1,8 +1,13 @@
 package com.marvisociety.app.ui
 
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -103,7 +108,14 @@ private fun MainShell(viewModel: AppViewModel) {
         containerColor = MarviColor.Surface,
         bottomBar = {
             if (!hideBottomBar) {
-                NavigationBar(containerColor = TabBarBackground, tonalElevation = 0.dp) {
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MarviColor.Rose.copy(alpha = 0.08f))
+                    )
+                    NavigationBar(containerColor = TabBarBackground, tonalElevation = 0.dp) {
                     tabs.forEachIndexed { index, tab ->
                         NavigationBarItem(
                             selected = viewModel.workspaceTabIndex == index,
@@ -144,11 +156,12 @@ private fun MainShell(viewModel: AppViewModel) {
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = TabSelected,
                                 selectedTextColor = TabSelected,
-                                unselectedIconColor = MarviColor.Muted,
-                                unselectedTextColor = MarviColor.Muted,
-                                indicatorColor = TabSelected.copy(alpha = 0.12f)
+                                unselectedIconColor = Color(0xFF808080),
+                                unselectedTextColor = Color(0xFF808080),
+                                indicatorColor = Color.Transparent
                             )
                         )
+                    }
                     }
                 }
             }
@@ -169,9 +182,32 @@ private fun MainShell(viewModel: AppViewModel) {
                 startDestination = tabs.first().route
             ) {
                 composable("discover") {
-                    DiscoverScreen(viewModel) { offer ->
-                        navController.navigate("offer/${offer.id}")
-                    }
+                    DiscoverScreen(
+                        viewModel,
+                        onOfferClick = { offer -> navController.navigate("offer/${offer.id}") },
+                        onOpenProfile = {
+                            val index = tabs.indexOfFirst { it.route == "profile" }
+                            if (index >= 0) {
+                                viewModel.setWorkspaceTab(index)
+                                navController.navigate("profile") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        },
+                        onOpenInbox = {
+                            val index = tabs.indexOfFirst { it.route == "inbox" }
+                            if (index >= 0) {
+                                viewModel.setWorkspaceTab(index)
+                                navController.navigate("inbox") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                    )
                 }
                 composable("community") {
                     CommunityScreen(

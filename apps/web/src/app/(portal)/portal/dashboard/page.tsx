@@ -266,7 +266,7 @@ export default async function PortalDashboardPage() {
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/portal/creators" className="marvi-btn-secondary">
+          <Link href="/portal/dashboard" className="marvi-btn-secondary">
             {d.creatorMatching}
           </Link>
           <Link href="/portal/reviews" className="marvi-btn-secondary">

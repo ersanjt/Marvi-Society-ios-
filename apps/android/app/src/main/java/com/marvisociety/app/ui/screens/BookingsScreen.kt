@@ -10,8 +10,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,10 +21,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,43 +46,46 @@ import com.marvisociety.app.data.BookingStage
 import com.marvisociety.app.data.PendingCollaborationRequest
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.OfferImagery
+import com.marvisociety.app.ui.components.CircleIconButton
 import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.MarviTextField
 import com.marvisociety.app.ui.components.OfferImageView
 import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.SSSelectableStatusGrid
+import com.marvisociety.app.ui.components.SSToggleTabs
 import com.marvisociety.app.ui.components.SecondaryActionButton
+import com.marvisociety.app.ui.components.StatusBadgeUi
 import com.marvisociety.app.ui.components.StatusPill
+import com.marvisociety.app.ui.theme.NewsreaderFamily
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
 @Composable
-fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
+fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onOpenInbox: () -> Unit = {}) {
     var rateBooking by remember { mutableStateOf<Booking?>(null) }
-    var selectedBucket by remember { mutableStateOf(BookingBucket.REQUESTS) }
+    var selectedBucket by remember { mutableStateOf<BookingBucket?>(null) }
+    var isInterestMode by remember { mutableStateOf(false) }
 
     val pendingRequests = viewModel.pendingCollaborationRequests.filter { it.isPendingCreator }
-    val counts = mapOf(
-        BookingBucket.REQUESTS to pendingRequests.size + viewModel.bookings.count { it.stage == BookingStage.INVITED },
-        BookingBucket.TO_CONFIRM to viewModel.bookings.count { it.stage == BookingStage.CONFIRMED },
-        BookingBucket.TO_REVIEW to viewModel.bookings.count { it.stage == BookingStage.PROOF_DUE },
-        BookingBucket.TO_VISIT to viewModel.bookings.count { it.stage == BookingStage.CHECKED_IN },
-        BookingBucket.COMPLETED to viewModel.bookings.count { it.stage == BookingStage.COMPLETED },
-        BookingBucket.CANCELLED to viewModel.bookings.count { it.stage == BookingStage.CANCELLED }
+    val badges = listOf(
+        StatusBadgeUi("requests", viewModel.t(MarviL10n.Key.REQUESTS), pendingRequests.size + viewModel.bookings.count { it.stage == BookingStage.INVITED }, MarviColor.Rose),
+        StatusBadgeUi("confirm", viewModel.t(MarviL10n.Key.TO_CONFIRM), viewModel.bookings.count { it.stage == BookingStage.CONFIRMED }, MarviColor.Aubergine),
+        StatusBadgeUi("review", viewModel.t(MarviL10n.Key.TO_REVIEW), viewModel.bookings.count { it.stage == BookingStage.PROOF_DUE }, MarviColor.Gold),
+        StatusBadgeUi("visit", viewModel.t(MarviL10n.Key.TO_VISIT), viewModel.bookings.count { it.stage == BookingStage.CHECKED_IN }, MarviColor.Blue)
     )
-    val requests = if (selectedBucket == BookingBucket.REQUESTS) pendingRequests else emptyList()
-    val bookings = viewModel.bookings.filter { booking ->
+    val requests = if (!isInterestMode && (selectedBucket == null || selectedBucket == BookingBucket.REQUESTS)) pendingRequests else emptyList()
+    val bookings = if (isInterestMode) emptyList() else viewModel.bookings.filter { booking ->
         when (selectedBucket) {
-            BookingBucket.REQUESTS -> booking.stage == BookingStage.INVITED
+            BookingBucket.REQUESTS, null -> booking.stage == BookingStage.INVITED
             BookingBucket.TO_CONFIRM -> booking.stage == BookingStage.CONFIRMED
             BookingBucket.TO_REVIEW -> booking.stage == BookingStage.PROOF_DUE
             BookingBucket.TO_VISIT -> booking.stage == BookingStage.CHECKED_IN
-            BookingBucket.COMPLETED -> booking.stage == BookingStage.COMPLETED
-            BookingBucket.CANCELLED -> booking.stage == BookingStage.CANCELLED
         }
     }
+    val interest = if (isInterestMode) viewModel.interestOffers else emptyList()
 
     MarviScreen {
         Column(
@@ -92,8 +99,9 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         viewModel.t(MarviL10n.Key.MY_EVENTS_TITLE),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MarviColor.Ink
+                        style = MaterialTheme.typography.displaySmall.copy(fontFamily = NewsreaderFamily, fontSize = 34.sp),
+                        color = MarviColor.Ink,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         viewModel.t(MarviL10n.Key.MY_EVENTS_SUB),
@@ -101,24 +109,55 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                         color = MarviColor.Muted
                     )
                 }
-                IconButton(
-                    onClick = onOpenMessages,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MarviColor.Panel)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Message, null, tint = MarviColor.Ink)
-                }
+                CircleIconButton(Icons.AutoMirrored.Filled.Message, onClick = onOpenMessages)
+                Spacer(Modifier.size(8.dp))
+                CircleIconButton(Icons.Outlined.Notifications, onClick = onOpenInbox, badgeCount = viewModel.unreadInboxCount)
             }
 
-            BookingStatusGrid(
-                selected = selectedBucket,
-                counts = counts,
-                viewModel = viewModel,
-                onSelect = { selectedBucket = it }
+            SSSelectableStatusGrid(
+                badges = badges,
+                selectedId = when (selectedBucket) {
+                    BookingBucket.REQUESTS -> "requests"
+                    BookingBucket.TO_CONFIRM -> "confirm"
+                    BookingBucket.TO_REVIEW -> "review"
+                    BookingBucket.TO_VISIT -> "visit"
+                    null -> null
+                },
+                onSelect = { id ->
+                    selectedBucket = when (id) {
+                        "requests" -> BookingBucket.REQUESTS
+                        "confirm" -> BookingBucket.TO_CONFIRM
+                        "review" -> BookingBucket.TO_REVIEW
+                        "visit" -> BookingBucket.TO_VISIT
+                        else -> null
+                    }
+                }
             )
 
-            if (requests.isEmpty() && bookings.isEmpty()) {
+            SSToggleTabs(
+                leftTitle = viewModel.t(MarviL10n.Key.PENDING_INVITES),
+                rightTitle = viewModel.t(MarviL10n.Key.INTEREST_SHOWN),
+                isRightSelected = isInterestMode,
+                onSelectRight = { isInterestMode = it }
+            )
+
+            if (isInterestMode) {
+                if (interest.isEmpty()) {
+                    EmptyStateView(
+                        title = viewModel.t(MarviL10n.Key.NO_BOOKINGS),
+                        subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB)
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        items(interest, key = { it.id }) { offer ->
+                            MarviCard {
+                                Text(offer.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                                Text("${offer.venue} · ${offer.area}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            } else if (requests.isEmpty() && bookings.isEmpty()) {
                 EmptyStateView(
                     title = viewModel.t(MarviL10n.Key.NO_BOOKINGS),
                     subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB)
@@ -131,7 +170,7 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
                     if (requests.isNotEmpty()) {
                         item {
                             Text(
-                                viewModel.t(MarviL10n.Key.PENDING_INVITES_TITLE),
+                                viewModel.t(MarviL10n.Key.PENDING_INVITES),
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MarviColor.Ink,
                                 fontWeight = FontWeight.Bold
@@ -158,7 +197,7 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}) {
     }
 }
 
-private enum class BookingBucket { REQUESTS, TO_CONFIRM, TO_REVIEW, TO_VISIT, COMPLETED, CANCELLED }
+private enum class BookingBucket { REQUESTS, TO_CONFIRM, TO_REVIEW, TO_VISIT }
 
 @Composable
 private fun BookingStatusGrid(
@@ -254,6 +293,20 @@ private fun PendingCollaborationRequestCard(
             },
             enabled = !isAccepting
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                isAccepting = true
+                viewModel.creatorDeclineCollaboration(request.id) { succeeded ->
+                    isAccepting = false
+                    if (!succeeded) { /* keep card */ }
+                }
+            },
+            enabled = !isAccepting,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(viewModel.t(MarviL10n.Key.DECLINE))
+        }
     }
 }
 

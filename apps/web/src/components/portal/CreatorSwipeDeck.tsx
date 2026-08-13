@@ -40,6 +40,10 @@ export function CreatorSwipeDeck({
 
   async function act(action: "shortlist" | "pass", creatorId: string) {
     setMessage(null);
+    if (action === "shortlist" && !offerId) {
+      setMessage(c.queueCompleteBody);
+      return;
+    }
     setBusy(true);
     try {
       const response = await fetch("/api/portal/creators", {
@@ -59,6 +63,16 @@ export function CreatorSwipeDeck({
   }
 
   const current = candidates[0];
+
+  if (!offerId) {
+    return (
+      <EmptyState
+        icon={<IconSparkles size={24} />}
+        title={c.queueComplete}
+        body={c.queueCompleteBody}
+      />
+    );
+  }
 
   if (!current) {
     return (

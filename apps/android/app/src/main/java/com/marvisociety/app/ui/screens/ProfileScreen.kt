@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,12 +50,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.marvisociety.app.data.AppLanguage
 import com.marvisociety.app.data.MembershipStatus
 import com.marvisociety.app.data.SocialVerificationState
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.components.ProfileHealthRing
+import com.marvisociety.app.ui.components.SSManagementButton
+import com.marvisociety.app.ui.components.SegmentedTabs
 import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
@@ -95,114 +100,141 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MarviGradient.BrandVertical)
-                        .clickable(enabled = !viewModel.isProfileMediaUploading) {
-                            coverPicker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MarviColor.Panel)
+                    .border(1.dp, MarviColor.Border, RoundedCornerShape(20.dp))
+            ) {
+                Column {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(148.dp)
+                                .background(MarviGradient.BrandVertical)
+                                .clickable(enabled = !viewModel.isProfileMediaUploading) {
+                                    coverPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                }
+                        ) {
+                            if (viewModel.profile.coverUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = viewModel.profile.coverUrl,
+                                    contentDescription = viewModel.t(MarviL10n.Key.CHANGE_COVER),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(12.dp)
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(MarviColor.Panel.copy(alpha = 0.85f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("📷", fontSize = 12.sp)
+                            }
                         }
-                ) {
-                    if (viewModel.profile.coverUrl.isNotBlank()) {
-                        AsyncImage(
-                            model = viewModel.profile.coverUrl,
-                            contentDescription = viewModel.t(MarviL10n.Key.CHANGE_COVER),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .offset(x = 16.dp, y = 44.dp)
+                                .size(88.dp)
+                                .clip(CircleShape)
+                                .background(MarviGradient.Brand)
+                                .clickable(enabled = !viewModel.isProfileMediaUploading) {
+                                    avatarPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (viewModel.profile.avatarUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = viewModel.profile.avatarUrl,
+                                    contentDescription = viewModel.t(MarviL10n.Key.CHANGE_PHOTO),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    viewModel.profile.name.take(1).ifBlank { "?" }.uppercase(),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.headlineMedium
+                                )
+                            }
+                        }
                     }
-                }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .offset(x = 8.dp, y = 28.dp)
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(MarviGradient.BrandVertical)
-                        .clickable(enabled = !viewModel.isProfileMediaUploading) {
-                            avatarPicker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (viewModel.profile.avatarUrl.isNotBlank()) {
-                        AsyncImage(
-                            model = viewModel.profile.avatarUrl,
-                            contentDescription = viewModel.t(MarviL10n.Key.CHANGE_PHOTO),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 58.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
-                            viewModel.profile.name.take(1).ifBlank { "?" }.uppercase(),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.headlineSmall
+                            viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.MEMBER_LABEL) },
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MarviColor.Ink,
+                            fontWeight = FontWeight.Bold
                         )
+                        val niche = viewModel.profile.niches.firstOrNull()?.takeIf { it.isNotBlank() }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                viewModel.roleLabel(viewModel.selectedRole),
+                                color = MarviColor.Rose,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            if (niche != null) {
+                                Text("·", color = MarviColor.Muted)
+                                Text(niche, color = MarviColor.Muted, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                            }
+                        }
+                        val handle = viewModel.profile.handle.takeIf { it.isNotBlank() }?.let { "@${it.removePrefix("@")}" }
+                        Text(
+                            handle ?: viewModel.t(MarviL10n.Key.HANDLE_EMPTY),
+                            color = MarviColor.Muted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        StatusPill(
+                            when (viewModel.profile.status) {
+                                MembershipStatus.APPROVED -> viewModel.t(MarviL10n.Key.STATUS_APPROVED)
+                                MembershipStatus.PAUSED -> viewModel.t(MarviL10n.Key.STATUS_PAUSED)
+                                MembershipStatus.UNDER_REVIEW -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
+                                null -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
+                            },
+                            when (viewModel.profile.status) {
+                                MembershipStatus.APPROVED -> MarviColor.Emerald
+                                MembershipStatus.PAUSED -> MarviColor.Tomato
+                                else -> MarviColor.Gold
+                            }
+                        )
+                        val managementTitle = when (viewModel.selectedRole) {
+                            UserRole.CREATOR -> viewModel.t(MarviL10n.Key.MANAGEMENT)
+                            UserRole.VENUE -> viewModel.t(MarviL10n.Key.VENUE_STUDIO)
+                            UserRole.ADMIN -> viewModel.t(MarviL10n.Key.ADMIN_CONSOLE)
+                        }
+                        SSManagementButton(managementTitle) {
+                            selectedTab = ProfileMainTab.OVERVIEW
+                        }
                     }
                 }
                 if (viewModel.isProfileMediaUploading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MarviColor.Rose
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 36.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.ROLE_CREATOR) },
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MarviColor.Ink,
-                    fontWeight = FontWeight.Bold
-                )
-                val niche = viewModel.profile.niches.firstOrNull()?.takeIf { it.isNotBlank() }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        viewModel.roleLabel(viewModel.selectedRole),
-                        color = MarviColor.Rose,
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    if (niche != null) {
-                        Text("·", color = MarviColor.Muted)
-                        Text(
-                            niche,
-                            color = MarviColor.Muted,
-                            fontWeight = FontWeight.Medium,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1
-                        )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color.White)
                     }
                 }
-                val handle = viewModel.profile.handle.takeIf { it.isNotBlank() }?.let { "@${it.removePrefix("@")}" }
-                if (handle != null) {
-                    Text(handle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
-                }
-                StatusPill(
-                    when (viewModel.profile.status) {
-                        MembershipStatus.APPROVED -> viewModel.t(MarviL10n.Key.STATUS_APPROVED)
-                        MembershipStatus.PAUSED -> viewModel.t(MarviL10n.Key.STATUS_PAUSED)
-                        MembershipStatus.UNDER_REVIEW -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
-                        null -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
-                    },
-                    when (viewModel.profile.status) {
-                        MembershipStatus.APPROVED -> MarviColor.Emerald
-                        MembershipStatus.PAUSED -> MarviColor.Tomato
-                        else -> MarviColor.Gold
-                    }
-                )
             }
 
             if (showCompletion) {
@@ -251,9 +283,39 @@ fun ProfileScreen(viewModel: AppViewModel) {
 
             when (selectedTab) {
                 ProfileMainTab.OVERVIEW -> {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("${viewModel.followCounts.followers} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Ink)
-                        Text("${viewModel.followCounts.following} ${viewModel.t(MarviL10n.Key.FOLLOWING_LABEL)}", color = MarviColor.Ink)
+                    var insightTab by remember { mutableStateOf(0) }
+                    MarviCard {
+                        SegmentedTabs(
+                            tabs = listOf(
+                                viewModel.t(MarviL10n.Key.PROFILE_ENGAGEMENT),
+                                viewModel.t(MarviL10n.Key.PROFILE_HEALTH)
+                            ),
+                            selectedIndex = insightTab,
+                            onSelect = { insightTab = it },
+                            uppercase = false
+                        )
+                        if (insightTab == 0) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Text("${viewModel.followCounts.followers} ${viewModel.t(MarviL10n.Key.FOLLOWERS)}", color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                                Text("${viewModel.followCounts.following} ${viewModel.t(MarviL10n.Key.FOLLOWING_LABEL)}", color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                            }
+                            Text(viewModel.t(MarviL10n.Key.CONTENT_FIT_LABEL), color = MarviColor.Muted, style = MaterialTheme.typography.labelMedium)
+                            Text(viewModel.profile.niches.joinToString(" · ").ifBlank { "—" }, color = MarviColor.Ink)
+                            Text(viewModel.t(MarviL10n.Key.LANGUAGES_LABEL), color = MarviColor.Muted, style = MaterialTheme.typography.labelMedium)
+                            Text(viewModel.profile.languages.joinToString(" · ").ifBlank { "—" }, color = MarviColor.Ink)
+                            Text(viewModel.t(MarviL10n.Key.DELIVERY_LABEL), color = MarviColor.Muted, style = MaterialTheme.typography.labelMedium)
+                            Text(viewModel.profile.proofRate, color = MarviColor.Emerald, fontWeight = FontWeight.Bold)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text("${viewModel.profile.score}", color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.displaySmall)
+                                    Text(viewModel.t(MarviL10n.Key.SCORE_LABEL), color = MarviColor.Muted, style = MaterialTheme.typography.labelMedium)
+                                    Text(viewModel.profile.proofRate, color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineMedium)
+                                    Text(viewModel.t(MarviL10n.Key.DELIVERY_LABEL), color = MarviColor.Muted, style = MaterialTheme.typography.labelMedium)
+                                }
+                                ProfileHealthRing(viewModel.profile.score, viewModel.t(MarviL10n.Key.PROFILE_HEALTH))
+                            }
+                        }
                     }
 
                     if (viewModel.allowedRoles.size > 1) {

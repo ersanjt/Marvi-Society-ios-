@@ -1456,6 +1456,20 @@ final class AppState: ObservableObject {
         }
     }
 
+    @discardableResult
+    func cancelBooking(_ booking: Booking) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            try await api.cancelBooking(booking.id)
+            bookings.removeAll { $0.id == booking.id }
+            await refreshFromServer()
+            return true
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return false
+        }
+    }
+
     func checkIn(_ booking: Booking, code: String) async -> String? {
         guard isAuthenticated else { return t(.errSignInCheckIn) }
         let normalized = code.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2152,6 +2166,18 @@ final class AppState: ObservableObject {
         }
     }
 
+    func creatorDeclineCollaboration(requestID: UUID) async -> Bool {
+        guard isAuthenticated else { return false }
+        do {
+            try await api.creatorDeclineCollaboration(requestID)
+            pendingCollaborationRequests.removeAll { $0.id == requestID }
+            return true
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return false
+        }
+    }
+
     func sendChatMessage(conversationID: UUID, body: String) async -> Bool {
         guard isAuthenticated else { return false }
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2167,9 +2193,16 @@ final class AppState: ObservableObject {
     }
 
     var venuePendingConfirmations: [Booking] {
-        guard selectedRole == .venue, activeVenue != nil else { return [] }
+        guard selectedRole == .venue, let active = activeVenue else { return [] }
         return bookings.filter { booking in
-            booking.stage == .invited && booking.offer.venue == activeVenue?.venueName
+            guard booking.stage == .invited else { return false }
+            if let campaign = campaigns.first(where: { $0.id == booking.offer.id }) {
+                if let venueID = campaign.venueID {
+                    return venueID == active.id
+                }
+                return campaign.venueName.caseInsensitiveCompare(active.venueName) == .orderedSame
+            }
+            return booking.offer.venue == active.venueName
         }
     }
 

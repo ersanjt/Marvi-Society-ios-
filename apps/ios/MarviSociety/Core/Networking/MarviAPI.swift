@@ -59,6 +59,7 @@ protocol MarviAPI: Sendable {
 
     func acceptOffer(_ offerID: UUID, options: AcceptOfferOptions) async throws -> Booking
     func cancelOffer(_ offerID: UUID) async throws
+    func cancelBooking(_ bookingID: UUID) async throws
     func checkIn(bookingID: UUID, code: String) async throws -> Booking
     func submitProof(bookingID: UUID, links: [String]) async throws -> Booking
     func toggleSavedOffer(_ offerID: UUID) async throws -> Bool
@@ -126,6 +127,7 @@ protocol MarviAPI: Sendable {
     func sendMessage(conversationID: UUID, body: String) async throws -> ChatMessage
     func venueConfirmBooking(_ bookingID: UUID) async throws -> Booking
     func creatorAcceptCollaboration(_ requestID: UUID) async throws -> Booking
+    func creatorDeclineCollaboration(_ requestID: UUID) async throws
     func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest]
     func fetchAdminActivity(limit: Int) async throws -> [ActivityEventItem]
     func resolveCurrentUserID() async -> UUID?
@@ -173,6 +175,16 @@ extension MarviAPI {
         _ = imageData
         _ = fileName
         throw MarviAPIError.server(message: "Proof upload requires Supabase mode")
+    }
+
+    func cancelOffer(_ offerID: UUID) async throws {
+        _ = offerID
+        throw MarviAPIError.server(message: "Cancel requires Supabase mode")
+    }
+
+    func cancelBooking(_ bookingID: UUID) async throws {
+        _ = bookingID
+        throw MarviAPIError.server(message: "Cancel requires Supabase mode")
     }
 
     func issueStrike(creatorID: UUID, bookingID: UUID?, reason: String) async throws {
@@ -502,6 +514,10 @@ extension MarviAPI {
     func creatorAcceptCollaboration(_ requestID: UUID) async throws -> Booking {
         _ = requestID
         throw MarviAPIError.server(message: "Collaboration accept requires Supabase mode")
+    }
+    func creatorDeclineCollaboration(_ requestID: UUID) async throws {
+        _ = requestID
+        throw MarviAPIError.server(message: "Collaboration decline requires Supabase mode")
     }
 
     func fetchPendingCollaborationRequests() async throws -> [PendingCollaborationRequest] { [] }

@@ -239,6 +239,7 @@ struct MyVenueRow: Decodable {
 
 struct CampaignOfferRow: Decodable {
     let id: UUID
+    let venue_id: UUID?
     let title: String
     let category: String
     let date_label: String?
@@ -262,6 +263,7 @@ struct CampaignOfferRow: Decodable {
         return Campaign(
             id: id,
             title: title,
+            venueID: venue_id,
             venueName: venue_profiles?.venue_name ?? "Venue",
             area: venue_profiles?.area ?? "Istanbul",
             category: OfferCategory.fromAPI(category),

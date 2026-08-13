@@ -837,7 +837,11 @@ fun VenueStudioScreen(
                 }
             }
             items(viewModel.myVenues, key = { it.id }) { venue ->
-                MarviCard {
+                MarviCard(
+                    modifier = Modifier.clickable {
+                        if (!venue.isActive) viewModel.setActiveVenue(venue.id)
+                    }
+                ) {
                     Text(venue.name, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                     Text("${venue.area} · ${viewModel.categoryLabel(venue.category)}", color = MarviColor.Muted)
                     when (venue.status) {
@@ -1222,12 +1226,20 @@ fun VenueStudioScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { viewModel.venueConfirmBooking(booking.id) },
-                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(viewModel.t(MarviL10n.Key.CONFIRM_COLLABORATION))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { viewModel.venueConfirmBooking(booking.id) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(viewModel.t(MarviL10n.Key.CONFIRM_COLLABORATION))
+                            }
+                            OutlinedButton(
+                                onClick = { viewModel.venueDeclineBooking(booking.id) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(viewModel.t(MarviL10n.Key.DECLINE))
+                            }
                         }
                     }
                 }

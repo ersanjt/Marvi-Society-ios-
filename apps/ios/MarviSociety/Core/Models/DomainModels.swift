@@ -991,6 +991,7 @@ struct CreateCampaignInput: Sendable {
 struct Campaign: Codable, Identifiable, Hashable {
     let id: UUID
     var title: String
+    var venueID: UUID?
     var venueName: String
     var area: String
     var category: OfferCategory
@@ -1006,6 +1007,7 @@ struct Campaign: Codable, Identifiable, Hashable {
     init(
         id: UUID = UUID(),
         title: String,
+        venueID: UUID? = nil,
         venueName: String,
         area: String,
         category: OfferCategory,
@@ -1020,6 +1022,7 @@ struct Campaign: Codable, Identifiable, Hashable {
     ) {
         self.id = id
         self.title = title
+        self.venueID = venueID
         self.venueName = venueName
         self.area = area
         self.category = category

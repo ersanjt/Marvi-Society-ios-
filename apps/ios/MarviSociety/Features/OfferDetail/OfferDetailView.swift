@@ -159,7 +159,8 @@ struct OfferDetailView: View {
         .sheet(isPresented: $showGiftSheet) {
             AcceptExtrasSheet(
                 title: MarviL10n.t(.confirmGift, language: lang),
-                actionTitle: MarviL10n.t(.confirmGift, language: lang)
+                actionTitle: MarviL10n.t(.confirmGift, language: lang),
+                canConfirm: !shippingAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ) {
                 MarviTextField(
                     placeholder: MarviL10n.t(.shippingAddress, language: lang),
@@ -246,6 +247,7 @@ private struct AcceptExtrasSheet<Content: View>: View {
     @EnvironmentObject private var appState: AppState
     let title: String
     let actionTitle: String
+    var canConfirm: Bool = true
     @ViewBuilder let content: () -> Content
     let onConfirm: () -> Void
 
@@ -259,6 +261,8 @@ private struct AcceptExtrasSheet<Content: View>: View {
                         onConfirm()
                         dismiss()
                     }
+                    .disabled(!canConfirm)
+                    .opacity(canConfirm ? 1 : 0.45)
                 }
                 .padding(16)
             }

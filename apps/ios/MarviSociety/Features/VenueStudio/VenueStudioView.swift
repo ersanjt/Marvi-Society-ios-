@@ -120,11 +120,14 @@ struct VenueStudioView: View {
     private var campaignsForFocusedVenue: [Campaign] {
         let visible = appState.campaigns.filter { !$0.isDeleted }
         guard let active = focusedVenue else { return visible }
-        let matched = visible.filter {
-            $0.venueName.caseInsensitiveCompare(active.venueName) == .orderedSame
-                && $0.area.caseInsensitiveCompare(active.area) == .orderedSame
+        let matched = visible.filter { campaign in
+            if let venueID = campaign.venueID {
+                return venueID == active.id
+            }
+            return campaign.venueName.caseInsensitiveCompare(active.venueName) == .orderedSame
+                && campaign.area.caseInsensitiveCompare(active.area) == .orderedSame
         }
-        // Fall back to all account campaigns if naming hasn't synced yet.
+        // Fall back to all account campaigns if venue_id hasn't synced yet.
         return matched.isEmpty ? visible : matched
     }
 
@@ -526,11 +529,17 @@ struct InfluencerSwipeView: View {
         guard let active = appState.activeVenue else {
             return appState.campaigns.first(where: { !$0.isDeleted && $0.status == .live })?.id
         }
-        return appState.campaigns.first(where: {
-            !$0.isDeleted && $0.status == .live
-                && $0.venueName.caseInsensitiveCompare(active.venueName) == .orderedSame
-                && $0.area.caseInsensitiveCompare(active.area) == .orderedSame
-        })?.id ?? appState.campaigns.first(where: { !$0.isDeleted && $0.status == .live })?.id
+        let scoped = appState.campaigns.first(where: {
+            !$0.isDeleted && $0.status == .live && (
+                $0.venueID == active.id
+                    || (
+                        $0.venueID == nil
+                            && $0.venueName.caseInsensitiveCompare(active.venueName) == .orderedSame
+                            && $0.area.caseInsensitiveCompare(active.area) == .orderedSame
+                    )
+            )
+        })
+        return scoped?.id
     }
 
     private var liveCampaignTitle: String {
@@ -1454,6 +1463,24 @@ private struct VenuePendingConfirmationsCard: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(.white)
                         .background(MarviColor.emerald)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .disabled(confirmingID != nil)
+
+                        Button {
+                            Task {
+                                confirmingID = booking.id
+                                _ = await appState.cancelBooking(booking)
+                                confirmingID = nil
+                            }
+                        } label: {
+                            Text(appState.t(.decline))
+                                .font(.caption.weight(.bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(MarviColor.tomato)
+                        .background(MarviColor.panel)
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         .disabled(confirmingID != nil)
                     }

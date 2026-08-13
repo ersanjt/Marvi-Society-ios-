@@ -188,12 +188,28 @@ class AppViewModel(
             ).coerceAtMost(99)
 
     val liveCampaignId: String?
-        get() = campaigns.firstOrNull {
-            !it.isDeleted && it.status.equals("live", ignoreCase = true)
-        }?.id
+        get() {
+            val activeVenueId = myVenues.firstOrNull { it.isActive }?.id
+            val live = campaigns.filter {
+                !it.isDeleted && it.status.equals("live", ignoreCase = true)
+            }
+            if (activeVenueId != null) {
+                live.firstOrNull { it.venueId == activeVenueId }?.id?.let { return it }
+            }
+            return live.firstOrNull()?.id
+        }
 
     val pendingVenueConfirmations: List<Booking>
-        get() = bookings.filter { it.stage == BookingStage.INVITED }
+        get() {
+            val activeVenueId = myVenues.firstOrNull { it.isActive }?.id
+            return bookings.filter { booking ->
+                if (booking.stage != BookingStage.INVITED) return@filter false
+                if (activeVenueId == null) return@filter true
+                campaigns.any {
+                    it.id == booking.offer.id && (it.venueId == null || it.venueId == activeVenueId)
+                } || booking.offer.venue.isNotBlank()
+            }
+        }
 
     val acceptedOfferIds: Set<String>
         get() = bookings.filter { it.stage != BookingStage.CANCELLED }.map { it.offer.id }.toSet()
@@ -777,6 +793,36 @@ class AppViewModel(
         }
     }
 
+    fun creatorDeclineCollaboration(requestId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.creatorDeclineCollaboration(requestId)
+                pendingCollaborationRequests = pendingCollaborationRequests.filter { it.id != requestId }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
+    fun setActiveVenue(venueId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.setActiveVenue(venueId)
+                myVenues = repository.fetchMyVenues()
+                campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
+                loadSwipeCandidates()
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
     fun submitCreatorReview(
         bookingId: String,
         hospitality: Int,
@@ -1201,6 +1247,22 @@ class AppViewModel(
             runCatching {
                 val updated = repository.venueConfirmBooking(bookingId)
                 bookings = listOf(updated) + bookings.filter { it.id != updated.id }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
+    fun venueDeclineBooking(bookingId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.cancelBooking(bookingId)
+                bookings = bookings.map {
+                    if (it.id == bookingId) it.copy(stage = BookingStage.CANCELLED) else it
+                }
             }.onSuccess {
                 onResult(true)
             }.onFailure { error ->

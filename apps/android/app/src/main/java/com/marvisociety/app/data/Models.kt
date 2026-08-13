@@ -422,6 +422,7 @@ data class Campaign(
     val id: String,
     val title: String,
     val status: String,
+    val venueId: String? = null,
     val venueName: String,
     val dateLabel: String,
     val isDeleted: Boolean = false

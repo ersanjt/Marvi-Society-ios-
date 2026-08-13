@@ -1,6 +1,7 @@
 package com.marvisociety.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -114,68 +115,95 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
+                        .background(MarviColor.Panel)
+                        .border(1.dp, MarviColor.Border, RoundedCornerShape(16.dp))
                 ) {
-                    OfferImageView(
-                        url = OfferImagery.imageUrl(offer),
-                        contentDescription = offer.title,
-                        modifier = Modifier.fillMaxWidth(),
-                        height = 190.dp,
-                        cornerRadius = 16.dp
-                    )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .background(MarviGradient.HeroOverlay)
-                    )
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(8.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(MarviColor.Panel.copy(alpha = 0.85f))
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MarviColor.Ink)
-                    }
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StatusPill(viewModel.modelLabel(offer.collaborationModel), MarviColor.Rose)
-                        StatusPill("${offer.remaining} ${viewModel.t(MarviL10n.Key.SLOTS_SUFFIX)}", MarviColor.Gold)
-                        IconButton(
-                            onClick = { viewModel.toggleSaved(offer.id) },
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MarviColor.Panel.copy(alpha = 0.85f))
-                        ) {
-                            Icon(
-                                if (saved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                                null,
-                                tint = if (saved) MarviColor.Rose else MarviColor.Ink
+                    Column {
+                        Box {
+                            OfferImageView(
+                                url = OfferImagery.imageUrl(offer),
+                                contentDescription = offer.title,
+                                modifier = Modifier.fillMaxWidth(),
+                                height = 190.dp,
+                                cornerRadius = 0.dp
                             )
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .background(MarviGradient.HeroOverlay)
+                            )
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(8.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MarviColor.Panel.copy(alpha = 0.85f))
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MarviColor.Ink)
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(start = 52.dp, top = 14.dp, end = 14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                StatusPill(viewModel.categoryLabel(offer.category), MarviColor.Rose)
+                                StatusPill(viewModel.modelLabel(offer.collaborationModel), MarviColor.Gold)
+                                if (accepted) StatusPill(viewModel.t(MarviL10n.Key.CONFIRMED_STATUS), MarviColor.Emerald)
+                            }
                         }
-                    }
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(offer.venue, style = MaterialTheme.typography.labelMedium, color = MarviColor.Rose, fontWeight = FontWeight.Bold)
-                        Text(offer.title, style = MaterialTheme.typography.displaySmall, color = Color.White)
-                        Text(
-                            "${offer.area} · ${viewModel.localizeServerText(offer.dateLabel)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                offer.title,
+                                style = MaterialTheme.typography.displaySmall,
+                                color = MarviColor.Ink,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2
+                            )
+                            Text(
+                                "${offer.venue} · ${offer.area}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MarviColor.Muted,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (viewModel.profile.score > 0) {
+                                    StatusPill(
+                                        viewModel.t(MarviL10n.Key.MATCH_PERCENT).replace("%d", viewModel.profile.score.toString()),
+                                        MarviColor.Gold
+                                    )
+                                }
+                                StatusPill(
+                                    viewModel.t(MarviL10n.Key.SLOTS_LEFT).replace("%d", offer.remaining.toString()),
+                                    MarviColor.Rose
+                                )
+                                Spacer(Modifier.weight(1f))
+                                IconButton(
+                                    onClick = { viewModel.toggleSaved(offer.id) },
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MarviColor.PanelElevated)
+                                ) {
+                                    Icon(
+                                        if (saved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                        null,
+                                        tint = if (saved) MarviColor.Rose else MarviColor.Muted
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
                 MarviCard {
+                    Text(viewModel.t(MarviL10n.Key.CAMPAIGN_BRIEF), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
                     if (offer.description.isNotBlank()) {
                         Text(offer.description, style = MaterialTheme.typography.bodyMedium, color = MarviColor.Graphite)
                     }
@@ -226,6 +254,13 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                     }
                 }
 
+                MarviCard {
+                    Text(viewModel.t(MarviL10n.Key.ACCEPTANCE_TERMS), style = MaterialTheme.typography.headlineSmall, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
+                    TermRow(viewModel.t(MarviL10n.Key.TERM_ATTENDANCE), viewModel.t(MarviL10n.Key.TERM_ATTENDANCE_VAL))
+                    TermRow(viewModel.t(MarviL10n.Key.TERM_CONTENT), viewModel.t(MarviL10n.Key.TERM_CONTENT_VAL))
+                    TermRow(viewModel.t(MarviL10n.Key.TERM_POLICY), viewModel.t(MarviL10n.Key.TERM_POLICY_VAL))
+                }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     InfoBadge(viewModel.categoryLabel(offer.category))
                     InfoBadge(viewModel.modelLabel(offer.collaborationModel))
@@ -249,15 +284,13 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
                     PrimaryActionButton(
                         title = acceptTitle,
                         onClick = { beginAccept() },
-                        enabled = canAccept && !isAccepting,
-                        icon = Icons.Default.Check
+                        enabled = canAccept && !isAccepting
                     )
-                    SecondaryActionButton(title = viewModel.t(MarviL10n.Key.CLOSE), onClick = onBack)
                 } else {
-                    StatusPill(viewModel.t(MarviL10n.Key.ALREADY_ACCEPTED), MarviColor.Emerald)
-                    SecondaryActionButton(
+                    PrimaryActionButton(
                         title = viewModel.t(MarviL10n.Key.CANCEL_INVITATION),
-                        onClick = { showCancelDialog = true }
+                        onClick = { showCancelDialog = true },
+                        enabled = !isCancelling
                     )
                 }
             }
@@ -600,5 +633,14 @@ fun CollaborationThreadScreen(
                 enabled = draft.isNotBlank() && !isSending
             )
         }
+    }
+}
+
+
+@Composable
+private fun TermRow(title: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.fillMaxWidth()) {
+        Text(title, color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+        Text(value, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
     }
 }
