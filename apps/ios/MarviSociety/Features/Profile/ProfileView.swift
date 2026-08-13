@@ -856,43 +856,43 @@ private struct PremiumProfileHeader: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .topLeading) {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .bottomLeading) {
                 coverPicker
 
-                HStack(alignment: .center, spacing: 14) {
-                    avatarPicker
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(profile.name.isEmpty ? appState.t(.member) : profile.name)
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(MarviColor.ink)
-                            .lineLimit(2)
-
-                        Text(profile.niches.first ?? appState.t(.creator))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(MarviColor.rose)
-
-                        Text(profile.handle.isEmpty ? appState.t(.handleEmpty) : "@\(profile.handle.replacingOccurrences(of: "@", with: ""))")
-                            .font(.caption)
-                            .foregroundStyle(profile.handle.isEmpty ? MarviColor.muted.opacity(0.6) : MarviColor.muted)
-
-                        StatusPill(
-                            text: profile.status.label(for: appState.preferredLanguage),
-                            tint: statusTint(for: profile.status),
-                            systemImage: statusIcon(for: profile.status)
-                        )
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, coverHeight - avatarSize / 2)
+                avatarPicker
+                    .padding(.leading, 16)
+                    .offset(y: avatarSize / 2)
             }
+            .padding(.bottom, avatarSize / 2)
+
+            // Identity sits under the cover (not over the photo) so it stays readable.
+            VStack(alignment: .leading, spacing: 6) {
+                Text(profile.name.isEmpty ? appState.t(.member) : profile.name)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(MarviColor.ink)
+                    .lineLimit(2)
+
+                Text(profile.niches.first ?? appState.t(.creator))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(MarviColor.rose)
+
+                Text(profile.handle.isEmpty ? appState.t(.handleEmpty) : "@\(profile.handle.replacingOccurrences(of: "@", with: ""))")
+                    .font(.caption)
+                    .foregroundStyle(profile.handle.isEmpty ? MarviColor.muted.opacity(0.6) : MarviColor.muted)
+
+                StatusPill(
+                    text: profile.status.label(for: appState.preferredLanguage),
+                    tint: statusTint(for: profile.status),
+                    systemImage: statusIcon(for: profile.status)
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
 
             SSManagementButton(title: managementTitle, action: onManagement)
                 .padding(.horizontal, 16)
-                .padding(.top, avatarSize / 2 + 14)
+                .padding(.top, 14)
                 .padding(.bottom, 16)
         }
         .background(MarviColor.panel)

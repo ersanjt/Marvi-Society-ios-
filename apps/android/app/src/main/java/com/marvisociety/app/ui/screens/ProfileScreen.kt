@@ -155,20 +155,39 @@ fun ProfileScreen(viewModel: AppViewModel) {
                 }
             }
 
-            Column(modifier = Modifier.padding(top = 28.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.padding(top = 36.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.ROLE_CREATOR) },
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MarviColor.Ink
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MarviColor.Ink,
+                    fontWeight = FontWeight.Bold
                 )
-                val profileSubtitle = listOfNotNull(
-                    viewModel.profile.handle.takeIf { it.isNotBlank() }?.let { "@$it" },
-                    viewModel.profile.city.takeIf { it.isNotBlank() }
-                ).joinToString(" · ")
-                if (profileSubtitle.isNotBlank()) {
-                    Text(profileSubtitle, color = MarviColor.Muted)
+                Text(
+                    viewModel.roleLabel(viewModel.selectedRole),
+                    color = MarviColor.Rose,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                val handle = viewModel.profile.handle.takeIf { it.isNotBlank() }?.let { "@${it.removePrefix("@")}" }
+                if (handle != null) {
+                    Text(handle, color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
                 }
-                StatusPill("${viewModel.t(MarviL10n.Key.SCORE_LABEL)} ${viewModel.profile.score}", MarviColor.Gold)
+                StatusPill(
+                    when (viewModel.profile.status) {
+                        MembershipStatus.APPROVED -> viewModel.t(MarviL10n.Key.STATUS_APPROVED)
+                        MembershipStatus.PAUSED -> viewModel.t(MarviL10n.Key.STATUS_PAUSED)
+                        MembershipStatus.UNDER_REVIEW -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
+                        null -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
+                    },
+                    when (viewModel.profile.status) {
+                        MembershipStatus.APPROVED -> MarviColor.Emerald
+                        MembershipStatus.PAUSED -> MarviColor.Tomato
+                        else -> MarviColor.Gold
+                    }
+                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
