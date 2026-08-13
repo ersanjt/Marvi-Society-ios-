@@ -79,12 +79,10 @@ data class BusinessCategoryOption(
 }
 
 object BusinessCategoryCatalog {
-    /** Product order: Hotel → Restaurant → then hospitality / F&B / nightlife / rest. */
+    /** Product order: Hotel → Restaurant → Cafe → then rest. */
     val all = listOf(
         BusinessCategoryOption("hotel", "Hotel", "Otel", OfferCategory.WELLNESS),
         BusinessCategoryOption("restaurant", "Restaurant", "Restoran", OfferCategory.DINING),
-        BusinessCategoryOption("resort", "Resort", "Tatil köyü", OfferCategory.WELLNESS),
-        BusinessCategoryOption("hostel", "Hostel", "Hostel", OfferCategory.WELLNESS),
         BusinessCategoryOption("cafe", "Cafe", "Kafe", OfferCategory.DINING),
         BusinessCategoryOption("coffee-shop", "Coffee shop", "Kahve dükkanı", OfferCategory.DINING),
         BusinessCategoryOption("bakery", "Bakery", "Fırın", OfferCategory.DINING),
@@ -93,6 +91,8 @@ object BusinessCategoryCatalog {
         BusinessCategoryOption("fast-food", "Fast food", "Fast food", OfferCategory.DINING),
         BusinessCategoryOption("food-truck", "Food truck", "Yemek kamyonu", OfferCategory.DINING),
         BusinessCategoryOption("catering", "Catering", "Catering", OfferCategory.DINING),
+        BusinessCategoryOption("resort", "Resort", "Tatil köyü", OfferCategory.WELLNESS),
+        BusinessCategoryOption("hostel", "Hostel", "Hostel", OfferCategory.WELLNESS),
         BusinessCategoryOption("bar-pub", "Bar / Pub", "Bar / Pub", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("lounge", "Lounge", "Lounge", OfferCategory.NIGHTLIFE),
         BusinessCategoryOption("nightclub", "Nightclub", "Gece kulübü", OfferCategory.NIGHTLIFE),

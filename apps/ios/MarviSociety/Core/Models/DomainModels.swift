@@ -143,17 +143,14 @@ struct BusinessCategoryOption: Identifiable, Hashable, Sendable {
 }
 
 enum BusinessCategoryCatalog {
-    /// Product order: Hotel → Restaurant → then hospitality / F&B / nightlife / rest.
+    /// Product order: Hotel → Restaurant → Cafe → then rest.
     /// Keys match `public.business_categories.slug` where possible.
     static let all: [BusinessCategoryOption] = [
-        // 1–2 featured
+        // Top picks
         .init(key: "hotel", english: "Hotel", turkish: "Otel", offerCategory: .wellness),
         .init(key: "restaurant", english: "Restaurant", turkish: "Restoran", offerCategory: .dining),
-        // Hospitality
-        .init(key: "resort", english: "Resort", turkish: "Tatil köyü", offerCategory: .wellness),
-        .init(key: "hostel", english: "Hostel", turkish: "Hostel", offerCategory: .wellness),
-        // Food & drink
         .init(key: "cafe", english: "Cafe", turkish: "Kafe", offerCategory: .dining),
+        // Food & drink
         .init(key: "coffee-shop", english: "Coffee shop", turkish: "Kahve dükkanı", offerCategory: .dining),
         .init(key: "bakery", english: "Bakery", turkish: "Fırın", offerCategory: .dining),
         .init(key: "patisserie", english: "Patisserie", turkish: "Pastane", offerCategory: .dining),
@@ -161,6 +158,9 @@ enum BusinessCategoryCatalog {
         .init(key: "fast-food", english: "Fast food", turkish: "Fast food", offerCategory: .dining),
         .init(key: "food-truck", english: "Food truck", turkish: "Yemek kamyonu", offerCategory: .dining),
         .init(key: "catering", english: "Catering", turkish: "Catering", offerCategory: .dining),
+        // Hospitality
+        .init(key: "resort", english: "Resort", turkish: "Tatil köyü", offerCategory: .wellness),
+        .init(key: "hostel", english: "Hostel", turkish: "Hostel", offerCategory: .wellness),
         // Nightlife
         .init(key: "bar-pub", english: "Bar / Pub", turkish: "Bar / Pub", offerCategory: .nightlife),
         .init(key: "lounge", english: "Lounge", turkish: "Lounge", offerCategory: .nightlife),
