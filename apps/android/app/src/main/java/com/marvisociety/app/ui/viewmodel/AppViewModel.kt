@@ -1064,7 +1064,12 @@ class AppViewModel(
                 requirements = requirements,
                 hostNote = hostNote
             )
-            campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
+            // Refresh in background so the create sheet can close immediately.
+            viewModelScope.launch {
+                runCatching {
+                    campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
+                }
+            }
             true
         }.getOrElse { error ->
             lastSyncError = error.message

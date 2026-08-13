@@ -1586,7 +1586,8 @@ final class AppState: ObservableObject {
 
             let campaign = try await api.createCampaign(input, venueID: activeVenue?.id)
             campaigns.insert(campaign, at: 0)
-            await refreshFromServer()
+            // Don't block the create sheet on a full refresh — dismiss can happen immediately.
+            Task { await refreshFromServer() }
             return true
         } catch {
             if let message = presentableError(error) { lastSyncError = message }

@@ -646,6 +646,7 @@ fun VenueStudioScreen(
                         }
                         Button(
                             onClick = {
+                                if (submitting) return@Button
                                 val lines = deliverables.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() }
                                 if (title.isBlank() || lines.isEmpty()) {
                                     formError = viewModel.t(MarviL10n.Key.ERR_TITLE_DELIVERABLES)
@@ -667,7 +668,6 @@ fun VenueStudioScreen(
                                         requirements = requirements.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() },
                                         hostNote = hostNote
                                     )
-                                    submitting = false
                                     if (ok) {
                                         showCreate = false
                                         title = ""
@@ -680,16 +680,22 @@ fun VenueStudioScreen(
                                         hostNote = ""
                                         imageUri = null
                                         formError = null
+                                        submitting = false
                                     } else {
                                         formError = viewModel.lastSyncError
+                                            ?: viewModel.t(MarviL10n.Key.SYNC_ERROR)
+                                        submitting = false
                                     }
                                 }
                             },
                             enabled = !submitting,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MarviColor.Rose,
+                                disabledContainerColor = MarviColor.Muted.copy(alpha = 0.4f)
+                            )
                         ) {
-                            Text(if (submitting) viewModel.t(MarviL10n.Key.LOADING) else viewModel.t(MarviL10n.Key.SEND_TO_REVIEW))
+                            Text(if (submitting) viewModel.t(MarviL10n.Key.SUBMITTING) else viewModel.t(MarviL10n.Key.SEND_TO_REVIEW))
                         }
                         formError?.let { Text(it, color = MarviColor.Tomato) }
                         viewModel.lastSyncError?.takeIf { formError == null }?.let { Text(it, color = MarviColor.Tomato) }

@@ -802,6 +802,7 @@ private struct CampaignBuilderSheet: View {
     @State private var hostNoteText = ""
     @State private var slots = 10.0
     @State private var isSubmitting = false
+    @State private var submitError: String?
     @State private var venueLocked = false
     @State private var photoItem: PhotosPickerItem?
     @State private var photoData: Data?
@@ -907,32 +908,20 @@ private struct CampaignBuilderSheet: View {
                         }
                     }
 
+                    if let submitError, !submitError.isEmpty {
+                        Text(submitError)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MarviColor.tomato)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     PrimaryActionButton(
                         title: isSubmitting ? appState.t(.submitting) : appState.t(.sendToAdminReview),
                         systemImage: "paperplane.fill",
-                        isDisabled: !canSubmitCampaign || isSubmitting
+                        isDisabled: !canSubmitCampaign,
+                        isLoading: isSubmitting
                     ) {
-                        Task {
-                            isSubmitting = true
-                            let success = await appState.createCampaign(
-                                title: title,
-                                venueName: venueName,
-                                area: area,
-                                category: category,
-                                collaborationModel: collaborationModel,
-                                dateLabel: Self.dateFormatter.string(from: campaignDate),
-                                valueLabel: valueLabel.isEmpty ? "Complimentary experience" : valueLabel,
-                                slots: Int(slots),
-                                deliverables: campaignDeliverables,
-                                imageData: photoData,
-                                description: descriptionText,
-                                timeLabel: timeLabel.isEmpty ? "Flexible" : timeLabel,
-                                requirements: campaignRequirements,
-                                hostNote: hostNoteText
-                            )
-                            isSubmitting = false
-                            if success { dismiss() }
-                        }
+                        submitCampaign()
                     }
                 }
                 .padding(16)
@@ -943,8 +932,10 @@ private struct CampaignBuilderSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(appState.t(.close)) { dismiss() }
+                        .disabled(isSubmitting)
                 }
             }
+            .interactiveDismissDisabled(isSubmitting)
             .task {
                 var venue = appState.activeVenue
                 if venue == nil {
@@ -959,6 +950,39 @@ private struct CampaignBuilderSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func submitCampaign() {
+        guard !isSubmitting, canSubmitCampaign else { return }
+        submitError = nil
+        isSubmitting = true
+        Task { @MainActor in
+            let success = await appState.createCampaign(
+                title: title,
+                venueName: venueName,
+                area: area,
+                category: category,
+                collaborationModel: collaborationModel,
+                dateLabel: Self.dateFormatter.string(from: campaignDate),
+                valueLabel: valueLabel.isEmpty ? "Complimentary experience" : valueLabel,
+                slots: Int(slots),
+                deliverables: campaignDeliverables,
+                imageData: photoData,
+                description: descriptionText,
+                timeLabel: timeLabel.isEmpty ? "Flexible" : timeLabel,
+                requirements: campaignRequirements,
+                hostNote: hostNoteText
+            )
+            if success {
+                dismiss()
+                return
+            }
+            submitError = appState.lastSyncError
+                ?? (appState.preferredLanguage == .turkish
+                    ? "Kampanya gönderilemedi. Tekrar dene."
+                    : "Could not submit campaign. Please try again.")
+            isSubmitting = false
+        }
     }
 
     private var campaignDeliverables: [String] {

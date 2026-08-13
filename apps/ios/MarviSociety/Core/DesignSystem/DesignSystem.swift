@@ -178,39 +178,49 @@ struct PrimaryActionButton: View {
     let title: String
     let systemImage: String
     let isDisabled: Bool
+    let isLoading: Bool
     let action: () -> Void
 
     init(
         title: String,
         systemImage: String,
         isDisabled: Bool = false,
+        isLoading: Bool = false,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.systemImage = systemImage
         self.isDisabled = isDisabled
+        self.isLoading = isLoading
         self.action = action
     }
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+            HStack(spacing: 10) {
+                if isLoading {
+                    ProgressView()
+                        .tint(.white)
+                }
+                Label(title, systemImage: systemImage)
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
         }
         .buttonStyle(.plain)
         .foregroundStyle(.white)
         .background {
-            if isDisabled {
+            if isDisabled || isLoading {
                 MarviColor.muted.opacity(0.4)
             } else {
                 MarviGradient.brand
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .disabled(isDisabled)
-        .opacity(isDisabled ? 0.72 : 1)
+        .disabled(isDisabled || isLoading)
+        .opacity((isDisabled || isLoading) ? 0.72 : 1)
+        .accessibilityAddTraits(isLoading ? .updatesFrequently : [])
     }
 }
 
