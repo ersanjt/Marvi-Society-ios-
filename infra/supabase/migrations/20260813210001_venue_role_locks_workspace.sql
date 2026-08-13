@@ -92,6 +92,8 @@ REVOKE ALL ON FUNCTION public.register_venue_location(TEXT, TEXT, TEXT, TEXT, TE
 GRANT EXECUTE ON FUNCTION public.register_venue_location(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION) TO authenticated, service_role;
 
 -- Existing business accounts that registered a venue but stayed on creator role.
+-- Bypass privilege guard (migrations are not an admin JWT session).
+ALTER TABLE public.profiles DISABLE TRIGGER guard_profiles_privileged;
 UPDATE public.profiles p
 SET
     role = 'venue'::public.user_role,
@@ -102,3 +104,4 @@ WHERE p.role = 'creator'::public.user_role
       FROM public.venue_profiles vp
       WHERE vp.owner_user_id = p.id
   );
+ALTER TABLE public.profiles ENABLE TRIGGER guard_profiles_privileged;
