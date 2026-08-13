@@ -182,7 +182,18 @@ class AppViewModel(
         get() = bookings.count { it.stage == BookingStage.INVITED }
 
     val eventsTabBadgeCount: Int
-        get() = pendingInviteBookingsCount.coerceAtMost(99)
+        get() = (
+            pendingInviteBookingsCount +
+                pendingCollaborationRequests.count { it.isPendingCreator }
+            ).coerceAtMost(99)
+
+    val liveCampaignId: String?
+        get() = campaigns.firstOrNull {
+            !it.isDeleted && it.status.equals("live", ignoreCase = true)
+        }?.id
+
+    val pendingVenueConfirmations: List<Booking>
+        get() = bookings.filter { it.stage == BookingStage.INVITED }
 
     val acceptedOfferIds: Set<String>
         get() = bookings.filter { it.stage != BookingStage.CANCELLED }.map { it.offer.id }.toSet()
@@ -349,19 +360,30 @@ class AppViewModel(
                     }
 
                     when (selectedRole) {
+                        UserRole.VENUE -> {
+                            myVenues = repository.fetchMyVenues()
+                            myBrands = runCatching { repository.fetchMyBrands() }.getOrDefault(myBrands)
+                            campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
+                            val liveId = campaigns.firstOrNull {
+                                it.status.equals("live", ignoreCase = true)
+                            }?.id
+                            swipeCandidates = runCatching {
+                                repository.fetchSwipeCandidates(liveId)
+                            }.getOrDefault(swipeCandidates)
+                            venueReviewQueue = runCatching { repository.fetchVenueReviewQueue() }.getOrDefault(venueReviewQueue)
+                            pendingCollaborationRequests = runCatching {
+                                repository.fetchPendingCollaborationRequests()
+                            }.getOrDefault(pendingCollaborationRequests)
+                        }
                         UserRole.ADMIN -> {
                             adminTasks = repository.fetchAdminTasks()
                             adminUsers = repository.fetchAdminUsers(null, null)
                             adminVenues = repository.fetchAdminVenues(null, null)
                             adminBookings = repository.fetchAdminBookings(null, null)
                             adminInviteCodes = repository.fetchAdminInviteCodes()
-                        }
-                        UserRole.VENUE -> {
-                            myVenues = repository.fetchMyVenues()
-                            myBrands = runCatching { repository.fetchMyBrands() }.getOrDefault(myBrands)
-                            campaigns = repository.fetchCampaigns().filterNot { it.isDeleted }
-                            swipeCandidates = runCatching { repository.fetchSwipeCandidates(null) }.getOrDefault(swipeCandidates)
-                            venueReviewQueue = runCatching { repository.fetchVenueReviewQueue() }.getOrDefault(venueReviewQueue)
+                            campaigns = runCatching {
+                                repository.fetchCampaigns()
+                            }.getOrDefault(campaigns)
                         }
                         UserRole.CREATOR -> {
                             pendingCollaborationRequests = runCatching {
@@ -677,7 +699,7 @@ class AppViewModel(
         rsvpGuests: Int? = null,
         onResult: (Boolean) -> Unit = {}
     ) {
-        if (needsAdminApproval || needsSocialHandlesEntry || profile.status != MembershipStatus.APPROVED) {
+        if (needsAdminApproval || needsSocialHandlesEntry) {
             lastSyncError = acceptBlockedReason ?: t(MarviL10n.Key.COMPLETE_PROFILE_TO_ACCEPT)
             onResult(false)
             return
@@ -1145,15 +1167,21 @@ class AppViewModel(
 
     fun loadSwipeCandidates() {
         viewModelScope.launch {
-            runCatching { swipeCandidates = repository.fetchSwipeCandidates(null) }
-                .onFailure { error -> lastSyncError = error.message }
+            runCatching {
+                swipeCandidates = repository.fetchSwipeCandidates(liveCampaignId)
+            }.onFailure { error -> lastSyncError = error.message }
         }
     }
 
     fun shortlistCreator(creatorId: String) {
         viewModelScope.launch {
+            val offerId = liveCampaignId
+            if (offerId.isNullOrBlank()) {
+                lastSyncError = t(MarviL10n.Key.SWIPE_NEEDS_LIVE_SUB)
+                return@launch
+            }
             runCatching {
-                repository.shortlistCreator(creatorId, null)
+                repository.shortlistCreator(creatorId, offerId)
                 swipeCandidates = swipeCandidates.filterNot { it.id == creatorId }
             }.onFailure { error -> lastSyncError = error.message }
         }
@@ -1162,9 +1190,38 @@ class AppViewModel(
     fun passCreator(creatorId: String) {
         viewModelScope.launch {
             runCatching {
-                repository.passCreator(creatorId, null)
+                repository.passCreator(creatorId, liveCampaignId)
                 swipeCandidates = swipeCandidates.filterNot { it.id == creatorId }
             }.onFailure { error -> lastSyncError = error.message }
+        }
+    }
+
+    fun venueConfirmBooking(bookingId: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                val updated = repository.venueConfirmBooking(bookingId)
+                bookings = listOf(updated) + bookings.filter { it.id != updated.id }
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
+        }
+    }
+
+    fun adminSetOfferStatus(offerId: String, status: String, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching {
+                repository.adminSetOfferStatus(offerId, status)
+                campaigns = repository.fetchCampaigns()
+                adminTasks = runCatching { repository.fetchAdminTasks() }.getOrDefault(adminTasks)
+            }.onSuccess {
+                onResult(true)
+            }.onFailure { error ->
+                lastSyncError = error.message
+                onResult(false)
+            }
         }
     }
 
@@ -1425,6 +1482,7 @@ class AppViewModel(
             runCatching {
                 repository.adminSetMembershipStatus(userId, status)
                 adminUsers = repository.fetchAdminUsers(null, null)
+                adminTasks = runCatching { repository.fetchAdminTasks() }.getOrDefault(adminTasks)
             }.onSuccess {
                 onResult(true)
             }.onFailure { error ->
@@ -1439,6 +1497,7 @@ class AppViewModel(
             runCatching {
                 repository.adminSetVenueStatus(venueId, status)
                 adminVenues = repository.fetchAdminVenues(null, null)
+                adminTasks = runCatching { repository.fetchAdminTasks() }.getOrDefault(adminTasks)
             }.onSuccess {
                 onResult(true)
             }.onFailure { error ->
@@ -1453,6 +1512,7 @@ class AppViewModel(
             runCatching {
                 repository.adminDeleteVenue(venueId)
                 adminVenues = repository.fetchAdminVenues(null, null)
+                adminTasks = runCatching { repository.fetchAdminTasks() }.getOrDefault(adminTasks)
             }.onSuccess {
                 onResult(true)
             }.onFailure { error ->

@@ -19,7 +19,7 @@ struct OfferDetailView: View {
     private var isPaused: Bool { appState.profile.status == .paused }
     private var isUnderReview: Bool { appState.profile.status == .underReview }
     private var canAccept: Bool {
-        !isPending && !isFull && !isPaused && !isUnderReview && appState.isAuthenticated
+        !isPending && !isFull && !isPaused && appState.isAuthenticated
             && appState.canAcceptOffers
     }
 

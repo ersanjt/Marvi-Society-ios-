@@ -118,7 +118,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         // `limit=1` often returns someone else's row, so edits/photos look like
         // they never saved after refresh.
         val userId = client.currentUserId() ?: throw MarviApiException("Not authenticated")
-        fun loadOwn(): JsonElement? =
+        suspend fun loadOwn(): JsonElement? =
             client.select(
                 "creator_profiles",
                 mapOf("user_id" to "eq.$userId", "limit" to "1")
@@ -343,6 +343,26 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
 
     suspend fun cancelBooking(bookingId: String) {
         client.rpcVoid("cancel_booking", buildJsonObject { put("p_booking_id", bookingId) })
+    }
+
+    suspend fun venueConfirmBooking(bookingId: String): Booking {
+        val row = client.rpcJson(
+            "venue_confirm_booking",
+            buildJsonObject { put("p_booking_id", bookingId) }
+        )
+        return hydrateBooking(row)
+    }
+
+    suspend fun adminSetOfferStatus(offerId: String, status: String, reason: String? = null) {
+        client.rpcVoid(
+            "admin_set_offer_status",
+            buildJsonObject {
+                put("p_offer_id", offerId)
+                put("p_status", status)
+                val trimmed = reason?.trim()
+                if (!trimmed.isNullOrEmpty()) put("p_reason", trimmed)
+            }
+        )
     }
 
     suspend fun submitCreatorReview(

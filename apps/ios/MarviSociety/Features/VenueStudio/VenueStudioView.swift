@@ -54,7 +54,7 @@ struct VenueStudioView: View {
     @State private var editingVenueID: UUID?
     @State private var reviewSegment: VenueReviewSegment = .checkedIn
     @State private var studioTab: VenueStudioTab = .establishments
-    @State private var campaignScope: StudioCampaignScope = .upcoming
+    @State private var campaignScope: StudioCampaignScope = .happening
     @State private var isShowingInbox = false
     @State private var campaignPendingDelete: Campaign?
     @State private var isDeletingCampaign = false
@@ -134,7 +134,8 @@ struct VenueStudioView: View {
         case .underReview:
             return visible.filter { $0.status == .review }
         case .upcoming:
-            return visible.filter { $0.status == .draft }
+            // Auto-live campaigns land as .live; include draft for any legacy rows.
+            return visible.filter { $0.status == .live || $0.status == .draft }
         case .happening:
             return visible.filter { $0.status == .live }
         case .past:

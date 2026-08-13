@@ -114,7 +114,10 @@ object MarviL10n {
         EST_ADDRESS_LINE1, EST_ADDRESS_LINE2, EST_POSTAL_CODE, EST_LATITUDE, EST_LONGITUDE,
         EST_CITY_COUNTRY_REQUIRED, EST_ADDRESS_REQUIRED, EST_MAP_REQUIRED,
         EST_PHOTOS_SUB, EST_ADD_LOGO, EST_LOGO_ADDED, EST_ADD_GALLERY,
-        EST_LOGO_REQUIRED, EST_PHOTOS_MIN, MY_ESTABLISHMENTS
+        EST_LOGO_REQUIRED, EST_PHOTOS_MIN, MY_ESTABLISHMENTS,
+        SWIPE_NEEDS_LIVE_TITLE, SWIPE_NEEDS_LIVE_SUB,
+        PENDING_VENUE_CONFIRM, PENDING_VENUE_CONFIRM_SUB, CONFIRM_COLLABORATION,
+        ADMIN_TAB_CAMPAIGNS, UNPUBLISH_CAMPAIGN, PUBLISH_CAMPAIGN, VENUE_MUST_BE_APPROVED
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -551,7 +554,16 @@ object MarviL10n {
         Key.EST_ADD_GALLERY to "Gallery photos (%d)",
         Key.EST_LOGO_REQUIRED to "Upload your establishment logo.",
         Key.EST_PHOTOS_MIN to "Upload at least 3 photos.",
-        Key.MY_ESTABLISHMENTS to "Establishments"
+        Key.MY_ESTABLISHMENTS to "Establishments",
+        Key.SWIPE_NEEDS_LIVE_TITLE to "Invite creators",
+        Key.SWIPE_NEEDS_LIVE_SUB to "Create a live campaign first, then shortlist creators. If they accept, the collaboration continues.",
+        Key.PENDING_VENUE_CONFIRM to "Pending confirmations",
+        Key.PENDING_VENUE_CONFIRM_SUB to "Creators applied to your campaign — confirm to open chat.",
+        Key.CONFIRM_COLLABORATION to "Confirm & open chat",
+        Key.ADMIN_TAB_CAMPAIGNS to "Campaigns",
+        Key.UNPUBLISH_CAMPAIGN to "Unpublish",
+        Key.PUBLISH_CAMPAIGN to "Publish live",
+        Key.VENUE_MUST_BE_APPROVED to "Your venue must be approved before creating a campaign."
     )
 
     private val turkish = mapOf(
@@ -983,7 +995,16 @@ object MarviL10n {
         Key.EST_ADD_GALLERY to "Galeri fotoğrafları (%d)",
         Key.EST_LOGO_REQUIRED to "Mekân logosunu yükleyin.",
         Key.EST_PHOTOS_MIN to "En az 3 fotoğraf yükleyin.",
-        Key.MY_ESTABLISHMENTS to "Mekânlar"
+        Key.MY_ESTABLISHMENTS to "Mekânlar",
+        Key.SWIPE_NEEDS_LIVE_TITLE to "Creator davet et",
+        Key.SWIPE_NEEDS_LIVE_SUB to "Önce canlı kampanya oluştur, sonra shortlist yap. Kabul ederlerse işbirliği devam eder.",
+        Key.PENDING_VENUE_CONFIRM to "Onay bekleyenler",
+        Key.PENDING_VENUE_CONFIRM_SUB to "Creator kampanyana başvurdu — sohbet için onayla.",
+        Key.CONFIRM_COLLABORATION to "Onayla ve sohbet et",
+        Key.ADMIN_TAB_CAMPAIGNS to "Kampanya",
+        Key.UNPUBLISH_CAMPAIGN to "Yayından kaldır",
+        Key.PUBLISH_CAMPAIGN to "Canlı yayınla",
+        Key.VENUE_MUST_BE_APPROVED to "Kampanya oluşturmadan önce mekânın onaylı olmalı."
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =

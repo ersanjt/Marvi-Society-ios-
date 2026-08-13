@@ -62,7 +62,7 @@ import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
-private enum class AdminSection { QUEUE, BOOKINGS, VENUES, USERS }
+private enum class AdminSection { QUEUE, BOOKINGS, VENUES, USERS, CAMPAIGNS }
 
 @Composable
 fun AdminDashboardScreen(viewModel: AppViewModel) {
@@ -107,6 +107,13 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                         selected = section == AdminSection.USERS,
                         label = "${viewModel.t(MarviL10n.Key.ADMIN_TAB_USERS)} (${viewModel.adminUsers.size})",
                         onClick = { section = AdminSection.USERS }
+                    )
+                }
+                item {
+                    AdminTabChip(
+                        selected = section == AdminSection.CAMPAIGNS,
+                        label = "${viewModel.t(MarviL10n.Key.ADMIN_TAB_CAMPAIGNS)} (${viewModel.campaigns.count { !it.isDeleted }})",
+                        onClick = { section = AdminSection.CAMPAIGNS }
                     )
                 }
             }
@@ -420,6 +427,50 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                             }
                         }
                     }
+                    AdminSection.CAMPAIGNS -> {
+                        item {
+                            AdminSectionHeader(
+                                title = viewModel.t(MarviL10n.Key.ADMIN_TAB_CAMPAIGNS),
+                                count = viewModel.campaigns.count { !it.isDeleted }
+                            )
+                        }
+                        val adminCampaigns = viewModel.campaigns.filterNot { it.isDeleted }
+                        if (adminCampaigns.isEmpty()) {
+                            item {
+                                Text(
+                                    viewModel.t(MarviL10n.Key.NO_ACTIVE_CAMPAIGNS),
+                                    color = MarviColor.Muted,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        items(adminCampaigns, key = { it.id }) { campaign ->
+                            MarviCard {
+                                Text(campaign.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                                Text(
+                                    "${campaign.venueName} · ${campaign.status} · ${campaign.dateLabel}",
+                                    color = MarviColor.Muted,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (campaign.status.equals("live", ignoreCase = true)) {
+                                        TextButton(onClick = {
+                                            viewModel.adminSetOfferStatus(campaign.id, "draft")
+                                        }) {
+                                            Text(viewModel.t(MarviL10n.Key.UNPUBLISH_CAMPAIGN), color = MarviColor.Tomato)
+                                        }
+                                    } else {
+                                        TextButton(onClick = {
+                                            viewModel.adminSetOfferStatus(campaign.id, "live")
+                                        }) {
+                                            Text(viewModel.t(MarviL10n.Key.PUBLISH_CAMPAIGN), color = MarviColor.Emerald)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -727,6 +778,10 @@ fun VenueStudioScreen(
     var title by remember { mutableStateOf("") }
     var valueLabel by remember { mutableStateOf("") }
     var dateLabel by remember { mutableStateOf("") }
+    val focusedVenue = viewModel.myVenues.firstOrNull { it.isActive } ?: viewModel.myVenues.firstOrNull()
+    val canCreateCampaign = focusedVenue?.status == MembershipStatus.APPROVED
+    val pendingConfirmations = viewModel.pendingVenueConfirmations
+    val hasLiveCampaign = viewModel.liveCampaignId != null
     var timeLabel by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var deliverables by remember { mutableStateOf("") }
@@ -807,7 +862,7 @@ fun VenueStudioScreen(
                 }
             }
             item {
-                val focused = viewModel.myVenues.firstOrNull { it.isActive } ?: viewModel.myVenues.firstOrNull()
+                val focused = focusedVenue
                 when (focused?.status) {
                     MembershipStatus.UNDER_REVIEW -> MarviCard {
                         Text(viewModel.t(MarviL10n.Key.VENUE_PENDING_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
@@ -855,11 +910,27 @@ fun VenueStudioScreen(
                 ) {
                     Text(viewModel.t(MarviL10n.Key.CAMPAIGNS), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
                     Button(
-                        onClick = { showCreate = !showCreate },
+                        onClick = {
+                            if (!canCreateCampaign) {
+                                formError = viewModel.t(MarviL10n.Key.VENUE_MUST_BE_APPROVED)
+                                return@Button
+                            }
+                            formError = null
+                            showCreate = !showCreate
+                        },
+                        enabled = canCreateCampaign || showCreate,
                         colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
                     ) {
                         Text(if (showCreate) viewModel.t(MarviL10n.Key.CLOSE) else viewModel.t(MarviL10n.Key.NEW_CAMPAIGN))
                     }
+                }
+                if (!canCreateCampaign && !showCreate) {
+                    Text(
+                        viewModel.t(MarviL10n.Key.VENUE_MUST_BE_APPROVED),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
             if (showCreate) {
@@ -1056,6 +1127,7 @@ fun VenueStudioScreen(
                         )
                         Text(
                             if (showPastCampaigns) viewModel.t(MarviL10n.Key.NO_PAST_CAMPAIGNS_SUB)
+                            else if (canCreateCampaign) viewModel.t(MarviL10n.Key.NO_ACTIVE_CAMPAIGNS_APPROVED_SUB)
                             else viewModel.t(MarviL10n.Key.NO_ACTIVE_CAMPAIGNS_SUB),
                             color = MarviColor.Muted,
                             style = MaterialTheme.typography.bodySmall
@@ -1127,6 +1199,40 @@ fun VenueStudioScreen(
                 }
             }
 
+            if (pendingConfirmations.isNotEmpty()) {
+                item {
+                    Text(
+                        viewModel.t(MarviL10n.Key.PENDING_VENUE_CONFIRM),
+                        fontWeight = FontWeight.SemiBold,
+                        color = MarviColor.Ink,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    Text(
+                        viewModel.t(MarviL10n.Key.PENDING_VENUE_CONFIRM_SUB),
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                items(pendingConfirmations, key = { "confirm-${it.id}" }) { booking ->
+                    MarviCard {
+                        Text(booking.offer.title, fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        Text(
+                            booking.offer.venue.ifBlank { booking.offer.area },
+                            color = MarviColor.Muted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.venueConfirmBooking(booking.id) },
+                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(viewModel.t(MarviL10n.Key.CONFIRM_COLLABORATION))
+                        }
+                    }
+                }
+            }
+
             item {
                 Text(
                     viewModel.t(MarviL10n.Key.MATCH_CREATORS_TITLE),
@@ -1135,7 +1241,14 @@ fun VenueStudioScreen(
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
-            if (viewModel.swipeCandidates.isEmpty()) {
+            if (!hasLiveCampaign) {
+                item {
+                    MarviCard {
+                        Text(viewModel.t(MarviL10n.Key.SWIPE_NEEDS_LIVE_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
+                        Text(viewModel.t(MarviL10n.Key.SWIPE_NEEDS_LIVE_SUB), color = MarviColor.Muted)
+                    }
+                }
+            } else if (viewModel.swipeCandidates.isEmpty()) {
                 item {
                     Text(viewModel.t(MarviL10n.Key.NO_CANDIDATES), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
                 }

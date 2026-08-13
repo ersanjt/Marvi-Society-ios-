@@ -1680,8 +1680,8 @@ struct AdminCampaignsTab: View {
                 SectionTitle(
                     title: isTurkish ? "Kampanya yönetimi" : "Campaign management",
                     subtitle: isTurkish
-                        ? "Onayla ve yayınla, yayından kaldır / engelle, tamamla veya sil. Aktivite sekmesinde izlenir."
-                        : "Approve & publish, unpublish/block, complete, or delete. Tracked in Activity."
+                        ? "Canlı ilanları yayından kaldır / engelle, yeniden yayınla, tamamla veya sil. Aktivite’de izlenir."
+                        : "Unpublish/block live ads, re-publish, complete, or delete. Tracked in Activity."
                 )
 
                 metricsRow

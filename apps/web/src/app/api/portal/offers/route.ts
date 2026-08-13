@@ -134,6 +134,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     offerId: offerID,
-    message: "Campaign submitted. Admin will review before it goes live.",
+    message: "Campaign published. Creators can see it on Explore now.",
   });
 }
