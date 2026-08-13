@@ -331,8 +331,13 @@ data class AdminUserSummary(
     val status: MembershipStatus?,
     val createdLabel: String,
     val avatarUrl: String = "",
-    val coverUrl: String = ""
-)
+    val coverUrl: String = "",
+    val lastLat: Double? = null,
+    val lastLng: Double? = null
+) {
+    val hasLiveLocation: Boolean get() = lastLat != null && lastLng != null
+    val displayName: String get() = fullName.ifBlank { email.substringBefore("@").ifBlank { "Member" } }
+}
 
 data class AdminInviteCodeItem(
     val code: String,
@@ -636,4 +641,42 @@ data class SocialVerificationStatus(
             val tt = tiktokHandle.removePrefix("@")
             return "$codePart · Instagram @$ig · TikTok @$tt"
         }
+}
+
+data class ActivityEventItem(
+    val id: String,
+    val action: String,
+    val subjectType: String,
+    val subjectId: String?,
+    val createdAtMillis: Long,
+    val createdLabel: String,
+    val actorLabel: String,
+    val actorKind: String,
+    val metadata: Map<String, String>
+) {
+    enum class Category { ALL, BOOKINGS, CAMPAIGNS, ADMIN, MESSAGES, SOCIAL, OTHER }
+
+    val category: Category
+        get() {
+            val actionKey = action.lowercase()
+            val subject = subjectType.lowercase()
+            if (actionKey.startsWith("admin_") || (subject == "user" && actionKey.contains("admin"))) {
+                return Category.ADMIN
+            }
+            if (subject == "offer" || actionKey.contains("campaign")) return Category.CAMPAIGNS
+            if (subject == "booking" || actionKey.contains("booking") ||
+                actionKey.contains("offer_requested") || actionKey.contains("offer_accepted")
+            ) {
+                return Category.BOOKINGS
+            }
+            if (subject == "conversation" || actionKey.contains("message")) return Category.MESSAGES
+            if (subject == "creator" || subject == "collaboration_request" ||
+                actionKey.contains("shortlist") || actionKey.contains("collaboration")
+            ) {
+                return Category.SOCIAL
+            }
+            return Category.OTHER
+        }
+
+    fun meta(key: String): String? = metadata[key]?.trim()?.takeIf { it.isNotEmpty() }
 }

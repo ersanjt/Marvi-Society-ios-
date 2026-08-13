@@ -570,8 +570,10 @@ final class AppState: ObservableObject {
             noteFailure("bookings", error: error)
         }
 
-        if let loadedInbox = try? await api.fetchNotifications() {
-            inboxMessages = loadedInbox.filter { !$0.isRead }
+        do {
+            inboxMessages = try await api.fetchNotifications().filter { !$0.isRead }
+        } catch {
+            noteFailure("inbox", error: error)
         }
 
         do {

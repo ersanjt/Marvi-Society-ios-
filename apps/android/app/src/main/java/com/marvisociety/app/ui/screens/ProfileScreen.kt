@@ -26,6 +26,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -137,7 +139,12 @@ fun ProfileScreen(viewModel: AppViewModel) {
                                     .background(MarviColor.Panel.copy(alpha = 0.85f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("📷", fontSize = 12.sp)
+                                Icon(
+                                    Icons.Outlined.PhotoCamera,
+                                    contentDescription = viewModel.t(MarviL10n.Key.CHANGE_COVER),
+                                    tint = MarviColor.Ink,
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                         }
                         Box(

@@ -236,6 +236,7 @@ enum MarviL10n {
         case estWizardLocationType, estWizardPhysical, estWizardOnline
         case estWizardCountryPh, estWizardCityPh, estWizardAreaPh
         case estWizardAddress1Ph, estWizardAddress2Ph, estWizardPostalPh, estWizardLatPh, estWizardLngPh
+        case estWizardMapHint, estWizardUseMyLocation
         case estWizardConfirmAddress, estWizardLogoLabel, estWizardAddLogo
         case estWizardGalleryLabel, estWizardAddGallery, estWizardGalleryCount, estWizardPhotosHint
         // AppState errors
@@ -808,6 +809,8 @@ enum MarviL10n {
         .estWizardPostalPh: "Postal code",
         .estWizardLatPh: "Latitude",
         .estWizardLngPh: "Longitude",
+        .estWizardMapHint: "Tap the map to place your pin. Campaigns inherit this location for Discover.",
+        .estWizardUseMyLocation: "Use my location",
         .estWizardConfirmAddress: "Confirm address",
         .estWizardLogoLabel: "Logo",
         .estWizardAddLogo: "Add logo",
@@ -1398,6 +1401,8 @@ enum MarviL10n {
         .estWizardPostalPh: "Posta kodu",
         .estWizardLatPh: "Enlem",
         .estWizardLngPh: "Boylam",
+        .estWizardMapHint: "Pin koymak için haritaya dokun. Kampanyalar Keşfet haritasında bu konumu kullanır.",
+        .estWizardUseMyLocation: "Konumumu kullan",
         .estWizardConfirmAddress: "Adresi onayla",
         .estWizardLogoLabel: "Logo",
         .estWizardAddLogo: "Logo ekle",
@@ -1465,7 +1470,16 @@ extension MarviL10n {
         "Proof submitted": "Kanıt gönderildi",
         "Your proof was submitted for review.": "Kanıtın incelemeye gönderildi.",
         "Social verified": "Sosyal hesap doğrulandı",
-        "Your social account was verified.": "Sosyal hesabın doğrulandı."
+        "Your social account was verified.": "Sosyal hesabın doğrulandı.",
+        "Venue approved": "Mekânın onaylandı",
+        "Your venue was approved. You can create campaigns now.": "Mekânın onaylandı. Artık kampanya oluşturabilirsin.",
+        "Your venue was approved. Create a campaign — creators see it on Explore and can apply, or invite them directly.": "Mekânın onaylandı. Kampanya oluştur; creator’lar Keşfet’te görür ve başvurur — sen de doğrudan davet edebilirsin.",
+        "Campaign is live": "Kampanya yayında",
+        "Your campaign is live on Explore.": "Kampanyan Keşfet’te yayında.",
+        "Your campaign is now live. Creators can find it on Explore.": "Kampanyan yayında. Creator’lar Keşfet’te bulabilir.",
+        "Campaign unpublished": "Kampanya yayından alındı",
+        "Needs changes": "Değişiklik gerekli",
+        "Admin asked for changes on your venue.": "Admin mekânın için değişiklik istedi."
     ]
 
     static func localizeServerText(_ text: String, language: AppLanguage) -> String {

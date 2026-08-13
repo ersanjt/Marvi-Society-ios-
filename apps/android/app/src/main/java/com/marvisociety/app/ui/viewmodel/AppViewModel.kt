@@ -74,6 +74,12 @@ class AppViewModel(
         private set
     var adminInviteCodes by mutableStateOf<List<AdminInviteCodeItem>>(emptyList())
         private set
+    var adminActivity by mutableStateOf<List<ActivityEventItem>>(emptyList())
+        private set
+    var isLoadingAdminActivity by mutableStateOf(false)
+        private set
+    var adminActivityError by mutableStateOf<String?>(null)
+        private set
     var myVenues by mutableStateOf<List<VenueSummary>>(emptyList())
         private set
     var myBrands by mutableStateOf<List<BrandSummary>>(emptyList())
@@ -247,6 +253,17 @@ class AppViewModel(
 
     fun t(key: MarviL10n.Key): String = MarviL10n.t(key, preferredLanguage)
 
+    fun tf(key: MarviL10n.Key, vararg args: Any): String = MarviL10n.format(key, preferredLanguage, *args)
+
+    val bannerSyncError: String?
+        get() {
+            val message = lastSyncError?.trim().orEmpty()
+            if (message.isEmpty()) return null
+            val lower = message.lowercase()
+            if ("marviapierror" in lower || "error 4" in lower) return null
+            return message
+        }
+
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory): String =
         MarviL10n.categoryLabel(category, preferredLanguage)
 
@@ -400,6 +417,9 @@ class AppViewModel(
                             campaigns = runCatching {
                                 repository.fetchCampaigns()
                             }.getOrDefault(campaigns)
+                            adminActivity = runCatching {
+                                repository.fetchAdminActivity()
+                            }.getOrDefault(adminActivity)
                         }
                         UserRole.CREATOR -> {
                             pendingCollaborationRequests = runCatching {
@@ -1472,12 +1492,11 @@ class AppViewModel(
                 if (selectedRole == UserRole.ADMIN) setWorkspaceTab(1) else setWorkspaceTab(1)
             }
             type == "membership" || type == "social" -> {
-                val profileIndex = when (selectedRole) {
-                    UserRole.CREATOR -> 4
-                    UserRole.VENUE -> 3
-                    UserRole.ADMIN -> 2
+                when (selectedRole) {
+                    UserRole.VENUE -> setWorkspaceTab(0) // studio
+                    UserRole.CREATOR -> setWorkspaceTab(4) // profile
+                    UserRole.ADMIN -> setWorkspaceTab(2) // profile
                 }
-                setWorkspaceTab(profileIndex)
             }
             type == "collaboration" || type == "shortlist" || type == "booking" || type == "proof" -> {
                 when (selectedRole) {
@@ -1487,7 +1506,11 @@ class AppViewModel(
                 }
             }
             type == "admin" || type == "campaign" || type == "ops" -> {
-                if (selectedRole == UserRole.ADMIN) setWorkspaceTab(0)
+                when (selectedRole) {
+                    UserRole.ADMIN -> setWorkspaceTab(0)
+                    UserRole.VENUE -> setWorkspaceTab(0) // studio
+                    UserRole.CREATOR -> { /* stay / inbox */ }
+                }
             }
         }
     }
@@ -1521,6 +1544,42 @@ class AppViewModel(
             }.onFailure { error ->
                 lastSyncError = error.message
                 onResult(false)
+            }
+        }
+    }
+
+    fun loadAdminActivity() {
+        viewModelScope.launch {
+            isLoadingAdminActivity = true
+            adminActivityError = null
+            runCatching {
+                adminActivity = repository.fetchAdminActivity()
+            }.onFailure { error ->
+                adminActivityError = error.message ?: t(MarviL10n.Key.SYNC_ERROR)
+            }
+            isLoadingAdminActivity = false
+        }
+    }
+
+    fun adminBroadcastInRadius(
+        lat: Double,
+        lng: Double,
+        radiusKm: Double,
+        title: String,
+        body: String,
+        onResult: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            if (accountRole != UserRole.ADMIN && !allowedRoles.contains(UserRole.ADMIN)) {
+                onResult(t(MarviL10n.Key.ERR_ADMIN_REQUIRED))
+                return@launch
+            }
+            runCatching {
+                val count = repository.adminNotifyUsersInRadius(lat, lng, radiusKm, title, body)
+                if (count == 0) t(MarviL10n.Key.ERR_NO_USERS_IN_AREA)
+                else tf(MarviL10n.Key.ERR_SENT_TO_USERS, count, radiusKm.toInt())
+            }.onSuccess(onResult).onFailure { error ->
+                onResult(error.message ?: t(MarviL10n.Key.SYNC_ERROR))
             }
         }
     }

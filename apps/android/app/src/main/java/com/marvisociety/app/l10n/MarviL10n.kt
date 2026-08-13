@@ -112,6 +112,7 @@ object MarviL10n {
         EST_IG_REQUIRED, EST_DESC_REQUIRED, EST_CATEGORY_REQUIRED, EST_CONTACT_REQUIRED,
         EST_PHYSICAL, EST_ONLINE, EST_COUNTRY, EST_CITY, EST_LOCATION_LABEL,
         EST_ADDRESS_LINE1, EST_ADDRESS_LINE2, EST_POSTAL_CODE, EST_LATITUDE, EST_LONGITUDE,
+        EST_MAP_HINT, EST_USE_MY_LOCATION,
         EST_CITY_COUNTRY_REQUIRED, EST_ADDRESS_REQUIRED, EST_MAP_REQUIRED,
         EST_PHOTOS_SUB, EST_ADD_LOGO, EST_LOGO_ADDED, EST_ADD_GALLERY,
         EST_LOGO_REQUIRED, EST_PHOTOS_MIN, MY_ESTABLISHMENTS,
@@ -136,12 +137,24 @@ object MarviL10n {
         STUDIO_UNDER_REVIEW, STUDIO_UPCOMING, STUDIO_OPEN_SWIPE, STUDIO_HAPPENING, STUDIO_PAST, STUDIO_CREATE,
         TAB_ESTABLISHMENTS, TAB_BRANDS, CATEGORY_LABEL,
         ADMIN_TAB_MAP, ADMIN_TAB_BROADCAST, ADMIN_TAB_ACTIVITY,
-        ADMIN_ACTIVITY_EMPTY, ADMIN_ACTIVITY_EMPTY_SUB
+        ADMIN_ACTIVITY_EMPTY, ADMIN_ACTIVITY_EMPTY_SUB,
+        LIVE_MAP, LIVE_MAP_LEGEND, LIVE_MAP_STATS,
+        GEO_BROADCAST, GEO_BROADCAST_SUB, RADIUS_LABEL, ENABLE_LOCATION_BROADCAST,
+        NOTIFICATION_TITLE_PH, NOTIFICATION_BODY_PH, SEND_TO_AREA, LOCATION_UNAVAILABLE,
+        ERR_ADMIN_REQUIRED, ERR_NO_USERS_IN_AREA, ERR_SENT_TO_USERS, BROADCAST_CENTER_DEFAULT,
+        ADMIN_ACTIVITY_SUB, ADMIN_ACTIVITY_SEARCH, ADMIN_ACTIVITY_NO_RESULTS,
+        ACTIVITY_FILTER_ALL, ACTIVITY_FILTER_BOOKINGS, ACTIVITY_FILTER_CAMPAIGNS,
+        ACTIVITY_FILTER_ADMIN, ACTIVITY_FILTER_MESSAGES, ACTIVITY_FILTER_SOCIAL
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
         AppLanguage.TURKISH -> turkish[key] ?: english[key] ?: key.name
         AppLanguage.ENGLISH -> english[key] ?: key.name
+    }
+
+    fun format(key: Key, language: AppLanguage, vararg args: Any): String {
+        val template = t(key, language)
+        return runCatching { String.format(java.util.Locale.US, template, *args) }.getOrDefault(template)
     }
 
     private val english = mapOf(
@@ -564,9 +577,11 @@ object MarviL10n {
         Key.EST_POSTAL_CODE to "Postal code",
         Key.EST_LATITUDE to "Latitude",
         Key.EST_LONGITUDE to "Longitude",
+        Key.EST_MAP_HINT to "Tap the map to place your pin. Campaigns inherit this location for Discover.",
+        Key.EST_USE_MY_LOCATION to "Use my location",
         Key.EST_CITY_COUNTRY_REQUIRED to "Country and city are required.",
         Key.EST_ADDRESS_REQUIRED to "Street address is required for physical venues.",
-        Key.EST_MAP_REQUIRED to "Enter latitude and longitude to locate the venue.",
+        Key.EST_MAP_REQUIRED to "Tap the map to locate the venue.",
         Key.EST_PHOTOS_SUB to "Upload a logo and at least 3 gallery photos.",
         Key.EST_ADD_LOGO to "Add logo",
         Key.EST_LOGO_ADDED to "Logo selected",
@@ -660,7 +675,31 @@ object MarviL10n {
         Key.ADMIN_TAB_BROADCAST to "Broadcast",
         Key.ADMIN_TAB_ACTIVITY to "Activity",
         Key.ADMIN_ACTIVITY_EMPTY to "No activity yet",
-        Key.ADMIN_ACTIVITY_EMPTY_SUB to "Actions will appear here as users interact with the platform."
+        Key.ADMIN_ACTIVITY_EMPTY_SUB to "Actions will appear here as users interact with the platform.",
+        Key.LIVE_MAP to "Live map",
+        Key.LIVE_MAP_LEGEND to "Rose = creators with shared location. Gold = venues/offers.",
+        Key.LIVE_MAP_STATS to "%d creators · %d live offers",
+        Key.GEO_BROADCAST to "Geo broadcast",
+        Key.GEO_BROADCAST_SUB to "Send an in-app notification to approved users whose last shared location is within the radius.",
+        Key.RADIUS_LABEL to "Radius",
+        Key.ENABLE_LOCATION_BROADCAST to "Enable location on this device to use your position as the broadcast center.",
+        Key.NOTIFICATION_TITLE_PH to "Notification title",
+        Key.NOTIFICATION_BODY_PH to "Notification body",
+        Key.SEND_TO_AREA to "Send to area",
+        Key.LOCATION_UNAVAILABLE to "Location unavailable.",
+        Key.ERR_ADMIN_REQUIRED to "Admin access required.",
+        Key.ERR_NO_USERS_IN_AREA to "No users in this area.",
+        Key.ERR_SENT_TO_USERS to "Sent to %d user(s) within %d km.",
+        Key.BROADCAST_CENTER_DEFAULT to "Center: Istanbul (default map location)",
+        Key.ADMIN_ACTIVITY_SUB to "Live ops ledger — bookings, campaigns, admin actions, and messages.",
+        Key.ADMIN_ACTIVITY_SEARCH to "Search member, action, reason",
+        Key.ADMIN_ACTIVITY_NO_RESULTS to "No results for this search.",
+        Key.ACTIVITY_FILTER_ALL to "All",
+        Key.ACTIVITY_FILTER_BOOKINGS to "Bookings",
+        Key.ACTIVITY_FILTER_CAMPAIGNS to "Campaigns",
+        Key.ACTIVITY_FILTER_ADMIN to "Admin",
+        Key.ACTIVITY_FILTER_MESSAGES to "Messages",
+        Key.ACTIVITY_FILTER_SOCIAL to "Social"
     )
 
     private val turkish = mapOf(
@@ -1083,9 +1122,11 @@ object MarviL10n {
         Key.EST_POSTAL_CODE to "Posta kodu",
         Key.EST_LATITUDE to "Enlem",
         Key.EST_LONGITUDE to "Boylam",
+        Key.EST_MAP_HINT to "Pin koymak için haritaya dokun. Kampanyalar Keşfet haritasında bu konumu kullanır.",
+        Key.EST_USE_MY_LOCATION to "Konumumu kullan",
         Key.EST_CITY_COUNTRY_REQUIRED to "Ülke ve şehir zorunludur.",
         Key.EST_ADDRESS_REQUIRED to "Fiziksel mekânlar için sokak adresi zorunludur.",
-        Key.EST_MAP_REQUIRED to "Mekânı konumlandırmak için enlem ve boylam girin.",
+        Key.EST_MAP_REQUIRED to "Mekânı konumlandırmak için haritaya dokunun.",
         Key.EST_PHOTOS_SUB to "Bir logo ve en az 3 galeri fotoğrafı yükleyin.",
         Key.EST_ADD_LOGO to "Logo ekle",
         Key.EST_LOGO_ADDED to "Logo seçildi",
@@ -1179,7 +1220,31 @@ object MarviL10n {
         Key.ADMIN_TAB_BROADCAST to "Yayın",
         Key.ADMIN_TAB_ACTIVITY to "Aktivite",
         Key.ADMIN_ACTIVITY_EMPTY to "Henüz aktivite yok",
-        Key.ADMIN_ACTIVITY_EMPTY_SUB to "Kullanıcılar platformla etkileşime geçtikçe işlemler burada görünür."
+        Key.ADMIN_ACTIVITY_EMPTY_SUB to "Kullanıcılar platformla etkileşime geçtikçe işlemler burada görünür.",
+        Key.LIVE_MAP to "Canlı harita",
+        Key.LIVE_MAP_LEGEND to "Pembe = konum paylaşan creatorlar. Altın = mekânlar/teklifler.",
+        Key.LIVE_MAP_STATS to "%d creator · %d canlı teklif",
+        Key.GEO_BROADCAST to "Konum yayını",
+        Key.GEO_BROADCAST_SUB to "Son konum paylaşımı yarıçap içinde olan onaylı kullanıcılara uygulama içi bildirim gönder.",
+        Key.RADIUS_LABEL to "Yarıçap",
+        Key.ENABLE_LOCATION_BROADCAST to "Yayın merkezini cihaz konumun olarak kullanmak için konumu aç.",
+        Key.NOTIFICATION_TITLE_PH to "Bildirim başlığı",
+        Key.NOTIFICATION_BODY_PH to "Bildirim metni",
+        Key.SEND_TO_AREA to "Bölgeye gönder",
+        Key.LOCATION_UNAVAILABLE to "Konum kullanılamıyor.",
+        Key.ERR_ADMIN_REQUIRED to "Admin yetkisi gerekli.",
+        Key.ERR_NO_USERS_IN_AREA to "Bu bölgede kullanıcı yok.",
+        Key.ERR_SENT_TO_USERS to "%d kullanıcıya %d km içinde gönderildi.",
+        Key.BROADCAST_CENTER_DEFAULT to "Merkez: İstanbul (varsayılan harita konumu)",
+        Key.ADMIN_ACTIVITY_SUB to "Canlı operasyon kaydı — rezervasyon, kampanya, admin ve mesajlar.",
+        Key.ADMIN_ACTIVITY_SEARCH to "Ara (üye, aksiyon, sebep)",
+        Key.ADMIN_ACTIVITY_NO_RESULTS to "Bu aramada sonuç yok.",
+        Key.ACTIVITY_FILTER_ALL to "Tümü",
+        Key.ACTIVITY_FILTER_BOOKINGS to "Rezervasyon",
+        Key.ACTIVITY_FILTER_CAMPAIGNS to "Kampanya",
+        Key.ACTIVITY_FILTER_ADMIN to "Admin",
+        Key.ACTIVITY_FILTER_MESSAGES to "Mesaj",
+        Key.ACTIVITY_FILTER_SOCIAL to "Sosyal"
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =
@@ -1276,7 +1341,16 @@ object MarviL10n {
         "Proof submitted" to "Kanıt gönderildi",
         "Your proof was submitted for review." to "Kanıtın incelemeye gönderildi.",
         "Social verified" to "Sosyal hesap doğrulandı",
-        "Your social account was verified." to "Sosyal hesabın doğrulandı."
+        "Your social account was verified." to "Sosyal hesabın doğrulandı.",
+        "Venue approved" to "Mekânın onaylandı",
+        "Your venue was approved. You can create campaigns now." to "Mekânın onaylandı. Artık kampanya oluşturabilirsin.",
+        "Your venue was approved. Create a campaign — creators see it on Explore and can apply, or invite them directly." to "Mekânın onaylandı. Kampanya oluştur; creator’lar Keşfet’te görür ve başvurur — sen de doğrudan davet edebilirsin.",
+        "Campaign is live" to "Kampanya yayında",
+        "Your campaign is live on Explore." to "Kampanyan Keşfet’te yayında.",
+        "Your campaign is now live. Creators can find it on Explore." to "Kampanyan yayında. Creator’lar Keşfet’te bulabilir.",
+        "Campaign unpublished" to "Kampanya yayından alındı",
+        "Needs changes" to "Değişiklik gerekli",
+        "Admin asked for changes on your venue." to "Admin mekânın için değişiklik istedi."
     )
 
     fun localizeServerText(text: String, language: AppLanguage): String =

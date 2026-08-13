@@ -630,6 +630,41 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         }
     }
 
+    suspend fun fetchAdminActivity(limit: Int = 150): List<ActivityEventItem> {
+        val rows = client.rpcJson(
+            "admin_list_activity",
+            buildJsonObject { put("p_limit", limit) }
+        ).asArrayOrEmpty()
+        return rows.mapNotNull { parseActivityEvent(it) }
+    }
+
+    suspend fun adminNotifyUsersInRadius(
+        lat: Double,
+        lng: Double,
+        radiusKm: Double,
+        title: String,
+        body: String
+    ): Int {
+        val result = client.rpcJson(
+            "admin_notify_users_in_radius",
+            buildJsonObject {
+                put("p_lat", lat)
+                put("p_lng", lng)
+                put("p_radius_km", radiusKm)
+                put("p_title", title)
+                put("p_body", body)
+            }
+        )
+        return when (result) {
+            is kotlinx.serialization.json.JsonPrimitive -> result.content.toIntOrNull() ?: 0
+            is JsonArray -> result.firstOrNull()?.asObjectOrNull()?.int("count")
+                ?: result.firstOrNull().let { el ->
+                    (el as? kotlinx.serialization.json.JsonPrimitive)?.content?.toIntOrNull()
+                } ?: 0
+            else -> result.asObjectOrNull()?.int("count") ?: 0
+        }
+    }
+
     suspend fun adminCreateInviteCode(code: String?, ownerType: String, maxUses: Int, inviteEmail: String?) {
         client.rpcVoid(
             "admin_create_invite_code",
@@ -1342,6 +1377,34 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         )
     }
 
+    private fun parseActivityEvent(el: JsonElement): ActivityEventItem? {
+        val obj = el.asObjectOrNull() ?: return null
+        val id = obj.string("id") ?: return null
+        val createdRaw = obj.string("created_at")
+        val metaEl = obj["metadata"]
+        val metadata = buildMap {
+            val metaObj = metaEl.asObjectOrNull()
+            if (metaObj != null) {
+                metaObj.keys.forEach { key ->
+                    put(key, metaObj.string(key) ?: metaObj[key]?.toString()?.trim('"').orEmpty())
+                }
+            }
+        }
+        val actorId = obj.string("actor_user_id")
+        val actorName = obj.string("actor_name")?.trim().orEmpty()
+        return ActivityEventItem(
+            id = id,
+            action = obj.string("action") ?: "",
+            subjectType = obj.string("subject_type") ?: "",
+            subjectId = obj.string("subject_id"),
+            createdAtMillis = parseMillis(createdRaw),
+            createdLabel = formatRelative(createdRaw),
+            actorLabel = actorName.ifBlank { actorId?.take(8)?.uppercase() ?: "system" },
+            actorKind = obj.string("actor_kind") ?: "member",
+            metadata = metadata
+        )
+    }
+
     private fun parseAdminUser(el: JsonElement): AdminUserSummary? {
         val obj = el.asObjectOrNull() ?: return null
         return AdminUserSummary(
@@ -1353,7 +1416,9 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             status = membershipFromApi(obj.string("status") ?: obj.string("membership_status")),
             createdLabel = formatRelative(obj.string("last_seen_at") ?: obj.string("created_at")),
             avatarUrl = obj.string("avatar_url") ?: "",
-            coverUrl = obj.string("cover_url") ?: ""
+            coverUrl = obj.string("cover_url") ?: "",
+            lastLat = obj.double("last_lat"),
+            lastLng = obj.double("last_lng")
         )
     }
 
@@ -1456,6 +1521,17 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         "paused" -> MembershipStatus.PAUSED
         "under review", "under_review" -> MembershipStatus.UNDER_REVIEW
         else -> null
+    }
+
+    private fun parseMillis(raw: String?): Long {
+        if (raw.isNullOrBlank()) return System.currentTimeMillis()
+        val formats = listOf(
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        )
+        return formats.firstNotNullOfOrNull { fmt ->
+            runCatching { fmt.parse(raw)?.time }.getOrNull()
+        } ?: System.currentTimeMillis()
     }
 
     private fun formatRelative(raw: String?): String {

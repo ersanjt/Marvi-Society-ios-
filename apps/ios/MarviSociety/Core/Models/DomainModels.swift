@@ -1128,8 +1128,23 @@ struct InboxMessage: Codable, Identifiable {
     }
 
     func deepLink(for role: UserRole) -> MarviDeepLink? {
-        if let conversationID {
-            _ = conversationID
+        let type = notificationType.lowercased()
+
+        // Venue approval / membership updates belong in Studio, not Profile.
+        if type == "membership" || type == "social" {
+            return role == .venue ? .venueStudio : .profile
+        }
+
+        // Creator invites / applications are handled in My Events.
+        if type == "collaboration" || type == "shortlist" {
+            switch role {
+            case .venue: return .venueStudio
+            case .admin: return .admin
+            case .creator: return .bookings
+            }
+        }
+
+        if conversationID != nil {
             return .community
         }
         if let bookingID {
@@ -1146,14 +1161,16 @@ struct InboxMessage: Codable, Identifiable {
             case .creator: return .offer(offerID)
             }
         }
-        switch notificationType.lowercased() {
-        case "membership", "social":
-            return .profile
+        switch type {
         case "admin", "campaign", "ops":
-            return role == .admin ? .admin : .inbox
+            switch role {
+            case .admin: return .admin
+            case .venue: return .venueStudio
+            case .creator: return .inbox
+            }
         case "message":
             return .community
-        case "collaboration", "shortlist", "booking", "proof":
+        case "booking", "proof":
             switch role {
             case .venue: return .venueStudio
             case .admin: return .admin

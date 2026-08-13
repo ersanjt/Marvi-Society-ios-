@@ -249,14 +249,21 @@ struct VenueStudioView: View {
                                         ) {
                                             editingVenueID = venueID
                                         }
-                                    } else if focusedVenue?.status == .approved,
-                                              campaignsForFocusedVenue.filter({ $0.status == .live }).isEmpty,
-                                              canCreateCampaignNow {
-                                        PrimaryActionButton(
-                                            title: appState.t(.newCampaign),
-                                            systemImage: "plus.circle.fill"
+                                    } else if focusedVenue?.status == .approved, let venueID = focusedVenue?.id {
+                                        if campaignsForFocusedVenue.filter({ $0.status == .live }).isEmpty,
+                                           canCreateCampaignNow {
+                                            PrimaryActionButton(
+                                                title: appState.t(.newCampaign),
+                                                systemImage: "plus.circle.fill"
+                                            ) {
+                                                openCampaignBuilder()
+                                            }
+                                        }
+                                        SecondaryActionButton(
+                                            title: appState.t(.estWizardEditTitle),
+                                            systemImage: "mappin.and.ellipse"
                                         ) {
-                                            openCampaignBuilder()
+                                            editingVenueID = venueID
                                         }
                                     }
                                 }

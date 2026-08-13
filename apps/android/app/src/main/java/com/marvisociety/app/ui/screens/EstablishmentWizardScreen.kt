@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +34,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -43,8 +45,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.marvisociety.app.data.BrandSummary
 import com.marvisociety.app.data.BusinessCategoryCatalog
@@ -55,6 +59,14 @@ import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
+import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.MapEventsOverlay
+import org.osmdroid.views.overlay.Marker
+import java.io.File
 
 private enum class WizardStep { BRAND, HUB, DETAILS, ADDRESS, PHOTOS }
 
@@ -99,8 +111,8 @@ fun EstablishmentWizardScreen(
     var addressLine1 by remember { mutableStateOf("") }
     var addressLine2 by remember { mutableStateOf("") }
     var postalCode by remember { mutableStateOf("") }
-    var latText by remember { mutableStateOf("41.0082") }
-    var lngText by remember { mutableStateOf("28.9784") }
+    var latText by remember { mutableStateOf("") }
+    var lngText by remember { mutableStateOf("") }
 
     var logoUri by remember { mutableStateOf<Uri?>(null) }
     val galleryUris = remember { mutableStateListOf<Uri>() }
@@ -769,8 +781,29 @@ private fun AddressStep(
             WizardField(addressLine1, onAddressLine1, viewModel.t(MarviL10n.Key.EST_ADDRESS_LINE1))
             WizardField(addressLine2, onAddressLine2, viewModel.t(MarviL10n.Key.EST_ADDRESS_LINE2))
             WizardField(postalCode, onPostalCode, viewModel.t(MarviL10n.Key.EST_POSTAL_CODE))
-            WizardField(latText, onLat, viewModel.t(MarviL10n.Key.EST_LATITUDE))
-            WizardField(lngText, onLng, viewModel.t(MarviL10n.Key.EST_LONGITUDE))
+            Text(
+                viewModel.t(MarviL10n.Key.EST_MAP_HINT),
+                color = MarviColor.Muted,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            VenueLocationPinMap(
+                lat = latText.toDoubleOrNull(),
+                lng = lngText.toDoubleOrNull(),
+                onPin = { pinLat, pinLng ->
+                    onLat(String.format(java.util.Locale.US, "%.6f", pinLat))
+                    onLng(String.format(java.util.Locale.US, "%.6f", pinLng))
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .clip(RoundedCornerShape(14.dp))
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                WizardField(latText, onLat, viewModel.t(MarviL10n.Key.EST_LATITUDE), Modifier.weight(1f))
+                WizardField(lngText, onLng, viewModel.t(MarviL10n.Key.EST_LONGITUDE), Modifier.weight(1f))
+            }
         }
     }
     WizardPrimaryButton(
@@ -846,12 +879,17 @@ private fun PhotosStep(
 }
 
 @Composable
-private fun WizardField(value: String, onValueChange: (String) -> Unit, label: String) {
+private fun WizardField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier.fillMaxWidth()
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         singleLine = true,
         colors = wizardFieldColors()
     )
@@ -884,6 +922,66 @@ private fun WizardPrimaryButton(title: String, enabled: Boolean, onClick: () -> 
     ) {
         Text(title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 6.dp))
     }
+}
+
+@Composable
+private fun VenueLocationPinMap(
+    lat: Double?,
+    lng: Double?,
+    onPin: (Double, Double) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val mapView = remember {
+        Configuration.getInstance().apply {
+            userAgentValue = context.packageName
+            osmdroidBasePath = File(context.cacheDir, "osmdroid")
+            osmdroidTileCache = File(context.cacheDir, "osmdroid/tiles")
+        }
+        MapView(context).apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(true)
+            controller.setZoom(13.0)
+            controller.setCenter(GeoPoint(41.0082, 28.9784))
+        }
+    }
+
+    DisposableEffect(Unit) {
+        mapView.onResume()
+        onDispose {
+            mapView.onPause()
+            mapView.onDetach()
+        }
+    }
+
+    AndroidView(
+        factory = { mapView },
+        modifier = modifier,
+        update = { map ->
+            map.overlays.removeAll { it is MapEventsOverlay || it is Marker }
+            val receiver = object : MapEventsReceiver {
+                override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                    if (p == null) return false
+                    onPin(p.latitude, p.longitude)
+                    return true
+                }
+
+                override fun longPressHelper(p: GeoPoint?): Boolean = false
+            }
+            map.overlays.add(0, MapEventsOverlay(receiver))
+            if (lat != null && lng != null) {
+                val point = GeoPoint(lat, lng)
+                map.overlays.add(
+                    Marker(map).apply {
+                        position = point
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    }
+                )
+                map.controller.setCenter(point)
+            }
+            map.invalidate()
+        }
+    )
 }
 
 private fun mapOfferCategory(label: String): OfferCategory {

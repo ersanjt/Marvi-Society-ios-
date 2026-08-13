@@ -49,6 +49,7 @@ import com.marvisociety.app.data.CollaborationModel
 import com.marvisociety.app.data.Offer
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.OfferImagery
+import com.marvisociety.app.ui.components.ChatBubble
 import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.InfoBadge
 import com.marvisociety.app.ui.components.MarviCard

@@ -1,3 +1,4 @@
+import MapKit
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -540,18 +541,48 @@ struct EstablishmentWizardView: View {
                             text: $postalCode,
                             autocapitalization: .characters
                         )
-                        MarviTextField(
-                            placeholder: appState.t(.estWizardLatPh),
-                            text: $latText,
-                            autocapitalization: .never
+
+                        Text(appState.t(.estWizardMapHint))
+                            .font(.caption)
+                            .foregroundStyle(MarviColor.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        VenueMapPinPicker(
+                            latText: $latText,
+                            lngText: $lngText,
+                            userCoordinate: appState.userCoordinate
                         )
-                        .keyboardType(.numbersAndPunctuation)
-                        MarviTextField(
-                            placeholder: appState.t(.estWizardLngPh),
-                            text: $lngText,
-                            autocapitalization: .never
-                        )
-                        .keyboardType(.numbersAndPunctuation)
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        if appState.userCoordinate != nil {
+                            Button {
+                                if let user = appState.userCoordinate {
+                                    latText = String(format: "%.6f", user.lat)
+                                    lngText = String(format: "%.6f", user.lng)
+                                }
+                            } label: {
+                                Label(appState.t(.estWizardUseMyLocation), systemImage: "location.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(MarviColor.rose)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        HStack(spacing: 10) {
+                            MarviTextField(
+                                placeholder: appState.t(.estWizardLatPh),
+                                text: $latText,
+                                autocapitalization: .never
+                            )
+                            .keyboardType(.numbersAndPunctuation)
+                            MarviTextField(
+                                placeholder: appState.t(.estWizardLngPh),
+                                text: $lngText,
+                                autocapitalization: .never
+                            )
+                            .keyboardType(.numbersAndPunctuation)
+                        }
                     }
                 }
             }
@@ -853,6 +884,76 @@ private struct FlowChips: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+}
+
+/// Tap-to-pin map for establishment address. Defaults to Istanbul only as camera
+/// center when no pin / user location exists yet — never writes coords until tapped.
+private struct VenueMapPinPicker: View {
+    @Binding var latText: String
+    @Binding var lngText: String
+    var userCoordinate: (lat: Double, lng: Double)?
+
+    @State private var cameraPosition: MapCameraPosition = .region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 41.0082, longitude: 28.9784),
+            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+        )
+    )
+
+    private var pinCoordinate: CLLocationCoordinate2D? {
+        guard let lat = Double(latText.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let lng = Double(lngText.trimmingCharacters(in: .whitespacesAndNewlines)),
+              (-90...90).contains(lat), (-180...180).contains(lng) else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lng)
+    }
+
+    var body: some View {
+        MapReader { proxy in
+            Map(position: $cameraPosition) {
+                if let pinCoordinate {
+                    Annotation("Venue", coordinate: pinCoordinate) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(MarviColor.rose)
+                            .shadow(radius: 2)
+                    }
+                }
+            }
+            .mapStyle(.standard(elevation: .flat))
+            .onTapGesture { position in
+                guard let coordinate = proxy.convert(position, from: .local) else { return }
+                latText = String(format: "%.6f", coordinate.latitude)
+                lngText = String(format: "%.6f", coordinate.longitude)
+            }
+        }
+        .onAppear {
+            recenterCamera(animated: false)
+        }
+        .onChange(of: latText) { _, _ in recenterCamera(animated: true) }
+        .onChange(of: lngText) { _, _ in recenterCamera(animated: true) }
+    }
+
+    private func recenterCamera(animated: Bool) {
+        let center: CLLocationCoordinate2D
+        if let pinCoordinate {
+            center = pinCoordinate
+        } else if let userCoordinate {
+            center = CLLocationCoordinate2D(latitude: userCoordinate.lat, longitude: userCoordinate.lng)
+        } else {
+            return
+        }
+        let region = MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
+        )
+        if animated {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                cameraPosition = .region(region)
+            }
+        } else {
+            cameraPosition = .region(region)
         }
     }
 }

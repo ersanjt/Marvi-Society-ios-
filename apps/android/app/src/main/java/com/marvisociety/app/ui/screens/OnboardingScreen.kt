@@ -36,9 +36,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -70,7 +68,9 @@ import com.marvisociety.app.data.BusinessCategoryOption
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandMark
+import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.OnboardingProgressCapsules
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.theme.NewsreaderFamily
@@ -158,14 +158,6 @@ fun OnboardingScreen(viewModel: AppViewModel) {
         }
     }
 
-    val progress = when (step) {
-        OnboardingStep.WELCOME -> 0.15f
-        OnboardingStep.SIGN_IN -> 0.35f
-        OnboardingStep.INVITE -> 0.55f
-        OnboardingStep.PROFILE, OnboardingStep.VENUE -> 0.75f
-        OnboardingStep.AGREEMENT -> 1f
-    }
-
     fun routeAfterAuth() {
         busy = true
         localError = ""
@@ -196,14 +188,14 @@ fun OnboardingScreen(viewModel: AppViewModel) {
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 if (step != OnboardingStep.WELCOME) {
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp)),
-                        color = MarviColor.Rose,
-                        trackColor = MarviColor.Border
+                    OnboardingProgressCapsules(
+                        filledCount = when (step) {
+                            OnboardingStep.WELCOME -> 0
+                            OnboardingStep.SIGN_IN -> 1
+                            OnboardingStep.INVITE -> 2
+                            OnboardingStep.PROFILE, OnboardingStep.VENUE -> 3
+                            OnboardingStep.AGREEMENT -> 4
+                        }
                     )
                 }
 
@@ -1045,6 +1037,18 @@ private fun ProfileStep(
     MarviField(instagram, onInstagram, viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER))
     MarviField(tiktok, onTiktok, viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER))
     MarviField(city, onCity, viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER))
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf("Istanbul", "Dubai", "London").forEach { option ->
+            FilterChipPill(
+                label = option,
+                selected = city.equals(option, ignoreCase = true),
+                onClick = { onCity(option) }
+            )
+        }
+    }
     if (localError.isNotEmpty()) Text(localError, color = MarviColor.Tomato)
     PrimaryButton(title = viewModel.t(MarviL10n.Key.CONTINUE), onClick = onContinue)
     TextButton(onClick = onBack) { Text(viewModel.t(MarviL10n.Key.BACK), color = MarviColor.Muted) }
@@ -1074,10 +1078,10 @@ private fun VenueStep(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         BusinessCategoryCatalog.all.forEach { category ->
-            FilterChip(
+            FilterChipPill(
+                label = category.label(viewModel.preferredLanguage),
                 selected = venueCategoryLabel.equals(category.label(viewModel.preferredLanguage), ignoreCase = true),
-                onClick = { onCategory(category) },
-                label = { Text(category.label(viewModel.preferredLanguage)) }
+                onClick = { onCategory(category) }
             )
         }
     }

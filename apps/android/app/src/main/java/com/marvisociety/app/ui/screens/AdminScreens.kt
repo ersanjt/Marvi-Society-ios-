@@ -1025,6 +1025,10 @@ fun VenueStudioScreen(
                             ),
                             color = MarviColor.Muted
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(onClick = { focused?.id?.let(onEditEstablishment) }) {
+                            Text(viewModel.t(MarviL10n.Key.EST_WIZARD_EDIT_TITLE))
+                        }
                     }
                     MembershipStatus.PAUSED -> MarviCard {
                         Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)

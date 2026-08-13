@@ -77,6 +77,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.marvisociety.app.R
 import com.marvisociety.app.data.MembershipStatus
@@ -1136,5 +1138,91 @@ fun DeclineAcceptRow(declineTitle: String, acceptTitle: String, onDecline: () ->
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.weight(1f)) { SecondaryActionButton(declineTitle, onDecline) }
         Box(modifier = Modifier.weight(1f)) { PrimaryActionButton(acceptTitle, onAccept, enabled = acceptEnabled) }
+    }
+}
+
+@Composable
+fun OnboardingProgressCapsules(filledCount: Int, total: Int = 4) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        repeat(total) { index ->
+            val filled = index < filledCount.coerceIn(0, total)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(50))
+                    .then(
+                        if (filled) Modifier.background(MarviGradient.Brand)
+                        else Modifier
+                            .background(MarviColor.PanelElevated)
+                            .border(1.dp, MarviColor.Border.copy(alpha = 0.5f), RoundedCornerShape(50))
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun ChatBubble(body: String, isMine: Boolean, timeLabel: String = "") {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        if (isMine) Spacer(Modifier.width(40.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .clip(RoundedCornerShape(16.dp))
+                .then(
+                    if (isMine) Modifier.background(MarviGradient.Brand)
+                    else Modifier.background(MarviColor.PanelElevated)
+                )
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Text(
+                body,
+                color = if (isMine) Color.White else MarviColor.Ink,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (timeLabel.isNotBlank()) {
+                Text(
+                    timeLabel,
+                    color = if (isMine) Color.White.copy(alpha = 0.72f) else MarviColor.Muted,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+        if (!isMine) Spacer(Modifier.width(40.dp))
+    }
+}
+
+@Composable
+fun MarviActionSheet(
+    title: String,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MarviColor.Panel)
+                .border(1.dp, MarviColor.Border, RoundedCornerShape(20.dp))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                title,
+                color = MarviColor.Ink,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+            content()
+        }
     }
 }
