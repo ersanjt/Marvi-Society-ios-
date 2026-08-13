@@ -1653,17 +1653,19 @@ final class AppState: ObservableObject {
     }
 
 
-    func adminSetCampaignStatus(_ campaign: Campaign, status: CampaignStatus, reason: String? = nil) {
-        guard allowedRoles.contains(.admin) || allowedRoles.contains(.venue) else { return }
+    @discardableResult
+    func adminSetCampaignStatus(_ campaign: Campaign, status: CampaignStatus, reason: String? = nil) async -> Bool {
+        guard allowedRoles.contains(.admin) else { return false }
         processingAdminTaskID = campaign.id
-        Task {
-            defer { processingAdminTaskID = nil }
-            do {
-                try await api.adminSetOfferStatus(offerID: campaign.id, status: status, reason: reason)
-                await refreshFromServer()
-            } catch {
-                if let message = presentableError(error) { lastSyncError = message }
-            }
+        defer { processingAdminTaskID = nil }
+        do {
+            try await api.adminSetOfferStatus(offerID: campaign.id, status: status, reason: reason)
+            await refreshFromServer()
+            lastSyncError = nil
+            return true
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return false
         }
     }
 
@@ -1770,6 +1772,7 @@ final class AppState: ObservableObject {
         do {
             try await api.adminSetVenueStatus(venueID: venueID, status: status.apiValue)
             await loadAdminVenues()
+            await refreshFromServer()
             return nil
         } catch {
             return presentableError(error) ?? t(.errSomeDataRefresh)
@@ -1783,6 +1786,7 @@ final class AppState: ObservableObject {
         do {
             try await api.adminDeleteVenue(venueID: venueID)
             await loadAdminVenues()
+            await refreshFromServer()
             return nil
         } catch {
             return presentableError(error) ?? t(.errSomeDataRefresh)
@@ -1796,6 +1800,7 @@ final class AppState: ObservableObject {
         do {
             try await api.adminSetMembershipStatus(userID: userID, status: status.apiValue)
             await loadAdminUsers()
+            await refreshFromServer()
             return nil
         } catch {
             return presentableError(error) ?? t(.errSomeDataRefresh)

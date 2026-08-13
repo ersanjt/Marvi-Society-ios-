@@ -213,12 +213,12 @@ struct AdminDashboardView: View {
                     if appState.openAdminTasks.isEmpty {
                         MarviCard {
                             EmptyStateView(
-                                title: appState.isSyncing ? "Loading queue…" : "Queue is empty",
+                                title: appState.isSyncing ? appState.t(.queueLoading) : appState.t(.queueEmpty),
                                 subtitle: appState.isSyncing
-                                    ? "Fetching the latest review tasks from Supabase."
-                                    : "No open review tasks. New applications and proof submissions appear here.",
+                                    ? appState.t(.queueLoadingSub)
+                                    : appState.t(.queueEmptySub),
                                 icon: "tray",
-                                actionTitle: "Refresh",
+                                actionTitle: appState.t(.refresh),
                                 action: { Task { await appState.refreshFromServer() } }
                             )
                         }

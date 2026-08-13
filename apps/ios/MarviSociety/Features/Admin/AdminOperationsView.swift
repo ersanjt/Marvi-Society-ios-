@@ -1982,8 +1982,10 @@ struct AdminCampaignsTab: View {
                 default:
                     reason = nil
                 }
-                appState.adminSetCampaignStatus(campaign, status: status, reason: reason)
-                actionFeedback = isTurkish ? "Durum güncellendi" : "Status updated"
+                let ok = await appState.adminSetCampaignStatus(campaign, status: status, reason: reason)
+                actionFeedback = ok
+                    ? (isTurkish ? "Durum güncellendi" : "Status updated")
+                    : (appState.lastSyncError ?? (isTurkish ? "Durum güncellenemedi" : "Couldn’t update status"))
             case .softDelete:
                 let ok = await appState.adminSoftDeleteCampaign(
                     campaign,

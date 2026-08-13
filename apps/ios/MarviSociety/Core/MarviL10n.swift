@@ -156,6 +156,7 @@ enum MarviL10n {
         case confirm, issueStrike, reasonLabel, issueStrikeTitle, strikeDefaultReason
         case operationsCommand, adminControl, adminControlSub
         case usersLabel, bookingsLabel, strikesLabel, reviewQueue, reviewQueueSub
+        case queueLoading, queueLoadingSub, queueEmpty, queueEmptySub
         case adminTabQueue, adminTabUsers, adminTabMap, adminTabBroadcast, adminTabActivity
         case adminTabVenues, adminTabBookings
         case adminUsersDirectoryTitle, adminUsersDirectorySub, adminUsersCountLabel
@@ -580,6 +581,11 @@ enum MarviL10n {
         .usersLabel: "Users", .bookingsLabel: "Bookings", .strikesLabel: "Strikes",
         .venuesLabel: "Venues",
         .reviewQueue: "Review queue", .reviewQueueSub: "Approve or reject items before they go live.",
+        .queueLoading: "Loading queue…",
+        .queueLoadingSub: "Fetching the latest review tasks.",
+        .queueEmpty: "Queue is empty",
+        .queueEmptySub: "No open review tasks. New applications, campaigns, and proof submissions appear here.",
+        .adminVenueNoLiveHint: "Approved but not on Explore yet — partner creates a campaign, then you publish it live in Queue or Campaigns.",
         .adminTabQueue: "Queue", .adminTabUsers: "Users", .adminTabMap: "Map", .adminTabBroadcast: "Broadcast",
         .adminTabActivity: "Activity",
         .adminTabVenues: "Venues", .adminTabBookings: "Bookings",
@@ -599,7 +605,6 @@ enum MarviL10n {
         .adminVenueDeleteConfirmSub: "%@ will be removed. Live campaigns go offline and open bookings are cancelled.",
         .adminVenueDeleted: "Venue deleted",
         .adminVenueStatusUpdated: "Venue status updated",
-        .adminVenueNoLiveHint: "Approved but not on Explore yet — partner must create a campaign, then approve it live in Queue.",
         .adminBookingsDirectoryTitle: "Bookings",
         .adminBookingsDirectorySub: "Who is going where — every collaboration reservation across the platform.",
         .adminBookingsCountLabel: "bookings",
@@ -1166,6 +1171,10 @@ enum MarviL10n {
         .usersLabel: "Kullanıcılar", .bookingsLabel: "Rezervasyonlar", .strikesLabel: "Uyarılar",
         .venuesLabel: "Mekânlar",
         .reviewQueue: "İnceleme kuyruğu", .reviewQueueSub: "Yayınlanmadan önce öğeleri onayla veya reddet.",
+        .queueLoading: "Kuyruk yükleniyor…",
+        .queueLoadingSub: "En son inceleme görevleri alınıyor.",
+        .queueEmpty: "Kuyruk boş",
+        .queueEmptySub: "Açık inceleme görevi yok. Yeni başvurular, kampanyalar ve kanıtlar burada görünür.",
         .adminTabQueue: "Kuyruk", .adminTabUsers: "Kullanıcılar", .adminTabMap: "Harita", .adminTabBroadcast: "Yayın",
         .adminTabActivity: "Aktivite",
         .adminTabVenues: "Mekânlar", .adminTabBookings: "Rezervasyon",
@@ -1185,7 +1194,7 @@ enum MarviL10n {
         .adminVenueDeleteConfirmSub: "%@ kaldırılacak. Canlı kampanyalar kapanır, açık rezervasyonlar iptal edilir.",
         .adminVenueDeleted: "Mekân silindi",
         .adminVenueStatusUpdated: "Mekân durumu güncellendi",
-        .adminVenueNoLiveHint: "Onaylı ama Keşfet’te yok — partner kampanya oluşturmalı; sen de Kuyruk’tan canlı yayınlamalısın.",
+        .adminVenueNoLiveHint: "Onaylı ama Keşfet’te yok — partner kampanya oluşturmalı; sen Kuyruk veya Kampanyalar’dan canlı yayınlamalısın.",
         .adminBookingsDirectoryTitle: "Rezervasyonlar",
         .adminBookingsDirectorySub: "Kim nereye gidiyor — platformdaki tüm iş birliği rezervasyonları.",
         .adminBookingsCountLabel: "rezervasyon",

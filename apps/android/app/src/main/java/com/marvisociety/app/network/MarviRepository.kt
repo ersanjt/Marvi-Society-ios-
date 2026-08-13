@@ -483,8 +483,14 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         client.rpcVoid("redeem_referral_code", buildJsonObject { put("p_code", code.trim().uppercase()) })
     }
 
-    suspend fun fetchAdminTasks(): List<AdminTask> {
-        val rows = client.select("admin_tasks", mapOf("order" to "created_at.desc")) { it.asArrayOrEmpty() }
+        suspend fun fetchAdminTasks(): List<AdminTask> {
+        val rows = client.select(
+            "admin_tasks",
+            mapOf(
+                "status" to "eq.open",
+                "order" to "created_at.desc"
+            )
+        ) { it.asArrayOrEmpty() }
         return rows.mapNotNull { parseAdminTask(it) }
     }
 
