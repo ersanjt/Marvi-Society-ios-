@@ -54,7 +54,6 @@ import com.marvisociety.app.ui.components.MarviTextField
 import com.marvisociety.app.ui.components.MembershipStatusBanner
 import com.marvisociety.app.ui.components.OfferImageView
 import com.marvisociety.app.ui.components.PrimaryActionButton
-import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.components.SSDiscoverAxisPills
 import com.marvisociety.app.ui.components.SSExploreHeader
 import com.marvisociety.app.ui.components.SSFilterChip
@@ -405,7 +404,8 @@ fun DiscoverScreen(
     if (showSort) {
         MarviActionSheet(
             title = viewModel.t(MarviL10n.Key.SORT_EVENTS),
-            onDismiss = { showSort = false }
+            onDismiss = { showSort = false },
+            dismissTitle = viewModel.t(MarviL10n.Key.CLOSE)
         ) {
             listOf(
                 DiscoverSort.NEWEST to MarviL10n.Key.SORT_NEWEST,
@@ -417,10 +417,6 @@ fun DiscoverScreen(
                     onClick = { sortMode = mode; showSort = false }
                 )
             }
-            SecondaryActionButton(
-                title = viewModel.t(MarviL10n.Key.CLOSE),
-                onClick = { showSort = false }
-            )
         }
     }
 }

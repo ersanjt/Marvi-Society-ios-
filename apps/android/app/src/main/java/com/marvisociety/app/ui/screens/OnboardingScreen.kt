@@ -31,15 +31,11 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Work
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,8 +52,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,7 +64,9 @@ import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandMark
 import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
 import com.marvisociety.app.ui.components.OnboardingProgressCapsules
+import com.marvisociety.app.ui.components.PrimaryActionButton
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.theme.NewsreaderFamily
@@ -931,7 +927,7 @@ private fun SignInStep(
 
     val context = androidx.compose.ui.platform.LocalContext.current
     if (com.marvisociety.app.network.GoogleOAuth.isEnabled()) {
-        PrimaryButton(
+        PrimaryActionButton(
             title = if (busy) viewModel.t(MarviL10n.Key.SIGNING_IN)
             else viewModel.t(MarviL10n.Key.SIGN_IN_WITH_GOOGLE),
             enabled = !busy,
@@ -950,17 +946,17 @@ private fun SignInStep(
         )
     }
 
-    MarviField(email, onEmail, viewModel.t(MarviL10n.Key.EMAIL))
-    MarviField(password, onPassword, viewModel.t(MarviL10n.Key.PASSWORD), isPassword = true)
+    MarviTextField(email, onEmail, viewModel.t(MarviL10n.Key.EMAIL))
+    MarviTextField(password, onPassword, viewModel.t(MarviL10n.Key.PASSWORD), isPassword = true)
     if (isCreatingAccount) {
-        MarviField(fullName, onFullName, viewModel.t(MarviL10n.Key.FULL_NAME_PLACEHOLDER))
-        MarviField(city, onCity, viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER))
+        MarviTextField(fullName, onFullName, viewModel.t(MarviL10n.Key.FULL_NAME_PLACEHOLDER))
+        MarviTextField(city, onCity, viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER))
     }
 
     if (localError.isNotEmpty()) Text(localError, color = MarviColor.Tomato)
     if (busy) CircularProgressIndicator(color = MarviColor.Rose)
 
-    PrimaryButton(
+    PrimaryActionButton(
         title = when {
             busy -> viewModel.t(MarviL10n.Key.SIGNING_IN)
             isCreatingAccount -> viewModel.t(MarviL10n.Key.SIGN_UP)
@@ -999,7 +995,7 @@ private fun InviteStep(
 ) {
     Text(viewModel.t(MarviL10n.Key.INVITE_TITLE), style = MaterialTheme.typography.headlineMedium, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
     Text(viewModel.t(MarviL10n.Key.INVITE_SUBTITLE), color = MarviColor.Muted)
-    MarviField(code, onCode, viewModel.t(MarviL10n.Key.INVITE_PLACEHOLDER))
+    MarviTextField(code, onCode, viewModel.t(MarviL10n.Key.INVITE_PLACEHOLDER))
     if (accepted) Text(viewModel.t(MarviL10n.Key.INVITE_ACCEPTED), color = MarviColor.Emerald)
     if (localError.isNotEmpty()) Text(localError, color = MarviColor.Tomato)
     if (busy) {
@@ -1008,7 +1004,7 @@ private fun InviteStep(
             Text(viewModel.t(MarviL10n.Key.VALIDATING_INVITE), color = MarviColor.Muted)
         }
     }
-    PrimaryButton(
+    PrimaryActionButton(
         title = viewModel.t(MarviL10n.Key.CONTINUE),
         enabled = !busy && code.isNotBlank(),
         onClick = onContinue
@@ -1033,10 +1029,10 @@ private fun ProfileStep(
 ) {
     Text(viewModel.t(MarviL10n.Key.PROFILE_SETUP_TITLE), style = MaterialTheme.typography.headlineMedium, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
     Text(viewModel.t(MarviL10n.Key.PROFILE_SETUP_SUB), color = MarviColor.Muted)
-    MarviField(fullName, onFullName, viewModel.t(MarviL10n.Key.FULL_NAME_PLACEHOLDER))
-    MarviField(instagram, onInstagram, viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER))
-    MarviField(tiktok, onTiktok, viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER))
-    MarviField(city, onCity, viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER))
+    MarviTextField(fullName, onFullName, viewModel.t(MarviL10n.Key.FULL_NAME_PLACEHOLDER))
+    MarviTextField(instagram, onInstagram, viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER))
+    MarviTextField(tiktok, onTiktok, viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER))
+    MarviTextField(city, onCity, viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER))
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1050,7 +1046,7 @@ private fun ProfileStep(
         }
     }
     if (localError.isNotEmpty()) Text(localError, color = MarviColor.Tomato)
-    PrimaryButton(title = viewModel.t(MarviL10n.Key.CONTINUE), onClick = onContinue)
+    PrimaryActionButton(title = viewModel.t(MarviL10n.Key.CONTINUE), onClick = onContinue)
     TextButton(onClick = onBack) { Text(viewModel.t(MarviL10n.Key.BACK), color = MarviColor.Muted) }
 }
 
@@ -1071,8 +1067,8 @@ private fun VenueStep(
 ) {
     Text(viewModel.t(MarviL10n.Key.VENUE_SETUP_TITLE), style = MaterialTheme.typography.headlineMedium, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
     Text(viewModel.t(MarviL10n.Key.VENUE_SETUP_SUB), color = MarviColor.Muted)
-    MarviField(venueName, onName, viewModel.t(MarviL10n.Key.VENUE_NAME))
-    MarviField(venueArea, onArea, viewModel.t(MarviL10n.Key.VENUE_AREA))
+    MarviTextField(venueName, onName, viewModel.t(MarviL10n.Key.VENUE_NAME))
+    MarviTextField(venueArea, onArea, viewModel.t(MarviL10n.Key.VENUE_AREA))
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1085,7 +1081,7 @@ private fun VenueStep(
             )
         }
     }
-    MarviField(
+    MarviTextField(
         customBusinessCategory,
         onCustomCategory,
         if (viewModel.preferredLanguage == com.marvisociety.app.data.AppLanguage.TURKISH) {
@@ -1106,7 +1102,7 @@ private fun VenueStep(
         )
     }
     if (localError.isNotEmpty()) Text(localError, color = MarviColor.Tomato)
-    PrimaryButton(title = viewModel.t(MarviL10n.Key.CONTINUE), onClick = onContinue)
+    PrimaryActionButton(title = viewModel.t(MarviL10n.Key.CONTINUE), onClick = onContinue)
     TextButton(onClick = onBack) { Text(viewModel.t(MarviL10n.Key.BACK), color = MarviColor.Muted) }
 }
 
@@ -1125,7 +1121,7 @@ private fun AgreementStep(
     Text(viewModel.t(MarviL10n.Key.AGREEMENT_SUB), color = MarviColor.Muted)
     CheckRow(ageConfirmed, viewModel.t(MarviL10n.Key.AGE_CONFIRM), onAge)
     CheckRow(termsAccepted, viewModel.t(MarviL10n.Key.TERMS_CONFIRM), onTerms)
-    PrimaryButton(
+    PrimaryActionButton(
         title = if (busy) viewModel.t(MarviL10n.Key.LOADING) else viewModel.t(MarviL10n.Key.JOIN_MARVI),
         enabled = !busy && ageConfirmed && termsAccepted,
         onClick = onJoin
@@ -1164,48 +1160,6 @@ private fun IntentChip(selected: Boolean, label: String, onClick: () -> Unit) {
             .border(1.dp, if (selected) MarviColor.Rose else MarviColor.Border, RoundedCornerShape(999.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp)
-    )
-}
-
-@Composable
-private fun PrimaryButton(title: String, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MarviColor.Rose,
-            disabledContainerColor = MarviColor.Muted.copy(alpha = 0.3f)
-        ),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Text(title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 6.dp))
-    }
-}
-
-@Composable
-private fun MarviField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    isPassword: Boolean = false
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MarviColor.Rose,
-            unfocusedBorderColor = MarviColor.Border,
-            focusedTextColor = MarviColor.Ink,
-            unfocusedTextColor = MarviColor.Ink,
-            focusedLabelColor = MarviColor.Muted,
-            unfocusedLabelColor = MarviColor.Muted,
-            cursorColor = MarviColor.Rose
-        )
     )
 }
 

@@ -3,16 +3,11 @@ package com.marvisociety.app.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,9 +20,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.marvisociety.app.data.MembershipStatus
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
+import com.marvisociety.app.ui.components.PrimaryActionButton
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Row
 
 /** Full-screen gate matching iOS InviteRequiredView. */
 @Composable
@@ -57,17 +57,12 @@ fun InviteRequiredScreen(viewModel: AppViewModel) {
                 fontWeight = FontWeight.Bold
             )
             Text(viewModel.t(MarviL10n.Key.INVITE_SUBTITLE), color = MarviColor.Muted)
-            OutlinedTextField(
-                value = code,
-                onValueChange = { code = it; error = "" },
-                label = { Text(viewModel.t(MarviL10n.Key.INVITE_PLACEHOLDER)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                colors = fieldColors()
-            )
+            MarviTextField(code, { code = it; error = "" }, viewModel.t(MarviL10n.Key.INVITE_PLACEHOLDER))
             if (error.isNotEmpty()) Text(error, color = MarviColor.Tomato)
             if (busy) CircularProgressIndicator(color = MarviColor.Rose)
-            Button(
+            PrimaryActionButton(
+                title = viewModel.t(MarviL10n.Key.CONTINUE),
+                enabled = !busy && code.isNotBlank(),
                 onClick = {
                     busy = true
                     error = ""
@@ -75,13 +70,8 @@ fun InviteRequiredScreen(viewModel: AppViewModel) {
                         busy = false
                         if (!ok) error = viewModel.t(MarviL10n.Key.ERR_INVITE_INVALID)
                     }
-                },
-                enabled = !busy && code.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-            ) {
-                Text(viewModel.t(MarviL10n.Key.CONTINUE), fontWeight = FontWeight.Bold)
-            }
+                }
+            )
         }
     }
 }
@@ -111,17 +101,31 @@ fun SocialHandlesRequiredScreen(viewModel: AppViewModel) {
                 fontWeight = FontWeight.Bold
             )
             Text(viewModel.t(MarviL10n.Key.PROFILE_SETUP_SUB), color = MarviColor.Muted)
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(viewModel.t(MarviL10n.Key.FULL_NAME_PLACEHOLDER)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, colors = fieldColors())
-            OutlinedTextField(value = instagram, onValueChange = { instagram = it }, label = { Text(viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, colors = fieldColors())
-            OutlinedTextField(value = tiktok, onValueChange = { tiktok = it }, label = { Text(viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, colors = fieldColors())
-            OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text(viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, colors = fieldColors())
+            MarviTextField(name, { name = it }, viewModel.t(MarviL10n.Key.FULL_NAME_PLACEHOLDER))
+            MarviTextField(instagram, { instagram = it }, viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER))
+            MarviTextField(tiktok, { tiktok = it }, viewModel.t(MarviL10n.Key.TIKTOK_PLACEHOLDER))
+            MarviTextField(city, { city = it }, viewModel.t(MarviL10n.Key.CITY_PLACEHOLDER))
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("Istanbul", "Dubai", "London").forEach { option ->
+                    FilterChipPill(
+                        label = option,
+                        selected = city.equals(option, ignoreCase = true),
+                        onClick = { city = option }
+                    )
+                }
+            }
             if (error.isNotEmpty()) Text(error, color = MarviColor.Tomato)
             if (busy) CircularProgressIndicator(color = MarviColor.Rose)
-            Button(
+            PrimaryActionButton(
+                title = viewModel.t(MarviL10n.Key.CONTINUE),
+                enabled = !busy,
                 onClick = {
                     if ((instagram.isBlank() && tiktok.isBlank()) || city.isBlank()) {
                         error = viewModel.t(MarviL10n.Key.NEEDS_SOCIAL)
-                        return@Button
+                        return@PrimaryActionButton
                     }
                     busy = true
                     viewModel.completeProfileSetup(name, instagram, tiktok, city) { succeeded ->
@@ -133,27 +137,11 @@ fun SocialHandlesRequiredScreen(viewModel: AppViewModel) {
                                 ?: viewModel.t(MarviL10n.Key.SYNC_ERROR)
                         }
                     }
-                },
-                enabled = !busy,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-            ) {
-                Text(viewModel.t(MarviL10n.Key.CONTINUE), fontWeight = FontWeight.Bold)
-            }
+                }
+            )
         }
     }
 }
-
-@Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MarviColor.Rose,
-    unfocusedBorderColor = MarviColor.Border,
-    focusedTextColor = MarviColor.Ink,
-    unfocusedTextColor = MarviColor.Ink,
-    focusedLabelColor = MarviColor.Muted,
-    unfocusedLabelColor = MarviColor.Muted,
-    cursorColor = MarviColor.Rose
-)
 
 /** Full-screen gate until admin approves membership (matches iOS ApprovalPendingView). */
 @Composable
@@ -194,14 +182,11 @@ fun ApprovalPendingScreen(viewModel: AppViewModel) {
                 color = MarviColor.Muted
             )
             if (viewModel.isSyncing) CircularProgressIndicator(color = MarviColor.Rose)
-            Button(
-                onClick = viewModel::refreshFromServer,
+            PrimaryActionButton(
+                title = viewModel.t(MarviL10n.Key.SYNC_FROM_SERVER),
                 enabled = !viewModel.isSyncing,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-            ) {
-                Text(viewModel.t(MarviL10n.Key.SYNC_FROM_SERVER), fontWeight = FontWeight.Bold)
-            }
+                onClick = viewModel::refreshFromServer
+            )
         }
     }
 }

@@ -73,6 +73,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -271,12 +273,13 @@ fun PrimaryActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    fillMaxWidth: Boolean = true
 ) {
     val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
             .defaultMinSize(minHeight = 50.dp)
             .clip(shape)
             .background(
@@ -306,12 +309,13 @@ fun SecondaryActionButton(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    fillMaxWidth: Boolean = true
 ) {
     val shape = RoundedCornerShape(14.dp)
     Box(
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
             .defaultMinSize(minHeight = 48.dp)
             .clip(shape)
             .background(MarviColor.PanelElevated)
@@ -335,13 +339,15 @@ fun MarviTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    isPassword: Boolean = false
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(14.dp)
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
         singleLine = singleLine,
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
         textStyle = TextStyle(color = MarviColor.Ink, fontSize = 15.sp, fontFamily = InterFamily),
         cursorBrush = SolidColor(MarviColor.Rose),
         modifier = modifier
@@ -1204,7 +1210,13 @@ fun ChatBubble(body: String, isMine: Boolean, timeLabel: String = "") {
 fun MarviActionSheet(
     title: String,
     onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
+    subtitle: String? = null,
+    confirmTitle: String? = null,
+    confirmEnabled: Boolean = true,
+    onConfirm: (() -> Unit)? = null,
+    confirmDestructive: Boolean = false,
+    dismissTitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -1226,7 +1238,34 @@ fun MarviActionSheet(
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
+            if (!subtitle.isNullOrBlank()) {
+                Text(subtitle, color = MarviColor.Muted, style = MaterialTheme.typography.bodyMedium)
+            }
             content()
+            if (onConfirm != null && !confirmTitle.isNullOrBlank()) {
+                if (confirmDestructive) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 50.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (confirmEnabled) MarviColor.Tomato else MarviColor.Muted.copy(alpha = 0.4f))
+                            .clickable(enabled = confirmEnabled, onClick = onConfirm)
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(confirmTitle, color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
+                } else {
+                    PrimaryActionButton(confirmTitle, onClick = onConfirm, enabled = confirmEnabled)
+                }
+            }
+            if (!dismissTitle.isNullOrBlank()) {
+                SecondaryActionButton(
+                    title = dismissTitle,
+                    onClick = onDismiss
+                )
+            }
         }
     }
 }

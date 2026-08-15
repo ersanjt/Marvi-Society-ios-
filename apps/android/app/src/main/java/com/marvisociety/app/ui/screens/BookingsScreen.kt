@@ -22,14 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,6 +47,7 @@ import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.OfferImagery
 import com.marvisociety.app.ui.components.CircleIconButton
 import com.marvisociety.app.ui.components.EmptyStateView
+import com.marvisociety.app.ui.components.MarviActionSheet
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.MarviTextField
@@ -61,12 +60,13 @@ import com.marvisociety.app.ui.components.StatusBadgeUi
 import com.marvisociety.app.ui.components.StatusPill
 import com.marvisociety.app.ui.theme.NewsreaderFamily
 import com.marvisociety.app.ui.theme.MarviColor
-import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 
 @Composable
 fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onOpenInbox: () -> Unit = {}) {
     var rateBooking by remember { mutableStateOf<Booking?>(null) }
+    var checkInBooking by remember { mutableStateOf<Booking?>(null) }
+    var proofBooking by remember { mutableStateOf<Booking?>(null) }
     var selectedBucket by remember { mutableStateOf<BookingBucket?>(null) }
     var isInterestMode by remember { mutableStateOf(false) }
 
@@ -182,14 +182,34 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
                         }
                     }
                     items(bookings, key = { it.id }) { booking ->
-                        BookingCard(booking, viewModel, onRate = { rateBooking = booking })
+                        BookingCard(
+                            booking,
+                            viewModel,
+                            onRate = { rateBooking = booking },
+                            onCheckIn = { checkInBooking = booking },
+                            onProof = { proofBooking = booking }
+                        )
                     }
                 }
             }
         }
 
+        checkInBooking?.let { booking ->
+            CheckInSheet(
+                booking = booking,
+                viewModel = viewModel,
+                onDismiss = { checkInBooking = null }
+            )
+        }
+        proofBooking?.let { booking ->
+            ProofSubmissionSheet(
+                booking = booking,
+                viewModel = viewModel,
+                onDismiss = { proofBooking = null }
+            )
+        }
         rateBooking?.let { booking ->
-            RateVenueDialog(
+            RateVenueSheet(
                 booking = booking,
                 viewModel = viewModel,
                 onDismiss = { rateBooking = null }
@@ -237,7 +257,8 @@ private fun PendingCollaborationRequestCard(
             enabled = !isAccepting
         )
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(
+        SecondaryActionButton(
+            title = viewModel.t(MarviL10n.Key.DECLINE),
             onClick = {
                 isAccepting = true
                 viewModel.creatorDeclineCollaboration(request.id) { succeeded ->
@@ -245,11 +266,8 @@ private fun PendingCollaborationRequestCard(
                     if (!succeeded) { /* keep card */ }
                 }
             },
-            enabled = !isAccepting,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(viewModel.t(MarviL10n.Key.DECLINE))
-        }
+            enabled = !isAccepting
+        )
     }
 }
 
@@ -257,16 +275,11 @@ private fun PendingCollaborationRequestCard(
 private fun BookingCard(
     booking: Booking,
     viewModel: AppViewModel,
-    onRate: () -> Unit
+    onRate: () -> Unit,
+    onCheckIn: () -> Unit,
+    onProof: () -> Unit
 ) {
-    var checkInCode by remember(booking.id) { mutableStateOf("") }
-    var proofText by remember(booking.id) { mutableStateOf("") }
-    var screenshotUri by remember(booking.id) { mutableStateOf<Uri?>(null) }
     var operationBusy by remember(booking.id) { mutableStateOf(false) }
-
-    val photoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri -> screenshotUri = uri }
 
     MarviCard {
         Row(
@@ -318,59 +331,17 @@ private fun BookingCard(
                 )
             }
             BookingStage.CONFIRMED -> {
-                MarviTextField(
-                    value = checkInCode,
-                    onValueChange = { checkInCode = it },
-                    placeholder = viewModel.t(MarviL10n.Key.CHECK_IN)
-                )
                 PrimaryActionButton(
-                    title = viewModel.t(MarviL10n.Key.CHECK_IN),
-                    onClick = {
-                        operationBusy = true
-                        viewModel.checkIn(booking.id, checkInCode) { operationBusy = false }
-                    },
-                    enabled = checkInCode.isNotBlank() && !operationBusy
+                    title = viewModel.t(MarviL10n.Key.CHECK_IN_AT_VENUE),
+                    onClick = onCheckIn,
+                    enabled = !operationBusy
                 )
             }
             BookingStage.CHECKED_IN, BookingStage.PROOF_DUE -> {
-                MarviTextField(
-                    value = proofText,
-                    onValueChange = { proofText = it },
-                    placeholder = viewModel.t(MarviL10n.Key.PROOF_LINKS),
-                    singleLine = false
-                )
-                SecondaryActionButton(
-                    title = if (screenshotUri != null) {
-                        viewModel.t(MarviL10n.Key.PROOF_SCREENSHOT_ATTACHED)
-                    } else {
-                        viewModel.t(MarviL10n.Key.PROOF_ADD_SCREENSHOT)
-                    },
-                    onClick = {
-                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
-                    enabled = !operationBusy
-                )
                 PrimaryActionButton(
-                    title = if (operationBusy) {
-                        viewModel.t(MarviL10n.Key.SUBMITTING)
-                    } else {
-                        viewModel.t(MarviL10n.Key.SUBMIT_PROOF)
-                    },
-                    onClick = {
-                        operationBusy = true
-                        viewModel.submitProof(
-                            booking.id,
-                            proofText.lines().map { it.trim() }.filter { it.isNotEmpty() },
-                            screenshotUri
-                        ) { succeeded ->
-                            operationBusy = false
-                            if (succeeded) {
-                                proofText = ""
-                                screenshotUri = null
-                            }
-                        }
-                    },
-                    enabled = !operationBusy && (proofText.isNotBlank() || screenshotUri != null)
+                    title = viewModel.t(MarviL10n.Key.SUBMIT_PROOF),
+                    onClick = onProof,
+                    enabled = !operationBusy
                 )
                 SecondaryActionButton(
                     title = viewModel.t(MarviL10n.Key.RATE_VENUE),
@@ -389,7 +360,99 @@ private fun BookingCard(
 }
 
 @Composable
-private fun RateVenueDialog(
+private fun CheckInSheet(
+    booking: Booking,
+    viewModel: AppViewModel,
+    onDismiss: () -> Unit
+) {
+    var code by remember(booking.id) { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    MarviActionSheet(
+        title = viewModel.t(MarviL10n.Key.CHECK_IN_AT_VENUE),
+        subtitle = viewModel.t(MarviL10n.Key.CHECK_IN_SHEET_SUB),
+        onDismiss = { if (!isSubmitting) onDismiss() },
+        confirmTitle = if (isSubmitting) {
+            viewModel.t(MarviL10n.Key.CHECKING_IN)
+        } else {
+            viewModel.t(MarviL10n.Key.CONFIRM_CHECK_IN)
+        },
+        confirmEnabled = code.isNotBlank() && !isSubmitting,
+        onConfirm = {
+            isSubmitting = true
+            viewModel.checkIn(booking.id, code) { succeeded ->
+                isSubmitting = false
+                if (succeeded) onDismiss()
+            }
+        },
+        dismissTitle = viewModel.t(MarviL10n.Key.CLOSE)
+    ) {
+        MarviTextField(
+            value = code,
+            onValueChange = { code = it },
+            placeholder = viewModel.t(MarviL10n.Key.CHECK_IN_CODE)
+        )
+    }
+}
+
+@Composable
+private fun ProofSubmissionSheet(
+    booking: Booking,
+    viewModel: AppViewModel,
+    onDismiss: () -> Unit
+) {
+    var proofText by remember(booking.id) { mutableStateOf("") }
+    var screenshotUri by remember(booking.id) { mutableStateOf<Uri?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> screenshotUri = uri }
+
+    MarviActionSheet(
+        title = viewModel.t(MarviL10n.Key.SUBMIT_PROOF_TITLE),
+        subtitle = viewModel.tf(MarviL10n.Key.SUBMIT_PROOF_SUB, booking.offer.venue),
+        onDismiss = { if (!isSubmitting) onDismiss() },
+        confirmTitle = if (isSubmitting) {
+            viewModel.t(MarviL10n.Key.SUBMITTING)
+        } else {
+            viewModel.t(MarviL10n.Key.SUBMIT_PROOF)
+        },
+        confirmEnabled = !isSubmitting && (proofText.isNotBlank() || screenshotUri != null),
+        onConfirm = {
+            isSubmitting = true
+            viewModel.submitProof(
+                booking.id,
+                proofText.lines().map { it.trim() }.filter { it.isNotEmpty() },
+                screenshotUri
+            ) { succeeded ->
+                isSubmitting = false
+                if (succeeded) onDismiss()
+            }
+        },
+        dismissTitle = viewModel.t(MarviL10n.Key.CLOSE)
+    ) {
+        MarviTextField(
+            value = proofText,
+            onValueChange = { proofText = it },
+            placeholder = viewModel.t(MarviL10n.Key.PROOF_LINKS),
+            singleLine = false
+        )
+        SecondaryActionButton(
+            title = if (screenshotUri != null) {
+                viewModel.t(MarviL10n.Key.PROOF_SCREENSHOT_ATTACHED)
+            } else {
+                viewModel.t(MarviL10n.Key.PROOF_ADD_SCREENSHOT)
+            },
+            onClick = {
+                photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            enabled = !isSubmitting
+        )
+    }
+}
+
+@Composable
+private fun RateVenueSheet(
     booking: Booking,
     viewModel: AppViewModel,
     onDismiss: () -> Unit
@@ -399,63 +462,47 @@ private fun RateVenueDialog(
     var comment by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
 
-    AlertDialog(
-        onDismissRequest = { if (!isSubmitting) onDismiss() },
-        containerColor = MarviColor.Panel,
-        title = { Text(viewModel.t(MarviL10n.Key.SHARE_THOUGHTS), color = MarviColor.Ink) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "${booking.offer.venue} · ${booking.offer.title}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MarviColor.Muted
-                )
-                RatingRow(
-                    label = "${viewModel.t(MarviL10n.Key.HOSPITALITY)}: $hospitality",
-                    value = hospitality,
-                    onChange = { hospitality = it }
-                )
-                RatingRow(
-                    label = "${viewModel.t(MarviL10n.Key.EXPERIENCE)}: $experience",
-                    value = experience,
-                    onChange = { experience = it }
-                )
-                MarviTextField(
-                    value = comment,
-                    onValueChange = { comment = it },
-                    placeholder = viewModel.t(MarviL10n.Key.OPTIONAL_NOTE),
-                    singleLine = false
-                )
+    MarviActionSheet(
+        title = viewModel.t(MarviL10n.Key.SHARE_THOUGHTS),
+        subtitle = "${booking.offer.venue} · ${booking.offer.title}",
+        onDismiss = { if (!isSubmitting) onDismiss() },
+        confirmTitle = if (isSubmitting) {
+            viewModel.t(MarviL10n.Key.SUBMITTING)
+        } else {
+            viewModel.t(MarviL10n.Key.SUBMIT_REVIEW)
+        },
+        confirmEnabled = !isSubmitting,
+        onConfirm = {
+            isSubmitting = true
+            viewModel.submitCreatorReview(
+                bookingId = booking.id,
+                hospitality = hospitality,
+                experience = experience,
+                comment = comment
+            ) { ok ->
+                isSubmitting = false
+                if (ok) onDismiss()
             }
         },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    isSubmitting = true
-                    viewModel.submitCreatorReview(
-                        bookingId = booking.id,
-                        hospitality = hospitality,
-                        experience = experience,
-                        comment = comment
-                    ) { ok ->
-                        isSubmitting = false
-                        if (ok) onDismiss()
-                    }
-                },
-                enabled = !isSubmitting
-            ) {
-                Text(
-                    if (isSubmitting) viewModel.t(MarviL10n.Key.SUBMITTING) else viewModel.t(MarviL10n.Key.SUBMIT_REVIEW),
-                    color = MarviColor.Rose
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSubmitting) {
-                Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
-            }
-        }
-    )
+        dismissTitle = viewModel.t(MarviL10n.Key.CANCEL)
+    ) {
+        RatingRow(
+            label = "${viewModel.t(MarviL10n.Key.HOSPITALITY)}: $hospitality",
+            value = hospitality,
+            onChange = { hospitality = it }
+        )
+        RatingRow(
+            label = "${viewModel.t(MarviL10n.Key.EXPERIENCE)}: $experience",
+            value = experience,
+            onChange = { experience = it }
+        )
+        MarviTextField(
+            value = comment,
+            onValueChange = { comment = it },
+            placeholder = viewModel.t(MarviL10n.Key.OPTIONAL_NOTE),
+            singleLine = false
+        )
+    }
 }
 
 @Composable
@@ -466,7 +513,12 @@ private fun RatingRow(label: String, value: Int, onChange: (Int) -> Unit) {
             value = value.toFloat(),
             onValueChange = { onChange(it.toInt().coerceIn(1, 5)) },
             valueRange = 1f..5f,
-            steps = 3
+            steps = 3,
+            colors = SliderDefaults.colors(
+                thumbColor = MarviColor.Rose,
+                activeTrackColor = MarviColor.Rose,
+                inactiveTrackColor = MarviColor.Border
+            )
         )
     }
 }

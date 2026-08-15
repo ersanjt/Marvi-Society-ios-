@@ -1,6 +1,7 @@
 package com.marvisociety.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,9 +10,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,17 +29,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.marvisociety.app.data.CollaborationModel
 import com.marvisociety.app.data.Offer
 import com.marvisociety.app.l10n.MarviL10n
-import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.PrimaryActionButton
 import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.components.StatusPill
 import com.marvisociety.app.ui.theme.MarviColor
+import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -55,6 +67,7 @@ fun MapDiscoverScreen(
     val mappableOffers = remember(viewModel.offers) {
         viewModel.offers.filter { it.latitude != null && it.longitude != null }
     }
+    val nearbyOffers = mappableOffers.take(8)
 
     val mapView = remember {
         Configuration.getInstance().apply {
@@ -103,72 +116,44 @@ fun MapDiscoverScreen(
             }
         )
 
-        Row(
+        MapDiscoverHeader(
+            title = viewModel.t(MarviL10n.Key.NEAR_YOU),
+            subtitle = "${mappableOffers.size} ${viewModel.t(MarviL10n.Key.EVENTS_SUFFIX)}",
+            onLocate = {
+                mapView.controller.animateTo(GeoPoint(ISTANBUL_LAT, ISTANBUL_LNG))
+                mapView.controller.setZoom(13.0)
+            },
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .background(MarviColor.Panel.copy(alpha = 0.92f))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Column {
-                Text(
-                    viewModel.t(MarviL10n.Key.NEAR_YOU),
-                    color = MarviColor.Ink,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    "${mappableOffers.size} ${viewModel.t(MarviL10n.Key.EVENTS_SUFFIX)}",
-                    color = MarviColor.Rose,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
+                .align(Alignment.TopCenter)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+        )
 
-        selectedOffer?.let { offer ->
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                if (mappableOffers.size > 1) {
-                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(mappableOffers.take(8), key = { it.id }) { nearby ->
-                            MarviCard(
-                                modifier = Modifier
-                                    .width(220.dp)
-                                    .clickable { selectedOffer = nearby }
-                            ) {
-                                Text(nearby.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text("${nearby.venue} · ${nearby.area}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
-                            }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val selected = selectedOffer
+            if (selected != null) {
+                MapOfferSheet(
+                    offer = selected,
+                    viewModel = viewModel,
+                    onOpen = { onOpenOffer(selected) },
+                    onAccept = {
+                        when (selected.collaborationModel) {
+                            CollaborationModel.EVENT, CollaborationModel.GIFT -> onOpenOffer(selected)
+                            else -> viewModel.acceptOffer(selected.id)
                         }
                     }
-                }
-                MarviCard {
-                    Text(offer.title, color = MarviColor.Ink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                    Text("${offer.venue} · ${offer.area}", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
-                        StatusPill(viewModel.modelLabel(offer.collaborationModel), MarviColor.Gold)
-                        if (offer.valueLabel.isNotBlank()) StatusPill(offer.valueLabel, MarviColor.Aubergine)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            PrimaryActionButton(
-                                title = viewModel.t(MarviL10n.Key.DETAILS),
-                                onClick = { onOpenOffer(offer) }
-                            )
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            SecondaryActionButton(
-                                title = viewModel.t(MarviL10n.Key.CLOSE),
-                                onClick = { selectedOffer = null }
-                            )
-                        }
-                    }
-                }
+                )
+            } else if (nearbyOffers.isNotEmpty()) {
+                NearbyOffersStrip(
+                    offers = nearbyOffers,
+                    viewModel = viewModel,
+                    onSelect = { selectedOffer = it }
+                )
             }
         }
 
@@ -176,10 +161,200 @@ fun MapDiscoverScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .background(MarviColor.Panel.copy(alpha = 0.92f))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.92f))
                     .padding(16.dp)
             ) {
-                Text(viewModel.t(MarviL10n.Key.NO_MAP_OFFERS), color = MarviColor.Muted)
+                Text(viewModel.t(MarviL10n.Key.NO_MAP_OFFERS), color = MarviColor.InkOnLight)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapDiscoverHeader(
+    title: String,
+    subtitle: String,
+    onLocate: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(24.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(12.dp, shape, clip = false)
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.92f))
+            .border(1.dp, Color.White.copy(alpha = 0.75f), shape)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                color = MarviColor.InkOnLight,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                subtitle,
+                color = MarviColor.Muted,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .shadow(8.dp, CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(MarviGradient.Brand)
+                .clickable(onClick = onLocate),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.MyLocation, contentDescription = title, tint = Color.White, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun NearbyOffersStrip(
+    offers: List<Offer>,
+    viewModel: AppViewModel,
+    onSelect: (Offer) -> Unit
+) {
+    val shape = RoundedCornerShape(22.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.9f))
+            .border(1.dp, Color.White.copy(alpha = 0.72f), shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            viewModel.t(MarviL10n.Key.NEAR_YOU).uppercase(),
+            color = MarviColor.Muted,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(offers, key = { it.id }) { offer ->
+                Column(
+                    modifier = Modifier
+                        .width(180.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White)
+                        .clickable { onSelect(offer) }
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        viewModel.modelLabel(offer.collaborationModel),
+                        color = MarviColor.Rose,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        offer.title,
+                        color = MarviColor.InkOnLight,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        "${offer.venue} · ${offer.area}",
+                        color = MarviColor.Graphite,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (offer.collaborationModel == CollaborationModel.INSTANT) {
+                        Text(
+                            viewModel.t(MarviL10n.Key.NOW),
+                            color = MarviColor.InkOnLight,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(MarviColor.Gold)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MapOfferSheet(
+    offer: Offer,
+    viewModel: AppViewModel,
+    onOpen: () -> Unit,
+    onAccept: () -> Unit
+) {
+    val accepted = offer.id in viewModel.acceptedOfferIds
+    val shape = RoundedCornerShape(24.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.92f))
+            .border(1.dp, Color.White.copy(alpha = 0.75f), shape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            offer.title,
+            color = MarviColor.InkOnLight,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2
+        )
+        Text(
+            "${offer.venue} · ${offer.area}",
+            color = MarviColor.Graphite,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatusPill(viewModel.modelLabel(offer.collaborationModel), MarviColor.Gold)
+            if (offer.valueLabel.isNotBlank()) StatusPill(offer.valueLabel, MarviColor.Aubergine)
+            if (offer.collaborationModel == CollaborationModel.INSTANT) {
+                StatusPill(viewModel.t(MarviL10n.Key.NOW), MarviColor.Gold)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                SecondaryActionButton(
+                    title = viewModel.t(MarviL10n.Key.DETAILS),
+                    onClick = onOpen
+                )
+            }
+            if (!accepted) {
+                Box(modifier = Modifier.weight(1f)) {
+                    PrimaryActionButton(
+                        title = if (offer.collaborationModel == CollaborationModel.INSTANT) {
+                            viewModel.t(MarviL10n.Key.USE_NOW)
+                        } else {
+                            viewModel.t(MarviL10n.Key.ACCEPT_INVITATION)
+                        },
+                        onClick = onAccept,
+                        enabled = viewModel.canAcceptOffers
+                    )
+                }
+            }
+        }
+        if (!accepted) {
+            viewModel.acceptBlockedReason?.takeIf { !viewModel.canAcceptOffers }?.let { reason ->
+                Text(reason, color = MarviColor.Gold, style = MaterialTheme.typography.bodySmall)
             }
         }
     }

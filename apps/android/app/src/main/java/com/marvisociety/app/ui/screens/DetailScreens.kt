@@ -22,13 +22,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +51,7 @@ import com.marvisociety.app.ui.OfferImagery
 import com.marvisociety.app.ui.components.ChatBubble
 import com.marvisociety.app.ui.components.EmptyStateView
 import com.marvisociety.app.ui.components.InfoBadge
+import com.marvisociety.app.ui.components.MarviActionSheet
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.MarviTextField
@@ -298,131 +298,91 @@ fun OfferDetailScreen(offer: Offer, viewModel: AppViewModel, onBack: () -> Unit)
         }
 
         if (showShippingDialog) {
-            AlertDialog(
-                onDismissRequest = { if (!isAccepting) showShippingDialog = false },
-                containerColor = MarviColor.Panel,
-                title = { Text(viewModel.t(MarviL10n.Key.CONFIRM_GIFT), color = MarviColor.Ink) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            viewModel.t(MarviL10n.Key.EXTRAS_REQUIRED_SUB),
-                            color = MarviColor.Muted,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        MarviTextField(
-                            value = shippingAddress,
-                            onValueChange = { shippingAddress = it },
-                            placeholder = viewModel.t(MarviL10n.Key.SHIPPING_ADDRESS),
-                            singleLine = false
-                        )
+            MarviActionSheet(
+                title = viewModel.t(MarviL10n.Key.CONFIRM_GIFT),
+                subtitle = viewModel.t(MarviL10n.Key.EXTRAS_REQUIRED_SUB),
+                onDismiss = { if (!isAccepting) showShippingDialog = false },
+                confirmTitle = viewModel.t(MarviL10n.Key.CONFIRM_GIFT),
+                confirmEnabled = shippingAddress.isNotBlank() && !isAccepting,
+                onConfirm = {
+                    isAccepting = true
+                    viewModel.acceptOffer(offer.id, shippingAddress = shippingAddress) { succeeded ->
+                        isAccepting = false
+                        if (succeeded) {
+                            showShippingDialog = false
+                            onBack()
+                        }
                     }
                 },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            isAccepting = true
-                            viewModel.acceptOffer(offer.id, shippingAddress = shippingAddress) { succeeded ->
-                                isAccepting = false
-                                if (succeeded) {
-                                    showShippingDialog = false
-                                    onBack()
-                                }
-                            }
-                        },
-                        enabled = shippingAddress.isNotBlank() && !isAccepting
-                    ) {
-                        Text(viewModel.t(MarviL10n.Key.CONFIRM_GIFT), color = MarviColor.Rose)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showShippingDialog = false }, enabled = !isAccepting) {
-                        Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
-                    }
-                }
-            )
+                dismissTitle = viewModel.t(MarviL10n.Key.CANCEL)
+            ) {
+                MarviTextField(
+                    value = shippingAddress,
+                    onValueChange = { shippingAddress = it },
+                    placeholder = viewModel.t(MarviL10n.Key.SHIPPING_ADDRESS),
+                    singleLine = false
+                )
+            }
         }
 
         if (showRsvpDialog) {
-            AlertDialog(
-                onDismissRequest = { if (!isAccepting) showRsvpDialog = false },
-                containerColor = MarviColor.Panel,
-                title = { Text(viewModel.t(MarviL10n.Key.RSVP_EVENT), color = MarviColor.Ink) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            "${viewModel.t(MarviL10n.Key.GUEST_COUNT)}: $rsvpGuests",
-                            color = MarviColor.Ink,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Slider(
-                            value = rsvpGuests.toFloat(),
-                            onValueChange = { rsvpGuests = it.toInt() },
-                            valueRange = 1f..6f,
-                            steps = 4
-                        )
+            MarviActionSheet(
+                title = viewModel.t(MarviL10n.Key.RSVP_EVENT),
+                onDismiss = { if (!isAccepting) showRsvpDialog = false },
+                confirmTitle = viewModel.t(MarviL10n.Key.RSVP_EVENT),
+                confirmEnabled = !isAccepting,
+                onConfirm = {
+                    isAccepting = true
+                    viewModel.acceptOffer(offer.id, rsvpGuests = rsvpGuests) { succeeded ->
+                        isAccepting = false
+                        if (succeeded) {
+                            showRsvpDialog = false
+                            onBack()
+                        }
                     }
                 },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            isAccepting = true
-                            viewModel.acceptOffer(offer.id, rsvpGuests = rsvpGuests) { succeeded ->
-                                isAccepting = false
-                                if (succeeded) {
-                                    showRsvpDialog = false
-                                    onBack()
-                                }
-                            }
-                        },
-                        enabled = !isAccepting
-                    ) {
-                        Text(viewModel.t(MarviL10n.Key.RSVP_EVENT), color = MarviColor.Rose)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showRsvpDialog = false }, enabled = !isAccepting) {
-                        Text(viewModel.t(MarviL10n.Key.CANCEL), color = MarviColor.Muted)
-                    }
-                }
-            )
+                dismissTitle = viewModel.t(MarviL10n.Key.CANCEL)
+            ) {
+                Text(
+                    "${viewModel.t(MarviL10n.Key.GUEST_COUNT)}: $rsvpGuests",
+                    color = MarviColor.Ink,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Slider(
+                    value = rsvpGuests.toFloat(),
+                    onValueChange = { rsvpGuests = it.toInt() },
+                    valueRange = 1f..6f,
+                    steps = 4,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MarviColor.Rose,
+                        activeTrackColor = MarviColor.Rose,
+                        inactiveTrackColor = MarviColor.Border
+                    )
+                )
+            }
         }
 
         if (showCancelDialog) {
-            AlertDialog(
-                onDismissRequest = { if (!isCancelling) showCancelDialog = false },
-                containerColor = MarviColor.Panel,
-                title = { Text(viewModel.t(MarviL10n.Key.CANCEL_INVITATION_Q), color = MarviColor.Ink) },
-                text = {
-                    Text(
-                        viewModel.t(MarviL10n.Key.VENUE_NOTIFIED_CANCEL),
-                        color = MarviColor.Muted,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.bookings.firstOrNull { it.offer.id == offer.id }?.let {
-                                isCancelling = true
-                                viewModel.cancelBooking(it.id) { succeeded ->
-                                    isCancelling = false
-                                    if (succeeded) {
-                                        showCancelDialog = false
-                                        onBack()
-                                    }
-                                }
+            MarviActionSheet(
+                title = viewModel.t(MarviL10n.Key.CANCEL_INVITATION_Q),
+                subtitle = viewModel.t(MarviL10n.Key.VENUE_NOTIFIED_CANCEL),
+                onDismiss = { if (!isCancelling) showCancelDialog = false },
+                confirmTitle = viewModel.t(MarviL10n.Key.CANCEL_INVITATION),
+                confirmEnabled = !isCancelling,
+                confirmDestructive = true,
+                onConfirm = {
+                    viewModel.bookings.firstOrNull { it.offer.id == offer.id }?.let {
+                        isCancelling = true
+                        viewModel.cancelBooking(it.id) { succeeded ->
+                            isCancelling = false
+                            if (succeeded) {
+                                showCancelDialog = false
+                                onBack()
                             }
-                        },
-                        enabled = !isCancelling
-                    ) {
-                        Text(viewModel.t(MarviL10n.Key.CANCEL_INVITATION), color = MarviColor.Tomato)
+                        }
                     }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showCancelDialog = false }, enabled = !isCancelling) {
-                        Text(viewModel.t(MarviL10n.Key.KEEP_BTN), color = MarviColor.Muted)
-                    }
-                }
+                dismissTitle = viewModel.t(MarviL10n.Key.KEEP_BTN)
             )
         }
     }

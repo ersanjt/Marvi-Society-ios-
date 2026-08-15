@@ -15,10 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +38,7 @@ import com.marvisociety.app.data.PublicVenueProfile
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
 import com.marvisociety.app.ui.components.PrimaryActionButton
 import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.theme.MarviColor
@@ -204,14 +202,20 @@ fun MemberProfileScreen(
                     }
                 }
                 if (profile.handle.isNotBlank()) {
-                    Button(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/${profile.handle.removePrefix("@")}")))
-                    }) { Text("Instagram") }
+                    SecondaryActionButton(
+                        title = "Instagram",
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/${profile.handle.removePrefix("@")}")))
+                        }
+                    )
                 }
                 if (profile.tiktokHandle.isNotBlank()) {
-                    Button(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://tiktok.com/@${profile.tiktokHandle.removePrefix("@")}")))
-                    }) { Text("TikTok") }
+                    SecondaryActionButton(
+                        title = "TikTok",
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://tiktok.com/@${profile.tiktokHandle.removePrefix("@")}")))
+                        }
+                    )
                 }
             }
 
@@ -249,13 +253,14 @@ fun MemberProfileScreen(
                         }
                     }
                 }
-                OutlinedTextField(
+                MarviTextField(
                     value = commentDraft,
                     onValueChange = { commentDraft = it },
-                    label = { Text(viewModel.t(MarviL10n.Key.ADD_COMMENT)) },
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = viewModel.t(MarviL10n.Key.ADD_COMMENT)
                 )
-                Button(
+                PrimaryActionButton(
+                    title = viewModel.t(MarviL10n.Key.SEND),
+                    enabled = commentDraft.isNotBlank(),
                     onClick = {
                         val body = commentDraft.trim()
                         if (body.isNotEmpty()) {
@@ -268,16 +273,14 @@ fun MemberProfileScreen(
                                 }
                             }
                         }
-                    },
-                    enabled = commentDraft.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                ) { Text(viewModel.t(MarviL10n.Key.SEND)) }
+                    }
+                )
             }
 
-            Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-                Text(viewModel.t(MarviL10n.Key.CLOSE))
-            }
+            SecondaryActionButton(
+                title = viewModel.t(MarviL10n.Key.CLOSE),
+                onClick = onBack
+            )
         }
     }
 }

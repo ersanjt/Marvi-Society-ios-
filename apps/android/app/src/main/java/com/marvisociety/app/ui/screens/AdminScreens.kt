@@ -22,13 +22,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,9 +53,14 @@ import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.BrandLockup
 import com.marvisociety.app.ui.components.EmptyStateView
+import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.HomeHeader
+import com.marvisociety.app.ui.components.MarviActionSheet
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
+import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.components.StudioStatusGrid
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
@@ -183,22 +182,26 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         modifier = Modifier.padding(top = 8.dp)
                                     ) {
-                                        Button(
+                                        PrimaryActionButton(
+                                            title = viewModel.t(MarviL10n.Key.APPROVE),
                                             onClick = {
                                                 resolvingTaskId = task.id
                                                 viewModel.approveTask(task.id) { resolvingTaskId = null }
                                             },
                                             enabled = resolvingTaskId == null,
-                                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                                        ) { Text(viewModel.t(MarviL10n.Key.APPROVE)) }
-                                        Button(
+                                            fillMaxWidth = false,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        SecondaryActionButton(
+                                            title = viewModel.t(MarviL10n.Key.REJECT),
                                             onClick = {
                                                 resolvingTaskId = task.id
                                                 viewModel.rejectTask(task.id) { resolvingTaskId = null }
                                             },
                                             enabled = resolvingTaskId == null,
-                                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Tomato)
-                                        ) { Text(viewModel.t(MarviL10n.Key.REJECT)) }
+                                            fillMaxWidth = false,
+                                            modifier = Modifier.weight(1f)
+                                        )
                                     }
                                 }
                             }
@@ -265,51 +268,40 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                                     title = viewModel.t(MarviL10n.Key.INVITE_CODES),
                                     count = viewModel.adminInviteCodes.size
                                 )
-                                Button(
+                                PrimaryActionButton(
+                                    title = if (showCreateInvite) viewModel.t(MarviL10n.Key.CLOSE)
+                                    else viewModel.t(MarviL10n.Key.CREATE_INVITE_CODE),
                                     onClick = { showCreateInvite = !showCreateInvite },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                                ) {
-                                    Text(
-                                        if (showCreateInvite) viewModel.t(MarviL10n.Key.CLOSE)
-                                        else viewModel.t(MarviL10n.Key.CREATE_INVITE_CODE)
-                                    )
-                                }
+                                    fillMaxWidth = false
+                                )
                             }
                         }
                         if (showCreateInvite) {
                             item {
                                 MarviCard {
-                                    OutlinedTextField(
+                                    MarviTextField(
                                         value = inviteEmail,
                                         onValueChange = { inviteEmail = it },
-                                        label = { Text(viewModel.t(MarviL10n.Key.INVITE_EMAIL)) },
-                                        modifier = Modifier.fillMaxWidth()
+                                        placeholder = viewModel.t(MarviL10n.Key.INVITE_EMAIL)
                                     )
-                                    OutlinedTextField(
+                                    MarviTextField(
                                         value = inviteMaxUses,
                                         onValueChange = { inviteMaxUses = it.filter { ch -> ch.isDigit() }.ifBlank { "1" } },
-                                        label = { Text(viewModel.t(MarviL10n.Key.MAX_USES)) },
-                                        modifier = Modifier.fillMaxWidth()
+                                        placeholder = viewModel.t(MarviL10n.Key.MAX_USES)
                                     )
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         listOf("creator", "venue").forEach { type ->
-                                            FilterChip(
+                                            FilterChipPill(
+                                                label = if (type == "venue") viewModel.t(MarviL10n.Key.VENUE_TAG)
+                                                else viewModel.t(MarviL10n.Key.CREATOR_TAG),
                                                 selected = inviteOwnerType == type,
-                                                onClick = { inviteOwnerType = type },
-                                                label = {
-                                                    Text(
-                                                        if (type == "venue") viewModel.t(MarviL10n.Key.VENUE_TAG)
-                                                        else viewModel.t(MarviL10n.Key.CREATOR_TAG)
-                                                    )
-                                                },
-                                                colors = FilterChipDefaults.filterChipColors(
-                                                    selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                                                    selectedLabelColor = MarviColor.Rose
-                                                )
+                                                onClick = { inviteOwnerType = type }
                                             )
                                         }
                                     }
-                                    Button(
+                                    PrimaryActionButton(
+                                        title = if (isCreatingInvite) viewModel.t(MarviL10n.Key.SUBMITTING)
+                                        else viewModel.t(MarviL10n.Key.CREATE),
                                         onClick = {
                                             isCreatingInvite = true
                                             viewModel.adminCreateInvite(
@@ -326,15 +318,8 @@ fun AdminDashboardScreen(viewModel: AppViewModel) {
                                                 }
                                             }
                                         },
-                                        enabled = !isCreatingInvite,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                                    ) {
-                                        Text(
-                                            if (isCreatingInvite) viewModel.t(MarviL10n.Key.SUBMITTING)
-                                            else viewModel.t(MarviL10n.Key.CREATE)
-                                        )
-                                    }
+                                        enabled = !isCreatingInvite
+                                    )
                                 }
                             }
                         }
@@ -895,12 +880,10 @@ fun VenueStudioScreen(
                         Text(viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                         Text(viewModel.t(MarviL10n.Key.EST_HUB_SUB), color = MarviColor.Muted)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = onAddEstablishment,
-                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                        ) {
-                            Text(viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT))
-                        }
+                        PrimaryActionButton(
+                            title = viewModel.t(MarviL10n.Key.ADD_ESTABLISHMENT),
+                            onClick = onAddEstablishment
+                        )
                     }
                 } else if (venues.size == 1) {
                     val venue = venues.first()
@@ -923,9 +906,11 @@ fun VenueStudioScreen(
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
-                            OutlinedButton(onClick = { onEditEstablishment(venue.id) }) {
-                                Text(viewModel.t(MarviL10n.Key.EST_WIZARD_EDIT_TITLE))
-                            }
+                            SecondaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.EST_WIZARD_EDIT_TITLE),
+                                onClick = { onEditEstablishment(venue.id) },
+                                fillMaxWidth = false
+                            )
                         }
                     }
                 } else {
@@ -970,12 +955,10 @@ fun VenueStudioScreen(
                         Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_TITLE), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
                         Text(viewModel.t(MarviL10n.Key.VENUE_REJECTED_BANNER_SUB), color = MarviColor.Muted)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { focusedVenue?.id?.let(onEditEstablishment) },
-                            colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                        ) {
-                            Text(viewModel.t(MarviL10n.Key.VENUE_EDIT_AND_RESUBMIT))
-                        }
+                        PrimaryActionButton(
+                            title = viewModel.t(MarviL10n.Key.VENUE_EDIT_AND_RESUBMIT),
+                            onClick = { focusedVenue?.id?.let(onEditEstablishment) }
+                        )
                     }
                     MembershipStatus.APPROVED -> {
                         val live = viewModel.campaigns.firstOrNull { !it.isDeleted && it.status.equals("live", ignoreCase = true) }
@@ -995,13 +978,10 @@ fun VenueStudioScreen(
                                 )
                             }
                         } else if (canCreateCampaign) {
-                            Button(
-                                onClick = { showCreate = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                            ) {
-                                Text(viewModel.t(MarviL10n.Key.NEW_CAMPAIGN), fontWeight = FontWeight.Bold)
-                            }
+                            PrimaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.NEW_CAMPAIGN),
+                                onClick = { showCreate = true }
+                            )
                         }
                     }
                     null -> Unit
@@ -1017,38 +997,29 @@ fun VenueStudioScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilterChip(
+                    FilterChipPill(
+                        label = viewModel.t(MarviL10n.Key.STUDIO_HAPPENING),
                         selected = !showPastCampaigns,
-                        onClick = { showPastCampaigns = false },
-                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_HAPPENING)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                            selectedLabelColor = MarviColor.Rose
-                        )
+                        onClick = { showPastCampaigns = false }
                     )
-                    FilterChip(
+                    FilterChipPill(
+                        label = viewModel.t(MarviL10n.Key.STUDIO_PAST),
                         selected = showPastCampaigns,
-                        onClick = { showPastCampaigns = true },
-                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_PAST)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                            selectedLabelColor = MarviColor.Rose
-                        )
+                        onClick = { showPastCampaigns = true }
                     )
-                    Button(
+                    PrimaryActionButton(
+                        title = if (showCreate) viewModel.t(MarviL10n.Key.CLOSE) else viewModel.t(MarviL10n.Key.NEW_CAMPAIGN),
                         onClick = {
                             if (!canCreateCampaign) {
                                 formError = viewModel.t(MarviL10n.Key.VENUE_MUST_BE_APPROVED)
-                                return@Button
+                                return@PrimaryActionButton
                             }
                             formError = null
                             showCreate = !showCreate
                         },
                         enabled = canCreateCampaign || showCreate,
-                        colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                    ) {
-                        Text(if (showCreate) viewModel.t(MarviL10n.Key.CLOSE) else viewModel.t(MarviL10n.Key.NEW_CAMPAIGN))
-                    }
+                        fillMaxWidth = false
+                    )
                 }
                 if (!canCreateCampaign && !showCreate) {
                     Text(
@@ -1063,19 +1034,15 @@ fun VenueStudioScreen(
                 item {
                     MarviCard {
                         Text(viewModel.t(MarviL10n.Key.NEW_CAMPAIGN), fontWeight = FontWeight.Bold, color = MarviColor.Ink)
-                        OutlinedButton(
+                        SecondaryActionButton(
+                            title = if (imageUri != null) viewModel.t(MarviL10n.Key.CAMPAIGN_PHOTO_ADDED)
+                            else viewModel.t(MarviL10n.Key.ADD_CAMPAIGN_PHOTO),
                             onClick = {
                                 imagePicker.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                if (imageUri != null) viewModel.t(MarviL10n.Key.CAMPAIGN_PHOTO_ADDED)
-                                else viewModel.t(MarviL10n.Key.ADD_CAMPAIGN_PHOTO)
-                            )
-                        }
+                            }
+                        )
                         if (imageUri != null) {
                             AsyncImage(
                                 model = imageUri,
@@ -1086,80 +1053,68 @@ fun VenueStudioScreen(
                                 contentScale = ContentScale.Crop
                             )
                         }
-                        OutlinedTextField(
+                        MarviTextField(
                             value = title,
                             onValueChange = { title = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.CAMPAIGN_TITLE)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.CAMPAIGN_TITLE)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = dateLabel,
                             onValueChange = { dateLabel = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.EVENT_DATE)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.EVENT_DATE)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = timeLabel,
                             onValueChange = { timeLabel = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.EVENT_TIME)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.EVENT_TIME)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = valueLabel,
                             onValueChange = { valueLabel = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.CREATOR_VALUE)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.CREATOR_VALUE)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = description,
                             onValueChange = { description = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.CAMPAIGN_DESCRIPTION)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.CAMPAIGN_DESCRIPTION)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = deliverables,
                             onValueChange = { deliverables = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.DELIVERABLES_HINT)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.DELIVERABLES_HINT)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = requirements,
                             onValueChange = { requirements = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.REQUIREMENTS_HINT)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.REQUIREMENTS_HINT)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = hostNote,
                             onValueChange = { hostNote = it },
-                            label = { Text(viewModel.t(MarviL10n.Key.HOST_NOTE)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.HOST_NOTE)
                         )
-                        OutlinedTextField(
+                        MarviTextField(
                             value = slots,
                             onValueChange = { slots = it.filter { ch -> ch.isDigit() }.ifBlank { "5" } },
-                            label = { Text(viewModel.t(MarviL10n.Key.CREATOR_SLOTS)) },
-                            modifier = Modifier.fillMaxWidth()
+                            placeholder = viewModel.t(MarviL10n.Key.CREATOR_SLOTS)
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             CollaborationModel.entries.forEach { option ->
-                                FilterChip(
+                                FilterChipPill(
+                                    label = viewModel.modelLabel(option),
                                     selected = model == option,
-                                    onClick = { model = option },
-                                    label = { Text(viewModel.modelLabel(option)) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                                        selectedLabelColor = MarviColor.Rose
-                                    )
+                                    onClick = { model = option }
                                 )
                             }
                         }
-                        Button(
+                        PrimaryActionButton(
+                            title = if (submitting) viewModel.t(MarviL10n.Key.SUBMITTING) else viewModel.t(MarviL10n.Key.SEND_TO_REVIEW),
                             onClick = {
-                                if (submitting) return@Button
+                                if (submitting) return@PrimaryActionButton
                                 val lines = deliverables.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() }
                                 if (title.isBlank() || lines.isEmpty()) {
                                     formError = viewModel.t(MarviL10n.Key.ERR_TITLE_DELIVERABLES)
-                                    return@Button
+                                    return@PrimaryActionButton
                                 }
                                 formError = null
                                 submitting = true
@@ -1197,15 +1152,8 @@ fun VenueStudioScreen(
                                     }
                                 }
                             },
-                            enabled = !submitting,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MarviColor.Rose,
-                                disabledContainerColor = MarviColor.Muted.copy(alpha = 0.4f)
-                            )
-                        ) {
-                            Text(if (submitting) viewModel.t(MarviL10n.Key.SUBMITTING) else viewModel.t(MarviL10n.Key.SEND_TO_REVIEW))
-                        }
+                            enabled = !submitting
+                        )
                         formError?.let { Text(it, color = MarviColor.Tomato) }
                         viewModel.lastSyncError?.takeIf { formError == null }?.let { Text(it, color = MarviColor.Tomato) }
                     }
@@ -1217,23 +1165,15 @@ fun VenueStudioScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilterChip(
+                    FilterChipPill(
+                        label = viewModel.t(MarviL10n.Key.STUDIO_CAMPAIGNS_ACTIVE),
                         selected = !showPastCampaigns,
-                        onClick = { showPastCampaigns = false },
-                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_CAMPAIGNS_ACTIVE)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MarviColor.Rose.copy(alpha = 0.2f),
-                            selectedLabelColor = MarviColor.Ink
-                        )
+                        onClick = { showPastCampaigns = false }
                     )
-                    FilterChip(
+                    FilterChipPill(
+                        label = viewModel.t(MarviL10n.Key.STUDIO_CAMPAIGNS_PAST),
                         selected = showPastCampaigns,
-                        onClick = { showPastCampaigns = true },
-                        label = { Text(viewModel.t(MarviL10n.Key.STUDIO_CAMPAIGNS_PAST)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MarviColor.Muted.copy(alpha = 0.2f),
-                            selectedLabelColor = MarviColor.Ink
-                        )
+                        onClick = { showPastCampaigns = true }
                     )
                 }
             }
@@ -1259,13 +1199,10 @@ fun VenueStudioScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                         if (!showPastCampaigns) {
-                            Button(
-                                onClick = { showCreate = true },
-                                modifier = Modifier.padding(top = 8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-                            ) {
-                                Text(viewModel.t(MarviL10n.Key.NEW_CAMPAIGN))
-                            }
+                            PrimaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.NEW_CAMPAIGN),
+                                onClick = { showCreate = true }
+                            )
                         }
                     }
                 }
@@ -1295,32 +1232,24 @@ fun VenueStudioScreen(
 
             campaignPendingDelete?.let { pending ->
                 item {
-                    androidx.compose.material3.AlertDialog(
-                        onDismissRequest = { campaignPendingDelete = null },
-                        title = { Text(viewModel.t(MarviL10n.Key.DELETE)) },
-                        text = { Text(viewModel.t(MarviL10n.Key.DELETE_CAMPAIGN_CONFIRM)) },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    scope.launch {
-                                        val ok = viewModel.deleteCampaign(pending.id)
-                                        campaignPendingDelete = null
-                                        deleteFeedback = if (ok) {
-                                            viewModel.t(MarviL10n.Key.CAMPAIGN_DELETED)
-                                        } else {
-                                            viewModel.lastSyncError
-                                        }
-                                    }
+                    MarviActionSheet(
+                        title = viewModel.t(MarviL10n.Key.DELETE),
+                        subtitle = viewModel.t(MarviL10n.Key.DELETE_CAMPAIGN_CONFIRM),
+                        onDismiss = { campaignPendingDelete = null },
+                        confirmTitle = viewModel.t(MarviL10n.Key.DELETE),
+                        confirmDestructive = true,
+                        onConfirm = {
+                            scope.launch {
+                                val ok = viewModel.deleteCampaign(pending.id)
+                                campaignPendingDelete = null
+                                deleteFeedback = if (ok) {
+                                    viewModel.t(MarviL10n.Key.CAMPAIGN_DELETED)
+                                } else {
+                                    viewModel.lastSyncError
                                 }
-                            ) {
-                                Text(viewModel.t(MarviL10n.Key.DELETE), color = MarviColor.Tomato)
                             }
                         },
-                        dismissButton = {
-                            TextButton(onClick = { campaignPendingDelete = null }) {
-                                Text(viewModel.t(MarviL10n.Key.CANCEL))
-                            }
-                        }
+                        dismissTitle = viewModel.t(MarviL10n.Key.CANCEL)
                     )
                 }
             }
@@ -1349,19 +1278,18 @@ fun VenueStudioScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
+                            PrimaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.CONFIRM_COLLABORATION),
                                 onClick = { viewModel.venueConfirmBooking(booking.id) },
-                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald),
+                                fillMaxWidth = false,
                                 modifier = Modifier.weight(1f)
-                            ) {
-                                Text(viewModel.t(MarviL10n.Key.CONFIRM_COLLABORATION))
-                            }
-                            OutlinedButton(
+                            )
+                            SecondaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.DECLINE),
                                 onClick = { viewModel.venueDeclineBooking(booking.id) },
+                                fillMaxWidth = false,
                                 modifier = Modifier.weight(1f)
-                            ) {
-                                Text(viewModel.t(MarviL10n.Key.DECLINE))
-                            }
+                            )
                         }
                     }
                 }
@@ -1401,13 +1329,18 @@ fun VenueStudioScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                            Button(
+                            PrimaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.SHORTLIST),
                                 onClick = { viewModel.shortlistCreator(candidate.id) },
-                                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-                            ) { Text(viewModel.t(MarviL10n.Key.SHORTLIST)) }
-                            OutlinedButton(onClick = { viewModel.passCreator(candidate.id) }) {
-                                Text(viewModel.t(MarviL10n.Key.PASS))
-                            }
+                                fillMaxWidth = false,
+                                modifier = Modifier.weight(1f)
+                            )
+                            SecondaryActionButton(
+                                title = viewModel.t(MarviL10n.Key.PASS),
+                                onClick = { viewModel.passCreator(candidate.id) },
+                                fillMaxWidth = false,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
@@ -1453,21 +1386,24 @@ private fun VenueReviewCard(review: com.marvisociety.app.data.VenueReviewItem, v
         if (review.hasReview) {
             Text(viewModel.t(MarviL10n.Key.REVIEWED), color = MarviColor.Emerald, fontWeight = FontWeight.SemiBold)
         } else if (!expanded) {
-            Button(
-                onClick = { expanded = true },
-                modifier = Modifier.padding(top = 6.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Rose)
-            ) { Text(viewModel.t(MarviL10n.Key.RATE_CREATOR)) }
+            PrimaryActionButton(
+                title = viewModel.t(MarviL10n.Key.RATE_CREATOR),
+                onClick = { expanded = true }
+            )
         } else {
             RatingRow(viewModel.t(MarviL10n.Key.PUNCTUALITY), punctuality) { punctuality = it }
             RatingRow(viewModel.t(MarviL10n.Key.PRESENTATION), presentation) { presentation = it }
-            OutlinedTextField(
+            MarviTextField(
                 value = comment,
                 onValueChange = { comment = it },
-                label = { Text(viewModel.t(MarviL10n.Key.REVIEW_COMMENT)) },
-                modifier = Modifier.fillMaxWidth()
+                placeholder = viewModel.t(MarviL10n.Key.REVIEW_COMMENT)
             )
-            Button(
+            PrimaryActionButton(
+                title = if (submitting) {
+                    viewModel.t(MarviL10n.Key.SUBMITTING)
+                } else {
+                    viewModel.t(MarviL10n.Key.SUBMIT_REVIEW)
+                },
                 onClick = {
                     submitting = true
                     viewModel.submitVenueReview(review.id, punctuality, presentation, comment.trim()) { succeeded ->
@@ -1475,18 +1411,8 @@ private fun VenueReviewCard(review: com.marvisociety.app.data.VenueReviewItem, v
                         if (succeeded) expanded = false
                     }
                 },
-                enabled = !submitting,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MarviColor.Emerald)
-            ) {
-                Text(
-                    if (submitting) {
-                        viewModel.t(MarviL10n.Key.SUBMITTING)
-                    } else {
-                        viewModel.t(MarviL10n.Key.SUBMIT_REVIEW)
-                    }
-                )
-            }
+                enabled = !submitting
+            )
         }
     }
 }

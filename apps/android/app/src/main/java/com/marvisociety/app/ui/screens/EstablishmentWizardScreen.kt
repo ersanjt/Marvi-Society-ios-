@@ -21,16 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,8 +48,12 @@ import com.marvisociety.app.data.BusinessCategoryCatalog
 import com.marvisociety.app.data.AppLanguage
 import com.marvisociety.app.data.OfferCategory
 import com.marvisociety.app.l10n.MarviL10n
+import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
+import com.marvisociety.app.ui.components.MarviTextField
+import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.theme.MarviColor
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import org.osmdroid.config.Configuration
@@ -535,9 +532,10 @@ private fun BrandStep(
                     }
                 }
             }
-            OutlinedButton(onClick = onCreateNewBrand, modifier = Modifier.fillMaxWidth()) {
-                Text(viewModel.t(MarviL10n.Key.EST_CREATE_NEW_BRAND))
-            }
+            SecondaryActionButton(
+                title = viewModel.t(MarviL10n.Key.EST_CREATE_NEW_BRAND),
+                onClick = onCreateNewBrand
+            )
         }
     }
 
@@ -552,7 +550,7 @@ private fun BrandStep(
         WizardField(establishmentName, onEstablishmentName, viewModel.t(MarviL10n.Key.EST_NAME))
     }
 
-    WizardPrimaryButton(
+    PrimaryActionButton(
         title = if (busy) viewModel.t(MarviL10n.Key.LOADING) else viewModel.t(MarviL10n.Key.CONTINUE),
         enabled = !busy,
         onClick = onContinue
@@ -601,7 +599,7 @@ private fun HubStep(
         onClick = onOpenPhotos
     )
 
-    WizardPrimaryButton(
+    PrimaryActionButton(
         title = if (busy) viewModel.t(MarviL10n.Key.LOADING) else viewModel.t(MarviL10n.Key.EST_SUBMIT_REVIEW),
         enabled = !busy && canSubmit,
         onClick = onSubmit
@@ -658,29 +656,23 @@ private fun DetailsStep(
     )
     MarviCard {
         WizardField(instagram, onInstagram, viewModel.t(MarviL10n.Key.INSTAGRAM_PLACEHOLDER))
-        OutlinedTextField(
+        MarviTextField(
             value = description,
             onValueChange = onDescription,
-            label = { Text(viewModel.t(MarviL10n.Key.EST_DESCRIPTION)) },
-            supportingText = { Text("${description.length}/200", color = MarviColor.Muted) },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-            colors = wizardFieldColors()
+            placeholder = viewModel.t(MarviL10n.Key.EST_DESCRIPTION),
+            singleLine = false
         )
+        Text("${description.length}/200", color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
         Text(viewModel.t(MarviL10n.Key.EST_CATEGORIES), fontWeight = FontWeight.SemiBold, color = MarviColor.Ink)
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             establishmentCategoryOptions(viewModel.preferredLanguage).forEach { label ->
-                FilterChip(
+                FilterChipPill(
+                    label = label,
                     selected = selectedCategories.contains(label),
-                    onClick = { onToggleCategory(label) },
-                    label = { Text(label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                        selectedLabelColor = MarviColor.Rose
-                    )
+                    onClick = { onToggleCategory(label) }
                 )
             }
         }
@@ -693,13 +685,15 @@ private fun DetailsStep(
                 "Can't find it? Add your category"
             }
         )
-        OutlinedButton(
+        SecondaryActionButton(
+            title = if (viewModel.preferredLanguage == com.marvisociety.app.data.AppLanguage.TURKISH) {
+                "Kategori ekle"
+            } else {
+                "Add category"
+            },
             onClick = onAddCustomCategory,
-            enabled = customCategory.trim().length >= 2,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (viewModel.preferredLanguage == com.marvisociety.app.data.AppLanguage.TURKISH) "Kategori ekle" else "Add category")
-        }
+            enabled = customCategory.trim().length >= 2
+        )
         WizardField(contactName, onContactName, viewModel.t(MarviL10n.Key.EST_CONTACT_NAME))
         WizardField(contactPhone, onContactPhone, viewModel.t(MarviL10n.Key.EST_CONTACT_PHONE))
         Row(
@@ -716,7 +710,7 @@ private fun DetailsStep(
             Text(viewModel.t(MarviL10n.Key.EST_CONTACT_IS_SELF), color = MarviColor.Ink)
         }
     }
-    WizardPrimaryButton(
+    PrimaryActionButton(
         title = if (busy) viewModel.t(MarviL10n.Key.SAVING) else viewModel.t(MarviL10n.Key.CONTINUE),
         enabled = !busy,
         onClick = onSave
@@ -754,23 +748,15 @@ private fun AddressStep(
         fontWeight = FontWeight.Bold
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(
+        FilterChipPill(
+            label = viewModel.t(MarviL10n.Key.EST_PHYSICAL),
             selected = isPhysical,
-            onClick = { onIsPhysical(true) },
-            label = { Text(viewModel.t(MarviL10n.Key.EST_PHYSICAL)) },
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                selectedLabelColor = MarviColor.Rose
-            )
+            onClick = { onIsPhysical(true) }
         )
-        FilterChip(
+        FilterChipPill(
+            label = viewModel.t(MarviL10n.Key.EST_ONLINE),
             selected = !isPhysical,
-            onClick = { onIsPhysical(false) },
-            label = { Text(viewModel.t(MarviL10n.Key.EST_ONLINE)) },
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = MarviColor.Rose.copy(alpha = 0.25f),
-                selectedLabelColor = MarviColor.Rose
-            )
+            onClick = { onIsPhysical(false) }
         )
     }
     MarviCard {
@@ -806,7 +792,7 @@ private fun AddressStep(
             }
         }
     }
-    WizardPrimaryButton(
+    PrimaryActionButton(
         title = if (busy) viewModel.t(MarviL10n.Key.SAVING) else viewModel.t(MarviL10n.Key.CONTINUE),
         enabled = !busy,
         onClick = onSave
@@ -831,12 +817,11 @@ private fun PhotosStep(
     )
     Text(viewModel.t(MarviL10n.Key.EST_PHOTOS_SUB), color = MarviColor.Muted)
     MarviCard {
-        OutlinedButton(onClick = onPickLogo, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                if (logoUri != null) viewModel.t(MarviL10n.Key.EST_LOGO_ADDED)
-                else viewModel.t(MarviL10n.Key.EST_ADD_LOGO)
-            )
-        }
+        SecondaryActionButton(
+            title = if (logoUri != null) viewModel.t(MarviL10n.Key.EST_LOGO_ADDED)
+            else viewModel.t(MarviL10n.Key.EST_ADD_LOGO),
+            onClick = onPickLogo
+        )
         if (logoUri != null) {
             AsyncImage(
                 model = logoUri,
@@ -848,11 +833,10 @@ private fun PhotosStep(
                 contentScale = ContentScale.Crop
             )
         }
-        OutlinedButton(onClick = onPickGallery, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                viewModel.tf(MarviL10n.Key.EST_ADD_GALLERY, galleryUris.size)
-            )
-        }
+        SecondaryActionButton(
+            title = viewModel.tf(MarviL10n.Key.EST_ADD_GALLERY, galleryUris.size),
+            onClick = onPickGallery
+        )
         if (galleryUris.isNotEmpty()) {
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -871,7 +855,7 @@ private fun PhotosStep(
             }
         }
     }
-    WizardPrimaryButton(
+    PrimaryActionButton(
         title = if (busy) viewModel.t(MarviL10n.Key.SAVING) else viewModel.t(MarviL10n.Key.CONTINUE),
         enabled = !busy,
         onClick = onSave
@@ -883,45 +867,14 @@ private fun WizardField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    modifier: Modifier = Modifier.fillMaxWidth()
+    modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
+    MarviTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = modifier,
-        singleLine = true,
-        colors = wizardFieldColors()
+        placeholder = label,
+        modifier = modifier
     )
-}
-
-@Composable
-private fun wizardFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MarviColor.Rose,
-    unfocusedBorderColor = MarviColor.Border,
-    focusedTextColor = MarviColor.Ink,
-    unfocusedTextColor = MarviColor.Ink,
-    focusedLabelColor = MarviColor.Muted,
-    unfocusedLabelColor = MarviColor.Muted,
-    cursorColor = MarviColor.Rose,
-    focusedSupportingTextColor = MarviColor.Muted,
-    unfocusedSupportingTextColor = MarviColor.Muted
-)
-
-@Composable
-private fun WizardPrimaryButton(title: String, enabled: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MarviColor.Rose,
-            disabledContainerColor = MarviColor.Muted.copy(alpha = 0.3f)
-        ),
-        shape = RoundedCornerShape(14.dp)
-    ) {
-        Text(title, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 6.dp))
-    }
 }
 
 @Composable
