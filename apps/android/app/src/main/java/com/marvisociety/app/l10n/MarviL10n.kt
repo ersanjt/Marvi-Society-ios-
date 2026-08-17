@@ -150,7 +150,9 @@ object MarviL10n {
         APPLY_NOW, VALUE_CAPTION, SLOTS_COUNT, PRIVACY_POLICY, TERMS_OF_SERVICE,
         COMMUNITY_GUIDELINES, MORE_ANALYTICS, MORE_SUPPORT, MORE_FEEDBACK,
         NO_COVER_IMAGE, EDIT_PROFILE, PROFILE_COMPLETION_PCT, COMPLETE_PROFILE_CTA,
-        GET_LISTED_SUB, SEARCH_OFFERS
+        GET_LISTED_SUB, SEARCH_OFFERS, BROWSE_CAMPAIGNS, BROWSE_CAMPAIGNS_SUB,
+        RECENT_REQUESTS, NO_PENDING_REQUESTS, PROFILE_COMPLETION_LABEL,
+        STAT_EVENTS, STAT_SAVED, STAT_PENDING, STAT_INBOX, STAT_SCORE, STAT_DELIVERY
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -733,7 +735,18 @@ object MarviL10n {
         Key.PROFILE_COMPLETION_PCT to "Profile completion %d%%",
         Key.COMPLETE_PROFILE_CTA to "Complete profile",
         Key.GET_LISTED_SUB to "Finish your profile so venues can find you.",
-        Key.SEARCH_OFFERS to "Search offers"
+        Key.SEARCH_OFFERS to "Search offers",
+        Key.BROWSE_CAMPAIGNS to "Browse campaigns",
+        Key.BROWSE_CAMPAIGNS_SUB to "Discover live brand campaigns and apply.",
+        Key.RECENT_REQUESTS to "Recent requests",
+        Key.NO_PENDING_REQUESTS to "No pending reservation requests",
+        Key.PROFILE_COMPLETION_LABEL to "Profile completion",
+        Key.STAT_EVENTS to "Events",
+        Key.STAT_SAVED to "Saved",
+        Key.STAT_PENDING to "Pending",
+        Key.STAT_INBOX to "Inbox",
+        Key.STAT_SCORE to "Score",
+        Key.STAT_DELIVERY to "Delivery"
     )
 
     private val turkish = mapOf(
@@ -1306,7 +1319,18 @@ object MarviL10n {
         Key.PROFILE_COMPLETION_PCT to "Profil tamamlanma %d%%",
         Key.COMPLETE_PROFILE_CTA to "Profili tamamla",
         Key.GET_LISTED_SUB to "Mekanların seni bulması için profilini tamamla.",
-        Key.SEARCH_OFFERS to "Teklif ara"
+        Key.SEARCH_OFFERS to "Teklif ara",
+        Key.BROWSE_CAMPAIGNS to "Kampanyalara göz at",
+        Key.BROWSE_CAMPAIGNS_SUB to "Aktif marka kampanyalarını keşfedin ve başvurun.",
+        Key.RECENT_REQUESTS to "Son talepler",
+        Key.NO_PENDING_REQUESTS to "Bekleyen rezervasyon talebi yok",
+        Key.PROFILE_COMPLETION_LABEL to "Profil tamamlanma",
+        Key.STAT_EVENTS to "Rezervasyon",
+        Key.STAT_SAVED to "Kayıtlı",
+        Key.STAT_PENDING to "Bekleyen",
+        Key.STAT_INBOX to "Gelen kutusu",
+        Key.STAT_SCORE to "Puan",
+        Key.STAT_DELIVERY to "Teslimat"
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =

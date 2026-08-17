@@ -12,8 +12,8 @@
       "version": "1.5.3"
     },
     "android": {
-      "marketingVersion": "1.9.11",
-      "versionCode": 57,
+      "marketingVersion": "1.9.12",
+      "versionCode": 58,
       "applicationId": "com.marvisociety.app"
     },
     "database": {
@@ -22,6 +22,16 @@
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-17T16:19:55Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260814070001_dedupe_venue_profiles_and_reuse)"
+    },
+    {
+      "at": "2026-08-17T10:55:50Z",
+      "status": "ok",
+      "message": "pushed 7be5be0 to origin/main"
+    },
     {
       "at": "2026-08-17T10:55:47Z",
       "status": "ok",
@@ -261,16 +271,6 @@
       "at": "2026-08-13T12:15:00Z",
       "status": "ok",
       "message": "pushed a0870a8 to origin/main"
-    },
-    {
-      "at": "2026-08-13T12:14:56Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260813150001_fix_admin_tasks_resolved_at)"
-    },
-    {
-      "at": "2026-08-13T12:14:11Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260813150001_fix_admin_tasks_resolved_at)"
     }
   ],
   "releases": [

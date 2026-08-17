@@ -276,7 +276,7 @@ fun PrimaryActionButton(
     icon: ImageVector? = null,
     fillMaxWidth: Boolean = true
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(50)
     Row(
         modifier = modifier
             .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
@@ -493,14 +493,15 @@ fun CircleIconButton(
     icon: ImageVector,
     onClick: () -> Unit,
     tint: Color = MarviColor.Ink,
-    badgeCount: Int = 0
+    badgeCount: Int = 0,
+    containerColor: Color = MarviColor.Panel
 ) {
     Box {
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(MarviColor.Panel)
+                .background(containerColor)
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
@@ -582,7 +583,12 @@ fun HomeHeader(
             Box(modifier = Modifier.weight(1f)) { leading() }
         }
         if (onSearch != null) {
-            CircleIconButton(Icons.Outlined.Search, onClick = onSearch)
+            CircleIconButton(
+                Icons.Outlined.Search,
+                onClick = onSearch,
+                tint = MarviColor.Rose,
+                containerColor = MarviColor.Rose.copy(alpha = 0.16f)
+            )
         }
         if (onNotifications != null) {
             CircleIconButton(Icons.Outlined.Notifications, onClick = onNotifications, badgeCount = unreadCount)
@@ -980,7 +986,13 @@ fun GradientCTA(title: String, onClick: () -> Unit) {
     }
 }
 
-data class StatusBadgeUi(val id: String, val title: String, val count: Int, val tint: Color)
+data class StatusBadgeUi(
+    val id: String,
+    val title: String,
+    val count: Int,
+    val tint: Color,
+    val icon: ImageVector? = null
+)
 
 @Composable
 fun SSSelectableStatusGrid(
@@ -993,30 +1005,49 @@ fun SSSelectableStatusGrid(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 row.forEach { badge ->
                     val selected = selectedId == badge.id
-                    val shape = RoundedCornerShape(14.dp)
-                    Column(
+                    val shape = RoundedCornerShape(16.dp)
+                    Row(
                         modifier = Modifier
                             .weight(1f)
                             .clip(shape)
                             .then(if (selected) Modifier.background(MarviGradient.Brand) else Modifier.background(MarviColor.Panel))
                             .then(if (selected) Modifier else Modifier.border(1.dp, MarviColor.Border, shape))
                             .clickable { onSelect(if (selected) null else badge.id) }
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            badge.count.toString(),
-                            color = if (selected) Color.White else badge.tint,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.headlineLarge
-                        )
-                        Text(
-                            badge.title,
-                            color = if (selected) Color.White.copy(alpha = 0.9f) else MarviColor.Muted,
-                            fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 2
-                        )
+                        if (badge.icon != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background((if (selected) Color.White else badge.tint).copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    badge.icon,
+                                    contentDescription = null,
+                                    tint = if (selected) Color.White else badge.tint,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                badge.title,
+                                color = if (selected) Color.White.copy(alpha = 0.9f) else MarviColor.Muted,
+                                fontWeight = FontWeight.SemiBold,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1
+                            )
+                            Text(
+                                badge.count.toString(),
+                                color = if (selected) Color.White else MarviColor.Ink,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
                     }
                 }
             }

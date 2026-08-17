@@ -22,7 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -70,24 +75,38 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
     var proofBooking by remember { mutableStateOf<Booking?>(null) }
     var selectedBucket by remember { mutableStateOf<BookingBucket?>(null) }
     var isInterestMode by remember { mutableStateOf(false) }
+    var showSearch by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
 
-    val pendingRequests = viewModel.pendingCollaborationRequests.filter { it.isPendingCreator }
+    val pendingRequests = viewModel.pendingCollaborationRequests.filter {
+        it.isPendingCreator && (searchText.isBlank() || it.offerTitle.contains(searchText, true) || it.venueName.contains(searchText, true))
+    }
     val badges = listOf(
-        StatusBadgeUi("requests", viewModel.t(MarviL10n.Key.REQUESTS), pendingRequests.size + viewModel.bookings.count { it.stage == BookingStage.INVITED }, MarviColor.Rose),
-        StatusBadgeUi("confirm", viewModel.t(MarviL10n.Key.TO_CONFIRM), viewModel.bookings.count { it.stage == BookingStage.CONFIRMED }, MarviColor.Aubergine),
-        StatusBadgeUi("review", viewModel.t(MarviL10n.Key.TO_REVIEW), viewModel.bookings.count { it.stage == BookingStage.PROOF_DUE }, MarviColor.Gold),
-        StatusBadgeUi("visit", viewModel.t(MarviL10n.Key.TO_VISIT), viewModel.bookings.count { it.stage == BookingStage.CHECKED_IN }, MarviColor.Blue)
+        StatusBadgeUi("requests", viewModel.t(MarviL10n.Key.REQUESTS), pendingRequests.size + viewModel.bookings.count { it.stage == BookingStage.INVITED }, MarviColor.Rose, Icons.Outlined.Schedule),
+        StatusBadgeUi("confirm", viewModel.t(MarviL10n.Key.TO_CONFIRM), viewModel.bookings.count { it.stage == BookingStage.CONFIRMED }, MarviColor.Aubergine, Icons.Outlined.CheckCircle),
+        StatusBadgeUi("review", viewModel.t(MarviL10n.Key.TO_REVIEW), viewModel.bookings.count { it.stage == BookingStage.PROOF_DUE }, MarviColor.Gold, Icons.Outlined.StarOutline),
+        StatusBadgeUi("visit", viewModel.t(MarviL10n.Key.TO_VISIT), viewModel.bookings.count { it.stage == BookingStage.CHECKED_IN }, MarviColor.Blue, Icons.Outlined.Place)
     )
     val requests = if (!isInterestMode && (selectedBucket == null || selectedBucket == BookingBucket.REQUESTS)) pendingRequests else emptyList()
     val bookings = if (isInterestMode) emptyList() else viewModel.bookings.filter { booking ->
-        when (selectedBucket) {
+        val matchesBucket = when (selectedBucket) {
             BookingBucket.REQUESTS, null -> booking.stage == BookingStage.INVITED
             BookingBucket.TO_CONFIRM -> booking.stage == BookingStage.CONFIRMED
             BookingBucket.TO_REVIEW -> booking.stage == BookingStage.PROOF_DUE
             BookingBucket.TO_VISIT -> booking.stage == BookingStage.CHECKED_IN
         }
+        val matchesSearch = searchText.isBlank() ||
+            booking.offer.title.contains(searchText, true) ||
+            booking.offer.venue.contains(searchText, true)
+        matchesBucket && matchesSearch
     }
-    val interest = if (isInterestMode) viewModel.interestOffers else emptyList()
+    val interest = if (isInterestMode) {
+        viewModel.interestOffers.filter {
+            searchText.isBlank() || it.title.contains(searchText, true) || it.venue.contains(searchText, true)
+        }
+    } else {
+        emptyList()
+    }
 
     MarviScreen {
         Column(
@@ -100,6 +119,12 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
+                        "Marvi",
+                        color = MarviColor.Ink,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
                         viewModel.t(MarviL10n.Key.MY_EVENTS_TITLE),
                         style = MaterialTheme.typography.displaySmall.copy(fontFamily = NewsreaderFamily, fontSize = 34.sp),
                         color = MarviColor.Ink,
@@ -111,6 +136,13 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
                         color = MarviColor.Muted
                     )
                 }
+                CircleIconButton(
+                    Icons.Outlined.Search,
+                    onClick = { showSearch = true },
+                    tint = MarviColor.Rose,
+                    containerColor = MarviColor.Rose.copy(alpha = 0.16f)
+                )
+                Spacer(Modifier.size(8.dp))
                 CircleIconButton(Icons.AutoMirrored.Filled.Message, onClick = onOpenMessages)
                 Spacer(Modifier.size(8.dp))
                 CircleIconButton(Icons.Outlined.Notifications, onClick = onOpenInbox, badgeCount = viewModel.unreadInboxCount)
@@ -221,6 +253,21 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
                 viewModel = viewModel,
                 onDismiss = { rateBooking = null }
             )
+        }
+        if (showSearch) {
+            MarviActionSheet(
+                title = viewModel.t(MarviL10n.Key.SEARCH_OFFERS),
+                onDismiss = { showSearch = false },
+                confirmTitle = viewModel.t(MarviL10n.Key.OK),
+                onConfirm = { showSearch = false },
+                dismissTitle = viewModel.t(MarviL10n.Key.CLOSE)
+            ) {
+                MarviTextField(
+                    value = searchText,
+                    onValueChange = { searchText = it },
+                    placeholder = viewModel.t(MarviL10n.Key.SEARCH_VENUE_PROMPT)
+                )
+            }
         }
     }
 }
