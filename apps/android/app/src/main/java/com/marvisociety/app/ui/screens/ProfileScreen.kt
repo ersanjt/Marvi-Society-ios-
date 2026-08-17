@@ -27,6 +27,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Collections
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -43,9 +46,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -55,13 +60,13 @@ import com.marvisociety.app.data.SocialVerificationState
 import com.marvisociety.app.data.UserRole
 import com.marvisociety.app.l10n.MarviL10n
 import com.marvisociety.app.ui.components.ProfileHealthRing
-import com.marvisociety.app.ui.components.SSManagementButton
 import com.marvisociety.app.ui.components.SegmentedTabs
 import com.marvisociety.app.ui.components.FilterChipPill
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.MarviTextField
 import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.ProgressBar
 import com.marvisociety.app.ui.components.SecondaryActionButton
 import com.marvisociety.app.ui.components.SectionTitle
 import com.marvisociety.app.ui.components.StatusPill
@@ -124,6 +129,14 @@ fun ProfileScreen(viewModel: AppViewModel) {
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
+                            } else {
+                                Text(
+                                    viewModel.t(MarviL10n.Key.NO_COVER_IMAGE),
+                                    color = Color.White.copy(alpha = 0.72f),
+                                    fontWeight = FontWeight.Medium,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
                             }
                             Box(
                                 modifier = Modifier
@@ -179,12 +192,33 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             .padding(start = 16.dp, end = 16.dp, top = 58.dp, bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.MEMBER_LABEL) },
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MarviColor.Ink,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.MEMBER_LABEL) },
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MarviColor.Ink,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            StatusPill(
+                                when (viewModel.profile.status) {
+                                    MembershipStatus.APPROVED -> viewModel.t(MarviL10n.Key.STATUS_APPROVED)
+                                    MembershipStatus.PAUSED -> viewModel.t(MarviL10n.Key.STATUS_PAUSED)
+                                    MembershipStatus.UNDER_REVIEW -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
+                                    null -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
+                                },
+                                when (viewModel.profile.status) {
+                                    MembershipStatus.APPROVED -> MarviColor.Emerald
+                                    MembershipStatus.PAUSED -> MarviColor.Tomato
+                                    else -> MarviColor.Gold
+                                }
+                            )
+                        }
                         val niche = viewModel.profile.niches.firstOrNull()?.takeIf { it.isNotBlank() }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
@@ -204,27 +238,21 @@ fun ProfileScreen(viewModel: AppViewModel) {
                             color = MarviColor.Muted,
                             style = MaterialTheme.typography.bodySmall
                         )
-                        StatusPill(
-                            when (viewModel.profile.status) {
-                                MembershipStatus.APPROVED -> viewModel.t(MarviL10n.Key.STATUS_APPROVED)
-                                MembershipStatus.PAUSED -> viewModel.t(MarviL10n.Key.STATUS_PAUSED)
-                                MembershipStatus.UNDER_REVIEW -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
-                                null -> viewModel.t(MarviL10n.Key.STATUS_UNDER_REVIEW)
-                            },
-                            when (viewModel.profile.status) {
-                                MembershipStatus.APPROVED -> MarviColor.Emerald
-                                MembershipStatus.PAUSED -> MarviColor.Tomato
-                                else -> MarviColor.Gold
-                            }
+                        ProfileSheetRow(
+                            icon = Icons.Outlined.Groups,
+                            title = viewModel.t(MarviL10n.Key.SOCIAL_ACCOUNTS),
+                            onClick = { selectedTab = ProfileMainTab.EDIT }
                         )
-                        val managementTitle = when (viewModel.selectedRole) {
-                            UserRole.CREATOR -> viewModel.t(MarviL10n.Key.MANAGEMENT)
-                            UserRole.VENUE -> viewModel.t(MarviL10n.Key.VENUE_STUDIO)
-                            UserRole.ADMIN -> viewModel.t(MarviL10n.Key.ADMIN_CONSOLE)
-                        }
-                        SSManagementButton(managementTitle) {
-                            selectedTab = ProfileMainTab.OVERVIEW
-                        }
+                        ProfileSheetRow(
+                            icon = Icons.Outlined.Collections,
+                            title = viewModel.t(MarviL10n.Key.SHOWCASE_TITLE),
+                            onClick = { selectedTab = ProfileMainTab.OVERVIEW }
+                        )
+                        PrimaryActionButton(
+                            title = viewModel.t(MarviL10n.Key.EDIT_PROFILE),
+                            onClick = { selectedTab = ProfileMainTab.EDIT },
+                            icon = Icons.Outlined.Edit
+                        )
                     }
                 }
                 if (viewModel.isProfileMediaUploading) {
@@ -245,6 +273,14 @@ fun ProfileScreen(viewModel: AppViewModel) {
                         text = viewModel.t(MarviL10n.Key.PROFILE_COMPLETION_TITLE)
                     )
                     Text(viewModel.t(MarviL10n.Key.PROFILE_COMPLETION_SUB), color = MarviColor.Muted)
+                    val pct = profileCompletionPercent(viewModel)
+                    Text(
+                        viewModel.tf(MarviL10n.Key.PROFILE_COMPLETION_PCT, pct),
+                        color = MarviColor.Graphite,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    ProgressBar(pct / 100f)
 
                     if (viewModel.profile.status != MembershipStatus.APPROVED) {
                         Text(
@@ -753,4 +789,44 @@ private fun CollaborationHistorySection(viewModel: AppViewModel) {
             }
         }
     }
+}
+
+@Composable
+private fun ProfileSheetRow(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MarviColor.PanelElevated)
+            .border(1.dp, MarviColor.Border, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(icon, contentDescription = title, tint = MarviColor.Rose, modifier = Modifier.size(20.dp))
+        Text(
+            title,
+            color = MarviColor.Ink,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+private fun profileCompletionPercent(viewModel: AppViewModel): Int {
+    val profile = viewModel.profile
+    var score = 0
+    if (profile.name.isNotBlank()) score += 20
+    if (profile.handle.isNotBlank() || profile.tiktokHandle.isNotBlank()) score += 20
+    if (profile.bio.isNotBlank()) score += 15
+    if (profile.city.isNotBlank()) score += 10
+    if (profile.avatarUrl.isNotBlank()) score += 15
+    if (profile.coverUrl.isNotBlank()) score += 10
+    if (profile.status == MembershipStatus.APPROVED) score += 10
+    return score.coerceIn(5, 100)
 }

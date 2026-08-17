@@ -145,7 +145,12 @@ object MarviL10n {
         ERR_ADMIN_REQUIRED, ERR_NO_USERS_IN_AREA, ERR_SENT_TO_USERS, BROADCAST_CENTER_DEFAULT,
         ADMIN_ACTIVITY_SUB, ADMIN_ACTIVITY_SEARCH, ADMIN_ACTIVITY_NO_RESULTS,
         ACTIVITY_FILTER_ALL, ACTIVITY_FILTER_BOOKINGS, ACTIVITY_FILTER_CAMPAIGNS,
-        ACTIVITY_FILTER_ADMIN, ACTIVITY_FILTER_MESSAGES, ACTIVITY_FILTER_SOCIAL
+        ACTIVITY_FILTER_ADMIN, ACTIVITY_FILTER_MESSAGES, ACTIVITY_FILTER_SOCIAL,
+        MORE_TAB, GOOD_MORNING, GOOD_AFTERNOON, GOOD_EVENING, GREETING_SUB,
+        APPLY_NOW, VALUE_CAPTION, SLOTS_COUNT, PRIVACY_POLICY, TERMS_OF_SERVICE,
+        COMMUNITY_GUIDELINES, MORE_ANALYTICS, MORE_SUPPORT, MORE_FEEDBACK,
+        NO_COVER_IMAGE, EDIT_PROFILE, PROFILE_COMPLETION_PCT, COMPLETE_PROFILE_CTA,
+        GET_LISTED_SUB, SEARCH_OFFERS
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -708,7 +713,27 @@ object MarviL10n {
         Key.ACTIVITY_FILTER_CAMPAIGNS to "Campaigns",
         Key.ACTIVITY_FILTER_ADMIN to "Admin",
         Key.ACTIVITY_FILTER_MESSAGES to "Messages",
-        Key.ACTIVITY_FILTER_SOCIAL to "Social"
+        Key.ACTIVITY_FILTER_SOCIAL to "Social",
+        Key.MORE_TAB to "More",
+        Key.GOOD_MORNING to "Good morning",
+        Key.GOOD_AFTERNOON to "Good afternoon",
+        Key.GOOD_EVENING to "Good evening",
+        Key.GREETING_SUB to "Manage your collaborations and profile.",
+        Key.APPLY_NOW to "Apply",
+        Key.VALUE_CAPTION to "VALUE",
+        Key.SLOTS_COUNT to "%d spots",
+        Key.PRIVACY_POLICY to "Privacy Policy",
+        Key.TERMS_OF_SERVICE to "Terms of Service",
+        Key.COMMUNITY_GUIDELINES to "Community Guidelines",
+        Key.MORE_ANALYTICS to "Analytics",
+        Key.MORE_SUPPORT to "Support",
+        Key.MORE_FEEDBACK to "Feedback",
+        Key.NO_COVER_IMAGE to "No cover image",
+        Key.EDIT_PROFILE to "Edit profile",
+        Key.PROFILE_COMPLETION_PCT to "Profile completion %d%%",
+        Key.COMPLETE_PROFILE_CTA to "Complete profile",
+        Key.GET_LISTED_SUB to "Finish your profile so venues can find you.",
+        Key.SEARCH_OFFERS to "Search offers"
     )
 
     private val turkish = mapOf(
@@ -1261,7 +1286,27 @@ object MarviL10n {
         Key.ACTIVITY_FILTER_CAMPAIGNS to "Kampanya",
         Key.ACTIVITY_FILTER_ADMIN to "Admin",
         Key.ACTIVITY_FILTER_MESSAGES to "Mesaj",
-        Key.ACTIVITY_FILTER_SOCIAL to "Sosyal"
+        Key.ACTIVITY_FILTER_SOCIAL to "Sosyal",
+        Key.MORE_TAB to "Fazla",
+        Key.GOOD_MORNING to "Günaydın",
+        Key.GOOD_AFTERNOON to "İyi günler",
+        Key.GOOD_EVENING to "İyi akşamlar",
+        Key.GREETING_SUB to "Rezervasyonlarınızı ve profilinizi yönetin.",
+        Key.APPLY_NOW to "Başvur",
+        Key.VALUE_CAPTION to "DEĞER",
+        Key.SLOTS_COUNT to "%d kontenjan",
+        Key.PRIVACY_POLICY to "Gizlilik Politikası",
+        Key.TERMS_OF_SERVICE to "Kullanım Koşulları",
+        Key.COMMUNITY_GUIDELINES to "Topluluk Kuralları",
+        Key.MORE_ANALYTICS to "Analitik",
+        Key.MORE_SUPPORT to "Destek",
+        Key.MORE_FEEDBACK to "Geri bildirim",
+        Key.NO_COVER_IMAGE to "Kapak yok",
+        Key.EDIT_PROFILE to "Profili düzenle",
+        Key.PROFILE_COMPLETION_PCT to "Profil tamamlanma %d%%",
+        Key.COMPLETE_PROFILE_CTA to "Profili tamamla",
+        Key.GET_LISTED_SUB to "Mekanların seni bulması için profilini tamamla.",
+        Key.SEARCH_OFFERS to "Teklif ara"
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =

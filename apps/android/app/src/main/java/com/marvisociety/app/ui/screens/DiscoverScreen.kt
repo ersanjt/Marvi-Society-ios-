@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Icon
@@ -32,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,9 +54,9 @@ import com.marvisociety.app.ui.components.MarviActionSheet
 import com.marvisociety.app.ui.components.MarviCard
 import com.marvisociety.app.ui.components.MarviScreen
 import com.marvisociety.app.ui.components.MarviTextField
-import com.marvisociety.app.ui.components.MembershipStatusBanner
 import com.marvisociety.app.ui.components.OfferImageView
 import com.marvisociety.app.ui.components.PrimaryActionButton
+import com.marvisociety.app.ui.components.ProgressBar
 import com.marvisociety.app.ui.components.SSDiscoverAxisPills
 import com.marvisociety.app.ui.components.SSExploreHeader
 import com.marvisociety.app.ui.components.SSFilterChip
@@ -61,6 +64,7 @@ import com.marvisociety.app.ui.components.SSFilterToolbar
 import com.marvisociety.app.ui.components.SegmentedTabs
 import com.marvisociety.app.ui.components.StatusPill
 import com.marvisociety.app.ui.theme.MarviColor
+import com.marvisociety.app.ui.theme.MarviGradient
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -84,6 +88,8 @@ fun DiscoverScreen(
     var searchText by remember { mutableStateOf("") }
     var sortMode by remember { mutableStateOf(DiscoverSort.NEWEST) }
     var showSort by remember { mutableStateOf(false) }
+
+    var showSearch by remember { mutableStateOf(false) }
 
     val city = viewModel.profile.city.ifBlank { viewModel.t(MarviL10n.Key.YOUR_CITY) }
     val locale = if (viewModel.preferredLanguage.name == "TURKISH") Locale("tr", "TR") else Locale.US
@@ -188,26 +194,25 @@ fun DiscoverScreen(
         ) {
             item {
                 Spacer(Modifier.height(8.dp))
+                MarviWordmark()
+                Spacer(Modifier.height(14.dp))
                 HomeHeader(
-                    greeting = viewModel.profile.name.ifBlank { viewModel.t(MarviL10n.Key.MEMBER_LABEL) },
-                    subtitle = "$city · ${viewModel.t(MarviL10n.Key.PRIVATE_ACCESS)}",
+                    greeting = viewModel.profile.name.split(" ").firstOrNull()?.ifBlank { null }
+                        ?: viewModel.t(MarviL10n.Key.MEMBER_LABEL),
+                    subtitle = viewModel.t(MarviL10n.Key.GREETING_SUB),
                     avatarUrl = viewModel.profile.avatarUrl.takeIf { it.isNotBlank() },
                     avatarLetter = viewModel.profile.name.ifBlank { "M" },
-                    hiPrefix = viewModel.t(MarviL10n.Key.HI_GREETING),
+                    hiPrefix = greetingPrefix(viewModel),
                     unreadCount = viewModel.unreadInboxCount,
                     onProfile = onOpenProfile,
+                    onSearch = { showSearch = true },
                     onNotifications = onOpenInbox
                 )
             }
 
-            if (viewModel.profile.status != MembershipStatus.APPROVED) {
+            if (viewModel.profile.status != MembershipStatus.APPROVED || viewModel.needsSocialProfileCompletion) {
                 item {
-                    MembershipStatusBanner(
-                        status = viewModel.profile.status,
-                        pausedBySelf = viewModel.accountPausedBySelf,
-                        viewModelLabel = viewModel::t,
-                        onReactivate = viewModel::reactivateAccount
-                    )
+                    ProfileCompletionPromo(viewModel, onOpenProfile)
                 }
             }
 
@@ -266,14 +271,6 @@ fun DiscoverScreen(
                         selectedWhere = if (selectedWhere == whereOptions.firstOrNull()) null else whereOptions.firstOrNull()
                     },
                     onDate = { selectedCalendarDay = if (selectedCalendarDay == 0) null else 0 }
-                )
-            }
-
-            item {
-                MarviTextField(
-                    value = searchText,
-                    onValueChange = { searchText = it },
-                    placeholder = viewModel.t(MarviL10n.Key.SEARCH_VENUE_PROMPT)
                 )
             }
 
@@ -385,13 +382,12 @@ fun DiscoverScreen(
                 }
             } else {
                 items(listOffers, key = { it.id }) { offer ->
-                    EventListCard(
+                    CampaignOfferCard(
                         offer = offer,
+                        viewModel = viewModel,
                         saved = offer.id in viewModel.savedOfferIds,
                         accepted = offer.id in viewModel.acceptedOfferIds,
-                        acceptedLabel = viewModel.t(MarviL10n.Key.CONFIRMED_STATUS),
-                        dateLabel = viewModel.localizeServerText(offer.dateLabel),
-                        onClick = { onOfferClick(offer) },
+                        onOpen = { onOfferClick(offer) },
                         onToggleSaved = { viewModel.toggleSaved(offer.id) }
                     )
                 }
@@ -419,6 +415,230 @@ fun DiscoverScreen(
             }
         }
     }
+
+    if (showSearch) {
+        MarviActionSheet(
+            title = viewModel.t(MarviL10n.Key.SEARCH_OFFERS),
+            onDismiss = { showSearch = false },
+            confirmTitle = viewModel.t(MarviL10n.Key.OK),
+            onConfirm = { showSearch = false },
+            dismissTitle = viewModel.t(MarviL10n.Key.CLOSE)
+        ) {
+            MarviTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                placeholder = viewModel.t(MarviL10n.Key.SEARCH_VENUE_PROMPT)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CampaignOfferCard(
+    offer: Offer,
+    viewModel: AppViewModel,
+    saved: Boolean,
+    accepted: Boolean,
+    onOpen: () -> Unit,
+    onToggleSaved: () -> Unit
+) {
+    val shape = RoundedCornerShape(20.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MarviColor.Panel)
+            .border(1.dp, MarviColor.Border, shape)
+            .clickable(onClick = onOpen)
+    ) {
+        Box {
+            OfferImageView(
+                url = OfferImagery.imageUrl(offer),
+                contentDescription = offer.title,
+                modifier = Modifier.fillMaxWidth(),
+                height = 176.dp,
+                cornerRadius = 0.dp
+            )
+            Text(
+                viewModel.categoryLabel(offer.category).uppercase(),
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp)
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MarviColor.Panel.copy(alpha = 0.88f))
+                    .clickable(onClick = onToggleSaved),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (saved) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (saved) MarviColor.Rose else MarviColor.Ink,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MarviGradient.Brand),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        offer.venue.take(1).uppercase(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        offer.title,
+                        color = MarviColor.Ink,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        "${offer.venue} · ${offer.area}",
+                        color = MarviColor.Muted,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1
+                    )
+                }
+                if (offer.valueLabel.isNotBlank()) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            offer.valueLabel,
+                            color = MarviColor.Rose,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            viewModel.t(MarviL10n.Key.VALUE_CAPTION),
+                            color = MarviColor.Muted,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                StatusPill(viewModel.modelLabel(offer.collaborationModel), MarviColor.Aubergine)
+                if (accepted) StatusPill(viewModel.t(MarviL10n.Key.CONFIRMED_STATUS), MarviColor.Emerald)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    viewModel.tf(MarviL10n.Key.SLOTS_COUNT, offer.remaining),
+                    color = MarviColor.Graphite,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Text("·", color = MarviColor.Muted)
+                Text(
+                    viewModel.localizeServerText(offer.dateLabel),
+                    color = MarviColor.Graphite,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1
+                )
+            }
+            PrimaryActionButton(
+                title = if (accepted) {
+                    viewModel.t(MarviL10n.Key.VIEW_EVENT)
+                } else {
+                    viewModel.t(MarviL10n.Key.APPLY_NOW)
+                },
+                onClick = onOpen,
+                icon = Icons.AutoMirrored.Filled.Send
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileCompletionPromo(viewModel: AppViewModel, onOpenProfile: () -> Unit) {
+    val pct = profileCompletionPercent(viewModel)
+    MarviCard {
+        Text(
+            viewModel.t(MarviL10n.Key.PROFILE_COMPLETION_TITLE),
+            color = MarviColor.Rose,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(viewModel.t(MarviL10n.Key.GET_LISTED_SUB), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+        Text(
+            viewModel.tf(MarviL10n.Key.PROFILE_COMPLETION_PCT, pct),
+            color = MarviColor.Graphite,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        ProgressBar(pct / 100f)
+        PrimaryActionButton(
+            title = viewModel.t(MarviL10n.Key.COMPLETE_PROFILE_CTA),
+            onClick = onOpenProfile
+        )
+    }
+}
+
+@Composable
+private fun MarviWordmark() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Marvi",
+            color = MarviColor.Ink,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleLarge
+        )
+        Text(
+            " Society",
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleLarge.copy(
+                brush = MarviGradient.Brand
+            )
+        )
+    }
+}
+
+private fun greetingPrefix(viewModel: AppViewModel): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val key = when {
+        hour < 12 -> MarviL10n.Key.GOOD_MORNING
+        hour < 18 -> MarviL10n.Key.GOOD_AFTERNOON
+        else -> MarviL10n.Key.GOOD_EVENING
+    }
+    return viewModel.t(key)
+}
+
+private fun profileCompletionPercent(viewModel: AppViewModel): Int {
+    val profile = viewModel.profile
+    var score = 0
+    if (profile.name.isNotBlank()) score += 20
+    if (profile.handle.isNotBlank() || profile.tiktokHandle.isNotBlank()) score += 20
+    if (profile.bio.isNotBlank()) score += 15
+    if (profile.city.isNotBlank()) score += 10
+    if (profile.avatarUrl.isNotBlank()) score += 15
+    if (profile.coverUrl.isNotBlank()) score += 10
+    if (profile.status == MembershipStatus.APPROVED) score += 10
+    return score.coerceIn(5, 100)
 }
 
 @Composable
@@ -458,72 +678,6 @@ private fun FeaturedOfferCard(offer: Offer, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun EventListCard(
-    offer: Offer,
-    saved: Boolean,
-    accepted: Boolean,
-    acceptedLabel: String,
-    dateLabel: String,
-    onClick: () -> Unit,
-    onToggleSaved: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MarviColor.Panel)
-            .border(1.dp, MarviColor.Border, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OfferImageView(
-            url = OfferImagery.imageUrl(offer),
-            contentDescription = offer.title,
-            modifier = Modifier.size(72.dp, 80.dp),
-            height = 80.dp,
-            cornerRadius = 14.dp
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                offer.venue.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MarviColor.Rose,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                maxLines = 1
-            )
-            Text(
-                offer.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MarviColor.Ink,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(dateLabel, style = MaterialTheme.typography.bodySmall, color = MarviColor.Muted, maxLines = 1)
-                if (accepted) StatusPill(acceptedLabel, MarviColor.Emerald)
-            }
-        }
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clickable(onClick = onToggleSaved),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                if (saved) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = null,
-                tint = if (saved) MarviColor.Rose else MarviColor.Muted,
-                modifier = Modifier.size(18.dp)
             )
         }
     }

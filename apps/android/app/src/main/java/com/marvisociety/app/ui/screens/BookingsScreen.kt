@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -144,10 +145,13 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
 
             if (isInterestMode) {
                 if (interest.isEmpty()) {
-                    EmptyStateView(
-                        title = viewModel.t(MarviL10n.Key.NO_BOOKINGS),
-                        subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB)
-                    )
+                    MarviCard {
+                        EmptyStateView(
+                            title = viewModel.t(MarviL10n.Key.NO_BOOKINGS),
+                            subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB),
+                            icon = Icons.Outlined.CalendarMonth
+                        )
+                    }
                 } else {
                     LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         items(interest, key = { it.id }) { offer ->
@@ -159,10 +163,13 @@ fun BookingsScreen(viewModel: AppViewModel, onOpenMessages: () -> Unit = {}, onO
                     }
                 }
             } else if (requests.isEmpty() && bookings.isEmpty()) {
-                EmptyStateView(
-                    title = viewModel.t(MarviL10n.Key.NO_BOOKINGS),
-                    subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB)
-                )
+                MarviCard {
+                    EmptyStateView(
+                        title = viewModel.t(MarviL10n.Key.NO_BOOKINGS),
+                        subtitle = viewModel.t(MarviL10n.Key.NO_BOOKINGS_SUB),
+                        icon = Icons.Outlined.CalendarMonth
+                    )
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),

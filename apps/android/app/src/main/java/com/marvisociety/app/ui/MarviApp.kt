@@ -7,11 +7,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Shield
@@ -26,7 +31,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +64,7 @@ import com.marvisociety.app.ui.screens.DiscoverScreen
 import com.marvisociety.app.ui.screens.EstablishmentWizardScreen
 import com.marvisociety.app.ui.screens.InboxScreen
 import com.marvisociety.app.ui.screens.MemberProfileScreen
+import com.marvisociety.app.ui.screens.MoreMenuSheet
 import com.marvisociety.app.ui.screens.OfferDetailScreen
 import com.marvisociety.app.ui.screens.OnboardingScreen
 import com.marvisociety.app.ui.screens.ProfileScreen
@@ -68,7 +77,12 @@ import com.marvisociety.app.ui.theme.TabSelected
 import com.marvisociety.app.ui.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
-private data class TabSpec(val route: String, val labelKey: MarviL10n.Key, val icon: ImageVector)
+private data class TabSpec(
+    val route: String,
+    val labelKey: MarviL10n.Key,
+    val icon: ImageVector,
+    val opensSheet: Boolean = false
+)
 
 @Composable
 fun MarviApp(viewModel: AppViewModel = viewModel()) {
@@ -98,11 +112,22 @@ private fun MainShell(viewModel: AppViewModel) {
     val tabs = tabsForRole(viewModel.selectedRole)
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route.orEmpty()
+    var showMoreSheet by remember { mutableStateOf(false) }
     val hideBottomBar = currentRoute.startsWith("offer/") ||
         currentRoute.startsWith("member/") ||
         currentRoute.startsWith("chat/") ||
         currentRoute.startsWith("collab") ||
         currentRoute == "establishment_wizard"
+
+    fun goToTab(route: String) {
+        val index = tabs.indexOfFirst { it.route == route }
+        if (index >= 0) viewModel.setWorkspaceTab(index)
+        navController.navigate(route) {
+            popUpTo(navController.graph.startDestinationId) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         containerColor = MarviColor.Surface,
@@ -117,40 +142,60 @@ private fun MainShell(viewModel: AppViewModel) {
                     )
                     NavigationBar(containerColor = TabBarBackground, tonalElevation = 0.dp) {
                     tabs.forEachIndexed { index, tab ->
+                        val selected = if (tab.opensSheet) {
+                            showMoreSheet
+                        } else {
+                            !showMoreSheet && (currentRoute == tab.route || currentRoute.startsWith("${tab.route}/"))
+                        }
                         NavigationBarItem(
-                            selected = currentRoute == tab.route || currentRoute.startsWith("${tab.route}/"),
+                            selected = selected,
                             onClick = {
-                                viewModel.setWorkspaceTab(index)
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                if (tab.opensSheet) {
+                                    showMoreSheet = true
+                                } else {
+                                    showMoreSheet = false
+                                    viewModel.setWorkspaceTab(index)
+                                    navController.navigate(tab.route) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             },
                             icon = {
-                                when (tab.route) {
-                                    "bookings" -> BadgedBox(badge = {
-                                        if (viewModel.eventsTabBadgeCount > 0) {
-                                            Badge(containerColor = TabSelected) {
-                                                Text(viewModel.eventsTabBadgeCount.toString())
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (selected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .background(TabSelected.copy(alpha = 0.18f))
+                                        )
+                                    }
+                                    when {
+                                        tab.route == "bookings" -> BadgedBox(badge = {
+                                            if (viewModel.eventsTabBadgeCount > 0) {
+                                                Badge(containerColor = TabSelected) {
+                                                    Text(viewModel.eventsTabBadgeCount.toString())
+                                                }
                                             }
-                                        }
-                                    }) { Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey)) }
-                                    "inbox" -> BadgedBox(badge = {
-                                        if (viewModel.unreadInboxCount > 0) {
-                                            Badge(containerColor = TabSelected) {
-                                                Text(viewModel.unreadInboxCount.coerceAtMost(99).toString())
+                                        }) { Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey)) }
+                                        tab.route == "inbox" -> BadgedBox(badge = {
+                                            if (viewModel.unreadInboxCount > 0) {
+                                                Badge(containerColor = TabSelected) {
+                                                    Text(viewModel.unreadInboxCount.coerceAtMost(99).toString())
+                                                }
                                             }
-                                        }
-                                    }) { Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey)) }
-                                    else -> Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey))
+                                        }) { Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey)) }
+                                        else -> Icon(tab.icon, contentDescription = viewModel.t(tab.labelKey))
+                                    }
                                 }
                             },
                             label = {
                                 Text(
                                     viewModel.t(tab.labelKey),
                                     fontSize = 10.sp,
-                                    fontWeight = if (currentRoute == tab.route || currentRoute.startsWith("${tab.route}/")) FontWeight.Bold else FontWeight.SemiBold
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
@@ -185,28 +230,8 @@ private fun MainShell(viewModel: AppViewModel) {
                     DiscoverScreen(
                         viewModel,
                         onOfferClick = { offer -> navController.navigate("offer/${offer.id}") },
-                        onOpenProfile = {
-                            val index = tabs.indexOfFirst { it.route == "profile" }
-                            if (index >= 0) {
-                                viewModel.setWorkspaceTab(index)
-                                navController.navigate("profile") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        },
-                        onOpenInbox = {
-                            val index = tabs.indexOfFirst { it.route == "inbox" }
-                            if (index >= 0) {
-                                viewModel.setWorkspaceTab(index)
-                                navController.navigate("inbox") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        }
+                        onOpenProfile = { goToTab("profile") },
+                        onOpenInbox = { goToTab("inbox") }
                     )
                 }
                 composable("community") {
@@ -262,17 +287,7 @@ private fun MainShell(viewModel: AppViewModel) {
                     BookingsScreen(
                         viewModel,
                         onOpenMessages = { navController.navigate("collab") },
-                        onOpenInbox = {
-                            val index = tabs.indexOfFirst { it.route == "inbox" }
-                            if (index >= 0) {
-                                viewModel.setWorkspaceTab(index)
-                                navController.navigate("inbox") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        }
+                        onOpenInbox = { goToTab("inbox") }
                     )
                 }
                 composable("collab") {
@@ -358,25 +373,49 @@ private fun MainShell(viewModel: AppViewModel) {
             }
         }
     }
+
+    if (showMoreSheet) {
+        MoreMenuSheet(
+            viewModel = viewModel,
+            onDismiss = { showMoreSheet = false },
+            onOpenProfile = { goToTab("profile") },
+            onOpenInbox = { goToTab("inbox") },
+            onOpenBookings = {
+                val route = when (viewModel.selectedRole) {
+                    UserRole.CREATOR -> "bookings"
+                    UserRole.VENUE -> "studio"
+                    UserRole.ADMIN -> "admin"
+                }
+                goToTab(route)
+            },
+            onOpenCommunity = { goToTab("community") }
+        )
+    }
 }
 
-private fun tabsForRole(role: UserRole): List<TabSpec> = when (role) {
-    UserRole.CREATOR -> listOf(
-        TabSpec("discover", MarviL10n.Key.EXPLORE, Icons.Default.AutoAwesome),
-        TabSpec("community", MarviL10n.Key.COMMUNITY_TAB, Icons.Default.Groups),
-        TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
-        TabSpec("bookings", MarviL10n.Key.MY_EVENTS, Icons.Default.CalendarMonth),
-        TabSpec("profile", MarviL10n.Key.PROFILE, Icons.Default.Person)
-    )
-    UserRole.VENUE -> listOf(
-        TabSpec("studio", MarviL10n.Key.STUDIO, Icons.Default.Storefront),
-        TabSpec("community", MarviL10n.Key.COMMUNITY_TAB, Icons.Default.Groups),
-        TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
-        TabSpec("profile", MarviL10n.Key.ACCOUNT, Icons.Default.Person)
-    )
-    UserRole.ADMIN -> listOf(
-        TabSpec("admin", MarviL10n.Key.ADMIN, Icons.Default.Shield),
-        TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
-        TabSpec("profile", MarviL10n.Key.ACCOUNT, Icons.Default.Person)
-    )
+private fun tabsForRole(role: UserRole): List<TabSpec> {
+    val more = TabSpec("more", MarviL10n.Key.MORE_TAB, Icons.Default.MoreHoriz, opensSheet = true)
+    return when (role) {
+        UserRole.CREATOR -> listOf(
+            TabSpec("discover", MarviL10n.Key.EXPLORE, Icons.Default.AutoAwesome),
+            TabSpec("community", MarviL10n.Key.COMMUNITY_TAB, Icons.Default.Groups),
+            TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
+            TabSpec("bookings", MarviL10n.Key.MY_EVENTS, Icons.Default.CalendarMonth),
+            TabSpec("profile", MarviL10n.Key.PROFILE, Icons.Default.Person),
+            more
+        )
+        UserRole.VENUE -> listOf(
+            TabSpec("studio", MarviL10n.Key.STUDIO, Icons.Default.Storefront),
+            TabSpec("community", MarviL10n.Key.COMMUNITY_TAB, Icons.Default.Groups),
+            TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
+            TabSpec("profile", MarviL10n.Key.ACCOUNT, Icons.Default.Person),
+            more
+        )
+        UserRole.ADMIN -> listOf(
+            TabSpec("admin", MarviL10n.Key.ADMIN, Icons.Default.Shield),
+            TabSpec("inbox", MarviL10n.Key.INBOX, Icons.Default.Notifications),
+            TabSpec("profile", MarviL10n.Key.ACCOUNT, Icons.Default.Person),
+            more
+        )
+    }
 }
