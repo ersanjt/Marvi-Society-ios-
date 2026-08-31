@@ -1422,6 +1422,8 @@ object MarviL10n {
         "A venue partner wants to collaborate. Accept to start chatting." to "Bir mekan ortağı iş birliği yapmak istiyor. Sohbete başlamak için kabul et.",
         "New collaboration request" to "Yeni iş birliği isteği",
         "New message" to "Yeni mesaj",
+        "New follower" to "Yeni takipçi",
+        "New comment" to "Yeni yorum",
         "Membership approved" to "Üyeliğin onaylandı",
         "Your Marvi Society creator application was approved. Explore live events now." to "Marvi Society creator başvurun onaylandı. Canlı etkinlikleri şimdi keşfet.",
         "Proof submitted" to "Kanıt gönderildi",
@@ -1439,8 +1441,14 @@ object MarviL10n {
         "Admin asked for changes on your venue." to "Admin mekânın için değişiklik istedi."
     )
 
-    fun localizeServerText(text: String, language: AppLanguage): String =
-        if (language == AppLanguage.TURKISH) serverTextTurkish[text.trim()] ?: localizeDateText(text) else text
+    fun localizeServerText(text: String, language: AppLanguage): String {
+        if (language != AppLanguage.TURKISH) return text
+        val trimmed = text.trim()
+        serverTextTurkish[trimmed]?.let { return it }
+        return localizeDateText(trimmed)
+            .replace(" started following you.", " seni takip etmeye başladı.")
+            .replace(" commented on your profile.", " profiline yorum yaptı.")
+    }
 
     private fun localizeDateText(text: String): String {
         val words = mapOf(

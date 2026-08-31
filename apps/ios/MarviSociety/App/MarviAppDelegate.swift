@@ -30,10 +30,28 @@ extension MarviAppDelegate: UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        NotificationCenter.default.post(
+            name: .marviDidReceivePush,
+            object: nil,
+            userInfo: notification.request.content.userInfo
+        )
+        return [.banner, .sound, .badge]
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        NotificationCenter.default.post(
+            name: .marviDidTapPush,
+            object: nil,
+            userInfo: response.notification.request.content.userInfo
+        )
     }
 }
 
 extension Notification.Name {
     static let marviDidRegisterPushToken = Notification.Name("marviDidRegisterPushToken")
+    static let marviDidReceivePush = Notification.Name("marviDidReceivePush")
+    static let marviDidTapPush = Notification.Name("marviDidTapPush")
 }

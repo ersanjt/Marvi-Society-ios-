@@ -1487,9 +1487,8 @@ class AppViewModel(
         // Role-aware tab jump (parity with iOS deep links).
         val type = message.notificationType.lowercase()
         when {
-            type == "message" || !message.conversationId.isNullOrBlank() -> {
-                // Community tab indices: creator/venue = 1
-                if (selectedRole == UserRole.ADMIN) setWorkspaceTab(1) else setWorkspaceTab(1)
+            type == "message" || type == "follow" || type == "comment" || !message.conversationId.isNullOrBlank() -> {
+                setWorkspaceTab(1)
             }
             type == "membership" || type == "social" -> {
                 when (selectedRole) {

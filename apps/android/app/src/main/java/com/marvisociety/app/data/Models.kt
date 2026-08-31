@@ -298,7 +298,7 @@ enum class InboxSection {
             "collaboration", "shortlist" -> ACTION_NEEDED
             "booking", "proof" -> BOOKINGS
             "message" -> MESSAGES
-            "membership", "social" -> ACCOUNT
+            "membership", "social", "follow", "comment" -> ACCOUNT
             "admin", "campaign", "ops" -> OPS
             else -> ACTION_NEEDED
         }

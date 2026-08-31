@@ -1130,6 +1130,10 @@ struct InboxMessage: Codable, Identifiable {
     func deepLink(for role: UserRole) -> MarviDeepLink? {
         let type = notificationType.lowercased()
 
+        if type == "follow" || type == "comment" {
+            return .community
+        }
+
         // Venue approval / membership updates belong in Studio, not Profile.
         if type == "membership" || type == "social" {
             return role == .venue ? .venueStudio : .profile
@@ -1199,7 +1203,7 @@ enum InboxSection: String, CaseIterable, Identifiable {
             return .bookings
         case "message":
             return .messages
-        case "membership", "social":
+        case "membership", "social", "follow", "comment":
             return .account
         case "admin", "campaign", "ops":
             return .ops

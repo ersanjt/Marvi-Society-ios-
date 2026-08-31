@@ -14,6 +14,12 @@ struct MarviSocietyApp: App {
                         appState.registerPushToken(token)
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .marviDidReceivePush)) { _ in
+                    appState.handlePushReceived()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .marviDidTapPush)) { notification in
+                    appState.handlePushTapped(userInfo: notification.userInfo ?? [:])
+                }
                 .onOpenURL { url in
                     appState.handleDeepLinkURL(url)
                 }

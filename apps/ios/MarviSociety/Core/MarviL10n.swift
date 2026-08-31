@@ -1465,6 +1465,8 @@ extension MarviL10n {
         "A venue partner wants to collaborate. Accept to start chatting.": "Bir mekan ortağı iş birliği yapmak istiyor. Sohbete başlamak için kabul et.",
         "New collaboration request": "Yeni iş birliği isteği",
         "New message": "Yeni mesaj",
+        "New follower": "Yeni takipçi",
+        "New comment": "Yeni yorum",
         "Membership approved": "Üyeliğin onaylandı",
         "Your Marvi Society creator application was approved. Explore live events now.": "Marvi Society creator başvurun onaylandı. Canlı etkinlikleri şimdi keşfet.",
         "Proof submitted": "Kanıt gönderildi",
@@ -1487,6 +1489,8 @@ extension MarviL10n {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if let mapped = serverTextTurkish[trimmed] { return mapped }
         return localizeRelativeDateText(trimmed)
+            .replacingOccurrences(of: " started following you.", with: " seni takip etmeye başladı.")
+            .replacingOccurrences(of: " commented on your profile.", with: " profiline yorum yaptı.")
     }
 
     private static func localizeRelativeDateText(_ text: String) -> String {

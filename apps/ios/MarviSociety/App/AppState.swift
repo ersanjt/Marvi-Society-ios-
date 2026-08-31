@@ -26,7 +26,12 @@ final class AppState: ObservableObject {
     @Published var profile = CreatorProfile.empty
     @Published var strikes: [Strike] = []
     @Published var pushNotificationsEnabled = true {
-        didSet { saveSnapshot() }
+        didSet {
+            saveSnapshot()
+            if pushNotificationsEnabled, hasCompletedOnboarding {
+                requestPushPermission()
+            }
+        }
     }
     @Published var proofRemindersEnabled = true {
         didSet {
@@ -91,6 +96,8 @@ final class AppState: ObservableObject {
     private let api: any MarviAPI
     private let persistence: AppPersistence
     private var isPersistenceReady = false
+    private var lastPushDeviceToken: String?
+    private var pendingPushUserInfo: [AnyHashable: Any]?
 
     init(persistence: AppPersistence = .shared, api: (any MarviAPI)? = nil) {
         self.persistence = persistence
@@ -267,9 +274,97 @@ final class AppState: ObservableObject {
 
     func registerPushToken(_ tokenData: Data) {
         let token = tokenData.map { String(format: "%02.2hhx", $0) }.joined()
-        Task {
-            try? await api.registerDeviceToken(token, platform: "ios")
+        lastPushDeviceToken = token
+        Task { await uploadPushTokenIfNeeded() }
+    }
+
+    func handleAppBecameActive() {
+        guard hasCompletedOnboarding, isAuthenticated else { return }
+        requestPushPermission()
+        Task { await refreshInbox() }
+    }
+
+    func handlePushReceived() {
+        guard isAuthenticated else { return }
+        Task { await refreshInbox() }
+    }
+
+    func handlePushTapped(userInfo: [AnyHashable: Any]) {
+        guard isAuthenticated, hasCompletedOnboarding else {
+            pendingPushUserInfo = userInfo
+            return
         }
+        Task {
+            await refreshInbox()
+            await MainActor.run {
+                navigate(fromPush: userInfo)
+            }
+        }
+    }
+
+    private func uploadPushTokenIfNeeded() async {
+        guard pushNotificationsEnabled, isAuthenticated, let token = lastPushDeviceToken else { return }
+        try? await api.registerDeviceToken(token, platform: "ios")
+    }
+
+    func refreshInbox() async {
+        guard isRemoteMode, isAuthenticated else { return }
+        do {
+            let items = try await api.fetchNotifications().filter { !$0.isRead }
+            await MainActor.run {
+                inboxMessages = items
+            }
+        } catch {
+            if let presentable = presentableError(error), lastSyncError == nil {
+                await MainActor.run { lastSyncError = presentable }
+            }
+        }
+    }
+
+    private func consumePendingPushIfNeeded() {
+        guard let userInfo = pendingPushUserInfo else { return }
+        pendingPushUserInfo = nil
+        handlePushTapped(userInfo: userInfo)
+    }
+
+    private func navigate(fromPush userInfo: [AnyHashable: Any]) {
+        let type = pushString(userInfo, "type")?.lowercased() ?? ""
+        if type == "message" || userInfo["conversation_id"] != nil || userInfo["thread_id"] != nil {
+            navigate(to: .community)
+            return
+        }
+        if type == "follow" || type == "comment" {
+            navigate(to: .community)
+            return
+        }
+        if let booking = pushUUID(userInfo, "booking_id") {
+            navigate(to: .booking(booking))
+            return
+        }
+        if let offer = pushUUID(userInfo, "offer_id") {
+            navigate(to: .offer(offer))
+            return
+        }
+        switch type {
+        case "collaboration", "shortlist":
+            navigate(to: selectedRole == .venue ? .venueStudio : .bookings)
+        case "membership", "social":
+            navigate(to: selectedRole == .venue ? .venueStudio : .profile)
+        case "admin", "campaign", "ops":
+            navigate(to: selectedRole == .admin ? .admin : .inbox)
+        default:
+            navigate(to: .inbox)
+        }
+    }
+
+    private func pushString(_ userInfo: [AnyHashable: Any], _ key: String) -> String? {
+        if let value = userInfo[key] as? String, !value.isEmpty { return value }
+        if let value = userInfo[key] as? NSNumber { return value.stringValue }
+        return nil
+    }
+
+    private func pushUUID(_ userInfo: [AnyHashable: Any], _ key: String) -> UUID? {
+        pushString(userInfo, key).flatMap(UUID.init(uuidString:))
     }
 
     func track(_ name: String, properties: [String: String] = [:]) {
@@ -522,6 +617,11 @@ final class AppState: ObservableObject {
             try? await api.refreshSession()
             await syncAllowedRoles()
             await refreshFromServer(retryOnUnauthorized: true)
+            await uploadPushTokenIfNeeded()
+            await MainActor.run {
+                requestPushPermission()
+                consumePendingPushIfNeeded()
+            }
             return
         }
 
@@ -1143,6 +1243,11 @@ final class AppState: ObservableObject {
             needsReauthentication = false
             await refreshFromServer()
             await syncAllowedRoles()
+            await uploadPushTokenIfNeeded()
+            await MainActor.run {
+                requestPushPermission()
+                consumePendingPushIfNeeded()
+            }
         } catch {
             if let message = presentableError(error) { lastSyncError = message }
         }
@@ -1162,6 +1267,11 @@ final class AppState: ObservableObject {
             needsReauthentication = false
             await refreshFromServer()
             await syncAllowedRoles()
+            await uploadPushTokenIfNeeded()
+            await MainActor.run {
+                requestPushPermission()
+                consumePendingPushIfNeeded()
+            }
         } catch {
             if let message = presentableError(error) { lastSyncError = message }
         }
@@ -1186,6 +1296,11 @@ final class AppState: ObservableObject {
             needsReauthentication = false
             await refreshFromServer()
             await syncAllowedRoles()
+            await uploadPushTokenIfNeeded()
+            await MainActor.run {
+                requestPushPermission()
+                consumePendingPushIfNeeded()
+            }
         } catch MarviAPIError.cancelled {
             // User dismissed Apple sign-in — no error banner.
         } catch {
@@ -1216,6 +1331,11 @@ final class AppState: ObservableObject {
             needsReauthentication = false
             await refreshFromServer()
             await syncAllowedRoles()
+            await uploadPushTokenIfNeeded()
+            await MainActor.run {
+                requestPushPermission()
+                consumePendingPushIfNeeded()
+            }
         } catch MarviAPIError.cancelled {
             // User dismissed Google sign-in — no error banner.
         } catch {
@@ -1234,7 +1354,11 @@ final class AppState: ObservableObject {
         hasCompletedOnboarding = true
         needsReauthentication = false
 
-        Task { await refreshFromServer() }
+        Task {
+            await refreshFromServer()
+            await uploadPushTokenIfNeeded()
+            await MainActor.run { consumePendingPushIfNeeded() }
+        }
         requestPushPermission()
         syncProofReminders()
         refreshLocation()

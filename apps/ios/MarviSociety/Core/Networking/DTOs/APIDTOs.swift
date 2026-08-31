@@ -134,6 +134,8 @@ struct NotificationPayloadDTO: Decodable {
     let booking_id: UUID?
     let offer_id: UUID?
     let conversation_id: UUID?
+    let thread_id: UUID?
+    let follower_id: UUID?
 }
 
 struct NotificationRow: Decodable {
@@ -161,7 +163,7 @@ struct NotificationRow: Decodable {
             notificationType: type ?? "general",
             bookingID: booking_id ?? payload?.booking_id,
             offerID: offer_id ?? payload?.offer_id,
-            conversationID: payload?.conversation_id
+            conversationID: payload?.conversation_id ?? payload?.thread_id
         )
     }
 }

@@ -298,7 +298,7 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 tint = obj.string("tint") ?: "rose",
                 bookingId = obj.string("booking_id") ?: payload?.string("booking_id"),
                 offerId = obj.string("offer_id") ?: payload?.string("offer_id"),
-                conversationId = payload?.string("conversation_id")
+                conversationId = payload?.string("conversation_id") ?: payload?.string("thread_id")
             )
         }
     }

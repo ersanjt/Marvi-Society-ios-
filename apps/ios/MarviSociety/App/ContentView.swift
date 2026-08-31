@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -23,6 +24,11 @@ struct ContentView: View {
         }
         .tint(MarviColor.rose)
         .preferredColorScheme(.dark)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                appState.handleAppBecameActive()
+            }
+        }
     }
 }
 
