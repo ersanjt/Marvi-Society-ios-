@@ -13,6 +13,7 @@ type MobileMenuProps = {
     nav: {
       brands: string;
       creators: string;
+      pricing: string;
       faq: string;
       demo: string;
       login: string;
@@ -33,6 +34,7 @@ export function MobileMenu({ locale, dict }: MobileMenuProps) {
   const navLabel = (label: string) => {
     if (label === "Brands") return dict.nav.brands;
     if (label === "Creators") return dict.nav.creators;
+    if (label === "Pricing") return dict.nav.pricing;
     if (label === "FAQ") return dict.nav.faq;
     return dict.nav.demo;
   };

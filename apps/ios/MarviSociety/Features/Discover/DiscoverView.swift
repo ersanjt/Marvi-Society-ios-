@@ -164,7 +164,7 @@ struct DiscoverView: View {
     }
 
     private var carouselOffers: [Offer] {
-        Array(filteredOffers.prefix(5))
+        filteredOffers.filter(\.isFeaturedNow)
     }
 
     /// Offers not already shown in the featured carousel — avoids duplicate cards in the feed.

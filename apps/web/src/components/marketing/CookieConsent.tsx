@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "marvi_cookie_consent";
+import { COOKIE_CONSENT_KEY } from "@/lib/analytics";
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setVisible(!window.localStorage.getItem(STORAGE_KEY));
+    setVisible(!window.localStorage.getItem(COOKIE_CONSENT_KEY));
   }, []);
 
   if (!visible) return null;
@@ -18,9 +18,9 @@ export function CookieConsent() {
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-panel/95 p-4 shadow-lg backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-graphite">
-          We use essential cookies for login and analytics to improve Marvi Society. See our{" "}
-          <a href="/privacy" className="marvi-link">
-            Privacy Policy
+          We use essential cookies for login. Analytics run only if you accept. See our{" "}
+          <a href="/cookies" className="marvi-link">
+            Cookie Policy
           </a>
           .
         </p>
@@ -29,7 +29,7 @@ export function CookieConsent() {
             type="button"
             className="marvi-btn-secondary"
             onClick={() => {
-              window.localStorage.setItem(STORAGE_KEY, "essential");
+              window.localStorage.setItem(COOKIE_CONSENT_KEY, "essential");
               setVisible(false);
             }}
           >
@@ -39,7 +39,7 @@ export function CookieConsent() {
             type="button"
             className="marvi-btn-primary"
             onClick={() => {
-              window.localStorage.setItem(STORAGE_KEY, "all");
+              window.localStorage.setItem(COOKIE_CONSENT_KEY, "all");
               setVisible(false);
             }}
           >

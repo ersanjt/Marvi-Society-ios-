@@ -711,7 +711,22 @@ class AppViewModel(
         selectedRole = role
         hasCompletedOnboarding = true
         persistSnapshot()
-        refreshFromServer()
+        viewModelScope.launch {
+            runCatching { repository.confirmAge18() }
+            refreshFromServer()
+        }
+    }
+
+    fun submitSafetyReport(body: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                repository.submitSafetyReport(body)
+                onResult(true)
+            }.onFailure {
+                lastSyncError = it.message
+                onResult(false)
+            }
+        }
     }
 
     fun toggleSaved(offerId: String) {

@@ -5,7 +5,7 @@
   "components": {
     "ios": {
       "marketingVersion": "1.5.4",
-      "buildNumber": 101,
+      "buildNumber": 102,
       "bundleId": "com.marvisociety.app"
     },
     "web": {
@@ -17,11 +17,21 @@
       "applicationId": "com.marvisociety.app"
     },
     "database": {
-      "migrationHead": "20260831000001_social_event_notifications",
-      "migrationCount": 80
+      "migrationHead": "20260831020001_venue_billing_safety_and_trust",
+      "migrationCount": 81
     }
   },
   "syncLog": [
+    {
+      "at": "2026-08-31T16:07:05Z",
+      "status": "ok",
+      "message": "supabase db push succeeded (head: 20260831020001_venue_billing_safety_and_trust)"
+    },
+    {
+      "at": "2026-08-31T11:02:54Z",
+      "status": "ok",
+      "message": "pushed 04dfd51 to origin/main"
+    },
     {
       "at": "2026-08-31T11:02:50Z",
       "status": "ok",
@@ -261,16 +271,6 @@
       "at": "2026-08-13T17:04:26Z",
       "status": "ok",
       "message": "supabase db push succeeded (head: 20260813200001_venue_soft_delete_offer)"
-    },
-    {
-      "at": "2026-08-13T16:37:06Z",
-      "status": "ok",
-      "message": "pushed 158179f to origin/main"
-    },
-    {
-      "at": "2026-08-13T16:37:03Z",
-      "status": "ok",
-      "message": "supabase db push succeeded (head: 20260813190001_category_sort_hotel_restaurant_cafe)"
     }
   ],
   "releases": [

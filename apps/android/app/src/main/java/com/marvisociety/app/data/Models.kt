@@ -244,9 +244,18 @@ data class Offer(
     val hostNote: String = "",
     val collaborationModel: CollaborationModel = CollaborationModel.INVITATION,
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val featuredUntil: String? = null
 ) {
     val modelLabel: String get() = collaborationModel.name.lowercase().replaceFirstChar { it.uppercase() }
+
+    fun isFeaturedNow(): Boolean {
+        val raw = featuredUntil ?: return false
+        val instant = runCatching { java.time.Instant.parse(raw) }.getOrNull()
+            ?: runCatching { java.time.OffsetDateTime.parse(raw).toInstant() }.getOrNull()
+            ?: return false
+        return instant.isAfter(java.time.Instant.now())
+    }
 }
 
 data class Booking(
@@ -430,8 +439,17 @@ data class Campaign(
     val venueId: String? = null,
     val venueName: String,
     val dateLabel: String,
-    val isDeleted: Boolean = false
-)
+    val isDeleted: Boolean = false,
+    val featuredUntil: String? = null
+) {
+    fun isFeaturedNow(): Boolean {
+        val raw = featuredUntil ?: return false
+        val instant = runCatching { java.time.Instant.parse(raw) }.getOrNull()
+            ?: runCatching { java.time.OffsetDateTime.parse(raw).toInstant() }.getOrNull()
+            ?: return false
+        return instant.isAfter(java.time.Instant.now())
+    }
+}
 
 data class MemberSearchResult(
     val id: String,

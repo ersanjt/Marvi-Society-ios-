@@ -245,6 +245,7 @@ enum MarviL10n {
         case errEnterCheckInCode, errEnterInviteCode, errSignInRedeemInvite
         case errSignInSubmitProof, errUploadScreenshot, errAddProofLink
         case errAdminRequired, errNoUsersInArea, errSentToUsers
+        case boostCampaign, boostOnExplore, safetyReportBody, safetyReportSent, safetyReportFailed, submitReport
     }
 
     private static let english: [Key: String] = [
@@ -835,7 +836,13 @@ enum MarviL10n {
         .errAddProofLink: "Add at least one proof link or screenshot.",
         .errAdminRequired: "Admin access required.",
         .errNoUsersInArea: "No approved users with recent location in this area.",
-        .errSentToUsers: "Sent to %d user(s) within %d km."
+        .errSentToUsers: "Sent to %d user(s) within %d km.",
+        .boostCampaign: "Boost on Explore",
+        .boostOnExplore: "Featured — manage in portal",
+        .safetyReportBody: "Describe what happened. Our operators review every report.",
+        .safetyReportSent: "Report submitted. Thank you.",
+        .safetyReportFailed: "Could not send the report. Try again.",
+        .submitReport: "Submit report"
     ]
 
     private static let turkish: [Key: String] = [
@@ -1427,7 +1434,13 @@ enum MarviL10n {
         .errAddProofLink: "En az bir kanıt linki veya ekran görüntüsü ekle.",
         .errAdminRequired: "Yönetici erişimi gerekli.",
         .errNoUsersInArea: "Bu bölgede yakın konum paylaşan onaylı kullanıcı yok.",
-        .errSentToUsers: "%d km içindeki %d kullanıcıya gönderildi."
+        .errSentToUsers: "%d km içindeki %d kullanıcıya gönderildi.",
+        .boostCampaign: "Keşfet’te öne çıkar",
+        .boostOnExplore: "Öne çıkan — portalda yönet",
+        .safetyReportBody: "Ne olduğunu yaz. Operatörler her raporu inceler.",
+        .safetyReportSent: "Rapor gönderildi. Teşekkürler.",
+        .safetyReportFailed: "Rapor gönderilemedi. Tekrar dene.",
+        .submitReport: "Raporu gönder"
     ]
 }
 

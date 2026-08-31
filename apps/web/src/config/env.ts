@@ -33,7 +33,11 @@ export function getSupabasePublicConfig() {
   };
 }
 
-/** Preview/demo mode — local dev only when Supabase is not wired. */
+export function isStripeConfigured(): boolean {
+  const key = read("STRIPE_SECRET_KEY");
+  return Boolean(key && key.startsWith("sk_"));
+}
+
 export function isPreviewMode(): boolean {
   return !isProduction() && !isSupabaseConfigured();
 }

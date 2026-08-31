@@ -1,5 +1,6 @@
 package com.marvisociety.app.ui.screens
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -836,6 +838,7 @@ fun VenueStudioScreen(
     var campaignPendingDelete by remember { mutableStateOf<Campaign?>(null) }
     var deleteFeedback by remember { mutableStateOf<String?>(null) }
     var showPastCampaigns by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val visibleCampaigns = viewModel.campaigns.filterNot { it.isDeleted }.filter { campaign ->
         val completed = campaign.status.equals("Completed", ignoreCase = true)
@@ -1221,6 +1224,20 @@ fun VenueStudioScreen(
                                 viewModel.localizeServerText(campaign.dateLabel),
                                 color = MarviColor.Graphite,
                                 style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        TextButton(onClick = {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://marvisociety.com/portal/billing?boost=${campaign.id}")
+                                )
+                            )
+                        }) {
+                            Text(
+                                if (campaign.isFeaturedNow()) viewModel.t(MarviL10n.Key.BOOST_ON_EXPLORE)
+                                else viewModel.t(MarviL10n.Key.BOOST_CAMPAIGN),
+                                color = MarviColor.Rose
                             )
                         }
                         TextButton(onClick = { campaignPendingDelete = campaign }) {

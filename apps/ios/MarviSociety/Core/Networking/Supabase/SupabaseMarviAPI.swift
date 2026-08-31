@@ -1142,6 +1142,20 @@ final class SupabaseMarviAPI: MarviAPI, @unchecked Sendable {
         )
     }
 
+    func confirmAge18() async throws {
+        try await client.rpcVoid(function: "confirm_age_18", body: [:])
+    }
+
+    func submitSafetyReport(body: String, category: String) async throws {
+        try await client.rpcVoid(
+            function: "submit_safety_report",
+            body: [
+                "p_body": body,
+                "p_category": category
+            ]
+        )
+    }
+
     func fetchStrikes() async throws -> [Strike] {
         let rows: [StrikeRow] = try await client.select(
             table: "strikes",

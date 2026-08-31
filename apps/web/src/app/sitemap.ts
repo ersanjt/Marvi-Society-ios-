@@ -7,9 +7,11 @@ const MARKETING_PATHS = [
   "/brands",
   "/faq",
   "/demo",
+  "/pricing",
   "/contact",
   "/privacy",
   "/terms",
+  "/cookies",
   "/community-guidelines",
   "/delete-account",
 ] as const;

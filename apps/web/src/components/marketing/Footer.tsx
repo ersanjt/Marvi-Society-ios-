@@ -36,6 +36,7 @@ export function Footer({ locale }: { locale: Locale }) {
             <li><Link href="/brands" className="transition hover:text-ink">{dict.footer.brands}</Link></li>
             <li><Link href="/faq" className="transition hover:text-ink">{dict.footer.faq}</Link></li>
             <li><Link href="/demo" className="transition hover:text-ink">{dict.footer.demo}</Link></li>
+            <li><Link href="/pricing" className="transition hover:text-ink">{dict.footer.pricing}</Link></li>
           </ul>
         </div>
 
@@ -45,6 +46,7 @@ export function Footer({ locale }: { locale: Locale }) {
             <li><Link href="/privacy" className="transition hover:text-ink">{dict.footer.privacy}</Link></li>
             <li><Link href="/terms" className="transition hover:text-ink">{dict.footer.terms}</Link></li>
             <li><Link href="/community-guidelines" className="transition hover:text-ink">{dict.footer.guidelines}</Link></li>
+            <li><Link href="/cookies" className="transition hover:text-ink">{dict.footer.cookies}</Link></li>
             <li><Link href="/contact" className="transition hover:text-ink">{dict.footer.contact}</Link></li>
             <li><Link href="/delete-account" className="transition hover:text-ink">{dict.footer.deleteAccount}</Link></li>
           </ul>

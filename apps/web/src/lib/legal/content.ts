@@ -68,6 +68,9 @@ const privacyEn: LegalDocument = {
         "Supabase — authentication, database, file storage (proof uploads).",
         "Apple — Sign in with Apple authentication.",
         "Vercel — website hosting.",
+        "Stripe — venue Partner subscriptions and Featured Boost payments (venues only; no creator IAP).",
+        "Resend — transactional email.",
+        "Mapbox — map tiles when map features are used.",
       ],
     },
     {
@@ -183,14 +186,14 @@ const termsEn: LegalDocument = {
       id: "service",
       title: "The Service",
       paragraphs: [
-        "Marvi Society is a curated marketplace for creator–venue collaborations. Experiences are typically provided in exchange for agreed social content deliverables (barter model). Marvi does not guarantee bookings, reach, or revenue.",
+        "Experiences are typically provided in exchange for agreed social content (barter). Venues may pay Marvi for Partner access and Featured Boost placement via Stripe on the web portal. Creators are not charged in-app. Marvi does not guarantee bookings, reach, or revenue.",
       ],
     },
     {
       id: "eligibility",
       title: "Eligibility",
       bullets: [
-        "You must be at least 18 years old.",
+        "You must be at least 18 years old. We store the timestamp of this confirmation on your account (`age_confirmed_at`).",
         "Creator access requires a valid invite code and admin approval.",
         "You must provide accurate profile information.",
         "One person per creator account; no account sharing.",
@@ -404,10 +407,87 @@ const guidelinesTr: LegalDocument = {
   contactNote: "Şikayet / çocuk güvenliği: support@marvisociety.com",
 };
 
+const cookiesEn: LegalDocument = {
+  title: "Cookie Policy",
+  subtitle: "Last updated: 31 August 2026",
+  intro:
+    "This policy explains how Marvi Society uses cookies and similar storage on marvisociety.com. The iOS and Android apps do not use third-party advertising cookies.",
+  sections: [
+    {
+      id: "essential",
+      title: "Essential cookies",
+      paragraphs: [
+        "We use essential cookies and local storage to keep you signed in to the venue portal and admin console, remember your language (EN/TR), and protect forms from abuse.",
+      ],
+    },
+    {
+      id: "analytics",
+      title: "Analytics",
+      paragraphs: [
+        "If you choose “Accept all”, we may record product analytics events (page and in-app style events) to improve the Service. If you choose “Essential only”, we do not send those analytics events from this browser.",
+      ],
+    },
+    {
+      id: "payments",
+      title: "Payments",
+      paragraphs: [
+        "Venue Partner and Featured Boost checkout is processed by Stripe. Stripe may set its own cookies on hosted Checkout pages subject to Stripe’s policy.",
+      ],
+    },
+    {
+      id: "choices",
+      title: "Your choices",
+      paragraphs: [
+        "Use the cookie banner to accept all or essential-only. You can clear site data in your browser to reset the choice. Contact support@marvisociety.com for questions.",
+      ],
+    },
+  ],
+  contactNote: "Cookies: support@marvisociety.com",
+};
+
+const cookiesTr: LegalDocument = {
+  title: "Çerez Politikası",
+  subtitle: "Son güncelleme: 31 Ağustos 2026",
+  intro:
+    "Bu politika marvisociety.com üzerindeki çerez ve benzeri depolamayı açıklar. iOS ve Android uygulamalarında üçüncü taraf reklam çerezi kullanılmaz.",
+  sections: [
+    {
+      id: "essential",
+      title: "Zorunlu çerezler",
+      paragraphs: [
+        "Portal ve admin oturumu, dil tercihi (EN/TR) ve form koruması için zorunlu çerez / yerel depolama kullanırız.",
+      ],
+    },
+    {
+      id: "analytics",
+      title: "Analitik",
+      paragraphs: [
+        "“Tümünü kabul et” derseniz ürün analitik olayları kaydedilebilir. “Yalnızca zorunlu” derseniz bu tarayıcıdan analitik gönderilmez.",
+      ],
+    },
+    {
+      id: "payments",
+      title: "Ödemeler",
+      paragraphs: [
+        "Mekân Partner ve Featured Boost ödemeleri Stripe üzerinden işlenir. Stripe, kendi Checkout sayfalarında kendi çerez politikasını uygulayabilir.",
+      ],
+    },
+    {
+      id: "choices",
+      title: "Tercihleriniz",
+      paragraphs: [
+        "Banner’dan tümünü kabul veya yalnızca zorunlu seçebilirsiniz. Tercihi sıfırlamak için tarayıcı site verisini temizleyin.",
+      ],
+    },
+  ],
+  contactNote: "Çerezler: support@marvisociety.com",
+};
+
 export const legalDocuments = {
   privacy: { en: privacyEn, tr: privacyTr },
   terms: { en: termsEn, tr: termsTr },
   guidelines: { en: guidelinesEn, tr: guidelinesTr },
+  cookies: { en: cookiesEn, tr: cookiesTr },
 } as const;
 
 export type LegalDocumentKey = keyof typeof legalDocuments;

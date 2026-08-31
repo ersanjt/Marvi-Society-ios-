@@ -219,9 +219,14 @@ export default async function PortalDashboardPage() {
                       badge={<StatusPill label={formatStatusLabel(offer.status, locale)} tone={offerStatusTone(offer.status)} />}
                       trailing={
                         offer.status === "live" ? (
-                          <Link href={`/portal/creators?offerId=${offer.id}`} className="text-xs font-bold text-rose">
-                            {d.match}
-                          </Link>
+                          <div className="flex items-center gap-3">
+                            <Link href={`/portal/billing?boost=${offer.id}`} className="text-xs font-bold text-rose">
+                              {dict.portal.billing.boost}
+                            </Link>
+                            <Link href={`/portal/creators?offerId=${offer.id}`} className="text-xs font-bold text-rose">
+                              {d.match}
+                            </Link>
+                          </div>
                         ) : null
                       }
                     />
@@ -266,7 +271,10 @@ export default async function PortalDashboardPage() {
         </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/portal/dashboard" className="marvi-btn-secondary">
+          <Link href="/portal/billing" className="marvi-btn-primary">
+            {dict.portal.nav.billing}
+          </Link>
+          <Link href="/portal/creators" className="marvi-btn-secondary">
             {d.creatorMatching}
           </Link>
           <Link href="/portal/reviews" className="marvi-btn-secondary">

@@ -73,6 +73,8 @@ protocol MarviAPI: Sendable {
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws
     func passCreator(_ creatorID: UUID, offerID: UUID?) async throws
     func redeemReferralCode(_ code: String) async throws
+    func confirmAge18() async throws
+    func submitSafetyReport(body: String, category: String) async throws
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem]
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws
     func submitCreatorReview(bookingID: UUID, hospitality: Int, experience: Int, comment: String) async throws
@@ -200,6 +202,13 @@ extension MarviAPI {
     func passCreator(_ creatorID: UUID, offerID: UUID?) async throws {}
 
     func redeemReferralCode(_ code: String) async throws {}
+
+    func confirmAge18() async throws {}
+
+    func submitSafetyReport(body: String, category: String) async throws {
+        _ = body
+        _ = category
+    }
 
     func signUpWithEmail(_ email: String, password: String, metadata: [String: String]) async throws {
         throw MarviAPIError.server(message: "Sign up requires Supabase mode")

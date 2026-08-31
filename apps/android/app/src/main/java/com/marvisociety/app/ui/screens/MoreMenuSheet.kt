@@ -31,8 +31,14 @@ import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.SupportAgent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +74,10 @@ fun MoreMenuSheet(
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
 
+    var showSafetyReport by remember { mutableStateOf(false) }
+    var safetyBody by remember { mutableStateOf("") }
+    var safetyMessage by remember { mutableStateOf<String?>(null) }
+
     val items = listOf(
         MoreItem(Icons.Outlined.BarChart, viewModel.t(MarviL10n.Key.MORE_ANALYTICS)) { onOpenProfile() },
         MoreItem(Icons.Outlined.StarOutline, viewModel.t(MarviL10n.Key.MY_EVENTS)) { onOpenBookings() },
@@ -84,7 +94,10 @@ fun MoreMenuSheet(
         },
         MoreItem(Icons.Outlined.Description, viewModel.t(MarviL10n.Key.TERMS_OF_SERVICE)) { open(TERMS_URL) },
         MoreItem(Icons.Outlined.Policy, viewModel.t(MarviL10n.Key.PRIVACY_POLICY)) { open(PRIVACY_URL) },
-        MoreItem(Icons.Outlined.Shield, viewModel.t(MarviL10n.Key.COMMUNITY_GUIDELINES)) { open(GUIDELINES_URL) }
+        MoreItem(Icons.Outlined.Shield, viewModel.t(MarviL10n.Key.COMMUNITY_GUIDELINES)) { open(GUIDELINES_URL) },
+        MoreItem(Icons.Outlined.SupportAgent, viewModel.t(MarviL10n.Key.REPORT_SAFETY), dismissOnClick = false) {
+            showSafetyReport = true
+        }
     )
 
     val sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
@@ -169,6 +182,33 @@ fun MoreMenuSheet(
                             }
                         }
                         repeat(3 - row.size) { Box(modifier = Modifier.weight(1f)) }
+                    }
+                }
+                if (showSafetyReport) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(viewModel.t(MarviL10n.Key.SAFETY_REPORT_BODY), color = MarviColor.Muted, style = MaterialTheme.typography.bodySmall)
+                        OutlinedTextField(
+                            value = safetyBody,
+                            onValueChange = { safetyBody = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3
+                        )
+                        safetyMessage?.let { Text(it, color = MarviColor.Emerald, style = MaterialTheme.typography.bodySmall) }
+                        TextButton(
+                            onClick = {
+                                viewModel.submitSafetyReport(safetyBody) { ok ->
+                                    safetyMessage = if (ok) {
+                                        safetyBody = ""
+                                        viewModel.t(MarviL10n.Key.SAFETY_REPORT_SENT)
+                                    } else {
+                                        viewModel.lastSyncError ?: viewModel.t(MarviL10n.Key.SAFETY_REPORT_FAILED)
+                                    }
+                                }
+                            },
+                            enabled = safetyBody.trim().length >= 8
+                        ) {
+                            Text(viewModel.t(MarviL10n.Key.SUBMIT_REPORT), color = MarviColor.Rose)
+                        }
                     }
                 }
                 Box(

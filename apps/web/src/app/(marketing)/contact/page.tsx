@@ -1,5 +1,6 @@
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { ContactForm } from "@/components/marketing/ContactForm";
+import { SafetyReportForm } from "@/components/marketing/SafetyReportForm";
 import { MarviScreen } from "@/components/design/MarviUI";
 import { SITE } from "@/lib/constants";
 import { getI18n } from "@/lib/i18n/locale";
@@ -33,12 +34,7 @@ export default async function ContactPage({
           <div className="marvi-card">
             <h3 className="font-bold text-ink">{t.safetyTitle}</h3>
             <p className="mt-2 text-sm text-muted">{t.safetyBody}</p>
-            <a
-              href={`mailto:${SITE.supportEmail}?subject=Safety%20report`}
-              className="mt-3 inline-block text-sm marvi-link"
-            >
-              {t.safetyCta}
-            </a>
+            <SafetyReportForm t={t} />
           </div>
         </div>
       </div>

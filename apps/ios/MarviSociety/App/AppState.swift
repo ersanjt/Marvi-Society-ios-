@@ -1164,6 +1164,18 @@ final class AppState: ObservableObject {
     }
 
     @discardableResult
+    func submitSafetyReport(body: String) async -> Bool {
+        guard isRemoteMode, isAuthenticated else { return false }
+        do {
+            try await api.submitSafetyReport(body: body, category: "safety")
+            lastSyncError = nil
+            return true
+        } catch {
+            if let message = presentableError(error) { lastSyncError = message }
+            return false
+        }
+    }
+
     func saveProfileToServer() async -> Bool {
         guard isRemoteMode, isAuthenticated else { return false }
 
@@ -1355,6 +1367,9 @@ final class AppState: ObservableObject {
         needsReauthentication = false
 
         Task {
+            if isAuthenticated {
+                try? await api.confirmAge18()
+            }
             await refreshFromServer()
             await uploadPushTokenIfNeeded()
             await MainActor.run { consumePendingPushIfNeeded() }

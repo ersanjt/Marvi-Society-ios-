@@ -8,5 +8,8 @@ export const MARVI_URLS = {
   communityGuidelines: "https://marvisociety.com/community-guidelines",
   deleteAccount: "https://marvisociety.com/delete-account",
   support: "https://marvisociety.com/contact",
+  pricing: "https://marvisociety.com/pricing",
+  cookies: "https://marvisociety.com/cookies",
+  portalBilling: "https://marvisociety.com/portal/billing",
   supportEmail: "mailto:support@marvisociety.com",
 } as const;

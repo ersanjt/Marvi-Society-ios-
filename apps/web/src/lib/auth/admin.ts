@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/config/env";
 
 export async function getSessionUser() {
+  if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user;

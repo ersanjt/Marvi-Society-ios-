@@ -1,7 +1,7 @@
 # Marvi Society — Product Definition
 
-**Version:** 1.0 (June 2026)  
-**Platform:** iOS (primary), Web (marketing + legal + portal), Supabase (backend)
+**Version:** 1.6 (August 2026)  
+**Platform:** iOS (primary), Android, Web (marketing + legal + portal + billing), Supabase (backend)
 
 ## What Marvi Society is
 
@@ -11,7 +11,15 @@ Creators receive curated experiences (dining, nightlife, wellness, beauty, fitne
 
 **Access model:** Sign up with email / Apple / Google → add Instagram or TikTok → wait for **admin approval**. Referral/invite codes are optional growth tools (admin-issued), not a hard membership gate.
 
-**Business model:** Barter (experience in exchange for content). No direct cash payments between creators and venues in v1.
+**Collaboration model:** Barter between creators and venues (experience in exchange for agreed social content). Marvi does not take a cut of creator–venue barter.
+
+**Revenue model (B2B, venues pay):** Creators stay free. Venues pay Marvi on the web portal via Stripe:
+
+- **Free** — one live campaign on Explore.
+- **Partner** — monthly subscription; unlimited live campaigns for the billed venue.
+- **Featured Boost** — one-time placement of a live offer in the Discover featured carousel until `featured_until`.
+
+No creator in-app purchases. StoreKit is not used for venue billing.
 
 ## User roles
 
@@ -38,6 +46,7 @@ Creators receive curated experiences (dining, nightlife, wellness, beauty, fitne
 1. **Campaign builder** — Submit campaign for admin review.
 2. **Studio** — View campaigns; review creators (swipe UI — backend matching v2).
 3. **Inbox** — Operational notifications.
+4. **Billing** — Partner plan and Featured Boost on the web portal (`/portal/billing`, `/pricing`).
 
 ### Admin
 
@@ -46,7 +55,7 @@ Creators receive curated experiences (dining, nightlife, wellness, beauty, fitne
 
 ## Product rules (enforced in app + backend)
 
-- **18+ only** — Confirmed at onboarding; stated in Terms.
+- **18+ only** — Confirmed at onboarding and stored as `profiles.age_confirmed_at`. Stated in Terms. App Store age rating remains **17+** (Apple’s nearest bucket for nightlife / UGC); product eligibility is 18+.
 - **Admin approval** — Creator `status` stays `under_review` until approved (hard gate to the main app).
 - **Social handles** — Instagram **or** TikTok required before accepting offers.
 - **Social DM verify** — Optional trust signal (profile health + admin queue); not required to accept.
@@ -64,6 +73,8 @@ Creators receive curated experiences (dining, nightlife, wellness, beauty, fitne
 | Terms of Service | `/terms` | Profile, Onboarding acceptance |
 | Community Guidelines | `/community-guidelines` | Profile |
 | Delete account | `/delete-account` | Profile (Apple requirement) |
+| Cookie policy | `/cookies` | Banner + footer |
+| Pricing (venues) | `/pricing` | Marketing, portal billing |
 | Support | `/contact` | Profile |
 
 Locales: English + Turkish (web follows site locale cookie; iOS legal links open English web pages).
@@ -95,11 +106,11 @@ Web (Next.js on Vercel) — marketing, legal, delete-account, portal
 - **Age rating:** 17+ recommended (nightlife, user-generated proof content)
 - **Encryption:** Standard HTTPS only (`ITSAppUsesNonExemptEncryption = NO`)
 
-## Out of scope for v1.0
+## Out of scope
 
-- In-app payments / subscriptions
-- Remote push (APNs) — local reminders only
-- Creator swipe matching backend (UI present for venues)
+- Creator in-app purchases / StoreKit subscriptions
+- Cash settlement between creators and venues
+- Android FCM remote push (iOS APNs path exists; FCM is a later parity item)
 - Phone/SMS auth
 
 ## Related docs

@@ -152,7 +152,9 @@ object MarviL10n {
         NO_COVER_IMAGE, EDIT_PROFILE, PROFILE_COMPLETION_PCT, COMPLETE_PROFILE_CTA,
         GET_LISTED_SUB, SEARCH_OFFERS, BROWSE_CAMPAIGNS, BROWSE_CAMPAIGNS_SUB,
         RECENT_REQUESTS, NO_PENDING_REQUESTS, PROFILE_COMPLETION_LABEL,
-        STAT_EVENTS, STAT_SAVED, STAT_PENDING, STAT_INBOX, STAT_SCORE, STAT_DELIVERY
+        STAT_EVENTS, STAT_SAVED, STAT_PENDING, STAT_INBOX, STAT_SCORE, STAT_DELIVERY,
+        BOOST_CAMPAIGN, BOOST_ON_EXPLORE, REPORT_SAFETY, SAFETY_REPORT_BODY,
+        SAFETY_REPORT_SENT, SAFETY_REPORT_FAILED, SUBMIT_REPORT
     }
 
     fun t(key: Key, language: AppLanguage): String = when (language) {
@@ -746,7 +748,14 @@ object MarviL10n {
         Key.STAT_PENDING to "Pending",
         Key.STAT_INBOX to "Inbox",
         Key.STAT_SCORE to "Score",
-        Key.STAT_DELIVERY to "Delivery"
+        Key.STAT_DELIVERY to "Delivery",
+        Key.BOOST_CAMPAIGN to "Boost on Explore",
+        Key.BOOST_ON_EXPLORE to "Featured — open billing",
+        Key.REPORT_SAFETY to "Report a safety issue",
+        Key.SAFETY_REPORT_BODY to "Describe what happened. Operators review every report.",
+        Key.SAFETY_REPORT_SENT to "Report submitted. Thank you.",
+        Key.SAFETY_REPORT_FAILED to "Could not send the report.",
+        Key.SUBMIT_REPORT to "Submit report"
     )
 
     private val turkish = mapOf(
@@ -1330,7 +1339,14 @@ object MarviL10n {
         Key.STAT_PENDING to "Bekleyen",
         Key.STAT_INBOX to "Gelen kutusu",
         Key.STAT_SCORE to "Puan",
-        Key.STAT_DELIVERY to "Teslimat"
+        Key.STAT_DELIVERY to "Teslimat",
+        Key.BOOST_CAMPAIGN to "Keşfet’te öne çıkar",
+        Key.BOOST_ON_EXPLORE to "Öne çıkan — faturalamayı aç",
+        Key.REPORT_SAFETY to "Güvenlik sorunu bildir",
+        Key.SAFETY_REPORT_BODY to "Ne olduğunu yaz. Operatörler her raporu inceler.",
+        Key.SAFETY_REPORT_SENT to "Rapor gönderildi. Teşekkürler.",
+        Key.SAFETY_REPORT_FAILED to "Rapor gönderilemedi.",
+        Key.SUBMIT_REPORT to "Raporu gönder"
     )
 
     fun categoryLabel(category: com.marvisociety.app.data.OfferCategory, language: AppLanguage): String =

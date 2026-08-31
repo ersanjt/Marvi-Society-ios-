@@ -14,5 +14,9 @@ enum AppLinks {
     static let deleteAccount = URL(string: "https://marvisociety.com/delete-account")!
     static let support = URL(string: "https://marvisociety.com/contact")!
     static let supportEmail = URL(string: "mailto:support@marvisociety.com")!
-  static let safetyReportEmail = URL(string: "mailto:support@marvisociety.com?subject=Safety%20report")!
+    static let portalBilling = URL(string: "https://marvisociety.com/portal/billing")!
+
+    static func portalBoost(offerID: UUID) -> URL {
+        URL(string: "https://marvisociety.com/portal/billing?boost=\(offerID.uuidString.lowercased())")!
+    }
 }

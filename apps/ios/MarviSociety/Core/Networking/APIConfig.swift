@@ -180,6 +180,8 @@ final class UnconfiguredMarviAPI: MarviAPI, @unchecked Sendable {
     func shortlistCreator(_ creatorID: UUID, offerID: UUID?) async throws { throw notConfigured() }
     func passCreator(_ creatorID: UUID, offerID: UUID?) async throws { throw notConfigured() }
     func redeemReferralCode(_ code: String) async throws { throw notConfigured() }
+    func confirmAge18() async throws { throw notConfigured() }
+    func submitSafetyReport(body: String, category: String) async throws { throw notConfigured() }
     func fetchVenueReviewQueue() async throws -> [VenueReviewItem] { [] }
     func submitVenueReview(bookingID: UUID, punctuality: Int, presentation: Int, comment: String) async throws {
         throw notConfigured()

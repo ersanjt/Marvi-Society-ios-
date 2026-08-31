@@ -11,6 +11,7 @@ export function Header({ locale }: { locale: Locale }) {
   const navLabel = (label: string) => {
     if (label === "Brands") return dict.nav.brands;
     if (label === "Creators") return dict.nav.creators;
+    if (label === "Pricing") return dict.nav.pricing;
     if (label === "FAQ") return dict.nav.faq;
     return dict.nav.demo;
   };

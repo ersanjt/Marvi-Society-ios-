@@ -172,6 +172,9 @@ fun DiscoverScreen(
         searchText = ""
     }
 
+    val featured = filtered.filter { it.isFeaturedNow() }
+    val listOffers = filtered.filter { !it.isFeaturedNow() }
+
     if (mapMode) {
         MarviScreen {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -266,7 +269,28 @@ fun DiscoverScreen(
                 )
             }
 
-            if (filtered.isEmpty()) {
+            if (featured.isNotEmpty()) {
+                item {
+                    Text(
+                        viewModel.t(MarviL10n.Key.FEATURED_EVENTS),
+                        color = MarviColor.Ink,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                items(featured, key = { "featured-${it.id}" }) { offer ->
+                    CampaignOfferCard(
+                        offer = offer,
+                        viewModel = viewModel,
+                        saved = offer.id in viewModel.savedOfferIds,
+                        accepted = offer.id in viewModel.acceptedOfferIds,
+                        onOpen = { onOfferClick(offer) },
+                        onToggleSaved = { viewModel.toggleSaved(offer.id) }
+                    )
+                }
+            }
+
+            if (listOffers.isEmpty() && featured.isEmpty()) {
                 item {
                     MarviCard {
                         EmptyStateView(
@@ -293,7 +317,7 @@ fun DiscoverScreen(
                     }
                 }
             } else {
-                items(filtered, key = { it.id }) { offer ->
+                items(listOffers, key = { it.id }) { offer ->
                     val overlay = offer.collaborationModel == CollaborationModel.GIFT ||
                         offer.collaborationModel == CollaborationModel.INSTANT
                     if (overlay) {

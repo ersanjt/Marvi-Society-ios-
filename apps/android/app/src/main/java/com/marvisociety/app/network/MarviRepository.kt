@@ -517,6 +517,20 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
         client.rpcVoid("redeem_referral_code", buildJsonObject { put("p_code", code.trim().uppercase()) })
     }
 
+    suspend fun confirmAge18() {
+        client.rpcVoid("confirm_age_18", buildJsonObject { })
+    }
+
+    suspend fun submitSafetyReport(body: String, category: String = "safety") {
+        client.rpcVoid(
+            "submit_safety_report",
+            buildJsonObject {
+                put("p_body", body)
+                put("p_category", category)
+            }
+        )
+    }
+
         suspend fun fetchAdminTasks(): List<AdminTask> {
         val rows = client.select(
             "admin_tasks",
@@ -927,7 +941,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 venueId = obj.string("venue_id"),
                 venueName = venue?.string("venue_name") ?: obj.string("venue_name") ?: "",
                 dateLabel = formatRelative(obj.string("created_at")),
-                isDeleted = !obj.string("deleted_at").isNullOrBlank()
+                isDeleted = !obj.string("deleted_at").isNullOrBlank(),
+                featuredUntil = obj.string("featured_until")
             )
         }
     }
@@ -1281,7 +1296,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
             hostNote = obj.string("host_note") ?: "",
             collaborationModel = CollaborationModel.fromApi(obj.string("model")),
             latitude = obj.double("lat"),
-            longitude = obj.double("lng")
+            longitude = obj.double("lng"),
+            featuredUntil = obj.string("featured_until")
         )
     }
 
@@ -1309,7 +1325,8 @@ class MarviRepository(private val client: SupabaseClient = SupabaseClient()) {
                 hostNote = offerObj.string("host_note") ?: "",
                 collaborationModel = CollaborationModel.fromApi(offerObj.string("model")),
                 latitude = offerObj.double("lat"),
-                longitude = offerObj.double("lng")
+                longitude = offerObj.double("lng"),
+                featuredUntil = offerObj.string("featured_until")
             )
         } else {
             parseOffer(obj) ?: Offer(

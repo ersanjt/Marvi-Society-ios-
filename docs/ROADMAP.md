@@ -111,8 +111,8 @@ See [STATUS.md](./STATUS.md).
 | Area | Work |
 |------|------|
 | **Compliance** | GDPR, KVKK, Terms, Privacy, creator/venue agreements |
-| **Payments** | Venue subscription (Stripe) — optional |
-| **Moderation** | Safety reports, account freeze, appeal flow |
+| **Payments** | Venue Partner (Stripe monthly) + Featured Boost — shipped on web portal |
+| **Moderation** | In-app safety reports + admin queue (freeze/appeal still later) |
 | **Localization** | AR, DE, ES (Collabb parity) |
 | **SRE** | Staging env, load test, incident runbook |
 | **Instagram ops** | Content calendar, UGC repost pipeline |
@@ -165,7 +165,8 @@ Week:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
 - [x] Marketing + brand portal built (deploy to custom domain pending)
 - [ ] 4 collaboration models production-ready
 - [ ] Real auth, push, maps, social linking
-- [x] Admin moderation + legal pages (stubs; legal review pending)
+- [x] Venue Partner + Featured Boost (Stripe Checkout on web; Discover uses `featured_until`)
+- [x] Admin moderation + legal pages (cookies policy + in-app safety reports; counsel review still pending)
 - [ ] EN + TR + AR localized
 - [ ] CI/CD deploys on merge to `main`
 - [ ] Analytics and error monitoring active

@@ -47,6 +47,10 @@ struct ProfileView: View {
     @State private var languagesText = ""
     @State private var selectedInsightTab: ProfileInsightTab = .engagement
     @State private var selectedMainTab: ProfileMainTab = .overview
+    @State private var isShowingSafetyReport = false
+    @State private var safetyReportBody = ""
+    @State private var safetyReportBusy = false
+    @State private var safetyReportMessage: String?
     @State private var avatarPickerItem: PhotosPickerItem?
     @State private var coverPickerItem: PhotosPickerItem?
     @State private var isUploadingPhoto = false
@@ -712,7 +716,9 @@ struct ProfileView: View {
                                 Link(destination: AppLinks.supportEmail) {
                                     Label(appState.t(.emailSupport), systemImage: "envelope")
                                 }
-                                Link(destination: AppLinks.safetyReportEmail) {
+                                Button {
+                                    isShowingSafetyReport = true
+                                } label: {
                                     Label(appState.t(.reportSafety), systemImage: "exclamationmark.bubble")
                                 }
                             }
@@ -829,6 +835,50 @@ struct ProfileView: View {
                 }
             } message: {
                 Text(appState.t(.signOutMessage))
+            }
+            .sheet(isPresented: $isShowingSafetyReport) {
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(appState.t(.safetyReportBody))
+                            .font(.subheadline)
+                            .foregroundStyle(MarviColor.muted)
+                        TextEditor(text: $safetyReportBody)
+                            .frame(minHeight: 140)
+                            .padding(8)
+                            .background(MarviColor.panelElevated)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        if let safetyReportMessage {
+                            Text(safetyReportMessage)
+                                .font(.footnote)
+                                .foregroundStyle(MarviColor.muted)
+                        }
+                        Spacer()
+                    }
+                    .padding(20)
+                    .navigationTitle(appState.t(.reportSafety))
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(appState.t(.close)) { isShowingSafetyReport = false }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(appState.t(.submitReport)) {
+                                Task {
+                                    safetyReportBusy = true
+                                    let ok = await appState.submitSafetyReport(body: safetyReportBody)
+                                    safetyReportBusy = false
+                                    safetyReportMessage = ok
+                                        ? appState.t(.safetyReportSent)
+                                        : (appState.lastSyncError ?? appState.t(.safetyReportFailed))
+                                    if ok {
+                                        safetyReportBody = ""
+                                    }
+                                }
+                            }
+                            .disabled(safetyReportBusy || safetyReportBody.trimmingCharacters(in: .whitespacesAndNewlines).count < 8)
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
             }
         }
     }

@@ -11,6 +11,7 @@ const PORTAL_NAV_HREFS = [
   { href: "/portal/campaigns/new", key: "newCampaign" as const },
   { href: "/portal/creators", key: "creators" as const },
   { href: "/portal/reviews", key: "reviews" as const },
+  { href: "/portal/billing", key: "billing" as const },
 ];
 
 export async function PortalNav({ dict, locale }: { dict: PortalAdminDict; locale: Locale }) {

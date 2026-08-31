@@ -326,6 +326,7 @@ struct Offer: Codable, Identifiable, Hashable {
     let latitude: Double?
     let longitude: Double?
     let createdAt: Date?
+    let featuredUntil: Date?
 
     init(
         id: UUID = UUID(),
@@ -346,7 +347,8 @@ struct Offer: Codable, Identifiable, Hashable {
         collaborationModel: CollaborationModel = .invitation,
         latitude: Double? = nil,
         longitude: Double? = nil,
-        createdAt: Date? = nil
+        createdAt: Date? = nil,
+        featuredUntil: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -367,6 +369,12 @@ struct Offer: Codable, Identifiable, Hashable {
         self.latitude = latitude
         self.longitude = longitude
         self.createdAt = createdAt
+        self.featuredUntil = featuredUntil
+    }
+
+    var isFeaturedNow: Bool {
+        guard let featuredUntil else { return false }
+        return featuredUntil > Date()
     }
 
     var sortDate: Date { createdAt ?? .distantPast }
@@ -1003,6 +1011,7 @@ struct Campaign: Codable, Identifiable, Hashable {
     var deliverables: [String]
     var isDeleted: Bool
     var adminBlockReason: String?
+    var featuredUntil: Date?
 
     init(
         id: UUID = UUID(),
@@ -1018,7 +1027,8 @@ struct Campaign: Codable, Identifiable, Hashable {
         status: CampaignStatus,
         deliverables: [String],
         isDeleted: Bool = false,
-        adminBlockReason: String? = nil
+        adminBlockReason: String? = nil,
+        featuredUntil: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -1034,6 +1044,12 @@ struct Campaign: Codable, Identifiable, Hashable {
         self.deliverables = deliverables
         self.isDeleted = isDeleted
         self.adminBlockReason = adminBlockReason
+        self.featuredUntil = featuredUntil
+    }
+
+    var isFeaturedNow: Bool {
+        guard let featuredUntil else { return false }
+        return featuredUntil > Date()
     }
 }
 

@@ -3,6 +3,7 @@
 import { CollaborationModelPicker } from "@/components/portal/CreatorSwipeDeck";
 import { SyncBanner } from "@/components/design/MarviUI";
 import type { PortalAdminDict } from "@/lib/i18n/portal-admin";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -162,6 +163,9 @@ export function CampaignForm({ dict }: { dict: PortalAdminDict }) {
       </label>
 
       <p className="text-xs text-muted">{c.reviewNote}</p>
+      <Link href="/portal/billing" className="inline-block text-sm font-bold text-rose">
+        {dict.portal.billing.boostTitle} →
+      </Link>
 
       <button type="submit" className="marvi-btn-primary w-full" disabled={status === "loading"}>
         {status === "loading" ? dict.common.submitting : c.submitForReview}

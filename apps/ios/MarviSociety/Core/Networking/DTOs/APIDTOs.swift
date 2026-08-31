@@ -61,6 +61,7 @@ struct OfferRow: Decodable {
     let lat: Double?
     let lng: Double?
     let created_at: String?
+    let featured_until: String?
 
     func toOffer() -> Offer {
         Offer(
@@ -82,7 +83,8 @@ struct OfferRow: Decodable {
             collaborationModel: CollaborationModel.fromAPI(model),
             latitude: lat,
             longitude: lng,
-            createdAt: ISO8601DateFormatter().date(from: created_at ?? "")
+            createdAt: ISO8601DateFormatter().date(from: created_at ?? ""),
+            featuredUntil: ISO8601DateFormatter().date(from: featured_until ?? "")
         )
     }
 }
@@ -252,6 +254,7 @@ struct CampaignOfferRow: Decodable {
     let status: String?
     let deleted_at: String?
     let admin_block_reason: String?
+    let featured_until: String?
     let venue_profiles: VenueProfileEmbed?
 
     struct VenueProfileEmbed: Decodable {
@@ -276,7 +279,8 @@ struct CampaignOfferRow: Decodable {
             status: CampaignStatus.fromAPI(status),
             deliverables: deliverables ?? [],
             isDeleted: deleted_at != nil && !(deleted_at?.isEmpty ?? true),
-            adminBlockReason: admin_block_reason
+            adminBlockReason: admin_block_reason,
+            featuredUntil: ISO8601DateFormatter().date(from: featured_until ?? "")
         )
     }
 }

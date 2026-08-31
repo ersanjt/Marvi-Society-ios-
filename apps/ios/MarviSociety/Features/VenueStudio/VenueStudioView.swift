@@ -941,6 +941,21 @@ private struct CampaignCard: View {
                     InfoBadge(icon: "gift", text: campaign.valueLabel)
                     InfoBadge(icon: "person.2", text: "\(campaign.matchedCreators)/\(campaign.slots)")
                 }
+
+                if campaign.status == .live {
+                    Button {
+                        UIApplication.shared.open(AppLinks.portalBoost(offerID: campaign.id))
+                    } label: {
+                        Label(
+                            campaign.isFeaturedNow ? appState.t(.boostOnExplore) : appState.t(.boostCampaign),
+                            systemImage: "sparkles"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(MarviColor.rose)
+                    .accessibilityLabel(appState.t(.boostCampaign))
+                }
             }
         }
     }
