@@ -108,10 +108,10 @@ export default async function PortalDashboardPage() {
           { label: d.totalOffers, value: String(offers.length), hint: userEmail ?? d.venueAccount, icon: <IconBuilding size={18} />, tone: "aubergine" as const },
         ]
       : [
-          { label: d.liveCampaigns, value: "6", hint: d.thisWeek, icon: <IconSparkles size={18} />, tone: "rose" as const },
-          { label: d.matchedCreators, value: "84", hint: `31 ${d.confirmed}`, icon: <IconCalendar size={18} />, tone: "emerald" as const },
-          { label: d.proofReceived, value: "89%", hint: d.vsLastMonth, icon: <IconShield size={18} />, tone: "gold" as const },
-          { label: d.avgReach, value: "312K", hint: d.perCampaign, icon: <IconBuilding size={18} />, tone: "aubergine" as const },
+          { label: d.liveCampaigns, value: "—", hint: d.previewMetricsHint, icon: <IconSparkles size={18} />, tone: "rose" as const },
+          { label: d.matchedCreators, value: "—", hint: d.previewMetricsHint, icon: <IconCalendar size={18} />, tone: "emerald" as const },
+          { label: d.proofPending, value: "—", hint: d.previewMetricsHint, icon: <IconShield size={18} />, tone: "gold" as const },
+          { label: d.totalOffers, value: "—", hint: d.previewMetricsHint, icon: <IconBuilding size={18} />, tone: "aubergine" as const },
         ];
 
   const studioGrid =
@@ -125,28 +125,17 @@ export default async function PortalDashboardPage() {
           { label: d.proofWait, value: String(proofPending), tone: "tomato" as const },
         ]
       : [
-          { label: d.live, value: "6", tone: "emerald" as const },
-          { label: d.inReview, value: "2", tone: "gold" as const },
-          { label: d.drafts, value: "1", tone: "muted" as const },
-          { label: d.bookings, value: "31", tone: "blue" as const },
-          { label: d.matched, value: "84", tone: "rose" as const },
-          { label: d.proofWait, value: "4", tone: "tomato" as const },
+          { label: d.live, value: "—", tone: "muted" as const },
+          { label: d.inReview, value: "—", tone: "muted" as const },
+          { label: d.drafts, value: "—", tone: "muted" as const },
+          { label: d.bookings, value: "—", tone: "muted" as const },
+          { label: d.matched, value: "—", tone: "muted" as const },
+          { label: d.proofWait, value: "—", tone: "muted" as const },
         ];
 
-  const displayOffers =
-    mode === "live"
-      ? offers
-      : ([
-          { id: "p1", title: "Rooftop opening night", status: "live", capacity: 20, remaining_slots: 5, venue_profiles: { venue_name: "Demo Venue" } },
-          { id: "p2", title: "Signature facial launch", status: "review", capacity: 10, remaining_slots: 10, venue_profiles: { venue_name: "Demo Venue" } },
-        ] as OfferRow[]);
+  const displayOffers = mode === "live" ? offers : [];
 
-  const displayBookings =
-    mode === "live"
-      ? bookings
-      : ([
-          { id: "b1", stage: "confirmed", proof_status: "pending", offers: { title: "Rooftop opening night", venue_profiles: { venue_name: "Demo Venue" } } },
-        ] as BookingRow[]);
+  const displayBookings = mode === "live" ? bookings : [];
 
   return (
     <MarviScreen>

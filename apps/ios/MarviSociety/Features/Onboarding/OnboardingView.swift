@@ -1031,6 +1031,10 @@ struct OnboardingView: View {
                         }
                         .tint(MarviColor.rose)
 
+                        Text(appState.t(.age18StoreNote))
+                            .font(.caption)
+                            .foregroundStyle(MarviColor.muted)
+
                         Toggle(isOn: $acceptedTerms) {
                             Text(appState.t(.termsToggle))
                                 .font(.subheadline)

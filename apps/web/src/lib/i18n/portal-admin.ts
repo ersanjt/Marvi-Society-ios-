@@ -87,6 +87,7 @@ export const portalAdmin = {
         noBookingsBody: "When creators accept your campaigns, bookings appear here.",
         creatorMatching: "Creator matching",
         reviewQueue: "Review queue",
+        previewMetricsHint: "Preview — not live ROI",
       },
       billing: {
         metaTitle: "Venue billing",
@@ -434,6 +435,7 @@ export const portalAdmin = {
         noBookingsBody: "Üreticiler kampanyalarınızı kabul ettiğinde rezervasyonlar burada görünür.",
         creatorMatching: "Üretici eşleştirme",
         reviewQueue: "İnceleme kuyruğu",
+        previewMetricsHint: "Önizleme — canlı ROI değil",
       },
       billing: {
         metaTitle: "Mekân faturalama",

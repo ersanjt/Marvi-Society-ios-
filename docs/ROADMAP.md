@@ -167,6 +167,7 @@ Week:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
 - [ ] Real auth, push, maps, social linking
 - [x] Venue Partner + Featured Boost (Stripe Checkout on web; Discover uses `featured_until`)
 - [x] Admin moderation + legal pages (cookies policy + in-app safety reports; counsel review still pending)
+- [x] Design system tokens match live OLED palette (`brand.ts` / `Colors.swift`)
 - [ ] EN + TR + AR localized
 - [ ] CI/CD deploys on merge to `main`
 - [ ] Analytics and error monitoring active

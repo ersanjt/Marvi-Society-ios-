@@ -83,8 +83,8 @@ struct OfferRow: Decodable {
             collaborationModel: CollaborationModel.fromAPI(model),
             latitude: lat,
             longitude: lng,
-            createdAt: ISO8601DateFormatter().date(from: created_at ?? ""),
-            featuredUntil: ISO8601DateFormatter().date(from: featured_until ?? "")
+            createdAt: APIDTOs.parseISO(created_at),
+            featuredUntil: APIDTOs.parseISO(featured_until)
         )
     }
 }
@@ -280,7 +280,7 @@ struct CampaignOfferRow: Decodable {
             deliverables: deliverables ?? [],
             isDeleted: deleted_at != nil && !(deleted_at?.isEmpty ?? true),
             adminBlockReason: admin_block_reason,
-            featuredUntil: ISO8601DateFormatter().date(from: featured_until ?? "")
+            featuredUntil: APIDTOs.parseISO(featured_until)
         )
     }
 }

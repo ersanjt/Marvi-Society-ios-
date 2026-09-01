@@ -41,7 +41,7 @@ enum MarviL10n {
         case featCuratedTitle, featCuratedSub
         case profileSetupTitle, profileSetupSub, fullNamePlaceholder, instagramPlaceholder, cityPlaceholder
         case yourNiches, popularCities
-        case agreementTitle, agreementSub, age18Toggle, termsToggle
+        case agreementTitle, agreementSub, age18Toggle, age18StoreNote, termsToggle
         case joinMarvi, welcome, signInStep, inviteStep, profileStep, agreementStep
         case validatingInvite, settingUpAccount, checkEmailTitle
         case passwordResetDefault, passwordResetInstructions
@@ -317,8 +317,9 @@ enum MarviL10n {
         .instagramPlaceholder: "Instagram handle", .cityPlaceholder: "City",
         .yourNiches: "Your niches", .popularCities: "Popular cities",
         .agreementTitle: "Membership agreement",
-        .agreementSub: "Required before entering the club.",
+        .agreementSub: "Confirm you are 18+ and accept the community rules.",
         .age18Toggle: "I am 18 years of age or older.",
+        .age18StoreNote: "Membership is 18+. Apple rates this app 17+ (nearest nightlife / UGC bucket).",
         .termsToggle: "I agree to the Terms of Service, Privacy Policy, and Community Guidelines.",
         .joinMarvi: "Join Marvi Society",
         .welcome: "Welcome", .signInStep: "Sign in", .inviteStep: "Invite",
@@ -914,8 +915,9 @@ enum MarviL10n {
         .instagramPlaceholder: "Instagram kullanıcı adı", .cityPlaceholder: "Şehir",
         .yourNiches: "Nişlerin", .popularCities: "Popüler şehirler",
         .agreementTitle: "Üyelik sözleşmesi",
-        .agreementSub: "Kulübe girmeden önce zorunludur.",
+        .agreementSub: "18+ olduğunuzu ve topluluk kurallarını kabul ettiğinizi onaylayın.",
         .age18Toggle: "18 yaşında veya daha büyüğüm.",
+        .age18StoreNote: "Üyelik 18+’tır. Apple bu uygulamayı 17+ derecelendirir (gece hayatı / UGC için en yakın kategori).",
         .termsToggle: "Kullanım Koşulları, Gizlilik Politikası ve Topluluk Kuralları'nı kabul ediyorum.",
         .joinMarvi: "Marvi Society'ye katıl",
         .welcome: "Hoş geldin", .signInStep: "Giriş", .inviteStep: "Davet",

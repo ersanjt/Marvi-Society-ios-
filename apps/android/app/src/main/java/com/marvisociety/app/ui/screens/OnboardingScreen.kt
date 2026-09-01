@@ -1120,6 +1120,11 @@ private fun AgreementStep(
     Text(viewModel.t(MarviL10n.Key.AGREEMENT_TITLE), style = MaterialTheme.typography.headlineMedium, color = MarviColor.Ink, fontWeight = FontWeight.Bold)
     Text(viewModel.t(MarviL10n.Key.AGREEMENT_SUB), color = MarviColor.Muted)
     CheckRow(ageConfirmed, viewModel.t(MarviL10n.Key.AGE_CONFIRM), onAge)
+    Text(
+        viewModel.t(MarviL10n.Key.AGE_STORE_NOTE),
+        color = MarviColor.Muted,
+        style = MaterialTheme.typography.bodySmall
+    )
     CheckRow(termsAccepted, viewModel.t(MarviL10n.Key.TERMS_CONFIRM), onTerms)
     PrimaryActionButton(
         title = if (busy) viewModel.t(MarviL10n.Key.LOADING) else viewModel.t(MarviL10n.Key.JOIN_MARVI),

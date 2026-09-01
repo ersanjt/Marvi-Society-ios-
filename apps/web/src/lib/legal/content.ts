@@ -178,7 +178,7 @@ const privacyTr: LegalDocument = {
 
 const termsEn: LegalDocument = {
   title: "Terms of Service",
-  subtitle: "Last updated: 10 June 2026",
+  subtitle: "Last updated: 1 September 2026",
   intro:
     "These Terms of Service (“Terms”) govern your access to Marvi Society’s iOS and Android applications, website, and related services (collectively, the “Service”). By creating an account or using the Service, you agree to these Terms and our Privacy Policy.",
   sections: [
@@ -193,8 +193,8 @@ const termsEn: LegalDocument = {
       id: "eligibility",
       title: "Eligibility",
       bullets: [
-        "You must be at least 18 years old. We store the timestamp of this confirmation on your account (`age_confirmed_at`).",
-        "Creator access requires a valid invite code and admin approval.",
+        "You must be at least 18 years old. We store the timestamp of this confirmation on your account (`age_confirmed_at`). Product eligibility is 18+ even though Apple rates the iOS app 17+ (nearest nightlife / UGC bucket).",
+        "Creator access requires admin approval. Invite codes are optional growth tools, not a signup gate.",
         "You must provide accurate profile information.",
         "One person per creator account; no account sharing.",
       ],
@@ -273,16 +273,16 @@ const termsEn: LegalDocument = {
 
 const termsTr: LegalDocument = {
   title: "Kullanım Şartları",
-  subtitle: "Son güncelleme: 10 Haziran 2026",
+  subtitle: "Son güncelleme: 1 Eylül 2026",
   intro:
-    "Bu şartlar Marvi Society uygulaması ve web sitesinin kullanımını düzenler. Hesap oluşturarak bu şartları ve Gizlilik Politikasını kabul etmiş olursunuz.",
+    "Bu şartlar Marvi Society uygulaması ve web sitesinin kullanımını düzenler. Deneyimler genellikle barter’dır; mekânlar Partner ve Featured Boost için web portalında Stripe ile Marvi’ye öder. Creator’lardan uygulama içi ücret alınmaz.",
   sections: [
     {
       id: "eligibility",
       title: "Uygunluk",
       bullets: [
-        "18 yaş ve üzeri olmalısınız.",
-        "Geçerli davet kodu ve admin onayı gereklidir.",
+        "18 yaş ve üzeri olmalısınız. Bu onayın zaman damgası hesapta saklanır (`age_confirmed_at`). Apple iOS uygulamasını 17+ derecelendirir; ürün uygunluğu 18+’tır.",
+        "Creator erişimi admin onayı ister. Davet kodları isteğe bağlıdır, kayıt kapısı değildir.",
         "Doğru profil bilgisi sağlamalısınız.",
       ],
     },

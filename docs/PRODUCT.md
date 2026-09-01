@@ -103,7 +103,7 @@ Web (Next.js on Vercel) — marketing, legal, delete-account, portal
 - **Bundle ID:** `com.marvisociety.app`
 - **Name:** Marvi Society
 - **Category:** Lifestyle
-- **Age rating:** 17+ recommended (nightlife, user-generated proof content)
+- **Age rating:** App Store **17+** (Apple’s nearest nightlife / UGC bucket). Product eligibility and onboarding confirmation are **18+**, stored as `age_confirmed_at`.
 - **Encryption:** Standard HTTPS only (`ITSAppUsesNonExemptEncryption = NO`)
 
 ## Out of scope

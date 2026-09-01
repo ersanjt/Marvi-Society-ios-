@@ -1,58 +1,68 @@
 # Marvi Society Design System
 
+Live tokens match the shipping OLED apps, not the older cream/emerald mock.
+
+Source of truth:
+
+- Web: `apps/web/src/config/brand.ts`
+- iOS: `apps/ios/MarviSociety/Core/DesignSystem/Theme/Colors.swift`
+
 ## Product feel
 
-Marvi Society should feel private, operational, and premium. The product is not a marketing landing page; it is a working tool for creators, venues, and operators in Istanbul.
+Private, operational, premium. Dark club lighting: near-black surfaces, rose-to-violet brand gradient, serif only for brand moments.
 
 ## Visual direction
 
-- Dense but calm layouts
-- 8px corner radius
-- Off-white operational surfaces balanced with emerald, aubergine, blue, gold, and tomato accents
-- Serif display type only for brand moments and priority offer titles
-- System SF icons for actions, categories, status, proof, admin, and venue operations
+- OLED black base (`#000000`), not cream paper
+- 16px card radius, 12px mark, pill 9999
+- Rose `#FF2D78` is the primary accent (CTA, featured, brand start)
+- Violet `#8B5CF6` is the secondary accent (brand end, info)
+- Emerald and tomato are reserved for success and error
 - No decorative blob backgrounds
-- Cards only for discrete tools, offers, tasks, and repeated records
+- Cards for discrete tools, offers, tasks, and records
 
 ## Core colors
 
-- Ink: `#15171A`
-- Graphite: `#2C3036`
-- Surface: `#F4F1EA`
-- Cool surface: `#EEF3F4`
-- Emerald: `#0E7C66`
-- Aubergine: `#5C315E`
-- Gold: `#C69A32`
-- Rose: `#B85C7A`
-- Tomato: `#D25D3D`
-- Blue: `#316D9E`
+| Token | Hex | Use |
+|-------|-----|-----|
+| Ink | `#F5F5F7` | Primary text on dark |
+| Graphite | `#C8C8CC` | Secondary text |
+| Muted | `#8E8E93` | Captions |
+| Surface | `#000000` | Screen background |
+| Surface cool | `#07070A` | Alternate base |
+| Panel | `#121214` | Cards / sheets |
+| Panel elevated | `#1A1A1E` | Nested surfaces |
+| Border | `rgba(255,255,255,0.08)` | Hairline |
+| Rose | `#FF2D78` | Brand / CTA / featured |
+| Aubergine | `#8B5CF6` | Brand end / info |
+| Gold | `#FF2D78` | Alias of rose (legacy name) |
+| Blue | `#8B5CF6` | Alias of aubergine (legacy name) |
+| Emerald | `#34D399` | Success / confirmed only |
+| Tomato | `#FF6B6B` | Error / destructive only |
+
+## Gradient
+
+- Horizontal brand: `#FF2D78` → `#8B5CF6`
+- Vertical brand: `#FF2D78` → `#8B5CF6` → `#4C1D95`
 
 ## Components
 
-- `MarviScreen`: shared screen background
-- `BrandMark`: reusable in-app logo mark
-- `BrandLockup`: app identity header
-- `MarviCard`: primary content container
-- `StatusPill`: compact state/category label
-- `InfoBadge`: compact metadata label for date, time, capacity, and priority
-- `MetricTile`: dashboard metric tile
-- `PrimaryActionButton`: main CTA
-- `SecondaryActionButton`: secondary CTA
-- `ProgressBar`: capacity and completion display
+- `MarviScreen`: OLED background + faint brand wash
+- `BrandMark` / `BrandLockup`: identity
+- `MarviCard`: `panel` fill, 16px radius
+- `StatusPill`: compact state label
+- `InfoBadge`: date, time, capacity, priority
+- `MetricTile`: dashboard metric — live counts only, never invented reach
+- `PrimaryActionButton`: rose fill
+- `SecondaryActionButton`: panel + border
 
-## Current product surfaces
+## Product surfaces
 
-- Onboarding
-- Creator Discover
-- Offer Detail
-- Bookings and proof
+- Onboarding (18+ confirmation stored as `age_confirmed_at`)
+- Discover (paid Featured carousel from `featured_until`)
+- Offer detail, bookings, proof
 - Inbox
-- Profile and settings
-- Venue Studio
-- Campaign Builder
-- Admin Control
-
-## Asset notes
-
-- App icon: `MarviSociety/Resources/Assets.xcassets/AppIcon.appiconset/MarviIcon.png`
-- Brand asset: `MarviSociety/Resources/Assets.xcassets/BrandMark.imageset/BrandMark.png`
+- Profile (in-app safety report)
+- Venue Studio + Boost CTA to web billing
+- Admin queue, leads, safety
+- Web marketing `/pricing`, `/cookies`, portal `/portal/billing`
