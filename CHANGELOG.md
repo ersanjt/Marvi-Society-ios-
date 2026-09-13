@@ -1,3 +1,11 @@
+## [1.5.4] - 2026-09-01
+
+Venue billing + Featured Boost, inbox/push for follows/DMs/comments, 18+ onboarding copy, and paid Featured date parsing.
+
+- iOS 1.5.4 (103) · Android 1.9.13 (59)
+- Migration head: `20260831020001_venue_billing_safety_and_trust`
+- Web: `/pricing`, `/cookies`, portal billing, Stripe Checkout (code on `main`; live WHM still needs redeploy)
+
 ## [1.5.3] - 2026-08-13
 
 Submit 1.5.3 (79) to App Review for public App Store release

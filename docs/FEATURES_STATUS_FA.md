@@ -1,4 +1,4 @@
-# وضعیت همه بخش‌ها — Marvi Society (ژوئیه ۲۰۲۶)
+# وضعیت همه بخش‌ها — Marvi Society (۱۳ سپتامبر ۲۰۲۶)
 
 اجرای تست خودکار:
 
@@ -24,7 +24,7 @@ npm run verify:all
 | تأیید ادمین (hard gate) | ✅ |
 | Instagram یا TikTok + DM verify اختیاری | ✅ |
 | Inbox | ✅ |
-| TestFlight | ✅ **1.4.7 (44)** |
+| TestFlight | ✅ **1.5.4 (103)** در ریپو |
 
 ### iOS — Venue / Admin
 | بخش | وضعیت |
@@ -39,14 +39,14 @@ npm run verify:all
 | Onboarding + gates (admin / social) | ✅ |
 | Google Sign-In (Custom Tabs + PKCE) | ✅ |
 | Discover / Bookings / Community / Profile | ✅ |
-| AAB آماده Play | ✅ **1.4.8 (39)** در `release/google-play/` |
+| AAB آماده Play | کد **1.9.13 (59)**؛ AAB روی دیسک هنوز **1.9.7 (53)** |
 | آپلود عکس proof + آواتار | ✅ |
-| نقشه / push کامل | ⏳ parity بعدی |
+| نقشه / push کامل | ✅ کلاینت؛ APNs سرور ⏳ |
 
 ### وب
 | بخش | وضعیت |
 |-----|--------|
-| marvisociety.com — marketing | ✅ |
+| marvisociety.com — marketing | ✅ زنده؛ `/pricing` و `/cookies` در کد ✅ ولی روی WHM هنوز 404 |
 | Portal + Admin | ✅ |
 | `/auth/callback` + `/auth/reset-password` | ✅ |
 | `/auth/ios-callback` | ✅ (deep link به اپ) |
@@ -55,9 +55,9 @@ npm run verify:all
 ### Backend (Supabase)
 | بخش | وضعیت |
 |-----|--------|
-| Offers زنده | ✅ |
-| Resend / send-email | ✅ (`resendConfigured: true`) |
-| Migration head | ✅ `20260630000024_soften_social_verify_accept_gate` |
+| Offers زنده | ⚠ anon health check خالی است — در Supabase چک شود |
+| Resend / send-email | ✅ (آخرین وضعیت ثبت‌شده) |
+| Migration head | ✅ `20260831020001_venue_billing_safety_and_trust` (81) |
 
 ---
 
@@ -78,10 +78,10 @@ npm run verify:all
 | بخش | راه‌حل |
 |-----|--------|
 | آپلود AAB به Play | دستی در Console یا `play-service-account.json` + `npm run publish:android` |
-| Deploy وب WHM (`/invite`) | `npm run web:deploy` روی سرور |
+| Deploy وب WHM (`/pricing` + `/cookies`) | SSH key برای `root@92.205.182.143` یا اجرای اسکریپت داخل WHM Terminal |
 | Push سرور (APNs) | secrets + `send-push` deploy |
 | Auth templates Dashboard | `SUPABASE_ACCESS_TOKEN` + `npm run email:apply-auth-templates` |
-| Android map / photo / push | parity فاز بعد |
+| Android map / photo / push کلاینت | ✅ — باقی‌مانده فقط APNs سرور |
 
 ---
 

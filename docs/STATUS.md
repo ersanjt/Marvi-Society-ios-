@@ -2,12 +2,15 @@
 
 Single source of truth for dual-platform readiness. Versions also live in [`release/manifest.json`](../release/manifest.json).
 
+**Last reviewed:** 2026-09-13
+
 | Surface | Version | Status |
 |---------|---------|--------|
-| **iOS** | 1.5.1 (51) | Live on App Store; establishment wizard + booking integrity |
-| **Android** | 1.9.7 (53) | First-class Compose client; Play public listing pending; internal/closed track ready after AAB |
-| **Web** | 0.2.0 | Marketing + portal + admin on marvisociety.com |
-| **Database** | head `20260809164025_harden_function_execution_and_search_path` (50 migrations) | Applied and verified on Production; Security Advisor: 0 errors |
+| **iOS** | 1.5.4 (103) | Repo + Xcode 26.5 ready; last GitHub sync 2026-09-01. TestFlight upload needs a valid ASC session. |
+| **Android** | 1.9.13 (59) | Compose client in repo; signed keystore present locally. Last packaged AAB on disk is **1.9.7 (53)** — Play still needs a newer bundle + closed testers. |
+| **Web (repo)** | 1.5.4 code on `main` | Marketing, portal, admin, `/pricing`, `/cookies`, Stripe billing. |
+| **Web (live)** | older WHM build | [marvisociety.com](https://marvisociety.com) is up (`/api/health` ok) but **not redeployed** after the 2026-08-31 billing commit. `/pricing` and `/cookies` are **404** in production. `/.well-known/assetlinks.json` is 200. |
+| **Database** | head `20260831020001_venue_billing_safety_and_trust` (81 migrations) | Combined SQL updated 2026-09-01; Supabase CLI linked. Public anon health check currently returns empty live offers (RLS and/or no live campaigns). |
 
 ## Parity checklist (creator + venue)
 
@@ -21,18 +24,27 @@ Single source of truth for dual-platform readiness. Versions also live in [`rele
 | Venue establishment wizard (org → brand → establishment) | Yes | Yes |
 | In-app account delete | Yes | Yes |
 | Session refresh on 401 | Yes | Yes |
+| 18+ onboarding + legal | Yes | Yes |
+| Safety reports | Yes (schema + clients) | Yes |
 
-## Ops blockers (need your login)
+## What is healthy right now
 
-1. **Xcode.app** — not installed on this Mac (only Command Line Tools); iOS archive/TestFlight needs full Xcode or macOS CI.
-2. **Google Play upload key** — the existing release keystore is not present locally; version 1.9.7 (53) cannot be uploaded until the key is restored or an official upload-key reset is completed.
-3. **Google Play production access** — requires at least 12 opted-in closed-test users for 14 days; the console currently shows 0 testers.
-4. **GitHub publish** — local branch is ready, but GitHub CLI is not installed/authenticated, so push + CI + draft PR are pending.
-5. **Web deployment** — deploy the updated `assetlinks.json`; the live URL remains 404 until the web release reaches production.
-6. Set `SUPABASE_SERVICE_ROLE_KEY` in the production web environment for admin/delete server paths.
+- `main` is aligned with `origin/main` at `4b35301` (2026-09-01).
+- Live site homepage, legal (`/privacy`, `/terms`, `/community-guidelines`), portal login, invite, demo, FAQ, App Links JSON, and `/api/health` (`status: ok`, Supabase configured).
+- Local toolchain: Xcode 26.5, Android Studio, JDK 17, Node 22, iOS 26.5 simulators, Android AVD `Marvi_API35`, Apple Development cert, ASC `.p8` at `~/.appstoreconnect/private_keys/`.
+- Android upload keystore: `apps/android/marvi-release.jks` + `keystore.properties`.
 
-### Local artifacts produced this session
+## Ops blockers (need your login / a deploy)
 
-- Android debug APK: `release/android-debug/app-debug-1.9.7.apk` (BUILD SUCCESSFUL)
+1. **Production web is stale** — run `npm run web:deploy` (SSH to WHM) so `/pricing`, `/cookies`, billing, and the Pricing nav go live. GitHub Actions deploy targets Vercel and skips when `VERCEL_TOKEN` is unset; live traffic is WHM.
+2. **GitHub CLI token expired** — `gh auth refresh -h github.com` (or `gh auth login`). Until then, push/CI/PRs from this Mac will fail.
+3. **Local web env** — `apps/web/.env.local` was missing; a placeholder copy of `.env.example` is in place. Replace `your-anon-key` / service role with the real Supabase values (same project as iOS `Secrets.xcconfig`) before local portal/admin work.
+4. **Google Play public listing** — still blocked on ≥12 opted-in closed testers for 14 days (last recorded: 0). Newest repo version is 1.9.13 (59); upload a fresh AAB after testers exist.
+5. **Health check “empty offers”** — `npm run health` cannot see live `offers` / `offers_public` / `venue_profiles` with the anon key. Confirm in Supabase whether campaigns are live or RLS/grants hide them.
+6. **Homebrew** — App Studio doctor still wants a one-time Homebrew install (password).
+
+## Local artifacts
+
+- Android signed AAB (older): `release/google-play/app-release-1.9.7-53.aab`
 - Toolchain: `.tools/node`, `.tools/bin/supabase`, `.tools/jdk`, `.tools/android-sdk`
-- Local configs (gitignored): `apps/ios/Config/Secrets.xcconfig`, `apps/android/local.properties`, `apps/web/.env.local`
+- Local configs (gitignored): `apps/ios/Config/Secrets.xcconfig`, `apps/android/local.properties`, `apps/android/marvi-release.jks`, `apps/web/.env.local`
