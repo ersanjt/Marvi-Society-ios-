@@ -38,6 +38,8 @@
     "rollback": "bash scripts/release/rollback.sh",
     "release": "bash scripts/release/record-release.sh",
     "setup:hooks": "bash scripts/setup-githooks.sh",
-    "ops": "bash scripts/marvi"
+    "ops": "bash scripts/marvi",
+    "selfhost:schema": "bash scripts/selfhost/apply-schema.sh",
+    "selfhost:dump": "bash scripts/selfhost/dump-supabase.sh"
   }
 }

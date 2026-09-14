@@ -93,6 +93,9 @@ coverage/
 release/logs/
 .marvi/local.json
 
+# Self-hosted Postgres dumps (may contain user PII)
+infra/selfhost/dumps/
+
 # Local toolchains
 .tools/
 release/android-debug/

@@ -153,6 +153,28 @@ Full playbook: `npm run rollback`
 
 ---
 
+## Self-hosted Postgres (leaving Supabase cloud)
+
+Marvi’s schema is **PostgreSQL** (RLS, RPC, arrays, UUID). Do not move it to cPanel MySQL/MariaDB.
+
+On the WHM VPS as root:
+
+```bash
+bash scripts/selfhost/install-postgres-whm.sh
+bash scripts/selfhost/apply-schema.sh
+```
+
+Dump live Supabase (needs Database password from the dashboard), copy `infra/selfhost/dumps/` to the VPS, then:
+
+```bash
+PGPASSWORD='…' bash scripts/selfhost/dump-supabase.sh
+bash scripts/selfhost/restore-dump.sh
+```
+
+Apps still talk to Supabase Auth/Storage until the API cutover. Postgres on the VPS is the data plane first.
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
