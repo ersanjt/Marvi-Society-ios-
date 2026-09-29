@@ -155,23 +155,37 @@ Full playbook: `npm run rollback`
 
 ## Self-hosted Postgres (leaving Supabase cloud)
 
-Marvi’s schema is **PostgreSQL** (RLS, RPC, arrays, UUID). Do not move it to cPanel MySQL/MariaDB.
+Marvi’s schema is **PostgreSQL 15+** (RLS, RPC, arrays, `security_invoker` views). Do not move it to cPanel MySQL/MariaDB, and do not use the distro’s default PostgreSQL on AlmaLinux/CentOS (10–13).
+
+Prove it locally first (throwaway PG 17 cluster, no server touched):
+
+```bash
+npm run selfhost:test   # 81 migrations ×2, booking/RLS smoke test, dump→restore roundtrip
+```
 
 On the WHM VPS as root:
 
 ```bash
-bash scripts/selfhost/install-postgres-whm.sh
-bash scripts/selfhost/apply-schema.sh
+bash scripts/selfhost/install-postgres-whm.sh   # PGDG PostgreSQL 17, localhost only, /etc/marvi/postgres.env
+bash scripts/selfhost/apply-schema.sh           # safe to re-run; tracks versions
 ```
 
-Dump live Supabase (needs Database password from the dashboard), copy `infra/selfhost/dumps/` to the VPS, then:
+Dump live Supabase on the Mac (Database password from Dashboard → Project Settings → Database), copy the data file to the VPS, restore into the empty schema:
 
 ```bash
-PGPASSWORD='…' bash scripts/selfhost/dump-supabase.sh
-bash scripts/selfhost/restore-dump.sh
+PGPASSWORD='…' npm run selfhost:dump
+# if the pooler says "tenant/user … not found", use the direct connection string instead:
+SUPABASE_DB_URL='postgresql://postgres:…@db.gaswjuvyzliislqrljof.supabase.co:5432/postgres' npm run selfhost:dump
+bash scripts/selfhost/restore-dump.sh infra/selfhost/dumps/data-latest.sql
 ```
 
-Apps still talk to Supabase Auth/Storage until the API cutover. Postgres on the VPS is the data plane first.
+What moves and what does not yet:
+
+| Moves with the dump | Still on Supabase |
+|---------------------|-------------------|
+| `public` + `private` tables, `auth.users`, `auth.identities` (password hashes, Apple/Google links) | Login API (GoTrue), sessions/refresh tokens, Storage files (proof screenshots, venue media), Edge Functions (email, push, delete account) |
+
+Apps still talk to Supabase until the API cutover (PostgREST + GoTrue + file storage on the VPS). Emails queued on the VPS stay `pending` because `pg_net` is stubbed.
 
 ---
 

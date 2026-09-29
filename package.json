@@ -40,6 +40,7 @@
     "setup:hooks": "bash scripts/setup-githooks.sh",
     "ops": "bash scripts/marvi",
     "selfhost:schema": "bash scripts/selfhost/apply-schema.sh",
-    "selfhost:dump": "bash scripts/selfhost/dump-supabase.sh"
+    "selfhost:dump": "bash scripts/selfhost/dump-supabase.sh",
+    "selfhost:test": "bash scripts/selfhost/test-local.sh"
   }
 }

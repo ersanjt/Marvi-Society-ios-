@@ -10,7 +10,7 @@ Single source of truth for dual-platform readiness. Versions also live in [`rele
 | **Android** | 1.9.13 (59) | Compose client in repo; signed keystore present locally. Last packaged AAB on disk is **1.9.7 (53)** — Play still needs a newer bundle + closed testers. |
 | **Web (repo)** | 1.5.4 code on `main` | Marketing, portal, admin, `/pricing`, `/cookies`, Stripe billing. |
 | **Web (live)** | older WHM build | [marvisociety.com](https://marvisociety.com) is up (`/api/health` ok) but **not redeployed** after the 2026-08-31 billing commit. `/pricing` and `/cookies` are **404** in production. `/.well-known/assetlinks.json` is 200. |
-| **Database** | head `20260831020001_venue_billing_safety_and_trust` (81 migrations) | Combined SQL updated 2026-09-01; Supabase CLI linked. Public anon health check currently returns empty live offers (RLS and/or no live campaigns). Self-hosted Postgres path started (`scripts/selfhost/`) — apps still point at Supabase until dump + API cutover. |
+| **Database** | head `20260831020001_venue_billing_safety_and_trust` (81 migrations) | Combined SQL updated 2026-09-01; Supabase CLI linked. Public anon health check currently returns empty live offers (RLS and/or no live campaigns). Self-hosted PostgreSQL 17 path (`scripts/selfhost/`) verified locally with `npm run selfhost:test` (schema, booking/RLS smoke, dump→restore). Not yet installed on the VPS; apps still point at Supabase until the API cutover. |
 
 ## Parity checklist (creator + venue)
 
